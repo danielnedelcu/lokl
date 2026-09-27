@@ -5,7 +5,7 @@ export default {
   "composablesLocation": "app/composables",
   "pluginsLocation": "app/plugins",
   "utilsLocation": "app/utils",
-  "force": true,
+  "force": false,
   "useDefaultFilename": true,
   "packageManager": "npm"
 }

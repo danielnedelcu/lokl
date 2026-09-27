@@ -1,7 +1,16 @@
+<!--
+  lokl change (docs/frontend.md, WCAG 2.2 AA): the field is marked
+  aria-invalid when it has an error, and aria-describedby points at the error
+  text (or the hint when there's no error), each of which now has an id, so
+  screen readers announce it with the field. Keep this if the component
+  is re-added with the ui-thing CLI.
+-->
 <template>
   <div :class="styles({ class: normalizeClass(props.class) || undefined })">
     <UiCheckbox
       :id="inputId"
+      :aria-invalid="!!errorMessage || undefined"
+      :aria-describedby="describedBy"
       v-bind="$attrs"
       :icon="icon"
       :value="value"
@@ -21,6 +30,7 @@
         <slot name="hint" :error-message="errorMessage" :checked="checked">
           <motion.p
             v-if="hint && !errorMessage"
+            :id="`${inputId}-hint`"
             :variants
             initial="initial"
             exit="initial"
@@ -34,6 +44,7 @@
         <slot name="errorMessage" :error-message="errorMessage" :checked="checked">
           <motion.p
             v-if="errorMessage"
+            :id="`${inputId}-error`"
             :variants
             initial="initial"
             exit="initial"
@@ -80,6 +91,10 @@
   });
 
   const inputId = props.id || useId();
+  // The error when there is one, otherwise the hint (lokl change, see top of file).
+  const describedBy = computed(() =>
+    errorMessage.value ? `${inputId}-error` : props.hint ? `${inputId}-hint` : undefined,
+  );
 
   const { errorMessage, checked, handleChange } = useField(
     () => props.name || inputId,

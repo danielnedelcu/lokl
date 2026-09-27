@@ -156,7 +156,7 @@ async function move(kind: Kind, index: number, direction: -1 | 1) {
         <EmptyState
           v-if="!pending && !ofKind(k.value).length"
           icon="lucide:tags"
-          :title="`No ${k.plural} categories yet`"
+          :title="`No ${k.label} categories yet`"
           :description="`Add the first one so providers can file their ${k.plural}.`"
         />
         <UiCard v-else class="py-0">

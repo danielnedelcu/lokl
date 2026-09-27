@@ -2,8 +2,26 @@
 import { payoutSetupOf } from "@repo/types";
 
 definePageMeta({ layout: "dashboard" });
+useSeoMeta({ title: "Dashboard" });
 
+const supabase = useSupabaseClient();
 const { data: provider } = await useProvider();
+
+// Step 3 is done once any of the provider's listings is live or submitted.
+const { data: hasListedSomething } = await useAsyncData(
+  "has-live-or-submitted-listing",
+  async () => {
+    if (!provider.value) return false;
+    const { count, error } = await supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("provider_id", provider.value.id)
+      .in("status", ["live", "submitted"]);
+    if (error) throw error;
+    return (count ?? 0) > 0;
+  },
+  { watch: [provider] },
+);
 
 const steps = computed(() => [
   { label: "Set up your business profile", to: "/dashboard/settings", done: !!provider.value },
@@ -12,8 +30,7 @@ const steps = computed(() => [
     to: "/dashboard/payouts",
     done: !!provider.value && payoutSetupOf(provider.value) === "ready",
   },
-  // TODO: mark done once listings exist.
-  { label: "Publish your first service or experience", to: "/dashboard/services", done: false },
+  { label: "Create your first listing", to: "/dashboard/services", done: !!hasListedSomething.value },
 ]);
 </script>
 

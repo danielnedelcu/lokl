@@ -31,7 +31,9 @@ If the ui-thing CLI can't run inside the layer, install into each app instead an
 1. Add with the CLI, from the folder where ui-thing is set up: `npx ui-thing@latest add <name>`.
 2. Run `npx nuxt prepare` in each app and restart the TypeScript server, so the new component's types are picked up.
 3. Commit the added files as they came from the CLI, before changing anything. The CLI reinstalls `yup` and `@vee-validate/yup` whenever it adds a vee-validate component; no component uses them, so remove them after each add (`npm uninstall yup @vee-validate/yup -w @repo/ui`). Forms use zod.
-4. Make lokl-specific changes in the component's variants (`tv()`), not with one-off classes at each call site. Leave a short comment at the top of the file saying what was changed and why, so a later re-add doesn't silently undo it.
+4. Check that the CLI didn't rewrite a file we already have. When a new component depends on an existing one, `add` can overwrite it and silently drop lokl's changes (it rewrote `Button.vue` and removed the touch sizes). `packages/ui/ui-thing.config.ts` sets `force: false` to prevent this, but still run `git diff --name-only -- packages/ui/app/components/Ui` after every add, and restore any changed existing file with `git checkout HEAD -- <file>`.
+5. Replace any `~/` import in a new component with a relative path. In a layer, `~` points at the app extending it, so `~/components/Ui/…` isn't found (AlertDialog's Action and Cancel needed this).
+6. Make lokl-specific changes in the component's variants (`tv()`), not with one-off classes at each call site. Leave a short comment at the top of the file saying what was changed and why, so a later re-add doesn't silently undo it.
 
 Never hand-copy a component from the ui-thing website or another project.
 

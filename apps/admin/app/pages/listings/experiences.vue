@@ -6,8 +6,8 @@
     />
     <EmptyState
       icon="lucide:compass"
-      title="No experiences to review"
-      description="Submitted experiences will queue here for approval."
+      title="The review queue is coming soon"
+      description="Submitted Experiences will appear here, oldest first, for you to approve or send back. Some may already be waiting."
     />
   </div>
 </template>

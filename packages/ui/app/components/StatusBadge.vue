@@ -6,6 +6,14 @@
     provider: { active: "Active", suspended: "Suspended" },
     // Admin reference lists (cities, service areas, categories).
     record: { active: "Active", inactive: "Inactive" },
+    // Listings: plain words, not the database's status names.
+    listing: {
+      draft: "Draft",
+      submitted: "In review",
+      live: "Live",
+      rejected: "Needs changes",
+      unpublished: "Taken down",
+    },
   } as const;
 
   type Kind = keyof typeof labels;
@@ -20,6 +28,11 @@
     "provider:suspended": "destructive",
     "record:active": "outline",
     "record:inactive": "secondary",
+    "listing:draft": "outline",
+    "listing:submitted": "secondary",
+    "listing:live": "default",
+    "listing:rejected": "destructive",
+    "listing:unpublished": "secondary",
   };
 
   const label = computed(

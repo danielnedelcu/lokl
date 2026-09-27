@@ -1,3 +1,8 @@
+<!--
+  lokl change: imports Button with a relative path. In a Nuxt layer, "~"
+  points at the app extending the layer, so "~/components/Ui/Button.vue"
+  isn't found. Keep this if the component is re-added with the ui-thing CLI.
+-->
 <template>
   <AlertDialogAction
     data-slot="alert-dialog-action"
@@ -15,7 +20,7 @@
   import type { AlertDialogActionProps } from "reka-ui";
   import { normalizeClass } from "vue";
 
-  import { buttonStyles } from "~/components/Ui/Button.vue";
+  import { buttonStyles } from "../Button.vue";
 
   const props = withDefaults(
     defineProps<
