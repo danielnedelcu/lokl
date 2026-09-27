@@ -104,6 +104,8 @@ user id is `user.sub`, not `user.id`.
   signature-verified webhook. Never from request input.
 - Stripe account creation passes an idempotency key, so a retry or double
   click can't create a second account.
+- Idempotency keys must not be fixed per record. Include a time window or
+  attempt ID, because Stripe replays a stored error for 24 hours.
 - Return and refresh URLs come from `runtimeConfig.public.siteUrl`, never from
   the request's Host header.
 

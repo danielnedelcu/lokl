@@ -69,6 +69,7 @@ Each step depends on the ones before it.
 | Product name, domain, brand | Not set | Launch |
 | Sales contractor's commission | Flat bonus, revenue override, or hybrid; what counts as "signed" | Before outreach |
 | How much admin to build before launch | Full now, or minimal + the Supabase table editor | Ongoing |
+| Stripe Accounts v2 | Stripe's SDK recommends Accounts v2 over the current `accounts.create({ type: "express" })` (v1), which still works | Later; before launch at the latest |
 
 ## Loose ends
 
