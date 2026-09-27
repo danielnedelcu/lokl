@@ -126,6 +126,11 @@ user id is `user.sub`, not `user.id`.
 
 - `.env` files are never committed; `.env.example` lists what each app needs.
 - Never paste keys or `.env` contents into chats, docs or commits.
+- Never print values from any `.env` file or connection string, including in
+  checks or diagnostics; report only whether a value is present and has the
+  right shape. Scrub secrets from command output before showing it, and
+  don't rely on a pattern to hide a value: a quoted or unexpected format can
+  slip past it.
 - Treat provider and customer personal details as sensitive. Keep them out of
   logs, test fixtures and docs.
 
