@@ -7,26 +7,33 @@ Last updated: 2026-09-27. Update this when the board changes.
 lokl is leaving the Supabase project it shared with the blog. Nothing from
 the old project's dashboard carries over; redo each setting in the new one.
 
-- [ ] **Create the project and update both apps' `.env` files**:
+Status 2026-09-27: done except the old project's cleanup. The new project has
+1 admin, and the provider walkthrough passed there. The old project's SMTP is
+off, lokl's test logins and the old Resend key are deleted, and the project is
+renamed. But lokl's table, functions and migration row are still in it.
+
+- [x] **Create the project and update both apps' `.env` files**:
       `NUXT_PUBLIC_SUPABASE_URL`, `NUXT_PUBLIC_SUPABASE_KEY`,
       `NUXT_SUPABASE_SECRET_KEY` in `apps/website/.env` and `apps/admin/.env`.
 - [x] **Relink the CLI and push the schema.** `npx supabase link --project-ref
       <new project id>`, then approve `npm run db:push`, which runs `db:test`,
       the push, `db:types` and `db:docs`.
-- [ ] **Auth → URL Configuration.** Site URL `http://localhost:3100`; redirect
+- [x] **Auth → URL Configuration.** Site URL `http://localhost:3100`; redirect
       URLs `http://localhost:3100/confirm` and `http://localhost:3101/confirm`.
-- [ ] **Auth → SMTP.** Custom SMTP through Resend: host `smtp.resend.com`,
+- [x] **Auth → SMTP.** Custom SMTP through Resend: host `smtp.resend.com`,
       port 465, username `resend`, password = a Resend API key, sender
       `lokl@innatetheory.com` (until the lokl domain is set up).
-- [ ] **Auth → Rate Limits.** Match the old project's email and sign-in
+- [x] **Auth → Rate Limits.** Match the old project's email and sign-in
       limits. The defaults are much lower until custom SMTP is on.
-- [ ] **Auth → Email Templates.** Copy over any templates you customised in
+- [x] **Auth → Email Templates.** Copy over any templates you customised in
       the old project (magic link, confirm signup).
-- [ ] **Admin role.** Sign in once at `localhost:3101/login`, then run the SQL
-      in "Make yourself admin" below in the new project's SQL Editor.
-- [ ] **`TBLS_DSN`** in the root `.env`: the new project's Session pooler
+- [x] **Admin role.** Create your login by signing in once on the website
+      (`localhost:3100/login`); the admin app never creates accounts. Then run
+      the SQL in "Make yourself admin" below in the new project's SQL Editor,
+      and sign in at `localhost:3101/login`.
+- [x] **`TBLS_DSN`** in the root `.env`: the new project's Session pooler
       connection string.
-- [ ] **Re-run the provider walkthrough.** Logins and providers don't move, so
+- [x] **Re-run the provider walkthrough.** Logins and providers don't move, so
       sign up again. The old test providers' Stripe accounts in the Lokl
       sandbox are orphaned; delete them under Connect → Accounts if you like.
 - [ ] **Clean up the old project** with `scripts/cleanup-old-supabase-project.sql`,
@@ -49,8 +56,9 @@ These need Daniel, not Claude.
       Configuration: Site URL `http://localhost:3100`; redirect URLs
       `http://localhost:3100/confirm` and `http://localhost:3101/confirm`
       (remove the old 3000 and 3002 ones).
-- [x] **Make yourself admin.** Sign in once at `localhost:3101/login`, then in
-      the SQL Editor: `update auth.users set raw_app_meta_data =
+- [x] **Make yourself admin.** Sign in once on the website
+      (`localhost:3100/login`) to create your login, since the admin app never
+      creates accounts. Then in the SQL Editor: `update auth.users set raw_app_meta_data =
       raw_app_meta_data || '{"role":"admin"}' where email = '<your email>';`
 - [x] **Walk the provider flow.** Sign in at `localhost:3100/login`, create a
       profile, **Set up payouts**, use Stripe's test-mode prefill. Expect
