@@ -1,0 +1,326 @@
+{
+  "name": "postgres",
+  "tables": [
+    {
+      "name": "public.providers",
+      "type": "BASE TABLE",
+      "comment": "A business or host that sells Services or Experiences. One per login (owner_id is unique). Never deleted: bookings and payouts will point here, so a provider is suspended instead.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "owner_id",
+          "type": "uuid",
+          "nullable": false,
+          "comment": "The login that owns and manages this provider. A user is a provider exactly when they own a row here. The login cannot be deleted while it owns a provider: suspend or anonymize the provider first."
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "nullable": false,
+          "comment": "Business or host name shown to customers."
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'active'::text",
+          "comment": "active or suspended. Only admins change it (service role); a suspended provider cannot use provider routes."
+        },
+        {
+          "name": "stripe_account_id",
+          "type": "text",
+          "nullable": true,
+          "comment": "The provider's Stripe Connect Express account. Created by the server on first payout setup."
+        },
+        {
+          "name": "stripe_details_submitted",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false",
+          "comment": "Copied from Stripe: the provider finished the onboarding form. Server-only."
+        },
+        {
+          "name": "stripe_charges_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false",
+          "comment": "Copied from Stripe: payments can be made to this provider. Server-only."
+        },
+        {
+          "name": "stripe_payouts_enabled",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false",
+          "comment": "Copied from Stripe: Stripe can pay out to the provider's bank. Server-only."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "providers_pkey",
+          "def": "CREATE UNIQUE INDEX providers_pkey ON public.providers USING btree (id)",
+          "table": "public.providers",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "providers_owner_id_key",
+          "def": "CREATE UNIQUE INDEX providers_owner_id_key ON public.providers USING btree (owner_id)",
+          "table": "public.providers",
+          "columns": [
+            "owner_id"
+          ]
+        },
+        {
+          "name": "providers_stripe_account_id_key",
+          "def": "CREATE UNIQUE INDEX providers_stripe_account_id_key ON public.providers USING btree (stripe_account_id)",
+          "table": "public.providers",
+          "columns": [
+            "stripe_account_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "providers_city_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(city) \u003c= 120))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "city"
+          ]
+        },
+        {
+          "name": "providers_display_name_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(display_name) \u003e= 2) AND (char_length(display_name) \u003c= 120)))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "display_name"
+          ]
+        },
+        {
+          "name": "providers_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['active'::text, 'suspended'::text])))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "providers_owner_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+          "table": "public.providers",
+          "referenced_table": "auth.users",
+          "columns": [
+            "owner_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "providers_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "providers_owner_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (owner_id)",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "owner_id"
+          ]
+        },
+        {
+          "name": "providers_stripe_account_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (stripe_account_id)",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "stripe_account_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "providers_set_updated_at",
+          "def": "CREATE TRIGGER providers_set_updated_at BEFORE UPDATE ON public.providers FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "public.is_admin",
+      "return_type": "bool",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.set_updated_at",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    }
+  ],
+  "enums": [
+    {
+      "name": "auth.aal_level",
+      "values": [
+        "aal1",
+        "aal2",
+        "aal3"
+      ]
+    },
+    {
+      "name": "auth.code_challenge_method",
+      "values": [
+        "plain",
+        "s256"
+      ]
+    },
+    {
+      "name": "auth.factor_status",
+      "values": [
+        "unverified",
+        "verified"
+      ]
+    },
+    {
+      "name": "auth.factor_type",
+      "values": [
+        "phone",
+        "recovery_code",
+        "totp",
+        "webauthn"
+      ]
+    },
+    {
+      "name": "auth.oauth_authorization_status",
+      "values": [
+        "approved",
+        "denied",
+        "expired",
+        "pending"
+      ]
+    },
+    {
+      "name": "auth.oauth_client_type",
+      "values": [
+        "confidential",
+        "public"
+      ]
+    },
+    {
+      "name": "auth.oauth_registration_type",
+      "values": [
+        "dynamic",
+        "manual"
+      ]
+    },
+    {
+      "name": "auth.oauth_response_type",
+      "values": [
+        "code"
+      ]
+    },
+    {
+      "name": "auth.one_time_token_type",
+      "values": [
+        "confirmation_token",
+        "email_change_token_current",
+        "email_change_token_new",
+        "phone_change_token",
+        "reauthentication_token",
+        "recovery_token"
+      ]
+    },
+    {
+      "name": "realtime.action",
+      "values": [
+        "DELETE",
+        "ERROR",
+        "INSERT",
+        "TRUNCATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "name": "realtime.equality_op",
+      "values": [
+        "eq",
+        "gt",
+        "gte",
+        "ilike",
+        "imatch",
+        "in",
+        "is",
+        "isdistinct",
+        "like",
+        "lt",
+        "lte",
+        "match",
+        "neq"
+      ]
+    },
+    {
+      "name": "storage.buckettype",
+      "values": [
+        "ANALYTICS",
+        "STANDARD",
+        "VECTOR"
+      ]
+    }
+  ],
+  "driver": {
+    "name": "postgres",
+    "database_version": "PostgreSQL 17.6 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+    "meta": {
+      "current_schema": "public",
+      "search_paths": [
+        "\"\\$user\"",
+        "public",
+        "extensions"
+      ],
+      "dict": {
+        "Functions": "Stored procedures and functions"
+      }
+    }
+  }
+}
