@@ -30,7 +30,7 @@ If the ui-thing CLI can't run inside the layer, install into each app instead an
 
 1. Add with the CLI, from the folder where ui-thing is set up: `npx ui-thing@latest add <name>`.
 2. Run `npx nuxt prepare` in each app and restart the TypeScript server, so the new component's types are picked up.
-3. Commit the added files as they came from the CLI, before changing anything.
+3. Commit the added files as they came from the CLI, before changing anything. The CLI reinstalls `yup` and `@vee-validate/yup` whenever it adds a vee-validate component; no component uses them, so remove them after each add (`npm uninstall yup @vee-validate/yup -w @repo/ui`). Forms use zod.
 4. Make lokl-specific changes in the component's variants (`tv()`), not with one-off classes at each call site. Leave a short comment at the top of the file saying what was changed and why, so a later re-add doesn't silently undo it.
 
 Never hand-copy a component from the ui-thing website or another project.

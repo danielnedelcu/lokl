@@ -86,8 +86,9 @@ and "Payouts are set up". These came up along the way.
       from the lokl profile. Fixed: account creation now sends
       `business_profile.name`.
       Verify on the next test provider signup.
-- [ ] **City is free text** and accepted "Atanta". Decide during listings
-      design; probably a fixed list of cities or service areas.
+- [x] **City is free text** and accepted "Atanta". Decide during listings
+      design; probably a fixed list of cities or service areas. Fixed in build
+      step 1: providers pick from an admin-managed list of active cities.
 - [x] **Apps fall back to port 3000 silently** when their port is taken.
       Make each app fail to start instead. Fixed: each app's `dev` script runs
       `scripts/check-port.mjs` first.
@@ -123,14 +124,16 @@ Product steps 1 and 2 (categories and listings), from the approved design in
 `docs/design/categories-and-listings.md`. Each step is one migration plus
 tests, run through `db:test` before `db:push`.
 
-1. Cities and service areas, then the providers `city_id` change and the city picker.
+1. ~~Cities and service areas, then the providers `city_id` change and the city picker.~~
+   Done 2026-09-27 (`db3a133`); business profile walkthrough passed.
 2. Categories, plus the admin Categories and Cities pages.
 3. Listings, addresses and service areas, plus the provider Services and
    Experiences pages and the publish, submit and unlist routes.
 4. Photos and the storage bucket, plus the photo section of the editor.
 5. Experience sessions, plus the Sessions section.
 6. Admin Listings page and review queue, with the approve, reject, unpublish
-   and restore routes.
+   and restore routes. Also: deactivating a category or city needs a
+   confirmation that says how many live listings it will hide.
 
 ## Open decisions
 

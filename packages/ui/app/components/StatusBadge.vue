@@ -4,6 +4,8 @@
   const labels = {
     payouts: { not_started: "Not started", in_progress: "In progress", ready: "Ready" },
     provider: { active: "Active", suspended: "Suspended" },
+    // Admin reference lists (cities, service areas, categories).
+    record: { active: "Active", inactive: "Inactive" },
   } as const;
 
   type Kind = keyof typeof labels;
@@ -16,6 +18,8 @@
     "payouts:not_started": "outline",
     "provider:active": "outline",
     "provider:suspended": "destructive",
+    "record:active": "outline",
+    "record:inactive": "secondary",
   };
 
   const label = computed(

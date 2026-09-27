@@ -7,6 +7,7 @@
 | [public.providers](public.providers.md)         | 11      | A business or host that sells Services or Experiences. One per login (owner_id is unique). Never deleted: bookings and payouts will point here, so a provider is suspended instead.                                    | BASE TABLE |
 | [public.cities](public.cities.md)               | 9       | The places lokl operates. Admin-managed. Never deleted: providers and listings point here, so a city is deactivated instead.                                                                                           | BASE TABLE |
 | [public.service_areas](public.service_areas.md) | 8       | Neighborhoods or zip codes within a city. Where "I come to you" Services travel, and the public location label on listings. Admin-managed. Never deleted: listings will point here, so an area is deactivated instead. | BASE TABLE |
+| [public.categories](public.categories.md)       | 9       | Service and Experience categories. Flat and admin-managed; each listing belongs to one category of its own kind. Never deleted: listings will point here, so a category is deactivated instead.                        | BASE TABLE |
 
 ## Stored procedures and functions
 

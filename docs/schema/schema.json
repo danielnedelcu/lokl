@@ -496,6 +496,177 @@
           "def": "CREATE TRIGGER service_areas_set_updated_at BEFORE UPDATE ON public.service_areas FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
       ]
+    },
+    {
+      "name": "public.categories",
+      "type": "BASE TABLE",
+      "comment": "Service and Experience categories. Flat and admin-managed; each listing belongs to one category of its own kind. Never deleted: listings will point here, so a category is deactivated instead.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "comment": "service or experience. A listing can only use a category of its own kind."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "comment": "Shown to customers, e.g. Hair and beauty. 2 to 60 characters."
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "nullable": false,
+          "comment": "URL-safe identifier, unique within its kind, e.g. hair-and-beauty."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": true,
+          "comment": "Optional. Shown on the category page later. Up to 500 characters."
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true",
+          "comment": "Inactive categories are hidden everywhere public, and so are their listings."
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "nullable": false,
+          "default": "0",
+          "comment": "Display order within its kind, lowest first."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "categories_pkey",
+          "def": "CREATE UNIQUE INDEX categories_pkey ON public.categories USING btree (id)",
+          "table": "public.categories",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "categories_kind_slug_key",
+          "def": "CREATE UNIQUE INDEX categories_kind_slug_key ON public.categories USING btree (kind, slug)",
+          "table": "public.categories",
+          "columns": [
+            "kind",
+            "slug"
+          ]
+        },
+        {
+          "name": "categories_id_kind_key",
+          "def": "CREATE UNIQUE INDEX categories_id_kind_key ON public.categories USING btree (id, kind)",
+          "table": "public.categories",
+          "columns": [
+            "id",
+            "kind"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "categories_description_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(description) \u003c= 500))",
+          "table": "public.categories",
+          "referenced_table": "",
+          "columns": [
+            "description"
+          ]
+        },
+        {
+          "name": "categories_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['service'::text, 'experience'::text])))",
+          "table": "public.categories",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "categories_name_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(name) \u003e= 2) AND (char_length(name) \u003c= 60)))",
+          "table": "public.categories",
+          "referenced_table": "",
+          "columns": [
+            "name"
+          ]
+        },
+        {
+          "name": "categories_slug_check",
+          "type": "CHECK",
+          "def": "CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))",
+          "table": "public.categories",
+          "referenced_table": "",
+          "columns": [
+            "slug"
+          ]
+        },
+        {
+          "name": "categories_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.categories",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "categories_kind_slug_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (kind, slug)",
+          "table": "public.categories",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "slug"
+          ]
+        },
+        {
+          "name": "categories_id_kind_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (id, kind)",
+          "table": "public.categories",
+          "referenced_table": "",
+          "columns": [
+            "id",
+            "kind"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "categories_set_updated_at",
+          "def": "CREATE TRIGGER categories_set_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
     }
   ],
   "relations": [
