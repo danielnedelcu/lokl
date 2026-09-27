@@ -2,6 +2,39 @@
 
 Last updated: 2026-09-27. Update this when the board changes.
 
+## Move to lokl's own Supabase project
+
+lokl is leaving the Supabase project it shared with the blog. Nothing from
+the old project's dashboard carries over; redo each setting in the new one.
+
+- [ ] **Create the project and update both apps' `.env` files**:
+      `NUXT_PUBLIC_SUPABASE_URL`, `NUXT_PUBLIC_SUPABASE_KEY`,
+      `NUXT_SUPABASE_SECRET_KEY` in `apps/website/.env` and `apps/admin/.env`.
+- [x] **Relink the CLI and push the schema.** `npx supabase link --project-ref
+      <new project id>`, then approve `npm run db:push`, which runs `db:test`,
+      the push, `db:types` and `db:docs`.
+- [ ] **Auth → URL Configuration.** Site URL `http://localhost:3100`; redirect
+      URLs `http://localhost:3100/confirm` and `http://localhost:3101/confirm`.
+- [ ] **Auth → SMTP.** Custom SMTP through Resend: host `smtp.resend.com`,
+      port 465, username `resend`, password = a Resend API key, sender
+      `lokl@innatetheory.com` (until the lokl domain is set up).
+- [ ] **Auth → Rate Limits.** Match the old project's email and sign-in
+      limits. The defaults are much lower until custom SMTP is on.
+- [ ] **Auth → Email Templates.** Copy over any templates you customised in
+      the old project (magic link, confirm signup).
+- [ ] **Admin role.** Sign in once at `localhost:3101/login`, then run the SQL
+      in "Make yourself admin" below in the new project's SQL Editor.
+- [ ] **`TBLS_DSN`** in the root `.env`: the new project's Session pooler
+      connection string.
+- [ ] **Re-run the provider walkthrough.** Logins and providers don't move, so
+      sign up again. The old test providers' Stripe accounts in the Lokl
+      sandbox are orphaned; delete them under Connect → Accounts if you like.
+- [ ] **Clean up the old project** with `scripts/cleanup-old-supabase-project.sql`,
+      once the new one works. Replace `YOUR_EMAIL`, then run it in the OLD
+      project's SQL Editor. It removes only lokl's table, functions, migration
+      row and your admin role, and refuses to run anywhere without the blog's
+      `posts` table.
+
 ## Owner to-dos
 
 These need Daniel, not Claude.
