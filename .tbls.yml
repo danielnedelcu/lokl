@@ -1,0 +1,31 @@
+# tbls: generates docs/schema/ from the hosted database.
+# Run with: npm run db:docs (needs TBLS_DSN in the root .env)
+
+dsn: ${TBLS_DSN}
+
+docPath: docs/schema
+
+# Supabase carries many internal schemas; document only ours.
+exclude:
+  - auth.*
+  - storage.*
+  - realtime.*
+  - vault.*
+  - extensions.*
+  - graphql.*
+  - graphql_public.*
+  - pgsodium.*
+  - pgsodium_masks.*
+  - supabase_migrations.*
+  - net.*
+  - cron.*
+  - pgbouncer.*
+
+er:
+  format: svg
+  comment: true
+  distance: 1
+
+format:
+  adjust: true
+  sort: false
