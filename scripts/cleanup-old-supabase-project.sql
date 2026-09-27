@@ -13,7 +13,8 @@
 -- All-or-nothing: everything runs in one DO block, so if any check fails,
 -- nothing is changed.
 --
--- BEFORE RUNNING: replace YOUR_EMAIL below with your login's email.
+-- BEFORE RUNNING: in a COPY of this file (not the repo copy), replace YOUR_EMAIL
+-- with your login's email.
 
 do $$
 declare
@@ -25,7 +26,9 @@ begin
     raise exception 'Stopped: public.posts not found, so this is not the old shared project. Nothing was changed.';
   end if;
 
-  if v_admin_email = 'YOUR_EMAIL' then
+  -- Checks the value's shape, not the placeholder text, so a find-and-replace
+  -- of the placeholder can't also rewrite this check.
+  if starts_with(v_admin_email, 'YOUR_') or position('@' in v_admin_email) = 0 then
     raise exception 'Edit the script: set v_admin_email to your login''s email first.';
   end if;
 

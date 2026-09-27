@@ -7,10 +7,11 @@ Last updated: 2026-09-27. Update this when the board changes.
 lokl is leaving the Supabase project it shared with the blog. Nothing from
 the old project's dashboard carries over; redo each setting in the new one.
 
-Status 2026-09-27: done except the old project's cleanup. The new project has
-1 admin, and the provider walkthrough passed there. The old project's SMTP is
-off, lokl's test logins and the old Resend key are deleted, and the project is
-renamed. But lokl's table, functions and migration row are still in it.
+Status 2026-09-27: done. The new project has 1 admin, and the provider
+walkthrough passed there. In the old project, the cleanup script removed
+lokl's table, functions, migration row and admin role (verification query: all
+four counts 0). Its SMTP is off, lokl's test logins and the old Resend key are
+deleted, and the project is renamed.
 
 - [x] **Create the project and update both apps' `.env` files**:
       `NUXT_PUBLIC_SUPABASE_URL`, `NUXT_PUBLIC_SUPABASE_KEY`,
@@ -36,7 +37,7 @@ renamed. But lokl's table, functions and migration row are still in it.
 - [x] **Re-run the provider walkthrough.** Logins and providers don't move, so
       sign up again. The old test providers' Stripe accounts in the Lokl
       sandbox are orphaned; delete them under Connect → Accounts if you like.
-- [ ] **Clean up the old project** with `scripts/cleanup-old-supabase-project.sql`,
+- [x] **Clean up the old project** with `scripts/cleanup-old-supabase-project.sql`,
       once the new one works. Replace `YOUR_EMAIL`, then run it in the OLD
       project's SQL Editor. It removes only lokl's table, functions, migration
       row and your admin role, and refuses to run anywhere without the blog's
