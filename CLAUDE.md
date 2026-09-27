@@ -95,6 +95,9 @@ user id is `user.sub`, not `user.id`.
 
 ## Stripe-key boundary
 
+- The only Stripe test environment for this project is the **Lokl sandbox**
+  (`acct_1UKIdIEfG7OyQ6pv`). The Stripe organization has another sandbox;
+  never use its keys or create objects in it.
 - The Stripe secret key exists only on the website's server:
   `NUXT_STRIPE_SECRET_KEY` → `runtimeConfig.stripeSecretKey`, used through
   `useStripe()` in `apps/website/server/utils/stripe.ts`.

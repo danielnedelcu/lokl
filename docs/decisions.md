@@ -5,6 +5,7 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-09-27 | The only Stripe test environment for this project is the Lokl sandbox (`acct_1UKIdIEfG7OyQ6pv`); the organization's other sandbox must not be used | Keeps test accounts, payouts and keys in one known place |
 | 2026-09-27 | Logins that own a provider can't be deleted; suspend or anonymize the provider first | `providers.owner_id` is `on delete restrict`, so deleting a login can't silently remove a provider and, later, strand its bookings and payouts |
 | 2026-09-27 | Local Supabase ports moved to 55320–55329 (edge inspector 8084) | The Reserve's local stack uses the 5432x defaults; both can now run at once |
 | 2026-09-27 | Fixed dev ports: website 3100, admin 3101 | The Reserve uses 3000 and falls back to 3001; fixed ports keep auth redirect URLs stable |

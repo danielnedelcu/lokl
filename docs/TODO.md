@@ -4,25 +4,25 @@ Last updated: 2026-09-27. Update this when the board changes.
 
 ## Owner to-dos
 
-These need Daniel, not Claude. The first five unblock testing what's built.
+These need Daniel, not Claude.
 
-- [ ] **Link the Supabase project and apply the providers migration.** Run
+- [x] **Link the Supabase project and apply the providers migration.** Run
       `npx supabase login` and `npx supabase link --project-ref <project id>`,
       then approve `npm run db:push`. Alternatively, paste the migration into
       the SQL Editor, but then the CLI's migration history won't know it ran.
 - [ ] **Add `TBLS_DSN` to the root `.env`**: Supabase → Connect → Session
       pooler connection string. Needed for `db:docs`.
-- [ ] **Update Supabase auth URLs for the new ports.** Authentication → URL
+- [x] **Update Supabase auth URLs for the new ports.** Authentication → URL
       Configuration: Site URL `http://localhost:3100`; redirect URLs
       `http://localhost:3100/confirm` and `http://localhost:3101/confirm`
       (remove the old 3000 and 3002 ones).
-- [ ] **Make yourself admin.** Sign in once at `localhost:3101/login`, then in
+- [x] **Make yourself admin.** Sign in once at `localhost:3101/login`, then in
       the SQL Editor: `update auth.users set raw_app_meta_data =
       raw_app_meta_data || '{"role":"admin"}' where email = '<your email>';`
-- [ ] **Walk the provider flow.** Sign in at `localhost:3100/login`, create a
+- [x] **Walk the provider flow.** Sign in at `localhost:3100/login`, create a
       profile, **Set up payouts**, use Stripe's test-mode prefill. Expect
       "Ready" on the payouts page and the provider on the admin Providers page.
-- [ ] **Commit the work** once reviewed.
+- [x] **Commit the work** once reviewed.
 - [ ] **Pick a product name and domain**, needed for page titles (they show
       `%siteName` today), emails and Stripe branding.
 - [ ] **Register the Stripe webhook** before launch: production
@@ -33,6 +33,22 @@ These need Daniel, not Claude. The first five unblock testing what's built.
 - [ ] **Talk to an accountant about marketplace sales tax** before live
       payments. Georgia's marketplace facilitator rules may apply, and rules
       differ in every market.
+
+## Walkthrough findings (2026-09-27)
+
+The provider walkthrough passed: sign-in, business profile, Stripe onboarding,
+and "Payouts are set up". These came up along the way.
+
+- [ ] **Stripe doesn't get the business name.** Onboarding doesn't prefill it
+      from the provider's `display_name`, so the name in Stripe can differ
+      from the lokl profile.
+- [ ] **City is free text** and accepted "Atanta". Decide during listings
+      design; probably a fixed list of cities or service areas.
+- [ ] **Apps fall back to port 3000 silently** when their port is taken.
+      Make each app fail to start instead.
+- [ ] **The webhook listener hasn't been tested locally.** Test it before launch.
+- [ ] **Auth emails go through Resend from `lokl@innatetheory.com`.** Switch
+      to the lokl domain before launch.
 
 ## Build order
 
@@ -73,7 +89,6 @@ Each step depends on the ones before it.
 
 ## Loose ends
 
-- The signed-in flows (sign-in, profile, Stripe setup) have only been checked signed out.
 - The website lists `h3` v2 (pre-release) as a dependency; remove it unless it's intentional.
 - The machine runs Node 22.12; the repo's `engines` asks for 24 or later.
 - Neither dashboard has a mobile menu yet.
