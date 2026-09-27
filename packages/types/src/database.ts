@@ -14,9 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      cities: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          state: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          state: string
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          state?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       providers: {
         Row: {
-          city: string | null
+          city_id: string
           created_at: string
           display_name: string
           id: string
@@ -29,7 +65,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          city?: string | null
+          city_id: string
           created_at?: string
           display_name: string
           id?: string
@@ -42,7 +78,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          city?: string | null
+          city_id?: string
           created_at?: string
           display_name?: string
           id?: string
@@ -54,7 +90,56 @@ export type Database = {
           stripe_payouts_enabled?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "providers_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_areas: {
+        Row: {
+          active: boolean
+          city_id: string
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          city_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          city_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_areas_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

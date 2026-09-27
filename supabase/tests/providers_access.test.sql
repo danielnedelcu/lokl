@@ -2,7 +2,7 @@
 -- blocked case next to it, so a rule that silently stops blocking fails here.
 begin;
 \ir _helpers/users.psql
-select plan(21);
+select plan(31);
 
 -- Three people: two would-be providers and the platform admin.
 select tests.create_user('a@test.local') as a \gset
@@ -12,27 +12,28 @@ select tests.create_user('admin@test.local') as admin \gset
 -- 1. A provider can create their own record.
 select tests.authenticate_as(:'a');
 select lives_ok(
-  $$ insert into providers (owner_id, display_name, city) values (auth.uid(), 'A Tours', 'Atlanta') $$,
+  $$ insert into providers (owner_id, display_name, city_id)
+     values (auth.uid(), 'A Tours', (select id from cities where slug = 'atlanta')) $$,
   '1. a user can create their own provider'
 );
 
 -- 2. ...but not one owned by someone else.
 select tests.authenticate_as(:'b');
 select throws_ok(
-  format($$ insert into providers (owner_id, display_name) values (%L, 'Fake') $$, :'a'),
+  format($$ insert into providers (owner_id, display_name, city_id) values (%L, 'Fake', (select id from cities where slug = 'atlanta')) $$, :'a'),
   '42501', 'new row violates row-level security policy for table "providers"',
   '2. a user cannot create a provider owned by someone else'
 );
 
 -- 3. Stripe fields can't be set on insert, even on your own record.
 select throws_ok(
-  $$ insert into providers (owner_id, display_name, stripe_payouts_enabled) values (auth.uid(), 'B Co', true) $$,
+  $$ insert into providers (owner_id, display_name, city_id, stripe_payouts_enabled) values (auth.uid(), 'B Co', (select id from cities where slug = 'atlanta'), true) $$,
   '42501', 'permission denied for table providers',
   '3. a user cannot set Stripe fields when creating a provider'
 );
 
 -- 4. A provider sees only their own record.
-insert into providers (owner_id, display_name) values (auth.uid(), 'B Co');
+insert into providers (owner_id, display_name, city_id) values (auth.uid(), 'B Co', (select id from cities where slug = 'atlanta'));
 select is((select count(*)::int from providers), 1, '4. a provider sees only their own record');
 
 -- 5. A provider can't rename someone else's business. RLS hides the row, so
@@ -87,7 +88,7 @@ select is((select count(*)::int from providers), 2, '10. the admin sees all prov
 -- 11. One business per login.
 select tests.authenticate_as(:'b');
 select throws_ok(
-  $$ insert into providers (owner_id, display_name) values (auth.uid(), 'B Two') $$,
+  $$ insert into providers (owner_id, display_name, city_id) values (auth.uid(), 'B Two', (select id from cities where slug = 'atlanta')) $$,
   '23505', 'duplicate key value violates unique constraint "providers_owner_id_key"',
   '11. a user cannot create a second provider'
 );
@@ -144,6 +145,70 @@ select tests.create_user('c@test.local') as c \gset
 select lives_ok(
   format($$ delete from auth.users where id = %L $$, :'c'),
   '14c. a login without a provider can still be deleted'
+);
+
+-- 15. City: every provider has one, and it's a real city (the migration
+--     replaced the free-text column).
+select hasnt_column('public', 'providers', 'city', '15a. the free-text city column is gone');
+select col_not_null('public', 'providers', 'city_id', '15b. city_id is required');
+select fk_ok('public', 'providers', 'city_id', 'public', 'cities', 'id', '15c. city_id references cities');
+
+-- 16. A provider can't be created without a city...
+select tests.authenticate_as(:'b');
+select throws_ok(
+  $$ insert into providers (owner_id, display_name) values (auth.uid(), 'No City') $$,
+  '23502', 'null value in column "city_id" of relation "providers" violates not-null constraint',
+  '16. a provider cannot be created without a city'
+);
+
+-- 17. ...but can change their own city, since it's a profile field.
+select tests.clear_authentication();
+insert into cities (slug, name, state, timezone) values ('decatur', 'Decatur', 'GA', 'America/New_York');
+select tests.authenticate_as(:'a');
+select lives_ok(
+  $$ update providers set city_id = (select id from cities where slug = 'decatur') where owner_id = auth.uid() $$,
+  '17. a provider can change their own city'
+);
+
+-- 18. The city must be active when it's set or changed...
+select tests.clear_authentication();
+insert into cities (slug, name, state, timezone, active) values ('macon', 'Macon', 'GA', 'America/New_York', false);
+-- Look the id up as the runner: RLS hides inactive cities from providers, so
+-- a lookup inside the provider's update would find nothing.
+select id as macon from cities where slug = 'macon' \gset
+select tests.authenticate_as(:'a');
+select throws_ok(
+  format($$ update providers set city_id = %L where owner_id = auth.uid() $$, :'macon'),
+  '23514', 'Choose one of the listed cities.',
+  '18. a provider cannot move to an inactive city'
+);
+
+-- 19. ...including when a provider is created. The admin can see the
+--     inactive city, and is still refused.
+select tests.clear_authentication();
+select tests.create_user('d@test.local') as d \gset
+select throws_ok(
+  format($$ insert into providers (owner_id, display_name, city_id) values (%L, 'D Co', %L) $$, :'d', :'macon'),
+  '23514', 'Choose one of the listed cities.',
+  '19. a provider cannot be created in an inactive city'
+);
+
+-- 20. A provider whose city is deactivated later can still edit other fields,
+--     and can resave the same city.
+select tests.clear_authentication();
+update cities set active = false where slug = 'decatur';
+select tests.authenticate_as(:'a');
+select lives_ok(
+  $$ update providers set display_name = 'A Tours Decatur' where owner_id = auth.uid() $$,
+  '20a. a provider in a deactivated city can still rename their business'
+);
+select is(
+  (select display_name from providers where owner_id = auth.uid()), 'A Tours Decatur',
+  '20b. ...and the new name is saved'
+);
+select lives_ok(
+  $$ update providers set city_id = city_id, display_name = 'A Tours' where owner_id = auth.uid() $$,
+  '20c. ...and can resave the form with the same (deactivated) city'
 );
 
 select * from finish();

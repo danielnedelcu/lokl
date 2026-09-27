@@ -25,11 +25,6 @@
           "comment": "Business or host name shown to customers."
         },
         {
-          "name": "city",
-          "type": "text",
-          "nullable": true
-        },
-        {
           "name": "status",
           "type": "text",
           "nullable": false,
@@ -74,6 +69,12 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "now()"
+        },
+        {
+          "name": "city_id",
+          "type": "uuid",
+          "nullable": false,
+          "comment": "The city the provider operates in, picked from active cities. Replaces the old free-text city."
         }
       ],
       "indexes": [
@@ -100,19 +101,17 @@
           "columns": [
             "stripe_account_id"
           ]
+        },
+        {
+          "name": "providers_city_id_idx",
+          "def": "CREATE INDEX providers_city_id_idx ON public.providers USING btree (city_id)",
+          "table": "public.providers",
+          "columns": [
+            "city_id"
+          ]
         }
       ],
       "constraints": [
-        {
-          "name": "providers_city_check",
-          "type": "CHECK",
-          "def": "CHECK ((char_length(city) \u003c= 120))",
-          "table": "public.providers",
-          "referenced_table": "",
-          "columns": [
-            "city"
-          ]
-        },
         {
           "name": "providers_display_name_check",
           "type": "CHECK",
@@ -175,14 +174,356 @@
           "columns": [
             "stripe_account_id"
           ]
+        },
+        {
+          "name": "providers_city_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT",
+          "table": "public.providers",
+          "referenced_table": "public.cities",
+          "columns": [
+            "city_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
         }
       ],
       "triggers": [
+        {
+          "name": "providers_city_active",
+          "def": "CREATE TRIGGER providers_city_active BEFORE INSERT OR UPDATE OF city_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_check_city_active()"
+        },
         {
           "name": "providers_set_updated_at",
           "def": "CREATE TRIGGER providers_set_updated_at BEFORE UPDATE ON public.providers FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
       ]
+    },
+    {
+      "name": "public.cities",
+      "type": "BASE TABLE",
+      "comment": "The places lokl operates. Admin-managed. Never deleted: providers and listings point here, so a city is deactivated instead.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "nullable": false,
+          "comment": "URL-safe identifier, e.g. atlanta. Unique."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "comment": "Two-letter US state code, e.g. GA."
+        },
+        {
+          "name": "timezone",
+          "type": "text",
+          "nullable": false,
+          "comment": "IANA time zone name, e.g. America/New_York. Experience session times are entered and shown in it."
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true",
+          "comment": "Inactive cities are hidden everywhere public and in the provider city picker."
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "nullable": false,
+          "default": "0",
+          "comment": "Display order in lists and pickers, lowest first."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "cities_pkey",
+          "def": "CREATE UNIQUE INDEX cities_pkey ON public.cities USING btree (id)",
+          "table": "public.cities",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "cities_slug_key",
+          "def": "CREATE UNIQUE INDEX cities_slug_key ON public.cities USING btree (slug)",
+          "table": "public.cities",
+          "columns": [
+            "slug"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "cities_name_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(name) \u003e= 2) AND (char_length(name) \u003c= 80)))",
+          "table": "public.cities",
+          "referenced_table": "",
+          "columns": [
+            "name"
+          ]
+        },
+        {
+          "name": "cities_slug_check",
+          "type": "CHECK",
+          "def": "CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))",
+          "table": "public.cities",
+          "referenced_table": "",
+          "columns": [
+            "slug"
+          ]
+        },
+        {
+          "name": "cities_state_check",
+          "type": "CHECK",
+          "def": "CHECK ((state ~ '^[A-Z]{2}$'::text))",
+          "table": "public.cities",
+          "referenced_table": "",
+          "columns": [
+            "state"
+          ]
+        },
+        {
+          "name": "cities_timezone_check",
+          "type": "CHECK",
+          "def": "CHECK ((timezone ~ '^[A-Za-z_]+(/[A-Za-z0-9_+-]+)+$'::text))",
+          "table": "public.cities",
+          "referenced_table": "",
+          "columns": [
+            "timezone"
+          ]
+        },
+        {
+          "name": "cities_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.cities",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "cities_slug_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (slug)",
+          "table": "public.cities",
+          "referenced_table": "",
+          "columns": [
+            "slug"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "cities_set_updated_at",
+          "def": "CREATE TRIGGER cities_set_updated_at BEFORE UPDATE ON public.cities FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.service_areas",
+      "type": "BASE TABLE",
+      "comment": "Neighborhoods or zip codes within a city. Where \"I come to you\" Services travel, and the public location label on listings. Admin-managed. Never deleted: listings will point here, so an area is deactivated instead.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "city_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "comment": "neighborhood or zip. A zip area's name is a five-digit zip code."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "comment": "Shown to customers, e.g. Old Fourth Ward or 30312. Unique per city and kind."
+        },
+        {
+          "name": "active",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true",
+          "comment": "Inactive areas are hidden everywhere public."
+        },
+        {
+          "name": "sort_order",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "service_areas_pkey",
+          "def": "CREATE UNIQUE INDEX service_areas_pkey ON public.service_areas USING btree (id)",
+          "table": "public.service_areas",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "service_areas_city_id_kind_name_key",
+          "def": "CREATE UNIQUE INDEX service_areas_city_id_kind_name_key ON public.service_areas USING btree (city_id, kind, name)",
+          "table": "public.service_areas",
+          "columns": [
+            "city_id",
+            "kind",
+            "name"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "service_areas_check",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'zip'::text) OR (name ~ '^[0-9]{5}$'::text)))",
+          "table": "public.service_areas",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "name"
+          ]
+        },
+        {
+          "name": "service_areas_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['neighborhood'::text, 'zip'::text])))",
+          "table": "public.service_areas",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "service_areas_name_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(name) \u003e= 1) AND (char_length(name) \u003c= 80)))",
+          "table": "public.service_areas",
+          "referenced_table": "",
+          "columns": [
+            "name"
+          ]
+        },
+        {
+          "name": "service_areas_city_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT",
+          "table": "public.service_areas",
+          "referenced_table": "public.cities",
+          "columns": [
+            "city_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "service_areas_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.service_areas",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "service_areas_city_id_kind_name_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (city_id, kind, name)",
+          "table": "public.service_areas",
+          "referenced_table": "",
+          "columns": [
+            "city_id",
+            "kind",
+            "name"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "service_areas_set_updated_at",
+          "def": "CREATE TRIGGER service_areas_set_updated_at BEFORE UPDATE ON public.service_areas FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "table": "public.providers",
+      "columns": [
+        "city_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.cities",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.service_areas",
+      "columns": [
+        "city_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.cities",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -194,6 +535,12 @@
     },
     {
       "name": "public.set_updated_at",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.providers_check_city_active",
       "return_type": "trigger",
       "arguments": "",
       "type": "FUNCTION"
