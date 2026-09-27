@@ -130,6 +130,8 @@ tests, run through `db:test` before `db:push`.
 3. Listings, addresses and service areas, plus the provider Services and
    Experiences pages and the publish, submit and unlist routes.
 4. Photos and the storage bucket, plus the photo section of the editor.
+   Add the photo requirement to publish, submit and approve, with a test
+   that publishing with zero photos fails.
 5. Experience sessions, plus the Sessions section.
 6. Admin Listings page and review queue, with the approve, reject, unpublish
    and restore routes. Also: deactivating a category or city needs a
