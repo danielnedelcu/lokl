@@ -6,16 +6,16 @@ Neighborhoods or zip codes within a city. Where "I come to you" Services travel,
 
 ## Columns
 
-| Name       | Type                     | Default           | Nullable | Children | Parents                           | Comment                                                                      |
-| ---------- | ------------------------ | ----------------- | -------- | -------- | --------------------------------- | ---------------------------------------------------------------------------- |
-| id         | uuid                     | gen_random_uuid() | false    |          |                                   |                                                                              |
-| city_id    | uuid                     |                   | false    |          | [public.cities](public.cities.md) |                                                                              |
-| kind       | text                     |                   | false    |          |                                   | neighborhood or zip. A zip area's name is a five-digit zip code.             |
-| name       | text                     |                   | false    |          |                                   | Shown to customers, e.g. Old Fourth Ward or 30312. Unique per city and kind. |
-| active     | boolean                  | true              | false    |          |                                   | Inactive areas are hidden everywhere public.                                 |
-| sort_order | integer                  | 0                 | false    |          |                                   |                                                                              |
-| created_at | timestamp with time zone | now()             | false    |          |                                   |                                                                              |
-| updated_at | timestamp with time zone | now()             | false    |          |                                   |                                                                              |
+| Name       | Type                     | Default           | Nullable | Children                                                                                              | Parents                           | Comment                                                                      |
+| ---------- | ------------------------ | ----------------- | -------- | ----------------------------------------------------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------- |
+| id         | uuid                     | gen_random_uuid() | false    | [public.listings](public.listings.md) [public.listing_service_areas](public.listing_service_areas.md) |                                   |                                                                              |
+| city_id    | uuid                     |                   | false    |                                                                                                       | [public.cities](public.cities.md) |                                                                              |
+| kind       | text                     |                   | false    |                                                                                                       |                                   | neighborhood or zip. A zip area's name is a five-digit zip code.             |
+| name       | text                     |                   | false    |                                                                                                       |                                   | Shown to customers, e.g. Old Fourth Ward or 30312. Unique per city and kind. |
+| active     | boolean                  | true              | false    |                                                                                                       |                                   | Inactive areas are hidden everywhere public.                                 |
+| sort_order | integer                  | 0                 | false    |                                                                                                       |                                   |                                                                              |
+| created_at | timestamp with time zone | now()             | false    |                                                                                                       |                                   |                                                                              |
+| updated_at | timestamp with time zone | now()             | false    |                                                                                                       |                                   |                                                                              |
 
 ## Constraints
 

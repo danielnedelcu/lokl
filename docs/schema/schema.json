@@ -667,6 +667,654 @@
           "def": "CREATE TRIGGER categories_set_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
       ]
+    },
+    {
+      "name": "public.listings",
+      "type": "BASE TABLE",
+      "comment": "A Service or Experience a provider offers. Deleted only while it has never been live (published_at is null); after that it is unlisted or unpublished, never deleted, because bookings will point at it.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "comment": "service or experience. Fixed at creation."
+        },
+        {
+          "name": "category_id",
+          "type": "uuid",
+          "nullable": false,
+          "comment": "A category of the same kind, enforced by the (category_id, kind) reference."
+        },
+        {
+          "name": "city_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "nullable": false,
+          "comment": "Generated from the title with a short random suffix when the listing is created. Used by public listing pages; not changed afterwards."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "price_cents",
+          "type": "integer",
+          "nullable": false,
+          "comment": "Whole price in cents for a Service; per person for an Experience."
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "nullable": false,
+          "default": "'usd'::text"
+        },
+        {
+          "name": "duration_minutes",
+          "type": "integer",
+          "nullable": true,
+          "comment": "Required for Experiences; optional for Services."
+        },
+        {
+          "name": "location_mode",
+          "type": "text",
+          "nullable": true,
+          "comment": "Services only: provider_location (customer comes to the provider) or customer_location (provider travels, within listing_service_areas). Null for Experiences."
+        },
+        {
+          "name": "area_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "The public location label, e.g. Old Fourth Ward. Required for provider-location Services and Experiences. Must be in the listing's city."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'draft'::text",
+          "comment": "draft, submitted, live, rejected or unpublished. Changed only by server routes."
+        },
+        {
+          "name": "rejection_reason",
+          "type": "text",
+          "nullable": true,
+          "comment": "Why an Experience was sent back. Set on rejection; cleared on resubmission."
+        },
+        {
+          "name": "submitted_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "Set the first time the listing goes live and never cleared."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "listings_pkey",
+          "def": "CREATE UNIQUE INDEX listings_pkey ON public.listings USING btree (id)",
+          "table": "public.listings",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listings_slug_key",
+          "def": "CREATE UNIQUE INDEX listings_slug_key ON public.listings USING btree (slug)",
+          "table": "public.listings",
+          "columns": [
+            "slug"
+          ]
+        },
+        {
+          "name": "listings_provider_id_idx",
+          "def": "CREATE INDEX listings_provider_id_idx ON public.listings USING btree (provider_id)",
+          "table": "public.listings",
+          "columns": [
+            "provider_id"
+          ]
+        },
+        {
+          "name": "listings_live_city_category_idx",
+          "def": "CREATE INDEX listings_live_city_category_idx ON public.listings USING btree (city_id, category_id) WHERE (status = 'live'::text)",
+          "table": "public.listings",
+          "columns": [
+            "city_id",
+            "category_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "listings_area_required",
+          "type": "CHECK",
+          "def": "CHECK ((((kind = 'service'::text) AND (location_mode = 'customer_location'::text)) OR (area_id IS NOT NULL)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "location_mode",
+            "area_id"
+          ]
+        },
+        {
+          "name": "listings_currency_check",
+          "type": "CHECK",
+          "def": "CHECK ((currency = 'usd'::text))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "currency"
+          ]
+        },
+        {
+          "name": "listings_description_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(description) \u003e= 20) AND (char_length(description) \u003c= 5000)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "description"
+          ]
+        },
+        {
+          "name": "listings_duration_minutes_check",
+          "type": "CHECK",
+          "def": "CHECK (((duration_minutes \u003e= 5) AND (duration_minutes \u003c= 1440)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "duration_minutes"
+          ]
+        },
+        {
+          "name": "listings_experience_shape",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'experience'::text) OR ((duration_minutes IS NOT NULL) AND (location_mode IS NULL))))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "duration_minutes",
+            "location_mode"
+          ]
+        },
+        {
+          "name": "listings_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['service'::text, 'experience'::text])))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "listings_location_mode_check",
+          "type": "CHECK",
+          "def": "CHECK ((location_mode = ANY (ARRAY['provider_location'::text, 'customer_location'::text])))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "location_mode"
+          ]
+        },
+        {
+          "name": "listings_price_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((price_cents \u003e 0))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "price_cents"
+          ]
+        },
+        {
+          "name": "listings_rejection_reason",
+          "type": "CHECK",
+          "def": "CHECK (((status \u003c\u003e 'rejected'::text) OR (rejection_reason IS NOT NULL)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "rejection_reason"
+          ]
+        },
+        {
+          "name": "listings_rejection_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(rejection_reason) \u003c= 1000))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "rejection_reason"
+          ]
+        },
+        {
+          "name": "listings_service_shape",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'service'::text) OR (location_mode IS NOT NULL)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "location_mode"
+          ]
+        },
+        {
+          "name": "listings_slug_check",
+          "type": "CHECK",
+          "def": "CHECK ((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "slug"
+          ]
+        },
+        {
+          "name": "listings_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['draft'::text, 'submitted'::text, 'live'::text, 'rejected'::text, 'unpublished'::text])))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "listings_title_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(title) \u003e= 5) AND (char_length(title) \u003c= 100)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "title"
+          ]
+        },
+        {
+          "name": "listings_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.listings",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listings_city_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT",
+          "table": "public.listings",
+          "referenced_table": "public.cities",
+          "columns": [
+            "city_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listings_area_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE RESTRICT",
+          "table": "public.listings",
+          "referenced_table": "public.service_areas",
+          "columns": [
+            "area_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listings_category_id_kind_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (category_id, kind) REFERENCES categories(id, kind) ON DELETE RESTRICT",
+          "table": "public.listings",
+          "referenced_table": "public.categories",
+          "columns": [
+            "category_id",
+            "kind"
+          ],
+          "referenced_columns": [
+            "id",
+            "kind"
+          ]
+        },
+        {
+          "name": "listings_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listings_slug_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (slug)",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "slug"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "listings_check_references",
+          "def": "CREATE TRIGGER listings_check_references BEFORE INSERT OR UPDATE OF category_id, city_id, area_id ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_check_references()"
+        },
+        {
+          "name": "listings_guard_provider_edits",
+          "def": "CREATE TRIGGER listings_guard_provider_edits BEFORE UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_guard_provider_edits()"
+        },
+        {
+          "name": "listings_set_slug",
+          "def": "CREATE TRIGGER listings_set_slug BEFORE INSERT ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_set_slug()"
+        },
+        {
+          "name": "listings_set_updated_at",
+          "def": "CREATE TRIGGER listings_set_updated_at BEFORE UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.listing_addresses",
+      "type": "BASE TABLE",
+      "comment": "A listing's exact address. Private: readable only by the listing's provider and the admin (customers with a confirmed booking come later). Required for provider-location Services and Experiences before publishing or submitting. Deleted with its listing, or by the provider when it is no longer needed.",
+      "columns": [
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "line1",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "line2",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "postal_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "instructions",
+          "type": "text",
+          "nullable": true,
+          "comment": "Optional arrival notes, e.g. \"Side entrance, ring twice\"."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "listing_addresses_pkey",
+          "def": "CREATE UNIQUE INDEX listing_addresses_pkey ON public.listing_addresses USING btree (listing_id)",
+          "table": "public.listing_addresses",
+          "columns": [
+            "listing_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "listing_addresses_city_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(city) \u003e= 2) AND (char_length(city) \u003c= 80)))",
+          "table": "public.listing_addresses",
+          "referenced_table": "",
+          "columns": [
+            "city"
+          ]
+        },
+        {
+          "name": "listing_addresses_instructions_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(instructions) \u003c= 500))",
+          "table": "public.listing_addresses",
+          "referenced_table": "",
+          "columns": [
+            "instructions"
+          ]
+        },
+        {
+          "name": "listing_addresses_line1_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(line1) \u003e= 3) AND (char_length(line1) \u003c= 200)))",
+          "table": "public.listing_addresses",
+          "referenced_table": "",
+          "columns": [
+            "line1"
+          ]
+        },
+        {
+          "name": "listing_addresses_line2_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(line2) \u003c= 200))",
+          "table": "public.listing_addresses",
+          "referenced_table": "",
+          "columns": [
+            "line2"
+          ]
+        },
+        {
+          "name": "listing_addresses_postal_code_check",
+          "type": "CHECK",
+          "def": "CHECK ((postal_code ~ '^[0-9]{5}(-[0-9]{4})?$'::text))",
+          "table": "public.listing_addresses",
+          "referenced_table": "",
+          "columns": [
+            "postal_code"
+          ]
+        },
+        {
+          "name": "listing_addresses_state_check",
+          "type": "CHECK",
+          "def": "CHECK ((state ~ '^[A-Z]{2}$'::text))",
+          "table": "public.listing_addresses",
+          "referenced_table": "",
+          "columns": [
+            "state"
+          ]
+        },
+        {
+          "name": "listing_addresses_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.listing_addresses",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listing_addresses_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (listing_id)",
+          "table": "public.listing_addresses",
+          "referenced_table": "",
+          "columns": [
+            "listing_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "listing_addresses_guard",
+          "def": "CREATE TRIGGER listing_addresses_guard BEFORE INSERT OR DELETE OR UPDATE ON public.listing_addresses FOR EACH ROW EXECUTE FUNCTION listing_addresses_guard()"
+        },
+        {
+          "name": "listing_addresses_set_updated_at",
+          "def": "CREATE TRIGGER listing_addresses_set_updated_at BEFORE UPDATE ON public.listing_addresses FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.listing_service_areas",
+      "type": "BASE TABLE",
+      "comment": "Where an \"I come to you\" Service travels. At least one row is required before a customer-location Service can go live. Rows go with their listing; the provider removes a row to stop covering an area.",
+      "columns": [
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "service_area_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "listing_service_areas_pkey",
+          "def": "CREATE UNIQUE INDEX listing_service_areas_pkey ON public.listing_service_areas USING btree (listing_id, service_area_id)",
+          "table": "public.listing_service_areas",
+          "columns": [
+            "listing_id",
+            "service_area_id"
+          ]
+        },
+        {
+          "name": "listing_service_areas_service_area_id_idx",
+          "def": "CREATE INDEX listing_service_areas_service_area_id_idx ON public.listing_service_areas USING btree (service_area_id)",
+          "table": "public.listing_service_areas",
+          "columns": [
+            "service_area_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "listing_service_areas_service_area_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (service_area_id) REFERENCES service_areas(id) ON DELETE RESTRICT",
+          "table": "public.listing_service_areas",
+          "referenced_table": "public.service_areas",
+          "columns": [
+            "service_area_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listing_service_areas_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.listing_service_areas",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listing_service_areas_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (listing_id, service_area_id)",
+          "table": "public.listing_service_areas",
+          "referenced_table": "",
+          "columns": [
+            "listing_id",
+            "service_area_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "listing_service_areas_check",
+          "def": "CREATE TRIGGER listing_service_areas_check BEFORE INSERT ON public.listing_service_areas FOR EACH ROW EXECUTE FUNCTION listing_service_areas_check()"
+        },
+        {
+          "name": "listing_service_areas_guard",
+          "def": "CREATE TRIGGER listing_service_areas_guard BEFORE INSERT OR DELETE ON public.listing_service_areas FOR EACH ROW EXECUTE FUNCTION listing_service_areas_guard()"
+        }
+      ]
     }
   ],
   "relations": [
@@ -695,6 +1343,99 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.listings",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.listings",
+      "columns": [
+        "city_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.cities",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.listings",
+      "columns": [
+        "area_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.service_areas",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.listings",
+      "columns": [
+        "category_id",
+        "kind"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.categories",
+      "parent_columns": [
+        "id",
+        "kind"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (category_id, kind) REFERENCES categories(id, kind) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.listing_addresses",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.listing_service_areas",
+      "columns": [
+        "service_area_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.service_areas",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (service_area_id) REFERENCES service_areas(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.listing_service_areas",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
     }
   ],
   "functions": [
@@ -712,6 +1453,54 @@
     },
     {
       "name": "public.providers_check_city_active",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.current_provider_id",
+      "return_type": "uuid",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_parents_active",
+      "return_type": "bool",
+      "arguments": "p_provider_id uuid, p_category_id uuid, p_city_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listings_set_slug",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listings_check_references",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listings_guard_provider_edits",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_service_areas_check",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_addresses_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_service_areas_guard",
       "return_type": "trigger",
       "arguments": "",
       "type": "FUNCTION"

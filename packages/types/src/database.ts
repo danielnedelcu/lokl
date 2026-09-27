@@ -86,6 +86,181 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_addresses: {
+        Row: {
+          city: string
+          created_at: string
+          instructions: string | null
+          line1: string
+          line2: string | null
+          listing_id: string
+          postal_code: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          instructions?: string | null
+          line1: string
+          line2?: string | null
+          listing_id: string
+          postal_code: string
+          state: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          instructions?: string | null
+          line1?: string
+          line2?: string | null
+          listing_id?: string
+          postal_code?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_addresses_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_service_areas: {
+        Row: {
+          created_at: string
+          listing_id: string
+          service_area_id: string
+        }
+        Insert: {
+          created_at?: string
+          listing_id: string
+          service_area_id: string
+        }
+        Update: {
+          created_at?: string
+          listing_id?: string
+          service_area_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_service_areas_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_service_areas_service_area_id_fkey"
+            columns: ["service_area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          area_id: string | null
+          category_id: string
+          city_id: string
+          created_at: string
+          currency: string
+          description: string
+          duration_minutes: number | null
+          id: string
+          kind: string
+          location_mode: string | null
+          price_cents: number
+          provider_id: string
+          published_at: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          slug: string
+          status: string
+          submitted_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          area_id?: string | null
+          category_id: string
+          city_id: string
+          created_at?: string
+          currency?: string
+          description: string
+          duration_minutes?: number | null
+          id?: string
+          kind: string
+          location_mode?: string | null
+          price_cents: number
+          provider_id: string
+          published_at?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          slug: string
+          status?: string
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          area_id?: string | null
+          category_id?: string
+          city_id?: string
+          created_at?: string
+          currency?: string
+          description?: string
+          duration_minutes?: number | null
+          id?: string
+          kind?: string
+          location_mode?: string | null
+          price_cents?: number
+          provider_id?: string
+          published_at?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          slug?: string
+          status?: string
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_category_id_kind_fkey"
+            columns: ["category_id", "kind"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id", "kind"]
+          },
+          {
+            foreignKeyName: "listings_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       providers: {
         Row: {
           city_id: string
@@ -182,7 +357,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_provider_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      listing_parents_active: {
+        Args: {
+          p_category_id: string
+          p_city_id: string
+          p_provider_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

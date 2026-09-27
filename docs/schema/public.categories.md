@@ -6,17 +6,17 @@ Service and Experience categories. Flat and admin-managed; each listing belongs 
 
 ## Columns
 
-| Name        | Type                     | Default           | Nullable | Children | Parents | Comment                                                                      |
-| ----------- | ------------------------ | ----------------- | -------- | -------- | ------- | ---------------------------------------------------------------------------- |
-| id          | uuid                     | gen_random_uuid() | false    |          |         |                                                                              |
-| kind        | text                     |                   | false    |          |         | service or experience. A listing can only use a category of its own kind.    |
-| name        | text                     |                   | false    |          |         | Shown to customers, e.g. Hair and beauty. 2 to 60 characters.                |
-| slug        | text                     |                   | false    |          |         | URL-safe identifier, unique within its kind, e.g. hair-and-beauty.           |
-| description | text                     |                   | true     |          |         | Optional. Shown on the category page later. Up to 500 characters.            |
-| active      | boolean                  | true              | false    |          |         | Inactive categories are hidden everywhere public, and so are their listings. |
-| sort_order  | integer                  | 0                 | false    |          |         | Display order within its kind, lowest first.                                 |
-| created_at  | timestamp with time zone | now()             | false    |          |         |                                                                              |
-| updated_at  | timestamp with time zone | now()             | false    |          |         |                                                                              |
+| Name        | Type                     | Default           | Nullable | Children                              | Parents | Comment                                                                      |
+| ----------- | ------------------------ | ----------------- | -------- | ------------------------------------- | ------- | ---------------------------------------------------------------------------- |
+| id          | uuid                     | gen_random_uuid() | false    | [public.listings](public.listings.md) |         |                                                                              |
+| kind        | text                     |                   | false    | [public.listings](public.listings.md) |         | service or experience. A listing can only use a category of its own kind.    |
+| name        | text                     |                   | false    |                                       |         | Shown to customers, e.g. Hair and beauty. 2 to 60 characters.                |
+| slug        | text                     |                   | false    |                                       |         | URL-safe identifier, unique within its kind, e.g. hair-and-beauty.           |
+| description | text                     |                   | true     |                                       |         | Optional. Shown on the category page later. Up to 500 characters.            |
+| active      | boolean                  | true              | false    |                                       |         | Inactive categories are hidden everywhere public, and so are their listings. |
+| sort_order  | integer                  | 0                 | false    |                                       |         | Display order within its kind, lowest first.                                 |
+| created_at  | timestamp with time zone | now()             | false    |                                       |         |                                                                              |
+| updated_at  | timestamp with time zone | now()             | false    |                                       |         |                                                                              |
 
 ## Constraints
 
