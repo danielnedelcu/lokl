@@ -1,17 +1,23 @@
-import { z } from "zod";
+import { providerProfileSchema } from "@repo/types";
 import { serverSupabaseClient } from "#supabase/server";
-
-const body = z.object({
-  display_name: z.string().trim().min(2).max(120),
-  city: z.string().trim().max(120).optional().transform((v) => v || null),
-});
 
 // Creates or updates the signed-in user's business profile.
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event);
-  const input = await readValidatedBody(event, body.parse);
+  // Same schema as the business profile form, validated again here.
+  const input = await readValidatedBody(event, providerProfileSchema.parse);
   const supabase = await serverSupabaseClient(event);
   const existing = await getOwnProvider(event);
+
+  // The picker only offers active cities, but check here too: the database
+  // would accept any city id. RLS returns active cities only to this client.
+  const { data: city, error: cityError } = await supabase
+    .from("cities")
+    .select("id")
+    .eq("id", input.city_id)
+    .maybeSingle();
+  if (cityError) throw createError({ statusCode: 500, statusMessage: cityError.message });
+  if (!city) throw createError({ statusCode: 400, statusMessage: "Choose one of the listed cities." });
 
   const query = existing
     ? supabase.from("providers").update(input).eq("id", existing.id)

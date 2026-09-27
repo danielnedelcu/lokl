@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* Tailwind only scans the app being built. Also scan this layer's own
+   components, or classes used only inside them are never generated. */
+@source "../../";
 @import "tw-animate-css";
 
 @plugin "@tailwindcss/forms" {

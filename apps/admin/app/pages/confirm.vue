@@ -14,5 +14,5 @@ watch(
 </script>
 
 <template>
-  <p class="text-sm text-ink-muted">Signing you in…</p>
+  <p class="text-sm text-muted-foreground">Signing you in…</p>
 </template>

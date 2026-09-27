@@ -20,10 +20,10 @@ const queues = [
     <PageHeader title="Dashboard" description="Marketplace health at a glance." />
 
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <div v-for="kpi in kpis" :key="kpi.label" class="rounded-lg border border-border bg-surface p-4">
-        <p class="text-sm text-ink-muted">{{ kpi.label }}</p>
+      <div v-for="kpi in kpis" :key="kpi.label" class="rounded-lg border border-border bg-card p-4">
+        <p class="text-sm text-muted-foreground">{{ kpi.label }}</p>
         <p class="mt-2 text-2xl font-semibold">{{ kpi.value }}</p>
-        <p class="mt-1 text-xs text-ink-muted">{{ kpi.hint }}</p>
+        <p class="mt-1 text-xs text-muted-foreground">{{ kpi.hint }}</p>
       </div>
     </section>
 
@@ -33,10 +33,10 @@ const queues = [
         v-for="q in queues"
         :key="q.to"
         :to="q.to"
-        class="flex items-center justify-between rounded-lg border border-border bg-surface p-4 hover:border-ink-muted"
+        class="flex items-center justify-between rounded-lg border border-border bg-card p-4 hover:border-muted-foreground"
       >
         <span class="flex items-center gap-2 text-sm">
-          <Icon :name="q.icon" class="size-4 text-ink-muted" />
+          <Icon :name="q.icon" class="size-4 text-muted-foreground" />
           {{ q.label }}
         </span>
         <span class="text-sm font-medium">—</span>

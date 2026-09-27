@@ -1,75 +1,82 @@
 <script setup lang="ts">
-import { payoutSetupOf, type PayoutSetup, type Provider } from "@repo/types";
+import { payoutSetupOf, type Provider } from "@repo/types";
+
+useHead({ title: "Providers · Admin" });
+
+type ProviderRow = Provider & { city: { name: string; state: string } | null };
 
 const supabase = useSupabaseClient();
 
 // RLS only lets admins read other people's providers, so this is safe client-side.
-const { data: providers, error } = await useAsyncData("admin-providers", async () => {
+const { data: providers, error, pending } = await useAsyncData("admin-providers", async () => {
   const { data, error } = await supabase
     .from("providers")
-    .select("*")
+    .select("*, city:cities(name, state)")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data as Provider[];
+  return data as ProviderRow[];
 });
 
-const payoutLabel: Record<PayoutSetup, string> = {
-  not_started: "Not started",
-  in_progress: "In progress",
-  ready: "Ready",
-};
-
-const payoutIcon: Record<PayoutSetup, string> = {
-  not_started: "lucide:circle",
-  in_progress: "lucide:clock",
-  ready: "lucide:circle-check",
-};
+// Sortable by every column. Cells that need a component (badges, dates) are
+// filled through the table's `<column id>-cell` slots below.
+const columns = [
+  { accessorKey: "display_name", header: "Name" },
+  {
+    id: "city",
+    header: "City",
+    accessorFn: (p: ProviderRow) => (p.city ? `${p.city.name}, ${p.city.state}` : ""),
+  },
+  { id: "payouts", header: "Payouts", accessorFn: (p: ProviderRow) => payoutSetupOf(p) },
+  { accessorKey: "status", header: "Status" },
+  { accessorKey: "created_at", header: "Joined" },
+];
 </script>
 
 <template>
   <div>
     <PageHeader
       title="Providers"
-      description="Businesses and hosts who sell Services and Experiences, and where each one is in Stripe payout setup."
+      description="Businesses and hosts who sell Services and Experiences, and where each one is in payout setup."
     />
 
-    <p v-if="error" class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
-      Couldn't load providers: {{ error.message }}
-    </p>
+    <UiAlert v-if="error" variant="destructive">
+      <UiAlertTitle>Couldn't load providers</UiAlertTitle>
+      <UiAlertDescription>{{ error.message }}. Reload the page to try again.</UiAlertDescription>
+    </UiAlert>
 
     <EmptyState
-      v-else-if="!providers?.length"
+      v-else-if="!pending && !providers?.length"
       icon="lucide:store"
       title="No providers yet"
       description="Providers appear here once they create a business profile on the website."
     />
 
-    <div v-else class="overflow-x-auto rounded-lg border border-border bg-surface">
-      <table class="w-full text-left text-sm">
-        <thead class="border-b border-border text-ink-muted">
-          <tr>
-            <th scope="col" class="px-4 py-2.5 font-medium">Name</th>
-            <th scope="col" class="px-4 py-2.5 font-medium">City</th>
-            <th scope="col" class="px-4 py-2.5 font-medium">Payouts</th>
-            <th scope="col" class="px-4 py-2.5 font-medium">Status</th>
-            <th scope="col" class="px-4 py-2.5 font-medium">Joined</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in providers" :key="p.id" class="border-b border-border last:border-0">
-            <td class="px-4 py-3 font-medium">{{ p.display_name }}</td>
-            <td class="px-4 py-3 text-ink-muted">{{ p.city || "—" }}</td>
-            <td class="px-4 py-3">
-              <span class="inline-flex items-center gap-1.5">
-                <Icon :name="payoutIcon[payoutSetupOf(p)]" class="size-4" aria-hidden="true" />
-                {{ payoutLabel[payoutSetupOf(p)] }}
-              </span>
-            </td>
-            <td class="px-4 py-3 capitalize">{{ p.status }}</td>
-            <td class="px-4 py-3 text-ink-muted">{{ new Date(p.created_at).toLocaleDateString() }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <UiCard v-else class="py-0">
+      <UiTanStackTable
+        :data="providers ?? []"
+        :columns="columns"
+        :loading="pending"
+        :show-pagination="(providers?.length ?? 0) > 10"
+        :show-rows-per-page="(providers?.length ?? 0) > 10"
+        :show-page-info="(providers?.length ?? 0) > 10"
+        empty-text="No providers yet."
+      >
+        <template #display_name-cell="{ row }">
+          <span class="font-medium">{{ row.original.display_name }}</span>
+        </template>
+        <template #city-cell="{ row }">
+          <span class="text-muted-foreground">{{ row.getValue("city") || "—" }}</span>
+        </template>
+        <template #payouts-cell="{ row }">
+          <StatusBadge kind="payouts" :status="row.getValue('payouts')" />
+        </template>
+        <template #status-cell="{ row }">
+          <StatusBadge kind="provider" :status="row.original.status" />
+        </template>
+        <template #created_at-cell="{ row }">
+          <span class="text-muted-foreground">{{ formatDate(row.original.created_at) }}</span>
+        </template>
+      </UiTanStackTable>
+    </UiCard>
   </div>
 </template>

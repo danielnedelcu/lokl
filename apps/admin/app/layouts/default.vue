@@ -34,7 +34,7 @@ const sections = [
 ];
 
 // "/" prefixes every route, so Dashboard only highlights on an exact match.
-const activeClass = "bg-surface-muted font-medium !text-ink";
+const activeClass = "bg-muted font-medium !text-foreground";
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
@@ -46,19 +46,19 @@ async function signOut() {
 </script>
 
 <template>
-  <div class="flex min-h-screen">
-    <aside class="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
+  <div class="flex min-h-screen bg-muted">
+    <aside class="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
       <div class="px-5 py-5 text-sm font-semibold tracking-tight">Marketplace Admin</div>
       <nav class="space-y-6 px-3 pb-6">
         <div v-for="section in sections" :key="section.label">
-          <p class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-ink-muted">
+          <p class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {{ section.label }}
           </p>
           <NuxtLink
             v-for="item in section.items"
             :key="item.to"
             :to="item.to"
-            class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-ink-muted hover:bg-surface-muted hover:text-ink"
+            class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
             :active-class="item.to === '/' ? '' : activeClass"
             :exact-active-class="activeClass"
           >
@@ -68,7 +68,7 @@ async function signOut() {
         </div>
       </nav>
       <div class="mt-auto border-t border-border px-5 py-4 text-sm">
-        <p class="truncate text-ink-muted">{{ user?.email }}</p>
+        <p class="truncate text-muted-foreground">{{ user?.email }}</p>
         <button type="button" class="mt-1 font-medium hover:underline" @click="signOut">Sign out</button>
       </div>
     </aside>

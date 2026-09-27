@@ -10,14 +10,21 @@ Owner-only dashboard. Port 3101 (fixed). Root `CLAUDE.md` applies too.
 - **Reads** can query Supabase from the page with `useSupabaseClient()`. RLS
   admin policies (`public.is_admin()`) decide what comes back, as in
   `app/pages/providers.vue`.
-- **Writes** to anything users can't write themselves (provider status,
-  approvals, refunds) go through a server route in `server/api/` that calls
-  `requireAdmin(event)` first, then uses the service role.
+- **Writes, two kinds.**
+  - *Admin-only reference lists* (cities, service areas, categories) are
+    written from the page with `useSupabaseClient()`, under admin-only
+    database rules (`public.is_admin()`).
+  - *Status changes, anything that crosses users, and anything touching
+    Stripe* (provider suspension, listing approval, refunds) go through a
+    server route in `server/api/` that calls `requireAdmin(event)` first,
+    then uses the service role.
 - **No Stripe keys in this app.** Anything that needs Stripe gets a website
   server route. The admin app never calls Stripe directly.
 - **The login page never creates accounts** (`shouldCreateUser: false`). Admins
   are added by hand in Supabase.
-- **Page structure:** `PageHeader` and `EmptyState` from `app/components/`.
-  Colour tokens (`surface`, `border`, `ink`, `ink-muted`, `accent`) are in
-  `app/assets/css/main.css`; use them instead of raw colours.
+- **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;
+  everything else from the shared layer (`Ui…` components, `StatusBadge`).
+  Colours come from the layer's tokens (`background`, `card`, `muted`,
+  `foreground`, `muted-foreground`, `border`, `primary`, `destructive`); see
+  `docs/frontend.md`.
 - **Sidebar sections** are defined in `app/layouts/default.vue`. Add new pages there.

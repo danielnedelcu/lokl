@@ -1,18 +1,15 @@
-import tailwindcss from "@tailwindcss/vite";
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // Shared UI layer: ui-thing components, theme, Tailwind (docs/frontend.md).
+  extends: ["@repo/ui"],
+
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
-  css: ["~/assets/css/main.css", "lenis/dist/lenis.css"],
+  css: ["lenis/dist/lenis.css"],
 
   nuxtZod: {
     zodVersion: "v4",
-  },
-
-  vite: {
-    plugins: [tailwindcss()],
   },
 
   // Fixed port, clear of The Reserve (3000, falling back to 3001).
@@ -51,8 +48,6 @@ export default defineNuxtConfig({
 
   modules: [
     "@nuxt/eslint",
-    "@nuxt/fonts",
-    "@nuxt/icon",
     "@nuxt/image",
     "@nuxt/scripts",
     "@nuxt/test-utils",
@@ -63,12 +58,9 @@ export default defineNuxtConfig({
     "lenis/nuxt",
     "nuxt-gtag",
     "nuxt-locomotive-scroll",
-    "nuxt-lucide-icons",
     // 'nuxt-mail',
     // 'nuxt-resend',
     "nuxt-swiper",
-    "nuxt-toast",
     "nuxt-zod",
-    "shadcn-nuxt",
   ],
 });

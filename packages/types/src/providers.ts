@@ -1,12 +1,12 @@
-// Mirrors supabase/migrations/*_providers.sql. Replace with generated types
-// (see database.ts) once the schema settles.
+// Mirrors the providers and cities tables in supabase/migrations/. Replace
+// with generated types (see database.ts) once the schema settles.
 export type ProviderStatus = "active" | "suspended";
 
 export interface Provider {
   id: string;
   owner_id: string;
   display_name: string;
-  city: string | null;
+  city_id: string;
   status: ProviderStatus;
   stripe_account_id: string | null;
   stripe_details_submitted: boolean;
@@ -14,6 +14,17 @@ export interface Provider {
   stripe_payouts_enabled: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// A place lokl operates. Only active cities are visible outside the admin app.
+export interface City {
+  id: string;
+  slug: string;
+  name: string;
+  state: string;
+  timezone: string;
+  active: boolean;
+  sort_order: number;
 }
 
 // Where a provider is in Stripe Connect onboarding, for display.

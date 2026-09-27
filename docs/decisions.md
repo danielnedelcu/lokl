@@ -5,6 +5,20 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-09-27 | Admin-only reference lists (cities, service areas, categories) are written from the admin app under admin-only database rules; status changes, anything crossing users, and anything touching Stripe keep server routes | Simple lists need no server code when the database already enforces admin-only writes; state changes need server-side checks, and Stripe needs the secret key |
+| 2026-09-27 | ui-thing components live once, in a shared Nuxt layer at `packages/ui` that both apps extend, with one set of theme tokens (neutral until the brand is set) | One component set and one theme for the website and admin app; the ui-thing CLI works inside the layer, so there's no need to install into each app |
+| 2026-09-27 | Services are booked by request and confirm, with one fixed price per listing | Fastest path to real bookings; providers don't have to keep a calendar on lokl. Time slots can be added later. |
+| 2026-09-27 | At checkout (step 4), a Service request places a hold on the card; it's charged only when the provider accepts | No charge for declined requests, so no refund work |
+| 2026-09-27 | Unanswered Service requests expire after 48 hours and the hold is released | Keeps customers from waiting indefinitely; well inside Stripe's hold window |
+| 2026-09-27 | Experiences are booked into scheduled sessions with a capacity, paid immediately | A spot either exists or doesn't, so there's nothing to confirm |
+| 2026-09-27 | Categories are flat, admin-managed, separate for Services and Experiences, one per listing | Enough structure for launch; subcategories can come later |
+| 2026-09-27 | Cities are an admin-managed list, not free text; launch with Atlanta only | Fixes the "Atanta" walkthrough finding and makes search by city reliable |
+| 2026-09-27 | Services happen either at the provider's location or at the customer's, within listed service areas | Covers salons and studios as well as mobile services |
+| 2026-09-27 | Exact addresses are private until booking; listings show an area only | Many providers work from home |
+| 2026-09-27 | Services have one price; Experiences are priced per person; all amounts in cents | Matches how each is sold; cents avoid rounding errors |
+| 2026-09-27 | Up to 8 photos per listing, first is the cover, at least one required to publish | Listings without photos don't sell |
+| 2026-09-27 | Services go live once the provider's payouts are Ready; Experiences need owner review | Services are lower risk; Experiences are the brand-defining inventory |
+| 2026-09-27 | One `listings` table for both kinds, with kind-specific rules as check constraints | Browse, search, photos and review work the same way for both |
 | 2026-09-27 | lokl uses its own Supabase project; it shares no logins or database with any other app | The old project also hosted the blog, so blog users could sign into the provider dashboard and generated types and schema docs mixed in the blog's tables |
 | 2026-09-27 | The only Stripe test environment for this project is the Lokl sandbox (`acct_1UKIdIEfG7OyQ6pv`); the organization's other sandbox must not be used | Keeps test accounts, payouts and keys in one known place |
 | 2026-09-27 | Logins that own a provider can't be deleted; suspend or anonymize the provider first | `providers.owner_id` is `on delete restrict`, so deleting a login can't silently remove a provider and, later, strand its bookings and payouts |

@@ -5,9 +5,7 @@
       description="City, neighborhood, and event content. Draft with AI, edit, then publish to the website."
     >
       <template #actions>
-        <button type="button" class="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white" disabled>
-          New guide
-        </button>
+        <UiButton size="sm" disabled>New guide</UiButton>
       </template>
     </PageHeader>
     <EmptyState

@@ -5,9 +5,7 @@
       description="Service and Experience categories. Only admins can create or change these."
     >
       <template #actions>
-        <button type="button" class="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white" disabled>
-          New category
-        </button>
+        <UiButton size="sm" disabled>New category</UiButton>
       </template>
     </PageHeader>
     <EmptyState

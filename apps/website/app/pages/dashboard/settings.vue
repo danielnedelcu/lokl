@@ -1,66 +1,72 @@
 <script setup lang="ts">
-definePageMeta({ layout: "dashboard" });
+import { providerProfileSchema, type City, type ProviderProfileInput } from "@repo/types";
 
+definePageMeta({ layout: "dashboard" });
+useSeoMeta({ title: "Business profile" });
+
+const supabase = useSupabaseClient();
 const { data: provider, refresh } = await useProvider();
 
-const form = reactive({
-  display_name: provider.value?.display_name ?? "",
-  city: provider.value?.city ?? "",
+// RLS returns active cities only, so the picker never offers an inactive one.
+const { data: cities } = await useAsyncData("active-cities", async () => {
+  const { data, error } = await supabase
+    .from("cities")
+    .select("id, slug, name, state, timezone, active, sort_order")
+    .order("sort_order")
+    .order("name");
+  if (error) throw error;
+  return data as City[];
 });
-const status = ref<"idle" | "saving" | "saved" | "error">("idle");
-const errorMessage = ref("");
 
-async function save() {
-  status.value = "saving";
+const savedCityId = provider.value?.city_id ?? "";
+// A saved city that's no longer offered (deactivated) has to be re-picked.
+const savedCityGone = !!savedCityId && !cities.value?.some((c) => c.id === savedCityId);
+
+const { handleSubmit, isSubmitting } = useForm<ProviderProfileInput>({
+  validationSchema: zodSchema(providerProfileSchema),
+  initialValues: {
+    display_name: provider.value?.display_name ?? "",
+    // New profiles with only one city on offer start with it selected.
+    city_id: savedCityGone ? "" : savedCityId || (cities.value?.length === 1 ? cities.value[0]!.id : ""),
+  },
+});
+
+const save = handleSubmit(async (values) => {
   try {
-    await $fetch("/api/provider", { method: "POST", body: form });
+    await $fetch("/api/provider", { method: "POST", body: values });
     await refresh();
-    status.value = "saved";
+    useSonner.success("Business profile saved.");
   } catch (e) {
-    status.value = "error";
-    errorMessage.value = (e as { statusMessage?: string }).statusMessage ?? "Something went wrong. Please try again.";
+    useSonner.error((e as { statusMessage?: string }).statusMessage ?? "Your profile wasn't saved. Please try again.");
   }
-}
+});
 </script>
 
 <template>
   <div class="max-w-lg">
     <h1 class="text-2xl font-semibold tracking-tight">Business profile</h1>
-    <p class="mt-1 text-sm text-zinc-500">This is how customers will see you on your listings.</p>
+    <p class="mt-1 text-sm text-muted-foreground">This is how customers will see you on your listings.</p>
 
-    <form class="mt-6 space-y-4 rounded-lg border border-zinc-200 bg-white p-5" @submit.prevent="save">
-      <div>
-        <label for="display_name" class="block text-sm font-medium">Business or host name</label>
-        <input
-          id="display_name"
-          v-model="form.display_name"
-          required
-          minlength="2"
-          maxlength="120"
-          class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-        >
-      </div>
-      <div>
-        <label for="city" class="block text-sm font-medium">City</label>
-        <input
-          id="city"
-          v-model="form.city"
-          maxlength="120"
-          placeholder="Atlanta"
-          class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-        >
-      </div>
-      <div class="flex items-center gap-3">
-        <button
-          type="submit"
-          :disabled="status === 'saving'"
-          class="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {{ status === "saving" ? "Saving…" : provider ? "Save changes" : "Create profile" }}
-        </button>
-        <p v-if="status === 'saved'" class="text-sm text-zinc-600" role="status">Saved.</p>
-        <p v-if="status === 'error'" class="text-sm text-red-700" role="alert">{{ errorMessage }}</p>
-      </div>
-    </form>
+    <UiCard class="mt-6">
+      <UiCardContent>
+        <form class="space-y-5" novalidate @submit="save">
+          <UiVeeInput name="display_name" label="Business or host name" autocomplete="organization" required />
+
+          <UiVeeSelect
+            name="city_id"
+            label="City"
+            required
+            :hint="savedCityGone ? 'Your city is no longer on the list. Please choose another one.' : undefined"
+          >
+            <option value="" disabled>Choose your city</option>
+            <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}, {{ c.state }}</option>
+          </UiVeeSelect>
+
+          <UiButton type="submit" :disabled="isSubmitting">
+            {{ isSubmitting ? "Saving…" : provider ? "Save changes" : "Create profile" }}
+          </UiButton>
+        </form>
+      </UiCardContent>
+    </UiCard>
   </div>
 </template>

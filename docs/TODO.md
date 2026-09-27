@@ -117,6 +117,21 @@ Each step depends on the ones before it.
    email sender, generated types wired into both apps' `supabase.types`, and a
    mobile menu for both dashboards.
 
+### What gets built next
+
+Product steps 1 and 2 (categories and listings), from the approved design in
+`docs/design/categories-and-listings.md`. Each step is one migration plus
+tests, run through `db:test` before `db:push`.
+
+1. Cities and service areas, then the providers `city_id` change and the city picker.
+2. Categories, plus the admin Categories and Cities pages.
+3. Listings, addresses and service areas, plus the provider Services and
+   Experiences pages and the publish, submit and unlist routes.
+4. Photos and the storage bucket, plus the photo section of the editor.
+5. Experience sessions, plus the Sessions section.
+6. Admin Listings page and review queue, with the approve, reject, unpublish
+   and restore routes.
+
 ## Open decisions
 
 | Decision | Options | Needed by |
@@ -138,4 +153,3 @@ Each step depends on the ones before it.
 - The machine runs Node 22.12; the repo's `engines` asks for 24 or later.
 - Neither dashboard has a mobile menu yet.
 - `packages/types/src/providers.ts` is hand-written; replace it with generated types after the first `db:types`.
-- `packages/ui` is a React create-turbo leftover: delete it, or replace it with a Vue package.

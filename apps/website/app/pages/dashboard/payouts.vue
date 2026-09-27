@@ -52,12 +52,12 @@ const copy = {
   <div class="max-w-lg">
     <h1 class="text-2xl font-semibold tracking-tight">Payouts</h1>
 
-    <div v-if="!provider" class="mt-6 rounded-lg border border-zinc-200 bg-white p-5 text-sm">
+    <div v-if="!provider" class="mt-6 rounded-lg border border-border bg-card p-5 text-sm">
       <p>Create your business profile first.</p>
       <NuxtLink to="/dashboard/settings" class="mt-3 inline-block font-medium underline">Go to business profile</NuxtLink>
     </div>
 
-    <div v-else class="mt-6 rounded-lg border border-zinc-200 bg-white p-5">
+    <div v-else class="mt-6 rounded-lg border border-border bg-card p-5">
       <p class="flex items-center gap-2 font-medium">
         <Icon
           :name="setup === 'ready' ? 'lucide:circle-check' : setup === 'in_progress' ? 'lucide:clock' : 'lucide:circle'"
@@ -66,17 +66,12 @@ const copy = {
         />
         {{ copy[setup].title }}
       </p>
-      <p class="mt-2 text-sm text-zinc-600">{{ copy[setup].body }}</p>
+      <p class="mt-2 text-sm text-muted-foreground">{{ copy[setup].body }}</p>
 
-      <button
-        type="button"
-        :disabled="busy"
-        class="mt-4 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        @click="go(setup === 'ready' ? '/api/provider/stripe/dashboard' : '/api/provider/stripe/onboard')"
-      >
+      <UiButton class="mt-4" :disabled="busy" @click="go(setup === 'ready' ? '/api/provider/stripe/dashboard' : '/api/provider/stripe/onboard')">
         {{ busy ? "Opening Stripe…" : copy[setup].action }}
-      </button>
-      <p v-if="errorMessage" class="mt-3 text-sm text-red-700" role="alert">{{ errorMessage }}</p>
+      </UiButton>
+      <p v-if="errorMessage" class="mt-3 text-sm text-destructive" role="alert">{{ errorMessage }}</p>
     </div>
   </div>
 </template>

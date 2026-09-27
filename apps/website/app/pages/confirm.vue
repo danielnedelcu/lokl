@@ -12,5 +12,5 @@ watch(
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center text-sm text-zinc-500">Signing you in…</div>
+  <div class="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Signing you in…</div>
 </template>

@@ -1,3 +1,10 @@
+<!--
+  lokl change (docs/frontend.md): added the `touch` (44px tall) and
+  `icon-touch` (44x44) sizes for the website's minimum touch target, and a
+  per-app default size read from app.config (`uiButton.defaultSize`). The
+  website sets it to `touch`; the admin app keeps ui-thing's default. Keep
+  this if the component is re-added with the ui-thing CLI.
+-->
 <template>
   <component
     :is="elementType"
@@ -6,7 +13,7 @@
         hasIcon: !!icon,
         disabled: disabled || loading,
         variant: variant,
-        size: size,
+        size: size ?? defaultSize,
         class: normalizeClass(props.class) || undefined,
         effect: props.effect,
         skeuomorphic: props.skeuomorphic,
@@ -129,10 +136,14 @@
         sm: "h-8 gap-1.5 px-3 has-[>svg]:px-2.5",
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
         lg: "h-10 px-6 has-[>svg]:px-4",
+        // lokl: at least 44px, the website's minimum touch target.
+        touch: "h-11 px-5 has-[>svg]:px-4",
         "icon-xs": "size-7",
         "icon-sm": "size-8",
         icon: "size-9",
         "icon-lg": "size-10",
+        // lokl: 44x44 icon button for the website.
+        "icon-touch": "size-11",
       },
       disabled: {
         true: "pointer-events-none opacity-50",
@@ -189,6 +200,10 @@
     iconPlacement: "left",
     loading: false,
   });
+
+  // Each app can set its default size in app.config (lokl change, see top).
+  const defaultSize = (useAppConfig() as { uiButton?: { defaultSize?: ButtonVariants["size"] } })
+    .uiButton?.defaultSize;
 
   const elementType = computed(() => {
     if (props.as) return props.as;

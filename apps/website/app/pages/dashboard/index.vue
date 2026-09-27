@@ -22,26 +22,26 @@ const steps = computed(() => [
     <h1 class="text-2xl font-semibold tracking-tight">
       Welcome{{ provider ? `, ${provider.display_name}` : "" }}
     </h1>
-    <p class="mt-1 text-sm text-zinc-500">Finish these steps to start taking bookings.</p>
+    <p class="mt-1 text-sm text-muted-foreground">Finish these steps to start taking bookings.</p>
 
     <ol class="mt-6 max-w-lg space-y-3">
       <li v-for="(step, i) in steps" :key="step.to">
         <NuxtLink
           :to="step.to"
-          class="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
+          class="flex items-center gap-3 rounded-lg border border-border bg-card p-4 hover:border-muted-foreground"
         >
           <span
             class="flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium"
-            :class="step.done ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-300'"
+            :class="step.done ? 'border-primary bg-primary text-primary-foreground' : 'border-input'"
           >
             <Icon v-if="step.done" name="lucide:check" class="size-4" />
             <template v-else>{{ i + 1 }}</template>
           </span>
           <span class="text-sm">
             {{ step.label }}
-            <span v-if="step.done" class="text-zinc-500">(done)</span>
+            <span v-if="step.done" class="text-muted-foreground">(done)</span>
           </span>
-          <Icon name="lucide:chevron-right" class="ml-auto size-4 text-zinc-400" aria-hidden="true" />
+          <Icon name="lucide:chevron-right" class="ml-auto size-4 text-muted-foreground" aria-hidden="true" />
         </NuxtLink>
       </li>
     </ol>

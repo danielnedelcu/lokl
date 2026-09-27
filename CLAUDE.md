@@ -10,7 +10,7 @@ account and its own `.env` files. Don't copy values, migrations or code across.
 
 ## Stack
 
-- Turborepo + npm workspaces, Nuxt 4, TypeScript, Tailwind 4
+- Turborepo + npm workspaces, Nuxt 4, TypeScript 5.9, Tailwind 4, ui-thing
 - Supabase: auth (emailed sign-in links), Postgres, row-level security (RLS)
 - Stripe Connect with Express accounts (test mode until launch)
 
@@ -18,12 +18,14 @@ account and its own `.env` files. Don't copy values, migrations or code across.
 | --- | --- |
 | `apps/website` | Public site + provider dashboard at `/dashboard` (port 3100) |
 | `apps/admin` | Owner-only admin app, client-rendered (port 3101) |
-| `packages/types` | Shared types (`@repo/types`) |
+| `packages/ui` | Shared Nuxt layer both apps extend: ui-thing components, theme tokens, shared components (`@repo/ui`) |
+| `packages/types` | Shared types and form schemas (`@repo/types`) |
 | `supabase/migrations` | Schema, one SQL file per change |
 | `supabase/tests` | pgTAP access-rule tests |
 | `docs/` | `architecture.md`, `decisions.md`, `TODO.md`, generated `schema/` |
 
-`packages/ui` is a React leftover from the create-turbo template. Nothing uses it.
+**Frontend conventions** (components, theme, forms, states, formatting,
+accessibility, writing) are in `docs/frontend.md`. Read it before building UI.
 
 ## Commands
 
@@ -121,6 +123,9 @@ user id is `user.sub`, not `user.id`.
   `npm run db:types` has run against the linked project.
 - `providers.ts` mirrors the providers table by hand. Replace it with the
   generated types once they exist.
+- Stay on TypeScript 5.x. TypeScript 7 drops the JavaScript API that Vue's
+  compiler uses to resolve component prop types, so every ui-thing component
+  fails to build (`ts.findConfigFile is not a function`).
 - The website depends on `h3` v2, but Nuxt's server runs on h3 v1. In website
   server code, don't import from `"h3"`; use the auto-imported helpers and the
   `ServerEvent` type from `server/utils/provider.ts`.

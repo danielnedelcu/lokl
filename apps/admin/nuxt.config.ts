@@ -1,8 +1,9 @@
-import tailwindcss from "@tailwindcss/vite";
-
 // Internal owner dashboard. Never indexed, never server-rendered for SEO.
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // Shared UI layer: ui-thing components, theme, Tailwind (docs/frontend.md).
+  extends: ["@repo/ui"],
+
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
@@ -21,13 +22,7 @@ export default defineNuxtConfig({
     },
   },
 
-  css: ["~/assets/css/main.css"],
-
-  vite: {
-    plugins: [tailwindcss()],
-  },
-
-  modules: ["@nuxt/eslint", "@nuxt/icon", "@nuxtjs/supabase"],
+  modules: ["@nuxt/eslint", "@nuxtjs/supabase"],
 
   supabase: {
     // Point this at packages/types/src/database.ts once it holds generated types.
