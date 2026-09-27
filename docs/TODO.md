@@ -81,13 +81,16 @@ These need Daniel, not Claude.
 The provider walkthrough passed: sign-in, business profile, Stripe onboarding,
 and "Payouts are set up". These came up along the way.
 
-- [ ] **Stripe doesn't get the business name.** Onboarding doesn't prefill it
+- [x] **Stripe doesn't get the business name.** Onboarding doesn't prefill it
       from the provider's `display_name`, so the name in Stripe can differ
-      from the lokl profile.
+      from the lokl profile. Fixed: account creation now sends
+      `business_profile.name`.
+      Verify on the next test provider signup.
 - [ ] **City is free text** and accepted "Atanta". Decide during listings
       design; probably a fixed list of cities or service areas.
-- [ ] **Apps fall back to port 3000 silently** when their port is taken.
-      Make each app fail to start instead.
+- [x] **Apps fall back to port 3000 silently** when their port is taken.
+      Make each app fail to start instead. Fixed: each app's `dev` script runs
+      `scripts/check-port.mjs` first.
 - [ ] **The webhook listener hasn't been tested locally.** Test it before launch.
 - [ ] **Auth emails go through Resend from `lokl@innatetheory.com`.** Switch
       to the lokl domain before launch.

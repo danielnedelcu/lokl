@@ -40,7 +40,10 @@ npm run db:docs               # regenerate docs/schema/ with tbls (needs TBLS_DS
 
 **Ports are fixed** (`devServer.port` in each `nuxt.config.ts`): website 3100,
 admin 3101. The Reserve uses 3000 and falls back to 3001, so keep this project
-out of 3000–3001. If you change a port, update `.claude/launch.json`,
+out of 3000–3001. Nuxt would silently fall back to another port, so each
+app's `dev` script runs `scripts/check-port.mjs` first and refuses to start
+if its port is taken. If you change a port, update the app's `dev` script,
+`.claude/launch.json`,
 `supabase/config.toml` (auth URLs), `NUXT_PUBLIC_SITE_URL` and the Supabase
 dashboard's redirect URLs as well.
 

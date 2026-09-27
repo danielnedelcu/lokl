@@ -14,6 +14,9 @@ export default defineEventHandler(async (event) => {
         type: "express",
         country: "US",
         email: user.email,
+        // Prefills the business name on Stripe's onboarding form, so it
+        // starts out matching the lokl profile.
+        business_profile: { name: provider.display_name },
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
