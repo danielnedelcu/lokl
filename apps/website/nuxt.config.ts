@@ -28,6 +28,12 @@ export default defineNuxtConfig({
     },
   },
 
+  // @nuxtjs/seo: fills the "%siteName" in page titles ("Sign in | lokl").
+  // The site URL comes from NUXT_PUBLIC_SITE_URL.
+  site: {
+    name: "lokl",
+  },
+
   supabase: {
     // Point this at packages/types/src/database.ts once it holds generated types.
     types: false,

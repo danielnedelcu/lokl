@@ -37,16 +37,18 @@ const { data: refs } = await useAsyncData("listing-editor-refs", async () => {
 
 const { data: saved, refresh: refreshSaved } = await useAsyncData(`listing-${props.listingId ?? "new"}`, async () => {
   if (!props.listingId) return null;
-  const [listing, address, travel] = await Promise.all([
+  const [listing, address, travel, photos] = await Promise.all([
     supabase.from("listings").select("*").eq("id", props.listingId).maybeSingle(),
     supabase.from("listing_addresses").select("*").eq("listing_id", props.listingId).maybeSingle(),
     supabase.from("listing_service_areas").select("service_area_id").eq("listing_id", props.listingId),
+    supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", props.listingId),
   ]);
-  for (const r of [listing, address, travel]) if (r.error) throw r.error;
+  for (const r of [listing, address, travel, photos]) if (r.error) throw r.error;
   return {
     listing: listing.data as Listing | null,
     address: address.data as ListingAddress | null,
     travelAreaIds: (travel.data ?? []).map((r: { service_area_id: string }) => r.service_area_id),
+    photoCount: photos.count ?? 0,
   };
 });
 
@@ -246,6 +248,7 @@ const readiness = computed(() =>
     locationMode: listing.value?.location_mode ?? null,
     hasAddress: !!saved.value?.address,
     travelAreaCount: saved.value?.travelAreaIds.length ?? 0,
+    photoCount: saved.value?.photoCount ?? 0,
     providerActive: provider.value?.status === "active",
     payoutsReady: !!provider.value && payoutSetupOf(provider.value) === "ready",
   }),
@@ -284,6 +287,10 @@ async function deleteDraft() {
   acting.value = false;
   deleteOpen.value = false;
   if (error) return useSonner.error(`That didn't delete: ${error.message}`);
+  // The photo rows went with the listing; remove their files too.
+  const folder = `${listing.value!.provider_id}/${props.listingId}`;
+  const { data: files } = await supabase.storage.from("listing-photos").list(folder);
+  if (files?.length) await supabase.storage.from("listing-photos").remove(files.map((f) => `${folder}/${f.name}`));
   useSonner.success("Draft deleted.");
   skipLeaveGuard = true;
   await navigateTo(kind.value === "service" ? "/dashboard/services" : "/dashboard/experiences");
@@ -352,6 +359,15 @@ const statusNote = computed(() => {
               <UiVeeTextarea name="description" label="Description" required rows="6" maxlength="5000"
                 :disabled="!priceAndDescriptionEditable"
                 :hint="`What's included, what to expect, anything to bring. ${values.description?.length ?? 0} of 5,000 characters.`" />
+            </UiCardContent>
+          </UiCard>
+
+          <ListingPhotos v-if="listing" :listing-id="listing.id" :provider-id="listing.provider_id" :status="status"
+            @changed="refreshSaved()" />
+          <UiCard v-else>
+            <UiCardHeader><UiCardTitle as="h2">Photos</UiCardTitle></UiCardHeader>
+            <UiCardContent>
+              <p class="text-muted-foreground text-sm">Save your draft first, then add photos.</p>
             </UiCardContent>
           </UiCard>
 
@@ -498,7 +514,7 @@ const statusNote = computed(() => {
       </UiAlertDialog>
 
       <UiAlertDialog v-model:open="deleteOpen" title="Delete this draft?"
-        description="It will be removed for good, with its address and travel areas. This can't be undone.">
+        description="It will be removed for good, with its photos, address and travel areas. This can't be undone.">
         <template #footer>
           <UiAlertDialogFooter>
             <UiAlertDialogCancel text="Keep draft" />
