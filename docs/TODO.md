@@ -157,6 +157,11 @@ tests, run through `db:test` before `db:push`.
 
 ## Notifications
 
+- [ ] Provider in-app notifications and live updates: `docs/design/notifications.md`
+  (approved 2026-09-27; build after step 6 is committed).
+- [ ] Cleanup job: delete read notifications older than six months.
+- [ ] Admin notifications, such as new Experiences waiting for review (also
+  makes the review queue update live).
 - [ ] Email providers when a listing is approved, rejected or unpublished.
   Until then, the dashboard overview shows "N listings need your attention"
   when any listing is rejected or unpublished.

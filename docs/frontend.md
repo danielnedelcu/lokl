@@ -58,6 +58,10 @@ Never hand-copy a component from the ui-thing website or another project.
 - Reads that access rules already protect go through the Supabase client. Privileged actions (anything the provider or admin can't write directly, like publishing or approving) go through a server route.
 - Every list or data view has three designed states besides success: loading, empty and error. Empty states say what the thing is and what to do next ("You haven't created any Services yet. Create your first one to start getting booking requests.").
 - Tables in the admin app use TanStack Table through ui-thing's table components: sortable columns where useful, filters above the table, and a sticky header on long tables.
+- **Data someone else can change stays current** (listings, their status, anything an admin or another tab can change). Use the shared `useLiveData()` (docs/design/notifications.md):
+  - Refresh when the tab becomes visible again, at most every 15 seconds.
+  - Where a notification exists for the change, refresh live when it arrives.
+  - Never overwrite unsaved changes. A refresh updates the saved data; a form with unsaved changes keeps its values, and a sentence says what changed. If the change locks the page, the form goes read-only and tells the person to copy anything they want to keep.
 
 ## Formatting
 
