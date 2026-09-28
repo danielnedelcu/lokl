@@ -106,6 +106,7 @@ Each step depends on the ones before it.
    Experiences queue for review; Services go live once payouts are ready.
 3. **Public browse and listing pages.** Category pages, search by city, a page
    per listing, all indexable.
+   - [ ] Decide image sizes and the Nuxt Image provider, including production hosting.
 4. **Booking and checkout.** Stripe Checkout with the platform fee split
    automatically. Blocked on the commission decisions below.
 5. **Booking management.** Provider and customer booking views, cancellations,

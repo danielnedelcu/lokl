@@ -54,7 +54,6 @@ export default defineNuxtConfig({
 
   modules: [
     "@nuxt/eslint",
-    "@nuxt/image",
     "@nuxt/scripts",
     "@nuxt/test-utils",
     // '@nuxtjs/sanity',

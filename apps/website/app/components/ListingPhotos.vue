@@ -209,7 +209,8 @@ async function confirmRemove() {
       <ul v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <li v-for="(photo, i) in list" :key="photo.id" class="border-border overflow-hidden rounded-lg border">
           <div class="relative">
-            <img :src="publicUrl(photo.storage_path)" :alt="photo.alt_text" class="aspect-[4/3] w-full object-cover" loading="lazy">
+            <NuxtImg :src="publicUrl(photo.storage_path)" :alt="photo.alt_text" width="800" height="600"
+              class="aspect-[4/3] w-full object-cover" loading="lazy" />
             <UiBadge v-if="i === 0" class="absolute top-2 left-2">Cover</UiBadge>
           </div>
           <div class="space-y-2 p-3">
@@ -254,7 +255,10 @@ async function confirmRemove() {
     <UiDialogContent title="Describe this photo" description="This helps customers who use screen readers.">
       <template #content>
         <form id="describe-photo" class="space-y-4" novalidate @submit="uploadPending">
-          <img v-if="pending" :src="pending.previewUrl" alt="" class="aspect-[4/3] w-full rounded-md object-cover">
+          <!-- A local preview (blob: URL) before upload; "none" keeps any future
+               image provider from trying to fetch it. -->
+          <NuxtImg v-if="pending" provider="none" :src="pending.previewUrl" alt="" width="800" height="600"
+            class="aspect-[4/3] w-full rounded-md object-cover" />
           <UiVeeTextarea name="alt_text" label="What's in the photo?" required :rows="2" maxlength="200"
             hint="For example: A stylist trimming a customer's hair in a sunny salon." />
         </form>
@@ -273,7 +277,8 @@ async function confirmRemove() {
     <UiDialogContent title="Edit description" description="This helps customers who use screen readers.">
       <template #content>
         <form id="edit-photo" class="space-y-4" novalidate @submit="saveEdit">
-          <img v-if="editing" :src="publicUrl(editing.storage_path)" alt="" class="aspect-[4/3] w-full rounded-md object-cover">
+          <NuxtImg v-if="editing" :src="publicUrl(editing.storage_path)" alt="" width="800" height="600"
+            class="aspect-[4/3] w-full rounded-md object-cover" />
           <UiVeeTextarea name="alt_text" label="What's in the photo?" required :rows="2" maxlength="200" />
         </form>
       </template>

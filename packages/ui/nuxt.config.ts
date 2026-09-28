@@ -22,7 +22,8 @@ export default defineNuxtConfig({
     "@nuxt/icon",
     "@nuxt/fonts",
     "vue-sonner/nuxt",
-    "@vee-validate/nuxt"
+    "@vee-validate/nuxt",
+    "@nuxt/image",
   ],
 
   imports: {
@@ -46,6 +47,14 @@ export default defineNuxtConfig({
   // shouldn't look for a schema adapter package (it warns about zod/valibot).
   veeValidate: {
     typedSchemaPackage: "none",
+  },
+
+  // Listing and guide photos render with <NuxtImg> (docs/frontend.md). The
+  // "none" provider passes URLs through unchanged until image sizes and a
+  // provider are chosen (docs/TODO.md, browse pages step); switching this
+  // setting then resizes every photo without touching components.
+  image: {
+    provider: "none",
   },
 
   colorMode: {

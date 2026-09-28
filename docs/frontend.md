@@ -64,6 +64,7 @@ Never hand-copy a component from the ui-thing website or another project.
 - Money is stored in cents and shown with one shared helper (for example `formatMoney(cents)` → `$45.00`). Price inputs use one shared `MoneyInput` that converts to cents.
 - Dates and times are shown in the listing's city time zone, using one shared helper. Never use `toISOString()` to get a calendar day, since it shifts to UTC and can land on the wrong date.
 - Statuses (listing, payouts, provider) are shown with one shared `StatusBadge` that maps each status to a label and a style. Pages never write their own status labels.
+- Listing and guide photos are always displayed with `<NuxtImg>` (Nuxt Image, set up in the shared layer), never a plain `<img>`, with `width` and `height` set so the page doesn't jump while they load. The layer's `image.provider` is `none` for now; choosing a provider later then resizes every photo in one place.
 
 ## Accessibility
 
@@ -96,6 +97,7 @@ Plain language on every screen, especially the website, where providers are smal
 - Other component or icon libraries.
 - Hard-coded colours.
 - Status labels, money formatting or date formatting written inline in a page.
+- A plain `<img>` for listing or guide photos (use `<NuxtImg>`).
 - Browser storage for anything that isn't a per-viewer convenience.
 - Hand-copied components.
 
