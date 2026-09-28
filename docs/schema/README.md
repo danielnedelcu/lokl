@@ -13,6 +13,7 @@
 | [public.listing_service_areas](public.listing_service_areas.md) | 3       | Where an "I come to you" Service travels. At least one row is required before a customer-location Service can go live. Rows go with their listing; the provider removes a row to stop covering an area.                                                                                                                                       | BASE TABLE |
 | [public.listing_photos](public.listing_photos.md)               | 7       | Photos of a listing, at most 8. Position 0 is the cover. At least one is required before a listing is published or submitted. Removed by the provider (not while submitted or unpublished, and never the last one of a live listing) or by the admin; rows go with their listing. Removing a row leaves the stored file.                      | BASE TABLE |
 | [public.experience_sessions](public.experience_sessions.md)     | 7       | Dated sessions of an Experience, each with a number of spots. Providers add and change future sessions (not while the listing is submitted or unpublished); a session that has started is kept as it is. Deleted with their listing, or by the provider before they start; once bookings exist, a session with bookings is cancelled instead. | BASE TABLE |
+| [public.notifications](public.notifications.md)                 | 6       | Things that happened to a provider's listings because of an admin action. Written only by the listings_notify_status_change trigger. Providers read their own and mark them read. Deleted with their listing; otherwise kept (a cleanup of old read ones comes later).                                                                        | BASE TABLE |
 
 ## Stored procedures and functions
 
@@ -35,6 +36,9 @@
 | public.reorder_listing_photos        | void       | p_listing_id uuid, p_photo_ids uuid[]                  | FUNCTION |
 | public.experience_sessions_check     | trigger    |                                                        | FUNCTION |
 | public.experience_sessions_guard     | trigger    |                                                        | FUNCTION |
+| public.listings_notify_status_change | trigger    |                                                        | FUNCTION |
+| public.notifications_set_read_at     | trigger    |                                                        | FUNCTION |
+| public.providers_owner_not_admin     | trigger    |                                                        | FUNCTION |
 
 ## Enums
 

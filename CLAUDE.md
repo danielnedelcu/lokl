@@ -94,6 +94,31 @@ for usability and defence in depth, never as the only protection.
 - **Provider:** anyone who owns a `providers` row (`owner_id = auth.uid()`).
   Provider isn't stored as a role.
 - **Customer:** any other signed-in user.
+- **Granting admin** is done by hand in the SQL Editor, never from an app.
+  Use this, not a bare `update auth.users`: it refuses a login that owns a
+  business. (The database also refuses to give a provider to an admin, but
+  deliberately has no trigger on `auth.users`; see `docs/decisions.md`.)
+
+  ```sql
+  do $$
+  declare
+    v_email constant text := '<admin email>';
+    v_id uuid;
+  begin
+    select id into v_id from auth.users where email = v_email;
+    if v_id is null then
+      raise exception 'No login for %. Sign in once on the website first, then run this again.', v_email;
+    end if;
+    if exists (select 1 from public.providers where owner_id = v_id) then
+      raise exception '% owns a business, so it can''t be made an admin. Use a login that owns no business, or move the business to another login first.', v_email;
+    end if;
+    update auth.users
+       set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}'
+     where id = v_id;
+    raise notice '% is now an admin. Sign out and back in to pick up the role.', v_email;
+  end;
+  $$;
+  ```
 - **Test data never gives the admin login a provider record.** Keep roles on
   separate logins: the admin login is only an admin, and test providers use
   their own logins (plus addresses such as `+provider1`, `+provider2`). An

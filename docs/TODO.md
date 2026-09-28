@@ -59,8 +59,29 @@ These need Daniel, not Claude.
       (remove the old 3000 and 3002 ones).
 - [x] **Make yourself admin.** Sign in once on the website
       (`localhost:3100/login`) to create your login, since the admin app never
-      creates accounts. Then in the SQL Editor: `update auth.users set raw_app_meta_data =
-      raw_app_meta_data || '{"role":"admin"}' where email = '<your email>';`
+      creates accounts. Then run this in the SQL Editor, with your email in
+      `v_email`. It refuses a login that owns a business (see CLAUDE.md, Roles):
+
+      ```sql
+      do $$
+      declare
+        v_email constant text := '<admin email>';
+        v_id uuid;
+      begin
+        select id into v_id from auth.users where email = v_email;
+        if v_id is null then
+          raise exception 'No login for %. Sign in once on the website first, then run this again.', v_email;
+        end if;
+        if exists (select 1 from public.providers where owner_id = v_id) then
+          raise exception '% owns a business, so it can''t be made an admin. Use a login that owns no business, or move the business to another login first.', v_email;
+        end if;
+        update auth.users
+           set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}'
+         where id = v_id;
+        raise notice '% is now an admin. Sign out and back in to pick up the role.', v_email;
+      end;
+      $$;
+      ```
 - [x] **Walk the provider flow.** Sign in at `localhost:3100/login`, create a
       profile, **Set up payouts**, use Stripe's test-mode prefill. Expect
       "Ready" on the payouts page and the provider on the admin Providers page.
@@ -109,6 +130,8 @@ Each step depends on the ones before it.
    - [ ] Decide image sizes and the Nuxt Image provider, including production hosting.
 4. **Booking and checkout.** Stripe Checkout with the platform fee split
    automatically. Blocked on the commission decisions below.
+   - [ ] Check that a listing's address matches its city and area (zip check,
+     or geocoding).
 5. **Booking management.** Provider and customer booking views, cancellations,
    refunds, payout history; admin Bookings & payouts page.
 6. **Admin actions.** Suspend or reinstate providers, approve or reject
@@ -146,14 +169,14 @@ tests, run through `db:test` before `db:push`.
    Done 2026-09-27. Unpublishing needs a reason the provider sees; the
    dashboard overview flags listings that need attention. Walkthrough passed.
 
-### Next migration
+### Admin-login guard
 
-- [ ] **Database guard: an admin login can't own a provider.** A trigger on
-  `providers` (insert, or update of `owner_id`) refuses an owner whose
-  `app_metadata.role` is `admin`, with pgTAP tests and one deliberate break.
-  Making an existing owner an admin is the other way in; decide whether to
-  guard `auth.users` too, or check it in a scheduled report. The hosted data
-  is already clean (the test business moved to `+provider2`, 2026-09-27).
+- [x] ~~**Database guard: an admin login can't own a provider.**~~ Done
+  2026-09-28 (`20260928032853_admin_owns_no_provider`): a trigger on
+  `providers` refuses an admin owner. Making an existing owner an admin is
+  checked by the admin-grant SQL above instead of a trigger on `auth.users`
+  (docs/decisions.md). The test business moved from the admin login to
+  `+provider2` on 2026-09-28, after the push.
 
 ## Notifications
 
@@ -180,6 +203,10 @@ tests, run through `db:test` before `db:push`.
 | Sales contractor's commission | Flat bonus, revenue override, or hybrid; what counts as "signed" | Before outreach |
 | How much admin to build before launch | Full now, or minimal + the Supabase table editor | Ongoing |
 | Stripe Accounts v2 | Stripe's SDK recommends Accounts v2 over the current `accounts.create({ type: "express" })` (v1), which still works | Later; before launch at the latest |
+
+## Later ideas
+
+- "Don't see your area? Tell us" link next to the area picker.
 
 ## Loose ends
 
