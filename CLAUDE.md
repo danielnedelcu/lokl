@@ -142,6 +142,19 @@ user id is `user.sub`, not `user.id`.
 - Treat provider and customer personal details as sensitive. Keep them out of
   logs, test fixtures and docs.
 
+## Commit messages
+
+- A short subject line (about 72 characters at most), then a **blank line**,
+  then the body. Without the blank line, git treats the whole message as the
+  subject.
+- Subject: what changed, in plain words; add the build step when there is one,
+  e.g. `Listing photos and storage bucket (step 4, part 1: database)`.
+- Body: `- ` bullets saying what changed and why, wrapped at about 72
+  characters.
+- No `Co-Authored-By` or other attribution lines.
+- Write the message to a file or heredoc and check it with
+  `git log -1 --format=%s` after committing: it should print only the subject.
+
 ## Keeping docs current
 
 After a change lands, update `docs/TODO.md` (status, next steps). Record any
