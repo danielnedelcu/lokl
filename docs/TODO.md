@@ -113,6 +113,8 @@ Each step depends on the ones before it.
    refunds, payout history; admin Bookings & payouts page.
 6. **Admin actions.** Suspend or reinstate providers, approve or reject
    Experiences, handle disputes, all via `requireAdmin` server routes.
+   - [ ] Audit log for admin actions (who approved, rejected, unpublished or
+     restored what).
 7. **Destination guides.** AI draft (Anthropic API), editor with photo, slug and
    publish state, links into listings. Can start any time after step 3.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
@@ -138,9 +140,26 @@ tests, run through `db:test` before `db:push`.
 5. ~~Experience sessions, plus the Sessions section.~~ Done 2026-09-27.
    Times in the city's time zone; weekly series keep their local time
    across clock changes and save all or nothing. Walkthrough passed.
-6. Admin Listings page and review queue, with the approve, reject, unpublish
+6. ~~Admin Listings page and review queue, with the approve, reject, unpublish
    and restore routes. Also: deactivating a category or city needs a
-   confirmation that says how many live listings it will hide.
+   confirmation that says how many live listings it will hide.~~
+   Done 2026-09-27. Unpublishing needs a reason the provider sees; the
+   dashboard overview flags listings that need attention. Walkthrough passed.
+
+### Next migration
+
+- [ ] **Database guard: an admin login can't own a provider.** A trigger on
+  `providers` (insert, or update of `owner_id`) refuses an owner whose
+  `app_metadata.role` is `admin`, with pgTAP tests and one deliberate break.
+  Making an existing owner an admin is the other way in; decide whether to
+  guard `auth.users` too, or check it in a scheduled report. The hosted data
+  is already clean (the test business moved to `+provider2`, 2026-09-27).
+
+## Notifications
+
+- [ ] Email providers when a listing is approved, rejected or unpublished.
+  Until then, the dashboard overview shows "N listings need your attention"
+  when any listing is rejected or unpublished.
 
 ## Open decisions
 

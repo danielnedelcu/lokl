@@ -23,6 +23,28 @@ const { data: hasListedSomething } = await useAsyncData(
   { watch: [provider] },
 );
 
+// Listings lokl sent back or took down. Until emails exist (docs/TODO.md,
+// Notifications), this is how providers find out.
+const { data: needsAttention } = await useAsyncData(
+  "listings-needing-attention",
+  async () => {
+    if (!provider.value) return [];
+    const { data, error } = await supabase
+      .from("listings")
+      .select("id, title, status")
+      .eq("provider_id", provider.value.id)
+      .in("status", ["rejected", "unpublished"])
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return data as { id: string; title: string; status: "rejected" | "unpublished" }[];
+  },
+  { watch: [provider] },
+);
+const attentionTitle = computed(() => {
+  const n = needsAttention.value?.length ?? 0;
+  return `${n} ${n === 1 ? "listing needs" : "listings need"} your attention`;
+});
+
 const steps = computed(() => [
   { label: "Set up your business profile", to: "/dashboard/settings", done: !!provider.value },
   {
@@ -39,6 +61,18 @@ const steps = computed(() => [
     <h1 class="text-2xl font-semibold tracking-tight">
       Welcome{{ provider ? `, ${provider.display_name}` : "" }}
     </h1>
+    <UiAlert v-if="needsAttention?.length" variant="destructive" class="mt-6 max-w-lg" icon="lucide:alert-circle">
+      <UiAlertTitle as="h2">{{ attentionTitle }}</UiAlertTitle>
+      <UiAlertDescription>
+        <ul class="mt-1 space-y-1">
+          <li v-for="l in needsAttention" :key="l.id">
+            <NuxtLink :to="`/dashboard/listings/${l.id}`" class="font-medium underline underline-offset-4">{{ l.title }}</NuxtLink>:
+            {{ l.status === "rejected" ? "lokl asked for changes" : "lokl took it down" }}
+          </li>
+        </ul>
+      </UiAlertDescription>
+    </UiAlert>
+
     <p class="mt-1 text-sm text-muted-foreground">Finish these steps to start taking bookings.</p>
 
     <ol class="mt-6 max-w-lg space-y-3">

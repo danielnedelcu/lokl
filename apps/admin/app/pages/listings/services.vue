@@ -1,13 +1,13 @@
+<script setup lang="ts">
+useHead({ title: "Services · Admin" });
+</script>
+
 <template>
   <div>
     <PageHeader
       title="Services"
-      description="Self-serve listings managed by providers. Review, feature, or unpublish."
+      description="Listings providers publish themselves once their payouts are ready. Open one to take it down or restore it."
     />
-    <EmptyState
-      icon="lucide:wrench"
-      title="No service listings yet"
-      description="Listings appear here once providers publish them from their dashboard."
-    />
+    <ListingsTable kind="service" />
   </div>
 </template>

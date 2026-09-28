@@ -30,6 +30,7 @@ const columns = [
   { accessorKey: "status", header: "Status" },
   { accessorKey: "created_at", header: "Joined" },
 ];
+watch(error, (e) => e && reportError("Couldn't load providers", e), { immediate: true });
 </script>
 
 <template>
@@ -41,7 +42,7 @@ const columns = [
 
     <UiAlert v-if="error" variant="destructive">
       <UiAlertTitle>Couldn't load providers</UiAlertTitle>
-      <UiAlertDescription>{{ error.message }}. Reload the page to try again.</UiAlertDescription>
+      <UiAlertDescription>{{ loadFailedHint }}</UiAlertDescription>
     </UiAlert>
 
     <EmptyState

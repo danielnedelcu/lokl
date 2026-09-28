@@ -89,7 +89,7 @@ const saveCity = cityForm.handleSubmit(async (input) => {
     cityForm.setFieldError("slug", "Another city already uses this slug. Choose a different one.");
     return;
   }
-  if (error) return useSonner.error(`The city wasn't saved: ${error.message}`);
+  if (error) return useSonner.error(reportError("The city wasn't saved. Try again.", error));
   useSonner.success(editingCity.value ? "City saved." : "City added.");
   cityDialogOpen.value = false;
   await refresh();
@@ -99,13 +99,38 @@ async function toggleCity(city: City) {
   busy.value = true;
   const { error } = await supabase.from("cities").update({ active: !city.active }).eq("id", city.id);
   busy.value = false;
-  if (error) return useSonner.error(`That didn't work: ${error.message}`);
+  if (error) return useSonner.error(reportError("That didn't work. Try again.", error));
   useSonner.success(
     city.active
       ? `${city.name} is now inactive. It's hidden from the public site, and new providers can't choose it.`
       : `${city.name} is active again.`,
   );
   await refresh();
+}
+
+// Deactivating asks first, saying how many live listings it hides.
+const deactivating = ref<City | null>(null);
+const deactivateOpen = ref(false);
+const liveCount = ref<number | null>(null);
+async function askDeactivate(item: City) {
+  deactivating.value = item;
+  liveCount.value = null;
+  deactivateOpen.value = true;
+  const { count, error } = await supabase
+    .from("listings")
+    .select("id", { count: "exact", head: true })
+    .eq("city_id", item.id)
+    .eq("status", "live");
+  if (error) {
+    deactivateOpen.value = false;
+    return useSonner.error(reportError("Couldn't count its live listings. Try again.", error));
+  }
+  liveCount.value = count ?? 0;
+}
+async function confirmDeactivate() {
+  if (!deactivating.value) return;
+  await toggleCity(deactivating.value);
+  deactivateOpen.value = false;
 }
 
 // ---------------------------------------------------------------------------
@@ -137,7 +162,7 @@ const saveArea = areaForm.handleSubmit(async (input) => {
     areaForm.setFieldError("name", `${selectedCity.value?.name} already has an area with this name.`);
     return;
   }
-  if (error) return useSonner.error(`The area wasn't saved: ${error.message}`);
+  if (error) return useSonner.error(reportError("The area wasn't saved. Try again.", error));
   useSonner.success(editingArea.value ? "Area saved." : "Area added.");
   areaDialogOpen.value = false;
   await refresh();
@@ -147,7 +172,7 @@ async function toggleArea(area: ServiceArea) {
   busy.value = true;
   const { error } = await supabase.from("service_areas").update({ active: !area.active }).eq("id", area.id);
   busy.value = false;
-  if (error) return useSonner.error(`That didn't work: ${error.message}`);
+  if (error) return useSonner.error(reportError("That didn't work. Try again.", error));
   useSonner.success(area.active ? `${area.name} is now inactive.` : `${area.name} is active again.`);
   await refresh();
 }
@@ -157,11 +182,12 @@ async function moveArea(index: number, direction: -1 | 1) {
   try {
     await saveOrder(supabase, "service_areas", areas.value, index, direction);
   } catch (e) {
-    useSonner.error(`The new order wasn't saved: ${(e as Error).message}`);
+    useSonner.error(reportError("The new order wasn't saved. Try again.", e));
   }
   busy.value = false;
   await refresh();
 }
+watch(error, (e) => e && reportError("Couldn't load cities", e), { immediate: true });
 </script>
 
 <template>
@@ -173,7 +199,7 @@ async function moveArea(index: number, direction: -1 | 1) {
 
     <UiAlert v-if="error" variant="destructive">
       <UiAlertTitle>Couldn't load cities</UiAlertTitle>
-      <UiAlertDescription>{{ error.message }}. Reload the page to try again.</UiAlertDescription>
+      <UiAlertDescription>{{ loadFailedHint }}</UiAlertDescription>
     </UiAlert>
 
     <template v-else>
@@ -220,7 +246,7 @@ async function moveArea(index: number, direction: -1 | 1) {
                   variant="ghost"
                   :disabled="busy"
                   :aria-label="`${row.original.active ? 'Deactivate' : 'Reactivate'} ${row.original.name}`"
-                  @click="toggleCity(row.original)"
+                  @click="row.original.active ? askDeactivate(row.original) : toggleCity(row.original)"
                 >
                   {{ row.original.active ? "Deactivate" : "Reactivate" }}
                 </UiButton>
@@ -374,5 +400,7 @@ async function moveArea(index: number, direction: -1 | 1) {
         </template>
       </UiDialogContent>
     </UiDialog>
+    <DeactivateDialog v-model:open="deactivateOpen" :name="deactivating ? deactivating.name : ''" :live-count="liveCount"
+      :busy="busy" @confirm="confirmDeactivate" />
   </div>
 </template>

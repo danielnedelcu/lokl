@@ -345,6 +345,13 @@ const statusNote = computed(() => {
         <UiAlertTitle>lokl asked for changes</UiAlertTitle>
         <UiAlertDescription>{{ listing.rejection_reason }}</UiAlertDescription>
       </UiAlert>
+      <UiAlert v-else-if="status === 'unpublished' && listing?.unpublished_reason" variant="destructive" class="mt-4">
+        <UiAlertTitle>lokl took this listing down</UiAlertTitle>
+        <UiAlertDescription>
+          <p>{{ listing.unpublished_reason }}</p>
+          <p class="mt-2">It can't be edited while it's down. Contact lokl if you have questions or think this is a mistake.</p>
+        </UiAlertDescription>
+      </UiAlert>
       <UiAlert v-else-if="statusNote" class="mt-4">
         <UiAlertDescription>{{ statusNote }}</UiAlertDescription>
       </UiAlert>

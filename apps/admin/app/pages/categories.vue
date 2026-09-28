@@ -90,7 +90,7 @@ const save = handleSubmit(async (input) => {
     return;
   }
   if (error) {
-    useSonner.error(`The category wasn't saved: ${error.message}`);
+    useSonner.error(reportError("The category wasn't saved. Try again.", error));
     return;
   }
   useSonner.success(editing.value ? "Category saved." : "Category added.");
@@ -108,7 +108,7 @@ async function toggleActive(category: Category) {
   busy.value = true;
   const { error } = await supabase.from("categories").update({ active: !category.active }).eq("id", category.id);
   busy.value = false;
-  if (error) return useSonner.error(`That didn't work: ${error.message}`);
+  if (error) return useSonner.error(reportError("That didn't work. Try again.", error));
   useSonner.success(
     category.active
       ? `“${category.name}” is now inactive and hidden from the public site.`
@@ -117,16 +117,43 @@ async function toggleActive(category: Category) {
   await refresh();
 }
 
+
+// Deactivating asks first, saying how many live listings it hides.
+const deactivating = ref<Category | null>(null);
+const deactivateOpen = ref(false);
+const liveCount = ref<number | null>(null);
+async function askDeactivate(item: Category) {
+  deactivating.value = item;
+  liveCount.value = null;
+  deactivateOpen.value = true;
+  const { count, error } = await supabase
+    .from("listings")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", item.id)
+    .eq("status", "live");
+  if (error) {
+    deactivateOpen.value = false;
+    return useSonner.error(reportError("Couldn't count its live listings. Try again.", error));
+  }
+  liveCount.value = count ?? 0;
+}
+async function confirmDeactivate() {
+  if (!deactivating.value) return;
+  await toggleActive(deactivating.value);
+  deactivateOpen.value = false;
+}
+
 async function move(kind: Kind, index: number, direction: -1 | 1) {
   busy.value = true;
   try {
     await saveOrder(supabase, "categories", ofKind(kind), index, direction);
   } catch (e) {
-    useSonner.error(`The new order wasn't saved: ${(e as Error).message}`);
+    useSonner.error(reportError("The new order wasn't saved. Try again.", e));
   }
   busy.value = false;
   await refresh();
 }
+watch(error, (e) => e && reportError("Couldn't load categories", e), { immediate: true });
 </script>
 
 <template>
@@ -142,7 +169,7 @@ async function move(kind: Kind, index: number, direction: -1 | 1) {
 
     <UiAlert v-if="error" variant="destructive">
       <UiAlertTitle>Couldn't load categories</UiAlertTitle>
-      <UiAlertDescription>{{ error.message }}. Reload the page to try again.</UiAlertDescription>
+      <UiAlertDescription>{{ loadFailedHint }}</UiAlertDescription>
     </UiAlert>
 
     <UiTabs v-else v-model="activeKind">
@@ -212,7 +239,7 @@ async function move(kind: Kind, index: number, direction: -1 | 1) {
                   variant="ghost"
                   :disabled="busy"
                   :aria-label="`${row.original.active ? 'Deactivate' : 'Reactivate'} ${row.original.name}`"
-                  @click="toggleActive(row.original)"
+                  @click="row.original.active ? askDeactivate(row.original) : toggleActive(row.original)"
                 >
                   {{ row.original.active ? "Deactivate" : "Reactivate" }}
                 </UiButton>
@@ -222,6 +249,9 @@ async function move(kind: Kind, index: number, direction: -1 | 1) {
         </UiCard>
       </UiTabsContent>
     </UiTabs>
+
+    <DeactivateDialog v-model:open="deactivateOpen" :name="deactivating ? `“${deactivating.name}”` : ''" :live-count="liveCount"
+      :busy="busy" @confirm="confirmDeactivate" />
 
     <UiDialog v-model:open="dialogOpen">
       <UiDialogContent
