@@ -8,6 +8,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@internationalized/date": "^3.12.4",
     "@internationalized/number": "^3.6.8",
     "@nuxt/fonts": "^0.14.0",
     "@nuxt/icon": "^2.5.1",

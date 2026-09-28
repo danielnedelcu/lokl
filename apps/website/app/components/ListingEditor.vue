@@ -25,30 +25,33 @@ const { data: provider } = await useProvider();
 // Active reference lists only (RLS returns active rows to providers).
 const { data: refs } = await useAsyncData("listing-editor-refs", async () => {
   const [cities, areas] = await Promise.all([
-    supabase.from("cities").select("id, name, state").order("sort_order").order("name"),
+    supabase.from("cities").select("id, name, state, timezone").order("sort_order").order("name"),
     supabase.from("service_areas").select("id, city_id, kind, name").order("sort_order").order("name"),
   ]);
   for (const r of [cities, areas]) if (r.error) throw r.error;
   return {
-    cities: cities.data as { id: string; name: string; state: string }[],
+    cities: cities.data as { id: string; name: string; state: string; timezone: string }[],
     areas: areas.data as { id: string; city_id: string; kind: string; name: string }[],
   };
 });
 
 const { data: saved, refresh: refreshSaved } = await useAsyncData(`listing-${props.listingId ?? "new"}`, async () => {
   if (!props.listingId) return null;
-  const [listing, address, travel, photos] = await Promise.all([
+  const [listing, address, travel, photos, sessions] = await Promise.all([
     supabase.from("listings").select("*").eq("id", props.listingId).maybeSingle(),
     supabase.from("listing_addresses").select("*").eq("listing_id", props.listingId).maybeSingle(),
     supabase.from("listing_service_areas").select("service_area_id").eq("listing_id", props.listingId),
     supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", props.listingId),
+    supabase.from("experience_sessions").select("id", { count: "exact", head: true })
+      .eq("listing_id", props.listingId).eq("status", "scheduled").gt("starts_at", new Date().toISOString()),
   ]);
-  for (const r of [listing, address, travel, photos]) if (r.error) throw r.error;
+  for (const r of [listing, address, travel, photos, sessions]) if (r.error) throw r.error;
   return {
     listing: listing.data as Listing | null,
     address: address.data as ListingAddress | null,
     travelAreaIds: (travel.data ?? []).map((r: { service_area_id: string }) => r.service_area_id),
     photoCount: photos.count ?? 0,
+    upcomingSessionCount: sessions.count ?? 0,
   };
 });
 
@@ -122,6 +125,8 @@ const { handleSubmit, isSubmitting, resetForm, setFieldValue, values, meta } = u
 });
 
 const cityAreas = computed(() => (refs.value?.areas ?? []).filter((a) => a.city_id === values.city_id));
+// Sessions use the saved city's time zone, not the unsaved form value.
+const savedCity = computed(() => cities.value.find((c) => c.id === listing.value?.city_id) ?? null);
 const cityName = computed(() => cities.value.find((c) => c.id === values.city_id)?.name ?? "your city");
 
 // Plain-language explanations when a list has nothing to choose from.
@@ -249,6 +254,7 @@ const readiness = computed(() =>
     hasAddress: !!saved.value?.address,
     travelAreaCount: saved.value?.travelAreaIds.length ?? 0,
     photoCount: saved.value?.photoCount ?? 0,
+    upcomingSessionCount: saved.value?.upcomingSessionCount ?? 0,
     providerActive: provider.value?.status === "active",
     payoutsReady: !!provider.value && payoutSetupOf(provider.value) === "ready",
   }),
@@ -370,6 +376,18 @@ const statusNote = computed(() => {
               <p class="text-muted-foreground text-sm">Save your draft first, then add photos.</p>
             </UiCardContent>
           </UiCard>
+
+          <template v-if="kind === 'experience'">
+            <ListingSessions v-if="listing && savedCity" :listing-id="listing.id" :status="status"
+              :city-name="savedCity.name" :time-zone="savedCity.timezone"
+              :duration-minutes="listing.duration_minutes" @changed="refreshSaved()" />
+            <UiCard v-else>
+              <UiCardHeader><UiCardTitle as="h2">Sessions</UiCardTitle></UiCardHeader>
+              <UiCardContent>
+                <p class="text-muted-foreground text-sm">Save your draft first, then add sessions.</p>
+              </UiCardContent>
+            </UiCard>
+          </template>
 
           <UiCard>
             <UiCardHeader><UiCardTitle as="h2">Price and time</UiCardTitle></UiCardHeader>

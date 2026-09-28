@@ -135,7 +135,9 @@ tests, run through `db:test` before `db:push`.
    Done 2026-09-27. The database refuses publish, submit and approve with no
    photos (tested); photos are resized and stripped of location data in the
    browser before upload (checked on a stored file). Photo walkthrough passed.
-5. Experience sessions, plus the Sessions section.
+5. ~~Experience sessions, plus the Sessions section.~~ Done 2026-09-27.
+   Times in the city's time zone; weekly series keep their local time
+   across clock changes and save all or nothing. Walkthrough passed.
 6. Admin Listings page and review queue, with the approve, reject, unpublish
    and restore routes. Also: deactivating a category or city needs a
    confirmation that says how many live listings it will hide.

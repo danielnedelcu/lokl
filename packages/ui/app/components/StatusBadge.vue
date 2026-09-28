@@ -14,6 +14,8 @@
       rejected: "Needs changes",
       unpublished: "Taken down",
     },
+    // Experience sessions.
+    session: { scheduled: "Scheduled", cancelled: "Cancelled" },
   } as const;
 
   type Kind = keyof typeof labels;
@@ -33,6 +35,8 @@
     "listing:live": "default",
     "listing:rejected": "destructive",
     "listing:unpublished": "secondary",
+    "session:scheduled": "outline",
+    "session:cancelled": "secondary",
   };
 
   const label = computed(
