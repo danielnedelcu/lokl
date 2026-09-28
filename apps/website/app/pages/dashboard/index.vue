@@ -8,7 +8,7 @@ const supabase = useSupabaseClient();
 const { data: provider } = await useProvider();
 
 // Step 3 is done once any of the provider's listings is live or submitted.
-const { data: hasListedSomething } = await useAsyncData(
+const { data: hasListedSomething, refresh: refreshListed } = await useAsyncData(
   "has-live-or-submitted-listing",
   async () => {
     if (!provider.value) return false;
@@ -25,7 +25,7 @@ const { data: hasListedSomething } = await useAsyncData(
 
 // Listings lokl sent back or took down. Until emails exist (docs/TODO.md,
 // Notifications), this is how providers find out.
-const { data: needsAttention } = await useAsyncData(
+const { data: needsAttention, refresh: refreshAttention } = await useAsyncData(
   "listings-needing-attention",
   async () => {
     if (!provider.value) return [];
@@ -40,6 +40,8 @@ const { data: needsAttention } = await useAsyncData(
   },
   { watch: [provider] },
 );
+useLiveData({ refresh: () => Promise.all([refreshListed(), refreshAttention()]), listings: "any" });
+
 const attentionTitle = computed(() => {
   const n = needsAttention.value?.length ?? 0;
   return `${n} ${n === 1 ? "listing needs" : "listings need"} your attention`;

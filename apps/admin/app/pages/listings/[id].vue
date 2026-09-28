@@ -68,6 +68,8 @@ const { data, error, pending, refresh } = await useAsyncData(`admin-listing-${id
 });
 
 const listing = computed(() => data.value?.listing ?? null);
+// The provider may edit or unlist it meanwhile: refresh when the tab is back in view.
+useLiveData({ refresh });
 useHead({ title: () => `${listing.value?.title ?? "Listing"} · Admin` });
 
 const kindWord = computed(() => (listing.value?.kind === "experience" ? "Experience" : "Service"));

@@ -17,7 +17,7 @@ interface Row {
 }
 
 const supabase = useSupabaseClient();
-const { data: rows, error, pending } = await useAsyncData(`admin-listings-${props.kind}`, async () => {
+const { data: rows, error, pending, refresh } = await useAsyncData(`admin-listings-${props.kind}`, async () => {
   const { data, error } = await supabase
     .from("listings")
     .select("id, title, status, price_cents, updated_at, provider:providers(id, display_name), category:categories(name), city:cities(id, name)")
@@ -26,6 +26,9 @@ const { data: rows, error, pending } = await useAsyncData(`admin-listings-${prop
   if (error) throw error;
   return data as unknown as Row[];
 });
+
+// Providers change their listings meanwhile: refresh when the tab is back in view.
+useLiveData({ refresh });
 
 const statuses: { value: ListingStatus; label: string }[] = [
   { value: "draft", label: "Draft" },

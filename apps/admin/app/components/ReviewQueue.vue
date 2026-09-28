@@ -11,7 +11,7 @@ interface Row {
 }
 
 const supabase = useSupabaseClient();
-const { data: rows, error, pending } = await useAsyncData("admin-review-queue", async () => {
+const { data: rows, error, pending, refresh } = await useAsyncData("admin-review-queue", async () => {
   const { data, error } = await supabase
     .from("listings")
     .select("id, title, submitted_at, provider:providers(display_name), category:categories(name)")
@@ -22,6 +22,8 @@ const { data: rows, error, pending } = await useAsyncData("admin-review-queue", 
   return data as unknown as Row[];
 });
 watchEffect(() => emit("count", rows.value?.length ?? 0));
+// New submissions arrive meanwhile: refresh when the tab is back in view.
+useLiveData({ refresh });
 watch(error, (e) => e && reportError("Couldn't load the review queue", e), { immediate: true });
 </script>
 

@@ -25,7 +25,7 @@ const { data: provider } = await useProvider();
 
 // Filter to this provider: the public read rule also returns other
 // providers' live listings.
-const { data: listings, error, pending } = await useAsyncData(
+const { data: listings, error, pending, refresh } = await useAsyncData(
   `my-listings-${props.kind}`,
   async () => {
     if (!provider.value) return [];
@@ -40,6 +40,10 @@ const { data: listings, error, pending } = await useAsyncData(
   },
   { watch: [provider] },
 );
+
+// Statuses change when lokl reviews a listing: refresh on tab focus and when
+// a notification arrives for any of them.
+useLiveData({ refresh, listings: "any" });
 </script>
 
 <template>

@@ -124,6 +124,59 @@ const { handleSubmit, isSubmitting, resetForm, setFieldValue, values, meta } = u
   initialValues: formValues(),
 });
 
+// ---------------------------------------------------------------------------
+// Live updates (docs/design/notifications.md, "The editor")
+// ---------------------------------------------------------------------------
+
+// The saved record refreshes on tab focus and when a notification names this
+// listing. The form only follows it when it has no unsaved changes; otherwise
+// it keeps the provider's values and says what changed.
+if (props.listingId) useLiveData({ refresh: () => refreshSaved(), listings: () => [props.listingId] });
+
+const changedElsewhere = ref<null | "fields" | "locked">(null);
+let refreshingOwn = false;
+let lastSnapshot = JSON.stringify(formValues());
+let lastStatus = status.value;
+// Sync, so a refresh after the provider's own save (refreshOwn) is recognised.
+watch(saved, () => {
+  const snapshot = JSON.stringify(formValues());
+  const statusChanged = status.value !== lastStatus;
+  const fieldsChanged = snapshot !== lastSnapshot;
+  lastSnapshot = snapshot;
+  lastStatus = status.value;
+  if (refreshingOwn || (!statusChanged && !fieldsChanged)) return;
+  if (!meta.value.dirty) {
+    resetForm({ values: formValues() });
+    changedElsewhere.value = null;
+    return;
+  }
+  const locked = !editable.value && !priceAndDescriptionEditable.value;
+  changedElsewhere.value = locked ? "locked" : fieldsChanged ? "fields" : null;
+}, { flush: "sync" });
+
+async function refreshOwn() {
+  refreshingOwn = true;
+  try {
+    await refreshSaved();
+  } finally {
+    refreshingOwn = false;
+  }
+  lastSnapshot = JSON.stringify(formValues());
+  lastStatus = status.value;
+  changedElsewhere.value = null;
+}
+
+const changedElsewhereText = computed(() => {
+  if (changedElsewhere.value === "fields") {
+    return "This listing was changed somewhere else, for example in another tab. Saving will replace those changes with yours.";
+  }
+  if (changedElsewhere.value === "locked") {
+    const what = status.value === "unpublished" ? "lokl took this listing down" : "This listing was sent for review";
+    return `${what} while you were editing, so your changes can't be saved. Copy anything you want to keep before you leave this page.`;
+  }
+  return "";
+});
+
 const cityAreas = computed(() => (refs.value?.areas ?? []).filter((a) => a.city_id === values.city_id));
 // Sessions use the saved city's time zone, not the unsaved form value.
 const savedCity = computed(() => cities.value.find((c) => c.id === listing.value?.city_id) ?? null);
@@ -225,7 +278,7 @@ const save = handleSubmit(async (v) => {
       await navigateTo(`/dashboard/listings/${id}`, { replace: true });
       return;
     }
-    await refreshSaved();
+    await refreshOwn();
     resetForm({ values: formValues() });
   } catch (e) {
     useSonner.error(`That didn't save: ${(e as Error).message}`);
@@ -277,7 +330,7 @@ async function act(action: "publish" | "submit" | "unlist") {
         unlist: "Unlisted. It's back to a draft and hidden from customers.",
       }[action],
     );
-    await refreshSaved();
+    await refreshOwn();
     resetForm({ values: formValues() });
   } catch (e) {
     useSonner.error((e as { statusMessage?: string }).statusMessage ?? "That didn't work. Please try again.");
@@ -354,6 +407,10 @@ const statusNote = computed(() => {
       </UiAlert>
       <UiAlert v-else-if="statusNote" class="mt-4">
         <UiAlertDescription>{{ statusNote }}</UiAlertDescription>
+      </UiAlert>
+      <UiAlert v-if="changedElsewhere" variant="destructive" class="mt-4" icon="lucide:alert-triangle" role="status">
+        <UiAlertTitle>{{ changedElsewhere === "locked" ? "Your changes can't be saved" : "Changed somewhere else" }}</UiAlertTitle>
+        <UiAlertDescription>{{ changedElsewhereText }}</UiAlertDescription>
       </UiAlert>
 
       <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">

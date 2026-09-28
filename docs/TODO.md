@@ -180,8 +180,11 @@ tests, run through `db:test` before `db:push`.
 
 ## Notifications
 
-- [ ] Provider in-app notifications and live updates: `docs/design/notifications.md`
-  (approved 2026-09-27; build after step 6 is committed).
+- [x] ~~Provider in-app notifications and live updates~~ (`docs/design/notifications.md`).
+  Done 2026-09-28: trigger-created notifications, the dashboard bell, live
+  page refreshes that keep unsaved changes. Walkthrough passed.
+- [ ] Manual check on the hosted project: leave a provider tab in the
+  background for 75 minutes, then take a listing down; the bell updates.
 - [ ] Cleanup job: delete read notifications older than six months.
 - [ ] Admin notifications, such as new Experiences waiting for review (also
   makes the review queue update live).

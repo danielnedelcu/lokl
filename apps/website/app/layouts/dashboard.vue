@@ -13,6 +13,7 @@ const activeClass = "bg-accent font-medium !text-foreground";
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
+const { data: provider } = await useProvider();
 
 async function signOut() {
   await supabase.auth.signOut();
@@ -43,8 +44,16 @@ async function signOut() {
       </div>
     </aside>
 
-    <main class="min-w-0 flex-1 p-4 md:p-8">
-      <slot />
-    </main>
+    <div class="flex min-w-0 flex-1 flex-col">
+      <!-- Top bar: notifications now; the mobile menu button will go on the left. -->
+      <header class="flex h-14 items-center justify-end gap-2 border-b border-border bg-card px-4 md:px-8">
+        <ClientOnly>
+          <NotificationBell v-if="provider" :provider-id="provider.id" :listing-path="(id) => `/dashboard/listings/${id}`" />
+        </ClientOnly>
+      </header>
+      <main class="min-w-0 flex-1 p-4 md:p-8">
+        <slot />
+      </main>
+    </div>
   </div>
 </template>

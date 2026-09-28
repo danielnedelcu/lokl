@@ -70,18 +70,21 @@ Those four transitions are admin-only (the provider routes can't make them), so 
 - Add the table to the `supabase_realtime` publication in the migration.
 - The provider dashboard layout opens one channel after sign-in: Postgres Changes, `INSERT` on `notifications`, with `filter: provider_id=eq.<their id>`. The filter keeps traffic small; **RLS is what keeps it private**: Realtime checks each change against the subscriber's `notifications_read_own` policy before sending it.
 - The channel closes on sign-out and reconnects on its own. After a reconnect the bell refetches, since changes during the gap aren't replayed.
+- **Ready means watching the database.** A channel is "joined" before Realtime is watching the table; a change in between is lost (the first Realtime test run caught this). The bell's first fetch waits for Realtime's "Subscribed to PostgreSQL" message, and refetches after every rejoin.
 
 ### Tabs left open for hours
 
 Sign-in sessions last an hour (`jwt_expiry` 3600) and supabase-js refreshes them in the background. Realtime checks each change against the token the channel was given, so an expired token would silently stop delivery. To keep a long-open tab live:
 
-- On `TOKEN_REFRESHED` (supabase-js `onAuthStateChange`), pass the new token to Realtime with `supabase.realtime.setAuth(token)`. Recent supabase-js versions do this themselves; doing it explicitly doesn't depend on that.
+- **The first join:** before every join, the feed loads the signed-in token into Realtime (`realtime.setAuth()` with no argument). On a fresh page load the browser client reads its session from cookies a moment after it's created, and a join sent before that goes out signed out and is refused. [Found in the walkthrough, 2026-09-28: the bell received nothing live. Reproduced on the local stack with the website's browser client; `notifications-page-load.realtime.test.mts` covers it.]
+- **Refreshed tokens after that:** supabase-js (2.117 here) passes each refreshed token to Realtime itself, and Realtime asks for the current token on every heartbeat, which also renews an expiring session. The token-refresh test proves it.
+- **Console:** the bell logs `[notifications] live updates on` when it's ready, each notification received, and any reconnect or problem.
 - Watch the channel's status. On `CHANNEL_ERROR`, `TIMED_OUT` or `CLOSED` (while still signed in), resubscribe with a short backoff, then refetch the bell and let open pages refresh, since nothing is replayed.
 - When the tab becomes visible again, check the channel is joined and resubscribe if not. Browsers slow timers in hidden tabs, so the heartbeat and token refresh can both lapse while a tab is in the background.
 
 Tested two ways:
 
-- **Automated, local:** the Realtime test runs against a local stack with `jwt_expiry` lowered to 120 seconds in `supabase/config.toml`. (This affects local development only: local sessions then refresh every two minutes, which exercises the same path during everyday work. Hosted settings are unchanged.) Provider A subscribes, waits past two token refreshes (about five minutes), then a listing change must still arrive, and B must still get nothing. Also broken once: skip the `setAuth` call and confirm the event stops arriving after the first token expires.
+- **Automated, local:** the Realtime test runs against a local stack with `jwt_expiry` lowered to 120 seconds in `supabase/config.toml`. (This affects local development only: local sessions then refresh every two minutes, which exercises the same path during everyday work. Hosted settings are unchanged.) The provider subscribes with the bell's own channel code (`createNotificationFeed()`), and after every token refresh, and again after the first tokens have expired, a listing change must still arrive. Broken once by turning token refresh off (`NO_REFRESH=1`): once the session expires, the change must stop arriving. The test refuses to run unless the local session is short; the `jwt_expiry` change is made for the run and reverted, never committed.
 - **Manual, hosted:** leave a provider tab open, in the background, for over an hour (75 minutes), then take one of their listings down in admin. The bell and the open page must update within a few seconds of switching back to the tab, or live if the tab stayed visible.
 - `DELETE` events aren't subscribed to (they skip RLS and carry only the id); deletes only happen by cascade anyway.
 
@@ -117,14 +120,14 @@ One shared composable in the layer, `useLiveData()`, used by every page that sho
 ```ts
 useLiveData({
   refresh,                          // the page's useAsyncData refresh
-  listingIds: () => [listingId],    // optional: refresh when a notification names one of these
-  isDirty: () => meta.value.dirty,  // optional: the page's unsaved-changes state
+  listings: () => [listingId],      // optional: refresh when a notification names one of these,
+                                    // or "any" for lists of the provider's listings
 });
 ```
 
 - **Tab focus:** when the tab becomes visible again (`visibilitychange`), refresh, at most once every 15 seconds.
 - **Notifications:** the bell broadcasts each arriving notification's listing id inside the app; pages listening for that id refresh straight away. "My services", "My experiences", the dashboard overview and the listing editor all use it.
-- **Unsaved changes:** a refresh updates what's saved, never the form. See the editor rules below.
+- **Unsaved changes:** `useLiveData()` only refreshes data. A page with a form protects unsaved changes itself: it refreshes the saved record and never resets a dirty form. See the editor rules below.
 
 ### The editor
 
