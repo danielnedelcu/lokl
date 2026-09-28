@@ -5,6 +5,11 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-09-27 | Taking a listing down needs a reason (10 to 1,000 characters) that the provider sees; the database requires it while unpublished and clears it on restore | Providers otherwise can't tell why a listing disappeared or what to fix; a live listing never carries an old reason |
+| 2026-09-27 | Approve and restore run the same checks as the provider's checklist (`reviewBlockers()`), plus payouts Ready for every kind | One definition of "complete"; an Experience can be submitted before payouts are set up, but can't go live without them |
+| 2026-09-27 | Until provider emails exist, the dashboard overview shows "N listings need your attention" for rejected or taken-down listings | Providers need to find out without an email |
+| 2026-09-27 | The admin app shows plain error messages and logs the technical detail (browser console, or the server log for routes) | Raw database errors mean nothing to the reader and can reveal internals |
+| 2026-09-27 | Test data never gives the admin login a provider record; test providers use their own logins | Admin read rules show every row, so an admin who is also a provider hides own-rows bugs |
 | 2026-09-27 | Experience sessions cascade with their listing instead of restricting its deletion | Only never-published listings can be deleted, so their sessions can't have bookings; bookings will protect sessions with their own `restrict` reference |
 | 2026-09-27 | Session times are stored as instants and entered and shown in the listing city's time zone, using `@internationalized/date`; a weekly series keeps its local time across clock changes | Customers and hosts think in local time wherever their device is; the library already ships with Reka UI and handles daylight saving |
 | 2026-09-27 | A weekly series (2 to 12 weeks) is saved in one insert: if any week clashes with an existing session, none is saved and the error names the date | A half-saved series is harder to fix than a clear error |

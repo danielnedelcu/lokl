@@ -239,10 +239,10 @@ select lives_ok(
 -- One listing of A's in every other status, written by the server.
 select tests.clear_authentication();
 select id as l_live from listings where id = :'l_draft' \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, unpublished_reason)
 values
-  (:'pa', 'experience', :'exp', :'atl', 'Food tour: submitted', 'Waiting for the owner to review.', 3000, 90, :'o4w', 'submitted'),
-  (:'pa', 'experience', :'exp', :'atl', 'Food tour: unpublished', 'Taken down by the owner.', 3000, 90, :'o4w', 'unpublished');
+  (:'pa', 'experience', :'exp', :'atl', 'Food tour: submitted', 'Waiting for the owner to review.', 3000, 90, :'o4w', 'submitted', null),
+  (:'pa', 'experience', :'exp', :'atl', 'Food tour: unpublished', 'Taken down by the owner.', 3000, 90, :'o4w', 'unpublished', 'Taken down in a test.');
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, rejection_reason)
 values (:'pa', 'experience', :'exp', :'atl', 'Food tour: rejected', 'Sent back with a reason.', 3000, 90, :'o4w', 'rejected', 'Add more detail.');
 update listings set published_at = now() - interval '1 day' where title = 'Food tour: unpublished';

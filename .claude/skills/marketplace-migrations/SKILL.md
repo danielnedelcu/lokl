@@ -185,6 +185,13 @@ rolls back with the test.
 | `tests.authenticate_as_service_role()` | The server with the secret key; RLS doesn't apply |
 | `tests.clear_authentication()` | Back to the runner's superuser, to inspect rows RLS hides |
 
+**Keep roles on separate users.** The admin user (`authenticate_as_admin`)
+never owns a `providers` row, in tests or in hosted test data. Create a
+separate user for each provider. Admin read rules return every row, so an
+admin who is also a provider makes an own-rows rule look right even when it's
+broken. The same applies to hosted test data: test providers get their own
+logins (`+provider1`, `+provider2`), never the admin login.
+
 Capture ids with psql's `\gset`: `select tests.create_user('a@test.local') as a \gset`,
 then use `:'a'`.
 

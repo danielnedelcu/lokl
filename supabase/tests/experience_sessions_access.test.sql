@@ -270,7 +270,7 @@ select throws_ok(
 
 -- 21. ...and while it's unpublished.
 select tests.clear_authentication();
-update listings set status = 'unpublished' where id = :'la';
+update listings set status = 'unpublished', unpublished_reason = 'Taken down in a test.' where id = :'la';
 select tests.authenticate_as(:'a');
 select throws_ok(
   format($$ delete from experience_sessions where listing_id = %L and starts_at = %L $$, :'la', :'t3'),

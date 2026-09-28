@@ -787,6 +787,12 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "now()"
+        },
+        {
+          "name": "unpublished_reason",
+          "type": "text",
+          "nullable": true,
+          "comment": "Why the owner took the listing down, 10 to 1,000 characters; shown to the provider. Set when unpublished; cleared on restore. Server-only."
         }
       ],
       "indexes": [
@@ -969,6 +975,27 @@
           "referenced_table": "",
           "columns": [
             "title"
+          ]
+        },
+        {
+          "name": "listings_unpublished_reason",
+          "type": "CHECK",
+          "def": "CHECK (((status = 'unpublished'::text) = (unpublished_reason IS NOT NULL)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "unpublished_reason"
+          ]
+        },
+        {
+          "name": "listings_unpublished_reason_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(unpublished_reason) \u003e= 10) AND (char_length(unpublished_reason) \u003c= 1000)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "unpublished_reason"
           ]
         },
         {

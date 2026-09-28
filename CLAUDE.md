@@ -94,6 +94,12 @@ for usability and defence in depth, never as the only protection.
 - **Provider:** anyone who owns a `providers` row (`owner_id = auth.uid()`).
   Provider isn't stored as a role.
 - **Customer:** any other signed-in user.
+- **Test data never gives the admin login a provider record.** Keep roles on
+  separate logins: the admin login is only an admin, and test providers use
+  their own logins (plus addresses such as `+provider1`, `+provider2`). An
+  admin who is also a provider hides bugs, because admin read rules show
+  everything and a provider page can look right for the wrong reason. The
+  pgTAP tests already use a separate `admin@test.local` user; keep it that way.
 
 In server routes, `serverSupabaseUser(event)` returns decoded JWT claims. The
 user id is `user.sub`, not `user.id`.

@@ -271,7 +271,7 @@ select throws_ok(
 
 -- 21. The same while unpublished.
 select tests.clear_authentication();
-update listings set status = 'unpublished' where id = :'la';
+update listings set status = 'unpublished', unpublished_reason = 'Taken down in a test.' where id = :'la';
 select tests.authenticate_as(:'a');
 select throws_ok(
   format($$ update listing_photos set alt_text = 'Changed while taken down' where id = %L $$, :'second'),
@@ -281,7 +281,7 @@ select throws_ok(
 
 -- 22. Back to a draft: free again, down to none.
 select tests.clear_authentication();
-update listings set status = 'draft' where id = :'la';
+update listings set status = 'draft', unpublished_reason = null where id = :'la';
 select tests.authenticate_as(:'a');
 select lives_ok(format($$ delete from listing_photos where listing_id = %L $$, :'la'), '22a. a provider can remove every photo from a draft');
 select tests.clear_authentication();

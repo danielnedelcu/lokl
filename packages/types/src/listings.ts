@@ -182,3 +182,35 @@ export const listingSchema = z
   });
 export type ListingInput = z.input<typeof listingSchema>;
 export type ListingOutput = z.output<typeof listingSchema>;
+
+// ---------------------------------------------------------------------------
+// Admin review: what stops a listing going live on approval or restore
+// ---------------------------------------------------------------------------
+
+// Worded for the admin, about the provider's listing. Payouts always count
+// here: an Experience can be submitted without them, but not approved.
+const reviewBlockerLabels: Record<ReadinessItem["key"], string> = {
+  account: "The provider's account is suspended",
+  photos: "It has no photos",
+  address: "It has no address",
+  travel_areas: "It has no travel areas",
+  sessions: "It has no upcoming sessions",
+  payouts: "The provider hasn't finished setting up payouts",
+};
+
+/** What must be fixed before the admin can approve or restore a listing. Empty when it can go live. */
+export function reviewBlockers(f: ReadinessFacts): string[] {
+  return listingReadiness(f)
+    .items.filter((i) => !i.done && (i.blocking || i.key === "payouts"))
+    .map((i) => reviewBlockerLabels[i.key]);
+}
+
+/** The reason the admin gives when rejecting or taking down a listing; the provider sees it. */
+export const listingReasonSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(10, "Give a reason of at least 10 characters.")
+    .max(1000, "Keep the reason under 1,000 characters."),
+});
+export type ListingReasonInput = z.input<typeof listingReasonSchema>;

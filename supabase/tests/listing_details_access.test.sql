@@ -275,7 +275,7 @@ select throws_ok(
 
 -- 22. The same while unpublished.
 select tests.clear_authentication();
-update listings set status = 'unpublished' where id in (:'studio', :'mobile');
+update listings set status = 'unpublished', unpublished_reason = 'Taken down in a test.' where id in (:'studio', :'mobile');
 select tests.authenticate_as(:'a');
 select throws_ok(
   format($$ delete from listing_addresses where listing_id = %L $$, :'studio'),
@@ -293,8 +293,8 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 
 select tests.clear_authentication();
-update listings set status = 'rejected', rejection_reason = 'Add arrival details.' where id = :'studio';
-update listings set status = 'draft' where id = :'mobile';
+update listings set status = 'rejected', rejection_reason = 'Add arrival details.', unpublished_reason = null where id = :'studio';
+update listings set status = 'draft', unpublished_reason = null where id = :'mobile';
 select tests.authenticate_as(:'a');
 
 -- 23. A rejected listing's address can be changed again, ready to resubmit.

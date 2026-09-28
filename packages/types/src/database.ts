@@ -260,6 +260,7 @@ export type Database = {
           status: string
           submitted_at: string | null
           title: string
+          unpublished_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -282,6 +283,7 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           title: string
+          unpublished_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -304,6 +306,7 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           title?: string
+          unpublished_reason?: string | null
           updated_at?: string
         }
         Relationships: [
