@@ -130,6 +130,44 @@ export type Database = {
           },
         ]
       }
+      listing_photos: {
+        Row: {
+          alt_text: string
+          created_at: string
+          id: string
+          listing_id: string
+          position: number
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          alt_text: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          position: number
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          position?: number
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_photos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_service_areas: {
         Row: {
           created_at: string
@@ -366,6 +404,10 @@ export type Database = {
           p_provider_id: string
         }
         Returns: boolean
+      }
+      reorder_listing_photos: {
+        Args: { p_listing_id: string; p_photo_ids: string[] }
+        Returns: undefined
       }
     }
     Enums: {

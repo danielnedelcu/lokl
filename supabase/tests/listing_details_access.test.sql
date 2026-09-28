@@ -171,6 +171,10 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 
 select tests.clear_authentication();
+-- A listing needs a photo to go live (see listing_photos_access).
+insert into listing_photos (listing_id, storage_path, position, alt_text) values
+  (:'studio', :'pa' || '/' || :'studio' || '/' || gen_random_uuid() || '.jpg', 0, 'The studio chair and mirror'),
+  (:'mobile', :'pa' || '/' || :'mobile' || '/' || gen_random_uuid() || '.jpg', 0, 'Scissors and a travel kit');
 update listings set status = 'live', published_at = now() where id in (:'studio', :'mobile');
 
 -- 15. Signed-out visitors see a live Service's travel areas, until it's hidden.

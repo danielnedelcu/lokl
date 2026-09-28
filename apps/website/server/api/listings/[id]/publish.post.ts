@@ -1,6 +1,6 @@
 // Publish a Service: draft -> live (design: Listing states). Conditions are
 // checked here with the same listingReadiness() the editor shows.
-// Photos join the conditions in build step 4.
+// The photo rule is also enforced by the database (listings_require_photo).
 export default defineEventHandler(async (event) => {
   const provider = await requireProvider(event);
   const { supabase, listing, readiness } = await loadOwnListing(event, provider);

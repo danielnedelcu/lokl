@@ -25,7 +25,7 @@ export type ListingAddress = Tables<"listing_addresses">;
 // Readiness: the one place that decides whether a listing can be published
 // (Services) or submitted for review (Experiences). The editor's checklist
 // and the publish/submit server routes both call it, so they can't disagree.
-// Photos join the list in build step 4.
+// The database enforces the photo rule too (listings_require_photo).
 // ---------------------------------------------------------------------------
 
 export interface ReadinessFacts {
@@ -34,12 +34,13 @@ export interface ReadinessFacts {
   locationMode: LocationMode | null;
   hasAddress: boolean;
   travelAreaCount: number;
+  photoCount: number;
   providerActive: boolean;
   payoutsReady: boolean;
 }
 
 export interface ReadinessItem {
-  key: "account" | "address" | "travel_areas" | "payouts";
+  key: "account" | "photos" | "address" | "travel_areas" | "payouts";
   label: string;
   done: boolean;
   /** When false, the item is shown but doesn't block the action. */
@@ -57,6 +58,7 @@ export function listingReadiness(f: ReadinessFacts): {
 } {
   const items: ReadinessItem[] = [
     { key: "account", label: "Your account is active", done: f.providerActive, blocking: true },
+    { key: "photos", label: "Add at least one photo", done: f.photoCount > 0, blocking: true },
   ];
   if (needsAddress(f.kind, f.locationMode)) {
     items.push({

@@ -221,7 +221,11 @@ select throws_ok(
   '13b. a provider cannot change a listing''s slug'
 );
 
--- 14. The server (service role) can change status.
+-- 14. The server (service role) can change status. (A listing needs a photo
+--     to go live; see listing_photos_access for that rule.)
+select tests.clear_authentication();
+insert into listing_photos (listing_id, storage_path, position, alt_text)
+values (:'l_draft', :'pa' || '/' || :'l_draft' || '/' || gen_random_uuid() || '.jpg', 0, 'The studio chair and mirror');
 select tests.authenticate_as_service_role();
 select lives_ok(
   format($$ update listings set status = 'live', published_at = now() where id = %L $$, :'l_draft'),

@@ -5,6 +5,10 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-09-27 | Listing photos are resized (2,000px longest side) and re-encoded as WebP or JPEG in the browser before upload; the bucket's 5 MB limit stays as a fallback | Keeps phone photos small, and drops location data that would reveal where home-based providers live |
+| 2026-09-27 | A listing needs at least one photo to be published, submitted or approved, and a live listing's last photo can't be removed; both enforced in the database | Customers always see what they're booking, whichever route or app changes the status |
+| 2026-09-27 | Photo files must sit in their own listing's folder (`provider/listing/file`), and are never overwritten; a new photo is a new file | Storage rules can check ownership from the path, and a photo row can't point at another listing's file |
+| 2026-09-27 | Photo order changes go through the `reorder_listing_photos` function, which checks ownership and needs every photo listed once | Swapping positions one row at a time would collide with the unique position rule |
 | 2026-09-27 | Admin-only reference lists (cities, service areas, categories) are written from the admin app under admin-only database rules; status changes, anything crossing users, and anything touching Stripe keep server routes | Simple lists need no server code when the database already enforces admin-only writes; state changes need server-side checks, and Stripe needs the secret key |
 | 2026-09-27 | ui-thing components live once, in a shared Nuxt layer at `packages/ui` that both apps extend, with one set of theme tokens (neutral until the brand is set) | One component set and one theme for the website and admin app; the ui-thing CLI works inside the layer, so there's no need to install into each app |
 | 2026-09-27 | Services are booked by request and confirm, with one fixed price per listing | Fastest path to real bookings; providers don't have to keep a calendar on lokl. Time slots can be added later. |

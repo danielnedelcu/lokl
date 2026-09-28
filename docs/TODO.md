@@ -126,12 +126,14 @@ tests, run through `db:test` before `db:push`.
 
 1. ~~Cities and service areas, then the providers `city_id` change and the city picker.~~
    Done 2026-09-27 (`db3a133`); business profile walkthrough passed.
-2. Categories, plus the admin Categories and Cities pages.
-3. Listings, addresses and service areas, plus the provider Services and
-   Experiences pages and the publish, submit and unlist routes.
-4. Photos and the storage bucket, plus the photo section of the editor.
-   Add the photo requirement to publish, submit and approve, with a test
-   that publishing with zero photos fails.
+2. ~~Categories, plus the admin Categories and Cities pages.~~ Done 2026-09-27 (`3dc4ee6`).
+3. ~~Listings, addresses and service areas, plus the provider Services and
+   Experiences pages and the publish, submit and unlist routes.~~
+   Done 2026-09-27 (`a4a624b`, `81658a0`, `0e13d4b`).
+4. ~~Photos and the storage bucket, plus the photo section of the editor.~~
+   Done 2026-09-27. The database refuses publish, submit and approve with no
+   photos (tested); photos are resized and stripped of location data in the
+   browser before upload (checked on a stored file). Photo walkthrough passed.
 5. Experience sessions, plus the Sessions section.
 6. Admin Listings page and review queue, with the approve, reject, unpublish
    and restore routes. Also: deactivating a category or city needs a

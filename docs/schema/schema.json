@@ -1056,6 +1056,10 @@
           "def": "CREATE TRIGGER listings_guard_provider_edits BEFORE UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_guard_provider_edits()"
         },
         {
+          "name": "listings_require_photo",
+          "def": "CREATE TRIGGER listings_require_photo BEFORE UPDATE OF status ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_require_photo()"
+        },
+        {
           "name": "listings_set_slug",
           "def": "CREATE TRIGGER listings_set_slug BEFORE INSERT ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_set_slug()"
         },
@@ -1315,6 +1319,171 @@
           "def": "CREATE TRIGGER listing_service_areas_guard BEFORE INSERT OR DELETE ON public.listing_service_areas FOR EACH ROW EXECUTE FUNCTION listing_service_areas_guard()"
         }
       ]
+    },
+    {
+      "name": "public.listing_photos",
+      "type": "BASE TABLE",
+      "comment": "Photos of a listing, at most 8. Position 0 is the cover. At least one is required before a listing is published or submitted. Removed by the provider (not while submitted or unpublished, and never the last one of a live listing) or by the admin; rows go with their listing. Removing a row leaves the stored file.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "storage_path",
+          "type": "text",
+          "nullable": false,
+          "comment": "Path in the listing-photos bucket: \u003cprovider_id\u003e/\u003clisting_id\u003e/\u003crandom uuid\u003e.\u003cext\u003e. Must be in this listing's own folder."
+        },
+        {
+          "name": "position",
+          "type": "smallint",
+          "nullable": false,
+          "comment": "0 to 7, unique per listing. 0 is the cover photo."
+        },
+        {
+          "name": "alt_text",
+          "type": "text",
+          "nullable": false,
+          "comment": "Describes the photo for screen reader users. Required, 5 to 200 characters."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "listing_photos_pkey",
+          "def": "CREATE UNIQUE INDEX listing_photos_pkey ON public.listing_photos USING btree (id)",
+          "table": "public.listing_photos",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listing_photos_storage_path_key",
+          "def": "CREATE UNIQUE INDEX listing_photos_storage_path_key ON public.listing_photos USING btree (storage_path)",
+          "table": "public.listing_photos",
+          "columns": [
+            "storage_path"
+          ]
+        },
+        {
+          "name": "listing_photos_listing_id_position_key",
+          "def": "CREATE UNIQUE INDEX listing_photos_listing_id_position_key ON public.listing_photos USING btree (listing_id, \"position\")",
+          "table": "public.listing_photos",
+          "columns": [
+            "listing_id",
+            "position"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "listing_photos_alt_text_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(alt_text) \u003e= 5) AND (char_length(alt_text) \u003c= 200)))",
+          "table": "public.listing_photos",
+          "referenced_table": "",
+          "columns": [
+            "alt_text"
+          ]
+        },
+        {
+          "name": "listing_photos_position_check",
+          "type": "CHECK",
+          "def": "CHECK (((\"position\" \u003e= 0) AND (\"position\" \u003c= 7)))",
+          "table": "public.listing_photos",
+          "referenced_table": "",
+          "columns": [
+            "position"
+          ]
+        },
+        {
+          "name": "listing_photos_storage_path_check",
+          "type": "CHECK",
+          "def": "CHECK ((storage_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}/[0-9a-f-]{36}\\.(jpg|jpeg|png|webp)$'::text))",
+          "table": "public.listing_photos",
+          "referenced_table": "",
+          "columns": [
+            "storage_path"
+          ]
+        },
+        {
+          "name": "listing_photos_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.listing_photos",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listing_photos_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.listing_photos",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listing_photos_storage_path_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (storage_path)",
+          "table": "public.listing_photos",
+          "referenced_table": "",
+          "columns": [
+            "storage_path"
+          ]
+        },
+        {
+          "name": "listing_photos_listing_id_position_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (listing_id, \"position\") DEFERRABLE",
+          "table": "public.listing_photos",
+          "referenced_table": "",
+          "columns": [
+            "listing_id",
+            "position"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "listing_photos_check",
+          "def": "CREATE TRIGGER listing_photos_check BEFORE INSERT OR UPDATE OF storage_path, listing_id ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION listing_photos_check()"
+        },
+        {
+          "name": "listing_photos_guard",
+          "def": "CREATE TRIGGER listing_photos_guard BEFORE INSERT OR DELETE OR UPDATE ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION listing_photos_guard()"
+        },
+        {
+          "name": "listing_photos_set_updated_at",
+          "def": "CREATE TRIGGER listing_photos_set_updated_at BEFORE UPDATE ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
     }
   ],
   "relations": [
@@ -1436,6 +1605,19 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.listing_photos",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
     }
   ],
   "functions": [
@@ -1503,6 +1685,30 @@
       "name": "public.listing_service_areas_guard",
       "return_type": "trigger",
       "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_photos_check",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_photos_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listings_require_photo",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.reorder_listing_photos",
+      "return_type": "void",
+      "arguments": "p_listing_id uuid, p_photo_ids uuid[]",
       "type": "FUNCTION"
     }
   ],

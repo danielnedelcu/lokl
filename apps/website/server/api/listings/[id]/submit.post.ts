@@ -1,5 +1,5 @@
 // Submit an Experience for review: draft or rejected -> submitted.
-// Photos join the conditions in build step 4.
+// The photo rule is also enforced by the database (listings_require_photo).
 export default defineEventHandler(async (event) => {
   const provider = await requireProvider(event);
   const { supabase, listing, readiness } = await loadOwnListing(event, provider);
