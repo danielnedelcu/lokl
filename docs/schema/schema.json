@@ -1484,6 +1484,141 @@
           "def": "CREATE TRIGGER listing_photos_set_updated_at BEFORE UPDATE ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
       ]
+    },
+    {
+      "name": "public.experience_sessions",
+      "type": "BASE TABLE",
+      "comment": "Dated sessions of an Experience, each with a number of spots. Providers add and change future sessions (not while the listing is submitted or unpublished); a session that has started is kept as it is. Deleted with their listing, or by the provider before they start; once bookings exist, a session with bookings is cancelled instead.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "comment": "When the session starts. Entered and shown in the listing city's time zone (cities.timezone). Must be in the future and at most a year ahead when a provider adds or moves it."
+        },
+        {
+          "name": "capacity",
+          "type": "smallint",
+          "nullable": false,
+          "comment": "Spots in the session, 1 to 500. Spots left will be worked out from bookings."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'scheduled'::text",
+          "comment": "scheduled or cancelled. A cancelled session can't be changed or scheduled again."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "experience_sessions_pkey",
+          "def": "CREATE UNIQUE INDEX experience_sessions_pkey ON public.experience_sessions USING btree (id)",
+          "table": "public.experience_sessions",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "experience_sessions_listing_id_starts_at_key",
+          "def": "CREATE UNIQUE INDEX experience_sessions_listing_id_starts_at_key ON public.experience_sessions USING btree (listing_id, starts_at) WHERE (status = 'scheduled'::text)",
+          "table": "public.experience_sessions",
+          "columns": [
+            "listing_id",
+            "starts_at"
+          ]
+        },
+        {
+          "name": "experience_sessions_starts_at_idx",
+          "def": "CREATE INDEX experience_sessions_starts_at_idx ON public.experience_sessions USING btree (starts_at)",
+          "table": "public.experience_sessions",
+          "columns": [
+            "starts_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "experience_sessions_capacity_check",
+          "type": "CHECK",
+          "def": "CHECK (((capacity \u003e= 1) AND (capacity \u003c= 500)))",
+          "table": "public.experience_sessions",
+          "referenced_table": "",
+          "columns": [
+            "capacity"
+          ]
+        },
+        {
+          "name": "experience_sessions_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['scheduled'::text, 'cancelled'::text])))",
+          "table": "public.experience_sessions",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "experience_sessions_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.experience_sessions",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "experience_sessions_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.experience_sessions",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "experience_sessions_check",
+          "def": "CREATE TRIGGER experience_sessions_check BEFORE INSERT OR UPDATE OF listing_id, starts_at, status ON public.experience_sessions FOR EACH ROW EXECUTE FUNCTION experience_sessions_check()"
+        },
+        {
+          "name": "experience_sessions_guard",
+          "def": "CREATE TRIGGER experience_sessions_guard BEFORE INSERT OR DELETE OR UPDATE ON public.experience_sessions FOR EACH ROW EXECUTE FUNCTION experience_sessions_guard()"
+        },
+        {
+          "name": "experience_sessions_set_updated_at",
+          "def": "CREATE TRIGGER experience_sessions_set_updated_at BEFORE UPDATE ON public.experience_sessions FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
     }
   ],
   "relations": [
@@ -1618,6 +1753,19 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.experience_sessions",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
     }
   ],
   "functions": [
@@ -1709,6 +1857,18 @@
       "name": "public.reorder_listing_photos",
       "return_type": "void",
       "arguments": "p_listing_id uuid, p_photo_ids uuid[]",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.experience_sessions_check",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.experience_sessions_guard",
+      "return_type": "trigger",
+      "arguments": "",
       "type": "FUNCTION"
     }
   ],

@@ -86,6 +86,44 @@ export type Database = {
         }
         Relationships: []
       }
+      experience_sessions: {
+        Row: {
+          capacity: number
+          created_at: string
+          id: string
+          listing_id: string
+          starts_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          capacity: number
+          created_at?: string
+          id?: string
+          listing_id: string
+          starts_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          listing_id?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experience_sessions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_addresses: {
         Row: {
           city: string

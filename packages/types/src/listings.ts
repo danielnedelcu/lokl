@@ -35,12 +35,14 @@ export interface ReadinessFacts {
   hasAddress: boolean;
   travelAreaCount: number;
   photoCount: number;
+  /** Future, scheduled sessions (Experiences). */
+  upcomingSessionCount: number;
   providerActive: boolean;
   payoutsReady: boolean;
 }
 
 export interface ReadinessItem {
-  key: "account" | "photos" | "address" | "travel_areas" | "payouts";
+  key: "account" | "photos" | "address" | "travel_areas" | "sessions" | "payouts";
   label: string;
   done: boolean;
   /** When false, the item is shown but doesn't block the action. */
@@ -74,6 +76,16 @@ export function listingReadiness(f: ReadinessFacts): {
       label: "Choose at least one area you travel to",
       done: f.travelAreaCount > 0,
       blocking: true,
+    });
+  }
+  // Without sessions a live Experience can be seen but not booked. That's
+  // allowed (a host may add dates after approval), so it's a nudge, not a block.
+  if (f.kind === "experience") {
+    items.push({
+      key: "sessions",
+      label: "Add at least one upcoming session so customers can book",
+      done: f.upcomingSessionCount > 0,
+      blocking: false,
     });
   }
   // Services go live straight away, so payouts must be ready first.

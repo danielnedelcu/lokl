@@ -5,6 +5,10 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-09-27 | Experience sessions cascade with their listing instead of restricting its deletion | Only never-published listings can be deleted, so their sessions can't have bookings; bookings will protect sessions with their own `restrict` reference |
+| 2026-09-27 | Session times are stored as instants and entered and shown in the listing city's time zone, using `@internationalized/date`; a weekly series keeps its local time across clock changes | Customers and hosts think in local time wherever their device is; the library already ships with Reka UI and handles daylight saving |
+| 2026-09-27 | A weekly series (2 to 12 weeks) is saved in one insert: if any week clashes with an existing session, none is saved and the error names the date | A half-saved series is harder to fix than a clear error |
+| 2026-09-27 | Until bookings exist, cancelling a session deletes it; after that, a session with bookings is marked cancelled (final) through a server route that handles refunds | There's nothing to refund yet; refunds need the server |
 | 2026-09-27 | Listing photos are resized (2,000px longest side) and re-encoded as WebP or JPEG in the browser before upload; the bucket's 5 MB limit stays as a fallback | Keeps phone photos small, and drops location data that would reveal where home-based providers live |
 | 2026-09-27 | A listing needs at least one photo to be published, submitted or approved, and a live listing's last photo can't be removed; both enforced in the database | Customers always see what they're booking, whichever route or app changes the status |
 | 2026-09-27 | Photo files must sit in their own listing's folder (`provider/listing/file`), and are never overwritten; a new photo is a new file | Storage rules can check ownership from the path, and a photo row can't point at another listing's file |

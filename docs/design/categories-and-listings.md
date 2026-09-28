@@ -143,13 +143,15 @@ A trigger rejects a ninth photo. Deleting a row doesn't delete the stored file; 
 | Column                     | Notes                                                                 |
 | -------------------------- | --------------------------------------------------------------------- |
 | `id`                       | uuid                                                                  |
-| `listing_id`               | references listings (Experiences only, enforced by trigger), restrict |
+| `listing_id`               | references listings (Experiences only, enforced by trigger), cascade  |
 | `starts_at`                | timestamptz; entered and displayed in the city's time zone            |
 | `capacity`                 | 1 to 500                                                              |
 | `status`                   | `scheduled` or `cancelled`                                            |
 | `created_at`, `updated_at` |                                                                       |
 
 Spots left will be computed from bookings in step 4. Sessions are cancelled, never deleted, once any booking exists. Before bookings exist, a provider can delete a future session.
+
+`listing_id` cascades rather than restricts. [Changed 2026-09-27.] A listing can only be deleted while it has never been live, so none of its sessions can have bookings, and a deleted draft's sessions should go with it. Bookings will protect sessions with their own `restrict` reference, so a session with bookings still can't be deleted, whether directly or through its listing.
 
 ## Photo storage
 

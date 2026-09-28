@@ -18,12 +18,14 @@ export async function loadOwnListing(event: ServerEvent, provider: Provider) {
   if (error) throw createError({ statusCode: 500, statusMessage: error.message });
   if (!listing) throw createError({ statusCode: 404, statusMessage: "We couldn't find that listing." });
 
-  const [address, travel, photos] = await Promise.all([
+  const [address, travel, photos, sessions] = await Promise.all([
     supabase.from("listing_addresses").select("listing_id").eq("listing_id", listing.id).maybeSingle(),
     supabase.from("listing_service_areas").select("service_area_id", { count: "exact", head: true }).eq("listing_id", listing.id),
     supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", listing.id),
+    supabase.from("experience_sessions").select("id", { count: "exact", head: true })
+      .eq("listing_id", listing.id).eq("status", "scheduled").gt("starts_at", new Date().toISOString()),
   ]);
-  for (const r of [address, travel, photos]) {
+  for (const r of [address, travel, photos, sessions]) {
     if (r.error) throw createError({ statusCode: 500, statusMessage: r.error.message });
   }
 
@@ -35,6 +37,7 @@ export async function loadOwnListing(event: ServerEvent, provider: Provider) {
     hasAddress: !!address.data,
     travelAreaCount: travel.count ?? 0,
     photoCount: photos.count ?? 0,
+    upcomingSessionCount: sessions.count ?? 0,
     providerActive: provider.status === "active",
     payoutsReady: payoutSetupOf(provider) === "ready",
   });
