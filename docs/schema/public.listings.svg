@@ -370,43 +370,47 @@
 <!-- public.listing_photos -->
 <g id="node4" class="node">
 <title>public.listing_photos</title>
-<polygon fill="#efefef" stroke="none" points="3327.97,-1618 3327.97,-1664 5200.26,-1664 5200.26,-1618 3327.97,-1618"/>
-<polygon fill="none" stroke="black" points="3327.97,-1618 3327.97,-1664 5200.26,-1664 5200.26,-1618 3327.97,-1618"/>
-<text text-anchor="start" x="4126.12" y="-1641.8" font-family="Arial Bold" font-size="18.00">public.listing_photos</text>
-<text text-anchor="start" x="4277.63" y="-1641.8" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="4308.74" y="-1641.8" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="3334.97" y="-1627.4" font-family="Arial" font-size="14.00" fill="#333333">Photos of a listing, at most 8. Position 0 is the cover. At least one is required before a listing is published or submitted. Removed by the provider (not while submitted or unpublished, and never the last one of a live listing) or by the admin; rows go with their listing. Removing a row leaves the stored file.</text>
-<polygon fill="none" stroke="black" points="3327.97,-1587.2 3327.97,-1618 5200.26,-1618 5200.26,-1587.2 3327.97,-1587.2"/>
-<text text-anchor="start" x="3334.97" y="-1599.4" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="3349.76" y="-1599.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="3327.97,-1556.4 3327.97,-1587.2 5200.26,-1587.2 5200.26,-1556.4 3327.97,-1556.4"/>
-<text text-anchor="start" x="3334.97" y="-1568.6" font-family="Arial" font-size="14.00">listing_id </text>
-<text text-anchor="start" x="3393.33" y="-1568.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="3327.97,-1525.6 3327.97,-1556.4 5200.26,-1556.4 5200.26,-1525.6 3327.97,-1525.6"/>
-<text text-anchor="start" x="3334.97" y="-1537.8" font-family="Arial" font-size="14.00">storage_path </text>
-<text text-anchor="start" x="3420.59" y="-1537.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="3450.93" y="-1537.8" font-family="Arial" font-size="14.00"> Path in the listing&#45;photos bucket: &lt;provider_id&gt;/&lt;listing_id&gt;/&lt;random uuid&gt;.&lt;ext&gt;. Must be in this listing&#39;s own folder.</text>
-<polygon fill="none" stroke="black" points="3327.97,-1494.8 3327.97,-1525.6 5200.26,-1525.6 5200.26,-1494.8 3327.97,-1494.8"/>
-<text text-anchor="start" x="3334.97" y="-1507" font-family="Arial" font-size="14.00">position </text>
-<text text-anchor="start" x="3387.11" y="-1507" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
-<text text-anchor="start" x="3442.35" y="-1507" font-family="Arial" font-size="14.00"> 0 to 7, unique per listing. 0 is the cover photo.</text>
-<polygon fill="none" stroke="black" points="3327.97,-1464 3327.97,-1494.8 5200.26,-1494.8 5200.26,-1464 3327.97,-1464"/>
-<text text-anchor="start" x="3334.97" y="-1476.2" font-family="Arial" font-size="14.00">alt_text </text>
-<text text-anchor="start" x="3384" y="-1476.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="3414.34" y="-1476.2" font-family="Arial" font-size="14.00"> Describes the photo for screen reader users. Required, 5 to 200 characters.</text>
-<polygon fill="none" stroke="black" points="3327.97,-1433.2 3327.97,-1464 5200.26,-1464 5200.26,-1433.2 3327.97,-1433.2"/>
-<text text-anchor="start" x="3334.97" y="-1445.4" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="3405.02" y="-1445.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="3327.97,-1402.4 3327.97,-1433.2 5200.26,-1433.2 5200.26,-1402.4 3327.97,-1402.4"/>
-<text text-anchor="start" x="3334.97" y="-1414.6" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="3408.93" y="-1414.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="3327.97,-1633.4 3327.97,-1679.4 5200.26,-1679.4 5200.26,-1633.4 3327.97,-1633.4"/>
+<polygon fill="none" stroke="black" points="3327.97,-1633.4 3327.97,-1679.4 5200.26,-1679.4 5200.26,-1633.4 3327.97,-1633.4"/>
+<text text-anchor="start" x="4126.12" y="-1657.2" font-family="Arial Bold" font-size="18.00">public.listing_photos</text>
+<text text-anchor="start" x="4277.63" y="-1657.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="4308.74" y="-1657.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="3334.97" y="-1642.8" font-family="Arial" font-size="14.00" fill="#333333">Photos of a listing, at most 8. Position 0 is the cover. At least one is required before a listing is published or submitted. Removed by the provider (not while submitted or unpublished, and never the last one of a live listing) or by the admin; rows go with their listing. Removing a row leaves the stored file.</text>
+<polygon fill="none" stroke="black" points="3327.97,-1602.6 3327.97,-1633.4 5200.26,-1633.4 5200.26,-1602.6 3327.97,-1602.6"/>
+<text text-anchor="start" x="3334.97" y="-1614.8" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="3349.76" y="-1614.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="3327.97,-1571.8 3327.97,-1602.6 5200.26,-1602.6 5200.26,-1571.8 3327.97,-1571.8"/>
+<text text-anchor="start" x="3334.97" y="-1584" font-family="Arial" font-size="14.00">listing_id </text>
+<text text-anchor="start" x="3393.33" y="-1584" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="3327.97,-1541 3327.97,-1571.8 5200.26,-1571.8 5200.26,-1541 3327.97,-1541"/>
+<text text-anchor="start" x="3334.97" y="-1553.2" font-family="Arial" font-size="14.00">storage_path </text>
+<text text-anchor="start" x="3420.59" y="-1553.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="3450.93" y="-1553.2" font-family="Arial" font-size="14.00"> Path in the listing&#45;photos bucket: &lt;provider_id&gt;/&lt;listing_id&gt;/&lt;random uuid&gt;.&lt;ext&gt;. Must be in this listing&#39;s own folder.</text>
+<polygon fill="none" stroke="black" points="3327.97,-1510.2 3327.97,-1541 5200.26,-1541 5200.26,-1510.2 3327.97,-1510.2"/>
+<text text-anchor="start" x="3334.97" y="-1522.4" font-family="Arial" font-size="14.00">position </text>
+<text text-anchor="start" x="3387.11" y="-1522.4" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
+<text text-anchor="start" x="3442.35" y="-1522.4" font-family="Arial" font-size="14.00"> 0 to 7, unique per listing. 0 is the cover photo.</text>
+<polygon fill="none" stroke="black" points="3327.97,-1479.4 3327.97,-1510.2 5200.26,-1510.2 5200.26,-1479.4 3327.97,-1479.4"/>
+<text text-anchor="start" x="3334.97" y="-1491.6" font-family="Arial" font-size="14.00">alt_text </text>
+<text text-anchor="start" x="3384" y="-1491.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="3414.34" y="-1491.6" font-family="Arial" font-size="14.00"> Describes the photo for screen reader users. Required, 5 to 200 characters.</text>
+<polygon fill="none" stroke="black" points="3327.97,-1448.6 3327.97,-1479.4 5200.26,-1479.4 5200.26,-1448.6 3327.97,-1448.6"/>
+<text text-anchor="start" x="3334.97" y="-1460.8" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="3405.02" y="-1460.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="3327.97,-1417.8 3327.97,-1448.6 5200.26,-1448.6 5200.26,-1417.8 3327.97,-1417.8"/>
+<text text-anchor="start" x="3334.97" y="-1430" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="3408.93" y="-1430" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="3327.97,-1387 3327.97,-1417.8 5200.26,-1417.8 5200.26,-1387 3327.97,-1387"/>
+<text text-anchor="start" x="3334.97" y="-1399.2" font-family="Arial" font-size="14.00">card_path </text>
+<text text-anchor="start" x="3401.13" y="-1399.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="3431.47" y="-1399.2" font-family="Arial" font-size="14.00"> The card&#45;sized copy (about 600px wide) of this photo, in the same folder: &lt;uuid&gt;.card.webp for &lt;uuid&gt;.&lt;ext&gt;, or &lt;uuid&gt;.card.jpg where the browser couldn&#39;t encode WebP. Null for photos added before card copies existed; pages then use the full photo. Set on upload, never changed.</text>
 </g>
 <!-- public.listing_photos&#45;&gt;public.listings -->
 <g id="edge3" class="edge">
 <title>public.listing_photos:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M5211.07,-1568.79C5244.82,-1545.68 5222.99,-1396.35 5200.26,-1359.2 5112.24,-1215.31 5031.85,-1184.8 4863.17,-1184.8"/>
-<polygon fill="black" stroke="black" points="5211.14,-1568.77 5200.26,-1567.4 5206.04,-1570.33 5201.9,-1571.6 5201.9,-1571.6 5201.9,-1571.6 5206.04,-1570.33 5202.9,-1576 5211.14,-1568.77"/>
-<text text-anchor="start" x="5028.17" y="-1555.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M5211.26,-1584.54C5251.78,-1560.87 5227.33,-1386.3 5200.26,-1343.8 5111.28,-1204.08 5028.82,-1184.8 4863.17,-1184.8"/>
+<polygon fill="black" stroke="black" points="5211.25,-1584.54 5200.43,-1582.77 5206.1,-1585.91 5201.91,-1587.03 5201.91,-1587.03 5201.91,-1587.03 5206.1,-1585.91 5202.75,-1591.46 5211.25,-1584.54"/>
+<text text-anchor="start" x="5028.17" y="-1571.2" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.experience_sessions -->
 <g id="node5" class="node">
@@ -447,7 +451,7 @@
 <title>public.experience_sessions:listing_id&#45;&gt;public.listings:id</title>
 <path fill="none" stroke="black" d="M5293.07,-1571.28C5201.27,-1561.28 5321.96,-1409.3 5252.12,-1328.4 5131.7,-1188.92 5047.44,-1184.8 4863.17,-1184.8"/>
 <polygon fill="black" stroke="black" points="5292.98,-1571.28 5302.74,-1576.28 5298.3,-1571.55 5302.63,-1571.77 5302.63,-1571.77 5302.63,-1571.77 5298.3,-1571.55 5303.19,-1567.29 5292.98,-1571.28"/>
-<text text-anchor="start" x="4950.11" y="-1581.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<text text-anchor="start" x="5040.16" y="-1555.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.notifications -->
 <g id="node6" class="node">

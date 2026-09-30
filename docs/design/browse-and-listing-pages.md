@@ -111,9 +111,9 @@ Options for the Nuxt Image provider (`image.provider` in the shared layer, `none
 | C. Nuxt's own image server (IPX) | Resizes on lokl's own server | No extra service, but uses server CPU and needs caching in front of it |
 | D. Make a small copy at upload | The browser already resizes before upload; it would also make an 800px card copy | No service at all and very cheap; one small migration (a second file per photo), and existing photos need a one-off backfill |
 
-**Chosen (2026-09-30): D.** At upload, the browser also saves a card copy about 600px wide, as WebP, next to the full photo. Browse cards use the card copy; the listing page and viewer use the full photo. Everything stays behind `<NuxtImg>`, so a provider (A or B) can still be chosen later without touching the pages.
+**Chosen (2026-09-30): D.** At upload, the browser also saves a card copy about 600px wide next to the full photo: WebP, or JPEG where the browser can't encode WebP (iPhone browsers all run Apple's engine, which may not). Browse cards use the card copy; the listing page and viewer use the full photo. Everything stays behind `<NuxtImg>`, so a provider (A or B) can still be chosen later without touching the pages.
 
-- A second file per photo, in the same folder: `<provider>/<listing>/<uuid>.card.webp`.
+- A second file per photo, in the same folder: `<provider>/<listing>/<uuid>.card.webp` or `.card.jpg`.
 - A small migration adds `listing_photos.card_path` (optional, and checked to be the card copy of the same photo). Cards fall back to the full photo when it's missing. Existing test photos are re-uploaded rather than backfilled.
 - Removing a photo, or deleting a draft, removes both files.
 

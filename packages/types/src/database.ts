@@ -171,6 +171,7 @@ export type Database = {
       listing_photos: {
         Row: {
           alt_text: string
+          card_path: string | null
           created_at: string
           id: string
           listing_id: string
@@ -180,6 +181,7 @@ export type Database = {
         }
         Insert: {
           alt_text: string
+          card_path?: string | null
           created_at?: string
           id?: string
           listing_id: string
@@ -189,6 +191,7 @@ export type Database = {
         }
         Update: {
           alt_text?: string
+          card_path?: string | null
           created_at?: string
           id?: string
           listing_id?: string

@@ -15,6 +15,8 @@ const supabase = useSupabaseClient();
 interface PhotoRow {
   id: string;
   storage_path: string;
+  /** The ~600px card copy (WebP or JPEG); null for older photos (use the full photo). */
+  card_path: string | null;
   position: number;
   alt_text: string;
 }
@@ -22,7 +24,7 @@ interface PhotoRow {
 const { data: photos, refresh } = await useAsyncData(`listing-photos-${props.listingId}`, async () => {
   const { data, error } = await supabase
     .from("listing_photos")
-    .select("id, storage_path, position, alt_text")
+    .select("id, storage_path, card_path, position, alt_text")
     .eq("listing_id", props.listingId)
     .order("position");
   if (error) throw error;
@@ -107,25 +109,38 @@ const nextFreePosition = () => {
 const uploadPending = altForm.handleSubmit(async ({ alt_text }) => {
   if (!pending.value) return;
   const { prepared } = pending.value;
-  const path = `${props.providerId}/${props.listingId}/${crypto.randomUUID()}.${prepared.ext}`;
+  const base = `${props.providerId}/${props.listingId}/${crypto.randomUUID()}`;
+  const path = `${base}.${prepared.ext}`;
+  // The card copy's name is fixed by the database: <photo>.card.webp or .card.jpg.
+  const cardPath = `${base}.card.${prepared.cardExt}`;
+  const uploaded: string[] = [];
   busy.value = true;
   try {
     const up = await supabase.storage
       .from(BUCKET)
       .upload(path, prepared.blob, { contentType: prepared.blob.type, upsert: false });
     if (up.error) throw new Error(up.error.message);
+    uploaded.push(path);
+    const card = await supabase.storage
+      .from(BUCKET)
+      .upload(cardPath, prepared.card, { contentType: prepared.card.type, upsert: false });
+    if (card.error) throw new Error(card.error.message);
+    uploaded.push(cardPath);
 
-    const { error } = await supabase
-      .from("listing_photos")
-      .insert({ listing_id: props.listingId, storage_path: path, position: nextFreePosition(), alt_text });
-    if (error) {
-      // Don't leave an unused file behind.
-      await supabase.storage.from(BUCKET).remove([path]);
-      throw new Error(error.message);
-    }
+    const { error } = await supabase.from("listing_photos").insert({
+      listing_id: props.listingId,
+      storage_path: path,
+      card_path: cardPath,
+      position: nextFreePosition(),
+      alt_text,
+    });
+    if (error) throw new Error(error.message);
+    uploaded.length = 0;
     useSonner.success("Photo added.");
     await reload();
   } catch (e) {
+    // Don't leave unused files behind.
+    if (uploaded.length) await supabase.storage.from(BUCKET).remove(uploaded);
     useSonner.error(`The photo wasn't added: ${(e as Error).message}`);
   } finally {
     busy.value = false;
@@ -179,7 +194,7 @@ async function confirmRemove() {
   const { error } = await supabase.from("listing_photos").delete().eq("id", photo.id);
   if (!error) {
     // The row is gone; remove the file too, so it isn't left in storage.
-    await supabase.storage.from(BUCKET).remove([photo.storage_path]);
+    await supabase.storage.from(BUCKET).remove([photo.storage_path, ...(photo.card_path ? [photo.card_path] : [])]);
   }
   busy.value = false;
   removeOpen.value = false;
@@ -209,7 +224,7 @@ async function confirmRemove() {
       <ul v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <li v-for="(photo, i) in list" :key="photo.id" class="border-border overflow-hidden rounded-lg border">
           <div class="relative">
-            <NuxtImg :src="publicUrl(photo.storage_path)" :alt="photo.alt_text" width="800" height="600"
+            <NuxtImg :src="publicUrl(photo.card_path ?? photo.storage_path)" :alt="photo.alt_text" width="600" height="450"
               class="aspect-[4/3] w-full object-cover" loading="lazy" />
             <UiBadge v-if="i === 0" class="absolute top-2 left-2">Cover</UiBadge>
           </div>

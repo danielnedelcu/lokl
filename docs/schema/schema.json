@@ -1401,6 +1401,12 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "now()"
+        },
+        {
+          "name": "card_path",
+          "type": "text",
+          "nullable": true,
+          "comment": "The card-sized copy (about 600px wide) of this photo, in the same folder: \u003cuuid\u003e.card.webp for \u003cuuid\u003e.\u003cext\u003e, or \u003cuuid\u003e.card.jpg where the browser couldn't encode WebP. Null for photos added before card copies existed; pages then use the full photo. Set on upload, never changed."
         }
       ],
       "indexes": [
@@ -1428,6 +1434,14 @@
             "listing_id",
             "position"
           ]
+        },
+        {
+          "name": "listing_photos_card_path_key",
+          "def": "CREATE UNIQUE INDEX listing_photos_card_path_key ON public.listing_photos USING btree (card_path)",
+          "table": "public.listing_photos",
+          "columns": [
+            "card_path"
+          ]
         }
       ],
       "constraints": [
@@ -1439,6 +1453,17 @@
           "referenced_table": "",
           "columns": [
             "alt_text"
+          ]
+        },
+        {
+          "name": "listing_photos_card_path_check",
+          "type": "CHECK",
+          "def": "CHECK (((card_path = regexp_replace(storage_path, '\\.(jpg|jpeg|png|webp)$'::text, '.card.webp'::text)) OR (card_path = regexp_replace(storage_path, '\\.(jpg|jpeg|png|webp)$'::text, '.card.jpg'::text))))",
+          "table": "public.listing_photos",
+          "referenced_table": "",
+          "columns": [
+            "card_path",
+            "storage_path"
           ]
         },
         {
@@ -1503,6 +1528,16 @@
           "columns": [
             "listing_id",
             "position"
+          ]
+        },
+        {
+          "name": "listing_photos_card_path_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (card_path)",
+          "table": "public.listing_photos",
+          "referenced_table": "",
+          "columns": [
+            "card_path"
           ]
         }
       ],

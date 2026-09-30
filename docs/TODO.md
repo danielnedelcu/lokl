@@ -149,6 +149,11 @@ Each step depends on the ones before it.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
    email sender, and generated types wired into both apps' `supabase.types`.
    (The dashboards' phone menu was done 2026-09-30.)
+   - [ ] Photo upload from an iPhone (any browser there uses Apple's engine):
+     check the stored files are a JPEG or WebP photo plus a `.card.jpg` or
+     `.card.webp` about 600px wide, with `card_path` set. Also one from Chrome,
+     kept, to confirm its card copy is WebP. (Safari on a Mac was checked on
+     2026-09-30: `.card.jpg`, 600px. Removing a photo deletes both files.)
    - [ ] Clear cached browse pages as soon as a listing is taken down or
      unpublished (depends on the host's cache or CDN). Until then they
      refresh within 60 seconds; listing pages aren't cached.
