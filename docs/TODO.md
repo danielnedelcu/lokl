@@ -147,8 +147,11 @@ Each step depends on the ones before it.
 7. **Destination guides.** AI draft (Anthropic API), editor with photo, slug and
    publish state, links into listings. Can start any time after step 3.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
-   email sender, generated types wired into both apps' `supabase.types`, and a
-   mobile menu for both dashboards.
+   email sender, and generated types wired into both apps' `supabase.types`.
+   (The dashboards' phone menu was done 2026-09-30.)
+   - [ ] Clear cached browse pages as soon as a listing is taken down or
+     unpublished (depends on the host's cache or CDN). Until then they
+     refresh within 60 seconds; listing pages aren't cached.
 
 ### What gets built next
 
@@ -213,6 +216,7 @@ tests, run through `db:test` before `db:push`.
 ## Later ideas
 
 - "Don't see your area? Tell us" link next to the area picker.
+- Provider profile pages ("More from this host").
 
 ## Loose ends
 
