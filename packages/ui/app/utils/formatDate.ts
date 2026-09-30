@@ -15,3 +15,12 @@ export function formatAge(value: string | Date, now: Date = new Date()): string 
   const days = Math.floor(hours / 24);
   return `${days} ${days === 1 ? "day" : "days"}`;
 }
+
+// A length of time in plain words: "45 minutes", "2 hours", "2 hours 30 minutes".
+export function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hours = h ? `${h} ${h === 1 ? "hour" : "hours"}` : "";
+  const mins = m ? `${m} ${m === 1 ? "minute" : "minutes"}` : "";
+  return [hours, mins].filter(Boolean).join(" ") || "0 minutes";
+}

@@ -153,6 +153,8 @@ Each step depends on the ones before it.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
    email sender, and generated types wired into both apps' `supabase.types`.
    (The dashboards' phone menu was done 2026-09-30.)
+   - [ ] UX polish pass across the public pages, once they all exist: font
+     sizes, spacing and visual design.
    - [ ] Choose the Nuxt Image provider for production (`image.provider` in
      the shared layer, `none` today), once hosting is chosen: the host's image
      service, or Supabase image transformations
