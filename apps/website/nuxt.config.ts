@@ -35,6 +35,17 @@ export default defineNuxtConfig({
   },
 
   supabase: {
+    // Auth cookies. The module's default forces Secure, which Safari refuses on
+    // http://localhost (Chrome allows it), so the sign-in link's one-time code
+    // verifier was never saved and every Safari sign-in failed. Secure in
+    // production builds only; development runs on plain http. SameSite stays
+    // "lax": arriving from the emailed link is a top-level visit, which lax
+    // allows. Override at runtime with NUXT_PUBLIC_SUPABASE_COOKIE_OPTIONS_SECURE.
+    cookieOptions: {
+      maxAge: 60 * 60 * 8,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    },
     // Point this at packages/types/src/database.ts once it holds generated types.
     types: false,
     // Public pages stay open; only the provider dashboard requires sign-in.

@@ -468,7 +468,8 @@ const statusNote = computed(() => {
           <UiCard>
             <UiCardHeader><UiCardTitle as="h2">Location</UiCardTitle></UiCardHeader>
             <UiCardContent class="space-y-5">
-              <UiVeeSelect v-if="cities.length > 1" name="city_id" label="City" required :disabled="!editable">
+              <UiVeeSelect v-if="cities.length > 1" name="city_id" label="Metro area" required :disabled="!editable"
+                hint="Atlanta covers the whole metro, including Decatur, Sandy Springs and Alpharetta.">
                 <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}, {{ c.state }}</option>
               </UiVeeSelect>
 

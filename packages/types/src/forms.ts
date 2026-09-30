@@ -10,7 +10,7 @@ export const providerProfileSchema = z.object({
     .trim()
     .min(2, "Enter your business or host name (at least 2 characters).")
     .max(120, "Keep the name under 120 characters."),
-  city_id: z.uuid("Choose your city from the list."),
+  city_id: z.uuid("Choose your metro area from the list."),
 });
 export type ProviderProfileInput = z.input<typeof providerProfileSchema>;
 
@@ -63,7 +63,7 @@ export const citySchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2, "Enter the city's name (at least 2 characters).")
+    .min(2, "Enter the market's name (at least 2 characters).")
     .max(80, "Keep the name under 80 characters."),
   slug,
   state: z
@@ -73,7 +73,7 @@ export const citySchema = z.object({
     .pipe(z.string().regex(/^[A-Z]{2}$/, "Enter the two-letter state code, like GA.")),
   timezone: z.enum(
     US_TIME_ZONES.map((t) => t.value) as [string, ...string[]],
-    "Choose the city's time zone.",
+    "Choose the market's time zone.",
   ),
 });
 export type CityInput = z.input<typeof citySchema>;

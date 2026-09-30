@@ -5,6 +5,7 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-09-30 | Auth cookies are Secure only in production builds (`secure: process.env.NODE_ENV === "production"` in both apps); SameSite stays `lax` | The Supabase module forces Secure by default, and Safari refuses Secure cookies on http://localhost, so every Safari sign-in failed in development. `lax` still sends cookies when arriving from the emailed link |
 | 2026-09-30 | A `cities` row is a **market**: a metro area named after its main city (Atlanta covers the whole metro). Cities and towns around it, such as Decatur, Sandy Springs, Alpharetta and Marietta, are **areas** inside the market (a third area kind, `city`, alongside neighborhoods and zip codes), not markets of their own. The table keeps its name | Providers work and travel across the metro, and customers search the metro as one place; renaming the table would touch every migration and query for no change in behaviour |
 | 2026-09-30 | The provider absorbs the commission: customers pay exactly the listed price, and lokl pays Stripe's processing fee out of its commission | The price a customer sees is the price they pay, with no fees added at checkout; providers know their take from the listed price |
 | 2026-09-30 | Commission: 12% for Services, 20% for Experiences | Services are compared on price and booked repeatedly, so a lower rate makes repeat bookings less likely to move off lokl. Experience hosts rely more on lokl to be found, so a higher rate, in line with Airbnb Experiences |

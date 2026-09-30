@@ -52,13 +52,16 @@ const save = handleSubmit(async (values) => {
         <form class="space-y-5" novalidate @submit="save">
           <UiVeeInput name="display_name" label="Business or host name" autocomplete="organization" required />
 
+          <!-- A "city" in the database is a market covering its whole metro
+               (docs/decisions.md, 2026-09-30). The hint names Atlanta while
+               it's the only market. -->
           <UiVeeSelect
             name="city_id"
-            label="City"
+            label="Metro area"
             required
-            :hint="savedCityGone ? 'Your city is no longer on the list. Please choose another one.' : undefined"
+            :hint="savedCityGone ? 'Your metro area is no longer on the list. Please choose another one.' : 'Atlanta covers the whole metro, including Decatur, Sandy Springs and Alpharetta.'"
           >
-            <option value="" disabled>Choose your city</option>
+            <option value="" disabled>Choose your metro area</option>
             <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}, {{ c.state }}</option>
           </UiVeeSelect>
 

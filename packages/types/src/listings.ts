@@ -132,7 +132,7 @@ export const listingSchema = z
   .object({
     kind: z.enum(LISTING_KINDS),
     category_id: z.uuid("Choose a category."),
-    city_id: z.uuid("Choose a city."),
+    city_id: z.uuid("Choose a metro area."),
     title: z
       .string()
       .trim()
