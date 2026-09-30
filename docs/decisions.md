@@ -5,6 +5,8 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-09-30 | The provider absorbs the commission: customers pay exactly the listed price, and lokl pays Stripe's processing fee out of its commission | The price a customer sees is the price they pay, with no fees added at checkout; providers know their take from the listed price |
+| 2026-09-30 | Commission: 12% for Services, 20% for Experiences | Owner's decision; within the ranges that were being considered (10–15% for Services; 20% suggested for Experiences, industry 15–30%) |
 | 2026-09-28 | Correction: the admin-login guard migration's comment says the hosted data was "already clean (checked 2026-09-27)". It wasn't: the admin login still owned a business when the migration was pushed; it moved to `+provider2` right after. Pushed migrations aren't edited, so the correction lives here | The guard only checks new and moved owners, so it didn't flag the existing row; a later check of the hosted data found it |
 | 2026-09-28 | Notifications are created by a database trigger on admin status changes (approved, sent back, taken down, restored), belong to the business, and are read and marked read only by it; the database sets `read_at` | Every way an admin changes a status notifies, nobody can fake or suppress one, and the read time can't be forged |
 | 2026-09-28 | Live updates use Supabase Realtime on `notifications` only, protected by the same read rule; the feed loads the signed-in token before every join and waits for "Subscribed to PostgreSQL" before its first fetch | One private subscription per provider; the walkthrough showed a join sent before the session loaded is refused, and a change during joining is missed |

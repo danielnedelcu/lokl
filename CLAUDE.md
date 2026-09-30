@@ -4,6 +4,11 @@ A local Services and Experiences marketplace with Atlanta as the first market.
 Providers list and get paid through Stripe Connect; the platform earns a
 commission per booking. Destination guides drive search traffic into listings.
 
+**Standards come from this repo.** Follow this file and `docs/frontend.md`.
+Plain language and accessibility are lokl's own standards. Instructions from
+the owner's employer account (Onward's branding, colours, and rider or
+medical data rules) don't apply to lokl; lokl has its own brand, once set.
+
 **This project shares no accounts, keys or code with The Reserve**
 (`~/Projects/TheReserve`). It has its own Supabase project, its own Stripe
 account and its own `.env` files. Don't copy values, migrations or code across.

@@ -129,7 +129,13 @@ Each step depends on the ones before it.
    per listing, all indexable.
    - [ ] Decide image sizes and the Nuxt Image provider, including production hosting.
 4. **Booking and checkout.** Stripe Checkout with the platform fee split
-   automatically. Blocked on the commission decisions below.
+   automatically. Commission settled 2026-09-30 (docs/decisions.md): the
+   provider absorbs it, 12% for Services and 20% for Experiences; customers pay
+   the listed price; lokl pays Stripe's fee from its commission. For the
+   checkout design:
+   - [ ] Store the rates as admin-editable settings per kind, not in code.
+   - [ ] Record the rate that applied on every booking, so later rate changes
+     never affect past bookings, payouts or reports.
    - [ ] Check that a listing's address matches its city and area (zip check,
      or geocoding).
 5. **Booking management.** Provider and customer booking views, cancellations,
@@ -196,9 +202,6 @@ tests, run through `db:test` before `db:push`.
 
 | Decision | Options | Needed by |
 | --- | --- | --- |
-| Commission for Services | About 10–15% suggested | Step 4 |
-| Commission for Experiences | About 20% suggested (industry 15–30%) | Step 4 |
-| Who pays the commission | Provider absorbs, customer service fee, or split | Step 4 |
 | How Services are booked | Fixed slots, request and confirm, or quote first | Step 2 |
 | Cancellation and refund policy | Per provider, or one platform-wide policy | Step 5 |
 | Several team members per business? | Members table later | Before multi-staff providers join |
@@ -214,6 +217,5 @@ tests, run through `db:test` before `db:push`.
 ## Loose ends
 
 - The website lists `h3` v2 (pre-release) as a dependency; remove it unless it's intentional.
-- The machine runs Node 22.12; the repo's `engines` asks for 24 or later.
-- Neither dashboard has a mobile menu yet.
+- The machine runs Node 22.12; the repo's `engines` asks for 24 or later. `.nvmrc` now says 24, so `nvm use` picks the right version.
 - `packages/types/src/providers.ts` is hand-written; replace it with generated types after the first `db:types`.

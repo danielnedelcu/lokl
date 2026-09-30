@@ -34,8 +34,6 @@ const sections = [
   },
 ];
 
-// "/" prefixes every route, so Dashboard only highlights on an exact match.
-const activeClass = "bg-muted font-medium !text-foreground";
 
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
@@ -49,33 +47,26 @@ async function signOut() {
 <template>
   <div class="flex min-h-screen bg-muted">
     <aside class="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
-      <div class="px-5 py-5 text-sm font-semibold tracking-tight">Marketplace Admin</div>
-      <nav class="space-y-6 px-3 pb-6">
-        <div v-for="section in sections" :key="section.label">
-          <p class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {{ section.label }}
-          </p>
-          <NuxtLink
-            v-for="item in section.items"
-            :key="item.to"
-            :to="item.to"
-            class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-            :active-class="item.to === '/' ? '' : activeClass"
-            :exact-active-class="activeClass"
-          >
-            <Icon :name="item.icon" class="size-4" />
-            {{ item.label }}
-          </NuxtLink>
-        </div>
-      </nav>
+      <div class="px-5 py-5 text-sm font-semibold tracking-tight">lokl Admin</div>
+      <div class="px-3 pb-6">
+        <!-- "/" prefixes every route, so Dashboard only highlights on an exact match. -->
+        <DashboardNav :sections="sections" exact-root="/" />
+      </div>
       <div class="mt-auto border-t border-border px-5 py-4 text-sm">
         <p class="truncate text-muted-foreground">{{ user?.email }}</p>
         <button type="button" class="mt-1 font-medium hover:underline" @click="signOut">Sign out</button>
       </div>
     </aside>
 
-    <main class="min-w-0 flex-1 p-4 md:p-8">
-      <slot />
-    </main>
+    <div class="flex min-w-0 flex-1 flex-col">
+      <!-- Phones only: the sidebar is hidden there, so the menu opens from this bar. -->
+      <header class="flex h-14 items-center gap-2 border-b border-border bg-card px-2 md:hidden">
+        <DashboardMobileMenu title="lokl Admin" :sections="sections" exact-root="/" :email="user?.email" @sign-out="signOut" />
+        <span class="text-sm font-semibold tracking-tight">lokl Admin</span>
+      </header>
+      <main class="min-w-0 flex-1 p-4 md:p-8">
+        <slot />
+      </main>
+    </div>
   </div>
 </template>
