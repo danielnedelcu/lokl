@@ -97,202 +97,203 @@
 <!-- public.providers -->
 <g id="node7" class="node">
 <title>public.providers</title>
-<polygon fill="#efefef" stroke="none" points="1690.59,-382 1690.59,-428 3023.64,-428 3023.64,-382 1690.59,-382"/>
-<polygon fill="none" stroke="black" points="1690.59,-382 1690.59,-428 3023.64,-428 3023.64,-382 1690.59,-382"/>
-<text text-anchor="start" x="2236.14" y="-405.8" font-family="Arial Bold" font-size="18.00">public.providers</text>
-<text text-anchor="start" x="2353.61" y="-405.8" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="2384.73" y="-405.8" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="1803.42" y="-391.4" font-family="Arial" font-size="14.00" fill="#333333">A business or host that sells Services or Experiences. One per login (owner_id is unique). Never deleted: bookings and payouts will point here, so a provider is suspended instead.</text>
-<polygon fill="none" stroke="black" points="1690.59,-351.2 1690.59,-382 3023.64,-382 3023.64,-351.2 1690.59,-351.2"/>
-<text text-anchor="start" x="1697.59" y="-363.4" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="1712.38" y="-363.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1690.59,-320.4 1690.59,-351.2 3023.64,-351.2 3023.64,-320.4 1690.59,-320.4"/>
-<text text-anchor="start" x="1697.59" y="-332.6" font-family="Arial" font-size="14.00">owner_id </text>
-<text text-anchor="start" x="1758.29" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="1792.54" y="-332.6" font-family="Arial" font-size="14.00"> The login that owns and manages this provider. A user is a provider exactly when they own a row here. The login cannot be deleted while it owns a provider: suspend or anonymize the provider first.</text>
-<polygon fill="none" stroke="black" points="1690.59,-289.6 1690.59,-320.4 3023.64,-320.4 3023.64,-289.6 1690.59,-289.6"/>
-<text text-anchor="start" x="1697.59" y="-301.8" font-family="Arial" font-size="14.00">display_name </text>
-<text text-anchor="start" x="1787.86" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="1818.21" y="-301.8" font-family="Arial" font-size="14.00"> Business or host name shown to customers.</text>
-<polygon fill="none" stroke="black" points="1690.59,-258.8 1690.59,-289.6 3023.64,-289.6 3023.64,-258.8 1690.59,-258.8"/>
-<text text-anchor="start" x="1697.59" y="-271" font-family="Arial" font-size="14.00">status </text>
-<text text-anchor="start" x="1738.83" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="1769.18" y="-271" font-family="Arial" font-size="14.00"> active or suspended. Only admins change it (service role); a suspended provider cannot use provider routes.</text>
-<polygon fill="none" stroke="black" points="1690.59,-228 1690.59,-258.8 3023.64,-258.8 3023.64,-228 1690.59,-228"/>
-<text text-anchor="start" x="1697.59" y="-240.2" font-family="Arial" font-size="14.00">stripe_account_id </text>
-<text text-anchor="start" x="1811.22" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="1841.56" y="-240.2" font-family="Arial" font-size="14.00"> The provider&#39;s Stripe Connect Express account. Created by the server on first payout setup.</text>
-<polygon fill="none" stroke="black" points="1690.59,-197.2 1690.59,-228 3023.64,-228 3023.64,-197.2 1690.59,-197.2"/>
-<text text-anchor="start" x="1697.59" y="-209.4" font-family="Arial" font-size="14.00">stripe_details_submitted </text>
-<text text-anchor="start" x="1852.45" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="1910.06" y="-209.4" font-family="Arial" font-size="14.00"> Copied from Stripe: the provider finished the onboarding form. Server&#45;only.</text>
-<polygon fill="none" stroke="black" points="1690.59,-166.4 1690.59,-197.2 3023.64,-197.2 3023.64,-166.4 1690.59,-166.4"/>
-<text text-anchor="start" x="1697.59" y="-178.6" font-family="Arial" font-size="14.00">stripe_charges_enabled </text>
-<text text-anchor="start" x="1850.92" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="1908.53" y="-178.6" font-family="Arial" font-size="14.00"> Copied from Stripe: payments can be made to this provider. Server&#45;only.</text>
-<polygon fill="none" stroke="black" points="1690.59,-135.6 1690.59,-166.4 3023.64,-166.4 3023.64,-135.6 1690.59,-135.6"/>
-<text text-anchor="start" x="1697.59" y="-147.8" font-family="Arial" font-size="14.00">stripe_payouts_enabled </text>
-<text text-anchor="start" x="1850.15" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="1907.75" y="-147.8" font-family="Arial" font-size="14.00"> Copied from Stripe: Stripe can pay out to the provider&#39;s bank. Server&#45;only.</text>
-<polygon fill="none" stroke="black" points="1690.59,-104.8 1690.59,-135.6 3023.64,-135.6 3023.64,-104.8 1690.59,-104.8"/>
-<text text-anchor="start" x="1697.59" y="-117" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="1767.64" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1690.59,-74 1690.59,-104.8 3023.64,-104.8 3023.64,-74 1690.59,-74"/>
-<text text-anchor="start" x="1697.59" y="-86.2" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="1771.55" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1690.59,-43.2 1690.59,-74 3023.64,-74 3023.64,-43.2 1690.59,-43.2"/>
-<text text-anchor="start" x="1697.59" y="-55.4" font-family="Arial" font-size="14.00">city_id </text>
-<text text-anchor="start" x="1741.16" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="1775.41" y="-55.4" font-family="Arial" font-size="14.00"> The city the provider operates in, picked from active cities. Replaces the old free&#45;text city.</text>
+<polygon fill="#efefef" stroke="none" points="1517.59,-382 1517.59,-428 2850.64,-428 2850.64,-382 1517.59,-382"/>
+<polygon fill="none" stroke="black" points="1517.59,-382 1517.59,-428 2850.64,-428 2850.64,-382 1517.59,-382"/>
+<text text-anchor="start" x="2063.14" y="-405.8" font-family="Arial Bold" font-size="18.00">public.providers</text>
+<text text-anchor="start" x="2180.61" y="-405.8" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="2211.73" y="-405.8" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="1630.42" y="-391.4" font-family="Arial" font-size="14.00" fill="#333333">A business or host that sells Services or Experiences. One per login (owner_id is unique). Never deleted: bookings and payouts will point here, so a provider is suspended instead.</text>
+<polygon fill="none" stroke="black" points="1517.59,-351.2 1517.59,-382 2850.64,-382 2850.64,-351.2 1517.59,-351.2"/>
+<text text-anchor="start" x="1524.59" y="-363.4" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="1539.38" y="-363.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1517.59,-320.4 1517.59,-351.2 2850.64,-351.2 2850.64,-320.4 1517.59,-320.4"/>
+<text text-anchor="start" x="1524.59" y="-332.6" font-family="Arial" font-size="14.00">owner_id </text>
+<text text-anchor="start" x="1585.29" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="1619.54" y="-332.6" font-family="Arial" font-size="14.00"> The login that owns and manages this provider. A user is a provider exactly when they own a row here. The login cannot be deleted while it owns a provider: suspend or anonymize the provider first.</text>
+<polygon fill="none" stroke="black" points="1517.59,-289.6 1517.59,-320.4 2850.64,-320.4 2850.64,-289.6 1517.59,-289.6"/>
+<text text-anchor="start" x="1524.59" y="-301.8" font-family="Arial" font-size="14.00">display_name </text>
+<text text-anchor="start" x="1614.86" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1645.21" y="-301.8" font-family="Arial" font-size="14.00"> The business name. Public: shown on the provider&#39;s visible listings (&quot;Hosted by ...&quot;).</text>
+<polygon fill="none" stroke="black" points="1517.59,-258.8 1517.59,-289.6 2850.64,-289.6 2850.64,-258.8 1517.59,-258.8"/>
+<text text-anchor="start" x="1524.59" y="-271" font-family="Arial" font-size="14.00">status </text>
+<text text-anchor="start" x="1565.83" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1596.18" y="-271" font-family="Arial" font-size="14.00"> active or suspended. Only admins change it (service role); a suspended provider cannot use provider routes.</text>
+<polygon fill="none" stroke="black" points="1517.59,-228 1517.59,-258.8 2850.64,-258.8 2850.64,-228 1517.59,-228"/>
+<text text-anchor="start" x="1524.59" y="-240.2" font-family="Arial" font-size="14.00">stripe_account_id </text>
+<text text-anchor="start" x="1638.22" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1668.56" y="-240.2" font-family="Arial" font-size="14.00"> The provider&#39;s Stripe Connect Express account. Created by the server on first payout setup.</text>
+<polygon fill="none" stroke="black" points="1517.59,-197.2 1517.59,-228 2850.64,-228 2850.64,-197.2 1517.59,-197.2"/>
+<text text-anchor="start" x="1524.59" y="-209.4" font-family="Arial" font-size="14.00">stripe_details_submitted </text>
+<text text-anchor="start" x="1679.45" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="1737.06" y="-209.4" font-family="Arial" font-size="14.00"> Copied from Stripe: the provider finished the onboarding form. Server&#45;only.</text>
+<polygon fill="none" stroke="black" points="1517.59,-166.4 1517.59,-197.2 2850.64,-197.2 2850.64,-166.4 1517.59,-166.4"/>
+<text text-anchor="start" x="1524.59" y="-178.6" font-family="Arial" font-size="14.00">stripe_charges_enabled </text>
+<text text-anchor="start" x="1677.92" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="1735.53" y="-178.6" font-family="Arial" font-size="14.00"> Copied from Stripe: payments can be made to this provider. Server&#45;only.</text>
+<polygon fill="none" stroke="black" points="1517.59,-135.6 1517.59,-166.4 2850.64,-166.4 2850.64,-135.6 1517.59,-135.6"/>
+<text text-anchor="start" x="1524.59" y="-147.8" font-family="Arial" font-size="14.00">stripe_payouts_enabled </text>
+<text text-anchor="start" x="1677.15" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="1734.75" y="-147.8" font-family="Arial" font-size="14.00"> Copied from Stripe: Stripe can pay out to the provider&#39;s bank. Server&#45;only.</text>
+<polygon fill="none" stroke="black" points="1517.59,-104.8 1517.59,-135.6 2850.64,-135.6 2850.64,-104.8 1517.59,-104.8"/>
+<text text-anchor="start" x="1524.59" y="-117" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="1594.64" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1517.59,-74 1517.59,-104.8 2850.64,-104.8 2850.64,-74 1517.59,-74"/>
+<text text-anchor="start" x="1524.59" y="-86.2" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="1598.55" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1517.59,-43.2 1517.59,-74 2850.64,-74 2850.64,-43.2 1517.59,-43.2"/>
+<text text-anchor="start" x="1524.59" y="-55.4" font-family="Arial" font-size="14.00">city_id </text>
+<text text-anchor="start" x="1568.16" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="1602.41" y="-55.4" font-family="Arial" font-size="14.00"> The city the provider operates in, picked from active cities. Replaces the old free&#45;text city.</text>
 </g>
 <!-- public.listings&#45;&gt;public.providers -->
 <g id="edge6" class="edge">
 <title>public.listings:provider_id&#45;&gt;public.providers:id</title>
-<path fill="none" stroke="black" d="M3654.88,-1153.92C3264.53,-1148.06 3293.38,-803.56 3075.12,-471.2 3046.78,-428.05 3076.26,-366.6 3024.64,-366.6"/>
-<polygon fill="black" stroke="black" points="3654.73,-1153.92 3664.7,-1158.5 3660.06,-1153.96 3664.4,-1154 3664.4,-1154 3664.4,-1154 3660.06,-1153.96 3664.76,-1149.5 3654.73,-1153.92"/>
+<path fill="none" stroke="black" d="M3654.8,-1153.95C3209.48,-1149.17 3173.69,-832.03 2902.12,-471.2 2871.08,-429.96 2903.26,-366.6 2851.64,-366.6"/>
+<polygon fill="black" stroke="black" points="3654.73,-1153.94 3664.71,-1158.5 3660.06,-1153.97 3664.4,-1154 3664.4,-1154 3664.4,-1154 3660.06,-1153.97 3664.75,-1149.5 3654.73,-1153.94"/>
 <text text-anchor="start" x="3289.1" y="-1164" font-family="Arial" font-size="10.00">FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.categories -->
 <g id="node8" class="node">
 <title>public.categories</title>
-<polygon fill="#efefef" stroke="none" points="3127.73,-351.2 3127.73,-397.2 4314.5,-397.2 4314.5,-351.2 3127.73,-351.2"/>
-<polygon fill="none" stroke="black" points="3127.73,-351.2 3127.73,-397.2 4314.5,-397.2 4314.5,-351.2 3127.73,-351.2"/>
-<text text-anchor="start" x="3597.65" y="-375" font-family="Arial Bold" font-size="18.00">public.categories</text>
-<text text-anchor="start" x="3720.1" y="-375" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="3751.21" y="-375" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="3134.73" y="-360.6" font-family="Arial" font-size="14.00" fill="#333333">Service and Experience categories. Flat and admin&#45;managed; each listing belongs to one category of its own kind. Never deleted: listings will point here, so a category is deactivated instead.</text>
-<polygon fill="none" stroke="black" points="3127.73,-320.4 3127.73,-351.2 4314.5,-351.2 4314.5,-320.4 3127.73,-320.4"/>
-<text text-anchor="start" x="3134.73" y="-332.6" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="3149.52" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="3127.73,-289.6 3127.73,-320.4 4314.5,-320.4 4314.5,-289.6 3127.73,-289.6"/>
-<text text-anchor="start" x="3134.73" y="-301.8" font-family="Arial" font-size="14.00">kind </text>
-<text text-anchor="start" x="3164.3" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="3194.65" y="-301.8" font-family="Arial" font-size="14.00"> service or experience. A listing can only use a category of its own kind.</text>
-<polygon fill="none" stroke="black" points="3127.73,-258.8 3127.73,-289.6 4314.5,-289.6 4314.5,-258.8 3127.73,-258.8"/>
-<text text-anchor="start" x="3134.73" y="-271" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="3173.64" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="3203.99" y="-271" font-family="Arial" font-size="14.00"> Shown to customers, e.g. Hair and beauty. 2 to 60 characters.</text>
-<polygon fill="none" stroke="black" points="3127.73,-228 3127.73,-258.8 4314.5,-258.8 4314.5,-228 3127.73,-228"/>
-<text text-anchor="start" x="3134.73" y="-240.2" font-family="Arial" font-size="14.00">slug </text>
-<text text-anchor="start" x="3164.3" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="3194.65" y="-240.2" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, unique within its kind, e.g. hair&#45;and&#45;beauty.</text>
-<polygon fill="none" stroke="black" points="3127.73,-197.2 3127.73,-228 4314.5,-228 4314.5,-197.2 3127.73,-197.2"/>
-<text text-anchor="start" x="3134.73" y="-209.4" font-family="Arial" font-size="14.00">description </text>
-<text text-anchor="start" x="3206.32" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="3236.67" y="-209.4" font-family="Arial" font-size="14.00"> Optional. Shown on the category page later. Up to 500 characters.</text>
-<polygon fill="none" stroke="black" points="3127.73,-166.4 3127.73,-197.2 4314.5,-197.2 4314.5,-166.4 3127.73,-166.4"/>
-<text text-anchor="start" x="3134.73" y="-178.6" font-family="Arial" font-size="14.00">active </text>
-<text text-anchor="start" x="3175.19" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="3232.8" y="-178.6" font-family="Arial" font-size="14.00"> Inactive categories are hidden everywhere public, and so are their listings.</text>
-<polygon fill="none" stroke="black" points="3127.73,-135.6 3127.73,-166.4 4314.5,-166.4 4314.5,-135.6 3127.73,-135.6"/>
-<text text-anchor="start" x="3134.73" y="-147.8" font-family="Arial" font-size="14.00">sort_order </text>
-<text text-anchor="start" x="3202.43" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="3253.01" y="-147.8" font-family="Arial" font-size="14.00"> Display order within its kind, lowest first.</text>
-<polygon fill="none" stroke="black" points="3127.73,-104.8 3127.73,-135.6 4314.5,-135.6 4314.5,-104.8 3127.73,-104.8"/>
-<text text-anchor="start" x="3134.73" y="-117" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="3204.78" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="3127.73,-74 3127.73,-104.8 4314.5,-104.8 4314.5,-74 3127.73,-74"/>
-<text text-anchor="start" x="3134.73" y="-86.2" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="3208.69" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="2954.73,-351.2 2954.73,-397.2 4141.5,-397.2 4141.5,-351.2 2954.73,-351.2"/>
+<polygon fill="none" stroke="black" points="2954.73,-351.2 2954.73,-397.2 4141.5,-397.2 4141.5,-351.2 2954.73,-351.2"/>
+<text text-anchor="start" x="3424.65" y="-375" font-family="Arial Bold" font-size="18.00">public.categories</text>
+<text text-anchor="start" x="3547.1" y="-375" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="3578.21" y="-375" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="2961.73" y="-360.6" font-family="Arial" font-size="14.00" fill="#333333">Service and Experience categories. Flat and admin&#45;managed; each listing belongs to one category of its own kind. Never deleted: listings will point here, so a category is deactivated instead.</text>
+<polygon fill="none" stroke="black" points="2954.73,-320.4 2954.73,-351.2 4141.5,-351.2 4141.5,-320.4 2954.73,-320.4"/>
+<text text-anchor="start" x="2961.73" y="-332.6" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="2976.52" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="2954.73,-289.6 2954.73,-320.4 4141.5,-320.4 4141.5,-289.6 2954.73,-289.6"/>
+<text text-anchor="start" x="2961.73" y="-301.8" font-family="Arial" font-size="14.00">kind </text>
+<text text-anchor="start" x="2991.3" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="3021.65" y="-301.8" font-family="Arial" font-size="14.00"> service or experience. A listing can only use a category of its own kind.</text>
+<polygon fill="none" stroke="black" points="2954.73,-258.8 2954.73,-289.6 4141.5,-289.6 4141.5,-258.8 2954.73,-258.8"/>
+<text text-anchor="start" x="2961.73" y="-271" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="3000.64" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="3030.99" y="-271" font-family="Arial" font-size="14.00"> Shown to customers, e.g. Hair and beauty. 2 to 60 characters.</text>
+<polygon fill="none" stroke="black" points="2954.73,-228 2954.73,-258.8 4141.5,-258.8 4141.5,-228 2954.73,-228"/>
+<text text-anchor="start" x="2961.73" y="-240.2" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="2991.3" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="3021.65" y="-240.2" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, unique within its kind, e.g. hair&#45;and&#45;beauty.</text>
+<polygon fill="none" stroke="black" points="2954.73,-197.2 2954.73,-228 4141.5,-228 4141.5,-197.2 2954.73,-197.2"/>
+<text text-anchor="start" x="2961.73" y="-209.4" font-family="Arial" font-size="14.00">description </text>
+<text text-anchor="start" x="3033.32" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="3063.67" y="-209.4" font-family="Arial" font-size="14.00"> Optional. Shown on the category page later. Up to 500 characters.</text>
+<polygon fill="none" stroke="black" points="2954.73,-166.4 2954.73,-197.2 4141.5,-197.2 4141.5,-166.4 2954.73,-166.4"/>
+<text text-anchor="start" x="2961.73" y="-178.6" font-family="Arial" font-size="14.00">active </text>
+<text text-anchor="start" x="3002.19" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="3059.8" y="-178.6" font-family="Arial" font-size="14.00"> Inactive categories are hidden everywhere public, and so are their listings.</text>
+<polygon fill="none" stroke="black" points="2954.73,-135.6 2954.73,-166.4 4141.5,-166.4 4141.5,-135.6 2954.73,-135.6"/>
+<text text-anchor="start" x="2961.73" y="-147.8" font-family="Arial" font-size="14.00">sort_order </text>
+<text text-anchor="start" x="3029.43" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="3080.01" y="-147.8" font-family="Arial" font-size="14.00"> Display order within its kind, lowest first.</text>
+<polygon fill="none" stroke="black" points="2954.73,-104.8 2954.73,-135.6 4141.5,-135.6 4141.5,-104.8 2954.73,-104.8"/>
+<text text-anchor="start" x="2961.73" y="-117" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="3031.78" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="2954.73,-74 2954.73,-104.8 4141.5,-104.8 4141.5,-74 2954.73,-74"/>
+<text text-anchor="start" x="2961.73" y="-86.2" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="3035.69" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.listings&#45;&gt;public.categories -->
 <g id="edge7" class="edge">
 <title>public.listings:category_id&#45;&gt;public.categories:id</title>
-<path fill="none" stroke="black" d="M3654.96,-1092.2C3407.28,-1082.09 3493.97,-697.61 3666.06,-507.2 3763.2,-399.73 4216.95,-547.49 4314.5,-440.4 4345.81,-406.03 4361.99,-335.8 4315.5,-335.8"/>
+<path fill="none" stroke="black" d="M3654.96,-1092.2C3407.37,-1082.18 3497.51,-700.76 3666.06,-507.2 3806.2,-346.28 4000.74,-600.77 4141.5,-440.4 4172.17,-405.46 4188.99,-335.8 4142.5,-335.8"/>
 <polygon fill="black" stroke="black" points="3654.73,-1092.19 3664.64,-1096.89 3660.07,-1092.3 3664.4,-1092.39 3664.4,-1092.39 3664.4,-1092.39 3660.07,-1092.3 3664.82,-1087.89 3654.73,-1092.19"/>
 <text text-anchor="start" x="3234.06" y="-1102.4" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id, kind) REFERENCES categories(id, kind) ON DELETE RESTRICT</text>
 </g>
 <!-- public.cities -->
 <g id="node9" class="node">
 <title>public.cities</title>
-<polygon fill="#efefef" stroke="none" points="4419.02,-351.2 4419.02,-397.2 5197.22,-397.2 5197.22,-351.2 4419.02,-351.2"/>
-<polygon fill="none" stroke="black" points="4419.02,-351.2 4419.02,-397.2 5197.22,-397.2 5197.22,-351.2 4419.02,-351.2"/>
-<text text-anchor="start" x="4702.13" y="-375" font-family="Arial Bold" font-size="18.00">public.cities</text>
-<text text-anchor="start" x="4789.61" y="-375" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="4820.73" y="-375" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="4426.02" y="-360.6" font-family="Arial" font-size="14.00" fill="#333333">The places lokl operates. Admin&#45;managed. Never deleted: providers and listings point here, so a city is deactivated instead.</text>
-<polygon fill="none" stroke="black" points="4419.02,-320.4 4419.02,-351.2 5197.22,-351.2 5197.22,-320.4 4419.02,-320.4"/>
-<text text-anchor="start" x="4426.02" y="-332.6" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="4440.8" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="4419.02,-289.6 4419.02,-320.4 5197.22,-320.4 5197.22,-289.6 4419.02,-289.6"/>
-<text text-anchor="start" x="4426.02" y="-301.8" font-family="Arial" font-size="14.00">slug </text>
-<text text-anchor="start" x="4455.59" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="4485.94" y="-301.8" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, e.g. atlanta. Unique.</text>
-<polygon fill="none" stroke="black" points="4419.02,-258.8 4419.02,-289.6 5197.22,-289.6 5197.22,-258.8 4419.02,-258.8"/>
-<text text-anchor="start" x="4426.02" y="-271" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="4464.93" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="4419.02,-228 4419.02,-258.8 5197.22,-258.8 5197.22,-228 4419.02,-228"/>
-<text text-anchor="start" x="4426.02" y="-240.2" font-family="Arial" font-size="14.00">state </text>
-<text text-anchor="start" x="4460.26" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="4490.6" y="-240.2" font-family="Arial" font-size="14.00"> Two&#45;letter US state code, e.g. GA.</text>
-<polygon fill="none" stroke="black" points="4419.02,-197.2 4419.02,-228 5197.22,-228 5197.22,-197.2 4419.02,-197.2"/>
-<text text-anchor="start" x="4426.02" y="-209.4" font-family="Arial" font-size="14.00">timezone </text>
-<text text-anchor="start" x="4486.72" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="4517.06" y="-209.4" font-family="Arial" font-size="14.00"> IANA time zone name, e.g. America/New_York. Experience session times are entered and shown in it.</text>
-<polygon fill="none" stroke="black" points="4419.02,-166.4 4419.02,-197.2 5197.22,-197.2 5197.22,-166.4 4419.02,-166.4"/>
-<text text-anchor="start" x="4426.02" y="-178.6" font-family="Arial" font-size="14.00">active </text>
-<text text-anchor="start" x="4466.48" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="4524.09" y="-178.6" font-family="Arial" font-size="14.00"> Inactive cities are hidden everywhere public and in the provider city picker.</text>
-<polygon fill="none" stroke="black" points="4419.02,-135.6 4419.02,-166.4 5197.22,-166.4 5197.22,-135.6 4419.02,-135.6"/>
-<text text-anchor="start" x="4426.02" y="-147.8" font-family="Arial" font-size="14.00">sort_order </text>
-<text text-anchor="start" x="4493.72" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="4544.3" y="-147.8" font-family="Arial" font-size="14.00"> Display order in lists and pickers, lowest first.</text>
-<polygon fill="none" stroke="black" points="4419.02,-104.8 4419.02,-135.6 5197.22,-135.6 5197.22,-104.8 4419.02,-104.8"/>
-<text text-anchor="start" x="4426.02" y="-117" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="4496.07" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="4419.02,-74 4419.02,-104.8 5197.22,-104.8 5197.22,-74 4419.02,-74"/>
-<text text-anchor="start" x="4426.02" y="-86.2" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="4499.98" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="4246.15,-351.2 4246.15,-397.2 5716.09,-397.2 5716.09,-351.2 4246.15,-351.2"/>
+<polygon fill="none" stroke="black" points="4246.15,-351.2 4246.15,-397.2 5716.09,-397.2 5716.09,-351.2 4246.15,-351.2"/>
+<text text-anchor="start" x="4875.13" y="-375" font-family="Arial Bold" font-size="18.00">public.cities</text>
+<text text-anchor="start" x="4962.61" y="-375" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="4993.73" y="-375" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="4253.15" y="-360.6" font-family="Arial" font-size="14.00" fill="#333333">The markets lokl operates in, each named after its main city and covering its metro area (Atlanta covers Decatur, Marietta and so on). Admin&#45;managed. Never deleted: providers and listings point here, so a market is deactivated instead.</text>
+<polygon fill="none" stroke="black" points="4246.15,-320.4 4246.15,-351.2 5716.09,-351.2 5716.09,-320.4 4246.15,-320.4"/>
+<text text-anchor="start" x="4253.15" y="-332.6" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="4267.93" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="4246.15,-289.6 4246.15,-320.4 5716.09,-320.4 5716.09,-289.6 4246.15,-289.6"/>
+<text text-anchor="start" x="4253.15" y="-301.8" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="4282.72" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="4313.06" y="-301.8" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, e.g. atlanta. Unique.</text>
+<polygon fill="none" stroke="black" points="4246.15,-258.8 4246.15,-289.6 5716.09,-289.6 5716.09,-258.8 4246.15,-258.8"/>
+<text text-anchor="start" x="4253.15" y="-271" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="4292.06" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="4246.15,-228 4246.15,-258.8 5716.09,-258.8 5716.09,-228 4246.15,-228"/>
+<text text-anchor="start" x="4253.15" y="-240.2" font-family="Arial" font-size="14.00">state </text>
+<text text-anchor="start" x="4287.39" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="4317.73" y="-240.2" font-family="Arial" font-size="14.00"> Two&#45;letter US state code, e.g. GA.</text>
+<polygon fill="none" stroke="black" points="4246.15,-197.2 4246.15,-228 5716.09,-228 5716.09,-197.2 4246.15,-197.2"/>
+<text text-anchor="start" x="4253.15" y="-209.4" font-family="Arial" font-size="14.00">timezone </text>
+<text text-anchor="start" x="4313.84" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="4344.19" y="-209.4" font-family="Arial" font-size="14.00"> IANA time zone name, e.g. America/New_York. Experience session times are entered and shown in it.</text>
+<polygon fill="none" stroke="black" points="4246.15,-166.4 4246.15,-197.2 5716.09,-197.2 5716.09,-166.4 4246.15,-166.4"/>
+<text text-anchor="start" x="4253.15" y="-178.6" font-family="Arial" font-size="14.00">active </text>
+<text text-anchor="start" x="4293.61" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="4351.22" y="-178.6" font-family="Arial" font-size="14.00"> Inactive cities are hidden everywhere public and in the provider city picker.</text>
+<polygon fill="none" stroke="black" points="4246.15,-135.6 4246.15,-166.4 5716.09,-166.4 5716.09,-135.6 4246.15,-135.6"/>
+<text text-anchor="start" x="4253.15" y="-147.8" font-family="Arial" font-size="14.00">sort_order </text>
+<text text-anchor="start" x="4320.84" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="4371.43" y="-147.8" font-family="Arial" font-size="14.00"> Display order in lists and pickers, lowest first.</text>
+<polygon fill="none" stroke="black" points="4246.15,-104.8 4246.15,-135.6 5716.09,-135.6 5716.09,-104.8 4246.15,-104.8"/>
+<text text-anchor="start" x="4253.15" y="-117" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="4323.2" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="4246.15,-74 4246.15,-104.8 5716.09,-104.8 5716.09,-74 4246.15,-74"/>
+<text text-anchor="start" x="4253.15" y="-86.2" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="4327.11" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.listings&#45;&gt;public.cities -->
 <g id="edge8" class="edge">
 <title>public.listings:city_id&#45;&gt;public.cities:id</title>
-<path fill="none" stroke="black" d="M4873.44,-1061.38C5107.1,-1051.22 5020.78,-691.18 4862.17,-507.2 4732.11,-356.34 4549.66,-590.75 4419.02,-440.4 4388.53,-405.31 4371.53,-335.8 4418.02,-335.8"/>
+<path fill="none" stroke="black" d="M4873.44,-1061.38C5107.21,-1051.13 5024.57,-687.84 4862.17,-507.2 4770.11,-404.8 4338.6,-542.44 4246.15,-440.4 4214.93,-405.95 4198.66,-335.8 4245.15,-335.8"/>
 <polygon fill="black" stroke="black" points="4873.5,-1061.38 4863.41,-1057.09 4868.17,-1061.49 4863.84,-1061.59 4863.84,-1061.59 4863.84,-1061.59 4868.17,-1061.49 4863.6,-1066.09 4873.5,-1061.38"/>
 <text text-anchor="start" x="4870.17" y="-1071.6" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.service_areas -->
 <g id="node10" class="node">
 <title>public.service_areas</title>
-<polygon fill="#efefef" stroke="none" points="5301.25,-335.8 5301.25,-381.8 6616.99,-381.8 6616.99,-335.8 5301.25,-335.8"/>
-<polygon fill="none" stroke="black" points="5301.25,-335.8 5301.25,-381.8 6616.99,-381.8 6616.99,-335.8 5301.25,-335.8"/>
-<text text-anchor="start" x="5823.66" y="-359.6" font-family="Arial Bold" font-size="18.00">public.service_areas</text>
-<text text-anchor="start" x="5970.09" y="-359.6" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="6001.2" y="-359.6" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="5308.25" y="-345.2" font-family="Arial" font-size="14.00" fill="#333333">Neighborhoods or zip codes within a city. Where &quot;I come to you&quot; Services travel, and the public location label on listings. Admin&#45;managed. Never deleted: listings will point here, so an area is deactivated instead.</text>
-<polygon fill="none" stroke="black" points="5301.25,-305 5301.25,-335.8 6616.99,-335.8 6616.99,-305 5301.25,-305"/>
-<text text-anchor="start" x="5308.25" y="-317.2" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="5323.03" y="-317.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="5301.25,-274.2 5301.25,-305 6616.99,-305 6616.99,-274.2 5301.25,-274.2"/>
-<text text-anchor="start" x="5308.25" y="-286.4" font-family="Arial" font-size="14.00">city_id </text>
-<text text-anchor="start" x="5351.82" y="-286.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="5301.25,-243.4 5301.25,-274.2 6616.99,-274.2 6616.99,-243.4 5301.25,-243.4"/>
-<text text-anchor="start" x="5308.25" y="-255.6" font-family="Arial" font-size="14.00">kind </text>
-<text text-anchor="start" x="5337.82" y="-255.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="5368.16" y="-255.6" font-family="Arial" font-size="14.00"> neighborhood or zip. A zip area&#39;s name is a five&#45;digit zip code.</text>
-<polygon fill="none" stroke="black" points="5301.25,-212.6 5301.25,-243.4 6616.99,-243.4 6616.99,-212.6 5301.25,-212.6"/>
-<text text-anchor="start" x="5308.25" y="-224.8" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="5347.16" y="-224.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="5377.5" y="-224.8" font-family="Arial" font-size="14.00"> Shown to customers, e.g. Old Fourth Ward or 30312. Unique per city and kind.</text>
-<polygon fill="none" stroke="black" points="5301.25,-181.8 5301.25,-212.6 6616.99,-212.6 6616.99,-181.8 5301.25,-181.8"/>
-<text text-anchor="start" x="5308.25" y="-194" font-family="Arial" font-size="14.00">active </text>
-<text text-anchor="start" x="5348.71" y="-194" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="5406.32" y="-194" font-family="Arial" font-size="14.00"> Inactive areas are hidden everywhere public.</text>
-<polygon fill="none" stroke="black" points="5301.25,-151 5301.25,-181.8 6616.99,-181.8 6616.99,-151 5301.25,-151"/>
-<text text-anchor="start" x="5308.25" y="-163.2" font-family="Arial" font-size="14.00">sort_order </text>
-<text text-anchor="start" x="5375.94" y="-163.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="5301.25,-120.2 5301.25,-151 6616.99,-151 6616.99,-120.2 5301.25,-120.2"/>
-<text text-anchor="start" x="5308.25" y="-132.4" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="5378.29" y="-132.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="5301.25,-89.4 5301.25,-120.2 6616.99,-120.2 6616.99,-89.4 5301.25,-89.4"/>
-<text text-anchor="start" x="5308.25" y="-101.6" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="5382.2" y="-101.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="5820.7,-335.8 5820.7,-381.8 7311.53,-381.8 7311.53,-335.8 5820.7,-335.8"/>
+<polygon fill="none" stroke="black" points="5820.7,-335.8 5820.7,-381.8 7311.53,-381.8 7311.53,-335.8 5820.7,-335.8"/>
+<text text-anchor="start" x="6430.66" y="-359.6" font-family="Arial Bold" font-size="18.00">public.service_areas</text>
+<text text-anchor="start" x="6577.09" y="-359.6" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="6608.2" y="-359.6" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="5827.7" y="-345.2" font-family="Arial" font-size="14.00" fill="#333333">Areas within a market: neighborhoods, cities or towns, and zip codes. Where &quot;I come to you&quot; Services travel, and the public location label on listings. Admin&#45;managed. Never deleted: listings will point here, so an area is deactivated instead.</text>
+<polygon fill="none" stroke="black" points="5820.7,-305 5820.7,-335.8 7311.53,-335.8 7311.53,-305 5820.7,-305"/>
+<text text-anchor="start" x="5827.7" y="-317.2" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="5842.49" y="-317.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="5820.7,-274.2 5820.7,-305 7311.53,-305 7311.53,-274.2 5820.7,-274.2"/>
+<text text-anchor="start" x="5827.7" y="-286.4" font-family="Arial" font-size="14.00">city_id </text>
+<text text-anchor="start" x="5871.27" y="-286.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="5905.52" y="-286.4" font-family="Arial" font-size="14.00"> The market this area belongs to.</text>
+<polygon fill="none" stroke="black" points="5820.7,-243.4 5820.7,-274.2 7311.53,-274.2 7311.53,-243.4 5820.7,-243.4"/>
+<text text-anchor="start" x="5827.7" y="-255.6" font-family="Arial" font-size="14.00">kind </text>
+<text text-anchor="start" x="5857.27" y="-255.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="5887.62" y="-255.6" font-family="Arial" font-size="14.00"> neighborhood (e.g. Old Fourth Ward), city (a city or town within the market, e.g. Decatur) or zip (a five&#45;digit zip code).</text>
+<polygon fill="none" stroke="black" points="5820.7,-212.6 5820.7,-243.4 7311.53,-243.4 7311.53,-212.6 5820.7,-212.6"/>
+<text text-anchor="start" x="5827.7" y="-224.8" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="5866.61" y="-224.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="5896.96" y="-224.8" font-family="Arial" font-size="14.00"> Shown to customers, e.g. Old Fourth Ward, Decatur or 30312. Unique per market and kind.</text>
+<polygon fill="none" stroke="black" points="5820.7,-181.8 5820.7,-212.6 7311.53,-212.6 7311.53,-181.8 5820.7,-181.8"/>
+<text text-anchor="start" x="5827.7" y="-194" font-family="Arial" font-size="14.00">active </text>
+<text text-anchor="start" x="5868.16" y="-194" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="5925.77" y="-194" font-family="Arial" font-size="14.00"> Inactive areas are hidden everywhere public.</text>
+<polygon fill="none" stroke="black" points="5820.7,-151 5820.7,-181.8 7311.53,-181.8 7311.53,-151 5820.7,-151"/>
+<text text-anchor="start" x="5827.7" y="-163.2" font-family="Arial" font-size="14.00">sort_order </text>
+<text text-anchor="start" x="5895.4" y="-163.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="5820.7,-120.2 5820.7,-151 7311.53,-151 7311.53,-120.2 5820.7,-120.2"/>
+<text text-anchor="start" x="5827.7" y="-132.4" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="5897.75" y="-132.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="5820.7,-89.4 5820.7,-120.2 7311.53,-120.2 7311.53,-89.4 5820.7,-89.4"/>
+<text text-anchor="start" x="5827.7" y="-101.6" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="5901.66" y="-101.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.listings&#45;&gt;public.service_areas -->
 <g id="edge9" class="edge">
 <title>public.listings:area_id&#45;&gt;public.service_areas:id</title>
-<path fill="none" stroke="black" d="M4873.47,-815.1C5093.86,-810.58 5124.18,-659.89 5249.12,-471.2 5288.19,-412.19 5229.48,-320.4 5300.25,-320.4"/>
-<polygon fill="black" stroke="black" points="4873.5,-815.1 4863.46,-810.7 4868.17,-815.15 4863.84,-815.19 4863.84,-815.19 4863.84,-815.19 4868.17,-815.15 4863.55,-819.7 4873.5,-815.1"/>
+<path fill="none" stroke="black" d="M4873.52,-815.19C5296.28,-814.62 5471.44,-778.04 5768.12,-471.2 5817.35,-420.28 5748.87,-320.4 5819.7,-320.4"/>
+<polygon fill="black" stroke="black" points="4873.5,-815.19 4863.5,-810.7 4868.17,-815.2 4863.84,-815.2 4863.84,-815.2 4863.84,-815.2 4868.17,-815.2 4863.51,-819.7 4873.5,-815.19"/>
 <text text-anchor="start" x="4870.17" y="-825.2" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.listing_addresses -->

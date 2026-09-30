@@ -11,7 +11,7 @@ const sections = [
       { to: "/listings/services", label: "Services", icon: "lucide:wrench" },
       { to: "/listings/experiences", label: "Experiences", icon: "lucide:compass" },
       { to: "/categories", label: "Categories", icon: "lucide:tags" },
-      { to: "/cities", label: "Cities and areas", icon: "lucide:map-pin" },
+      { to: "/cities", label: "Markets and areas", icon: "lucide:map-pin" },
     ],
   },
   {

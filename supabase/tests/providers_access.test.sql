@@ -73,12 +73,14 @@ select is(
   '8b. ...and the new name is saved'
 );
 
--- 9. Signed-out visitors can't read providers at all.
+-- 9. Signed-out visitors can't read provider rows. (Since 2026-09-30 they
+-- can read the id and name of a provider with a visible listing; see
+-- provider_public_names.test.sql.)
 select tests.authenticate_as_anon();
 select throws_ok(
-  $$ select count(*) from providers $$,
+  $$ select * from providers $$,
   '42501', 'permission denied for table providers',
-  '9. a signed-out visitor cannot read providers'
+  '9. a signed-out visitor cannot read provider rows'
 );
 
 -- 10. The admin sees every provider.

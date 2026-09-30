@@ -28,7 +28,7 @@ All new tables follow the migrations skill: `<table>_<action>` policy names, `co
 
 ### cities
 
-The places lokl operates. Admin-managed.
+The markets lokl operates in. A market is a metro area named after its main city: Atlanta covers the whole metro, and the cities and towns around it (Decatur, Marietta…) are areas inside it (see service_areas). Admin-managed. [Clarified 2026-09-30: the table keeps the name `cities`.]
 
 | Column       | Notes                                                      |
 | ------------ | ---------------------------------------------------------- |
@@ -45,14 +45,14 @@ Seed: Atlanta, active.
 
 ### service_areas
 
-Neighbourhoods or zip codes within a city, used by "I come to you" Services and as the public location label on listings.
+Areas within a market: neighbourhoods, cities or towns, and zip codes. Used by "I come to you" Services and as the public location label on listings. [`city` kind added 2026-09-30, for places like Decatur inside the Atlanta market.]
 
 | Column       | Notes                             |
 | ------------ | --------------------------------- |
 | `id`         | uuid                              |
 | `city_id`    | references cities, restrict       |
-| `kind`       | `neighborhood` or `zip`           |
-| `name`       | e.g. `Old Fourth Ward` or `30312` |
+| `kind`       | `neighborhood`, `city` or `zip`   |
+| `name`       | e.g. `Old Fourth Ward`, `Decatur` or `30312` |
 | `active`     |                                   |
 | `sort_order` |                                   |
 

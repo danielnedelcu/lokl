@@ -60,7 +60,7 @@
 <polygon fill="none" stroke="black" points="43.2,-443.6 43.2,-474.4 1376.26,-474.4 1376.26,-443.6 43.2,-443.6"/>
 <text text-anchor="start" x="50.2" y="-455.8" font-family="Arial" font-size="14.00">display_name </text>
 <text text-anchor="start" x="140.48" y="-455.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="170.82" y="-455.8" font-family="Arial" font-size="14.00"> Business or host name shown to customers.</text>
+<text text-anchor="start" x="170.82" y="-455.8" font-family="Arial" font-size="14.00"> The business name. Public: shown on the provider&#39;s visible listings (&quot;Hosted by ...&quot;).</text>
 <polygon fill="none" stroke="black" points="43.2,-412.8 43.2,-443.6 1376.26,-443.6 1376.26,-412.8 43.2,-412.8"/>
 <text text-anchor="start" x="50.2" y="-425" font-family="Arial" font-size="14.00">status </text>
 <text text-anchor="start" x="91.44" y="-425" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>

@@ -2,7 +2,7 @@
 
 ## Description
 
-The places lokl operates. Admin-managed. Never deleted: providers and listings point here, so a city is deactivated instead.
+The markets lokl operates in, each named after its main city and covering its metro area (Atlanta covers Decatur, Marietta and so on). Admin-managed. Never deleted: providers and listings point here, so a market is deactivated instead.
 
 ## Columns
 

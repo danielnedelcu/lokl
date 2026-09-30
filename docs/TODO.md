@@ -217,6 +217,7 @@ tests, run through `db:test` before `db:push`.
 
 - "Don't see your area? Tell us" link next to the area picker.
 - Provider profile pages ("More from this host").
+- Area pages such as `/atlanta/decatur`, once areas have enough listings to stand as pages (docs/design/browse-and-listing-pages.md).
 
 ## Loose ends
 

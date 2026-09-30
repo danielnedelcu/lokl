@@ -7,6 +7,12 @@ Product build step 3. Covers the pages customers use to find and read about Serv
 
 Providers can publish Services and have Experiences approved, but there's nowhere for customers to see them. These pages are also how search engines find lokl: each listing, category and city page should be worth indexing on its own.
 
+## Markets and areas
+
+A **market** (a `cities` row) is a metro area named after its main city; Atlanta covers the whole metro. An **area** is a place inside a market: a neighbourhood (Old Fourth Ward), a city or town (Decatur, Marietta), or a zip code. The URL's first part is the market (`/atlanta/...`); filters and labels use areas.
+
+On pages, a neighbourhood or zip reads with its market ("Old Fourth Ward, Atlanta"); a city or town reads on its own ("Decatur"), since "Decatur, Atlanta" would be wrong.
+
 ## Decisions to make
 
 Add to `docs/decisions.md` once approved.
@@ -57,6 +63,10 @@ The browse page with that category chosen, plus the category's own heading and d
 ### City page: `/atlanta`
 
 A short hub: "Things to do and book in Atlanta", with the first few Experiences, the first few Services, and links to each category that has listings.
+
+### Area pages (later, not step 3)
+
+Pages per area, such as `/atlanta/decatur` ("Things to do in Decatur") or `/atlanta/decatur/experiences`, could help people who search by the city or neighbourhood they're in. They're **not in step 3**: an area page with one or two listings is thin, and search engines treat thin pages as low quality. Revisit once areas have enough listings to stand as pages on their own; until then the area filter on browse pages covers it (not indexed).
 
 ### Homepage
 

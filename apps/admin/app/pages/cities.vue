@@ -9,7 +9,7 @@ import {
   type ServiceAreaInput,
 } from "@repo/types";
 
-useHead({ title: "Cities and areas · Admin" });
+useHead({ title: "Markets and areas · Admin" });
 
 const supabase = useSupabaseClient();
 
@@ -34,10 +34,10 @@ const selectedCity = computed(() => cities.value.find((c) => c.id === selectedCi
 const areas = computed(() => (data.value?.areas ?? []).filter((a) => a.city_id === selectedCityId.value));
 
 const timeZoneLabel = (tz: string) => US_TIME_ZONES.find((t) => t.value === tz)?.label ?? tz;
-const areaKindLabel = { neighborhood: "Neighborhood", zip: "Zip code" } as const;
+const areaKindLabel = { neighborhood: "Neighborhood", city: "City or town", zip: "Zip code" } as const;
 
 const cityColumns = [
-  { accessorKey: "name", header: "City" },
+  { accessorKey: "name", header: "Market" },
   { accessorKey: "slug", header: "Slug" },
   { accessorKey: "timezone", header: "Time zone" },
   { accessorKey: "active", header: "Status" },
@@ -86,11 +86,11 @@ const saveCity = cityForm.handleSubmit(async (input) => {
     ? await supabase.from("cities").update(input).eq("id", editingCity.value.id)
     : await supabase.from("cities").insert({ ...input, sort_order: cities.value.length });
   if (error?.code === "23505") {
-    cityForm.setFieldError("slug", "Another city already uses this slug. Choose a different one.");
+    cityForm.setFieldError("slug", "Another market already uses this slug. Choose a different one.");
     return;
   }
-  if (error) return useSonner.error(reportError("The city wasn't saved. Try again.", error));
-  useSonner.success(editingCity.value ? "City saved." : "City added.");
+  if (error) return useSonner.error(reportError("The market wasn't saved. Try again.", error));
+  useSonner.success(editingCity.value ? "Market saved." : "Market added.");
   cityDialogOpen.value = false;
   await refresh();
 });
@@ -187,18 +187,18 @@ async function moveArea(index: number, direction: -1 | 1) {
   busy.value = false;
   await refresh();
 }
-watch(error, (e) => e && reportError("Couldn't load cities", e), { immediate: true });
+watch(error, (e) => e && reportError("Couldn't load markets", e), { immediate: true });
 </script>
 
 <template>
   <div class="space-y-10">
     <PageHeader
-      title="Cities and areas"
-      description="The cities lokl operates in, and the neighborhoods or zip codes inside each. Only admins can change these."
+      title="Markets and areas"
+      description="A market is a metro area lokl operates in, named after its main city: Atlanta covers the whole metro. Areas are the places inside a market (neighborhoods, cities and towns like Decatur, and zip codes). Only admins can change these."
     />
 
     <UiAlert v-if="error" variant="destructive">
-      <UiAlertTitle>Couldn't load cities</UiAlertTitle>
+      <UiAlertTitle>Couldn't load markets</UiAlertTitle>
       <UiAlertDescription>{{ loadFailedHint }}</UiAlertDescription>
     </UiAlert>
 
@@ -206,14 +206,14 @@ watch(error, (e) => e && reportError("Couldn't load cities", e), { immediate: tr
       <!-- Cities -->
       <section aria-labelledby="cities-heading" class="space-y-3">
         <div class="flex items-center justify-between">
-          <h2 id="cities-heading" class="text-lg font-semibold">Cities</h2>
-          <UiButton size="sm" @click="openCreateCity">New city</UiButton>
+          <h2 id="cities-heading" class="text-lg font-semibold">Markets</h2>
+          <UiButton size="sm" @click="openCreateCity">New market</UiButton>
         </div>
         <EmptyState
           v-if="!pending && !cities.length"
           icon="lucide:map-pin"
-          title="No cities yet"
-          description="Add a city before providers sign up, so they can choose where they work."
+          title="No markets yet"
+          description="Add a market before providers sign up, so they can choose where they work."
         />
         <UiCard v-else class="py-0">
           <UiTanStackTable
@@ -260,14 +260,14 @@ watch(error, (e) => e && reportError("Couldn't load cities", e), { immediate: tr
       <section v-if="cities.length" aria-labelledby="areas-heading" class="space-y-3">
         <div class="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 id="areas-heading" class="text-lg font-semibold">Service areas in {{ selectedCity?.name }}</h2>
+            <h2 id="areas-heading" class="text-lg font-semibold">Areas in the {{ selectedCity?.name }} market</h2>
             <p class="text-muted-foreground text-sm">
               Where "I come to you" Services travel, and the location shown on listings.
             </p>
           </div>
           <div class="flex items-end gap-2">
             <div v-if="cities.length > 1">
-              <UiLabel for="area-city" class="mb-1">Show areas for</UiLabel>
+              <UiLabel for="area-city" class="mb-1">Show areas in</UiLabel>
               <UiNativeSelect id="area-city" v-model="selectedCityId">
                 <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}, {{ c.state }}</option>
               </UiNativeSelect>
@@ -279,7 +279,7 @@ watch(error, (e) => e && reportError("Couldn't load cities", e), { immediate: tr
           v-if="!pending && !areas.length"
           icon="lucide:map"
           :title="`No areas in ${selectedCity?.name} yet`"
-          description="Add neighborhoods or zip codes. You'll need them before the first &quot;I come to you&quot; Service goes live."
+          description="Add neighborhoods, cities and towns, or zip codes. You'll need them before the first &quot;I come to you&quot; Service goes live."
         />
         <UiCard v-else class="py-0">
           <UiTanStackTable
@@ -345,12 +345,13 @@ watch(error, (e) => e && reportError("Couldn't load cities", e), { immediate: tr
     <!-- City dialog -->
     <UiDialog v-model:open="cityDialogOpen">
       <UiDialogContent
-        :title="editingCity ? `Edit ${editingCity.name}` : 'New city'"
+        :title="editingCity ? `Edit ${editingCity.name}` : 'New market'"
         :description="editingCity ? 'Changes show on the public site right away.' : 'Providers can choose it once it exists and is active.'"
       >
         <template #content>
           <form id="city-form" class="space-y-4" novalidate @submit="saveCity">
-            <UiVeeInput name="name" label="City name" required placeholder="e.g. Decatur" />
+            <UiVeeInput name="name" label="Market name" required placeholder="e.g. Atlanta"
+              hint="Named after its main city. The market covers the whole metro; surrounding cities are added as areas." />
             <UiVeeInput
               name="slug"
               label="Slug"
@@ -379,15 +380,16 @@ watch(error, (e) => e && reportError("Couldn't load cities", e), { immediate: tr
     <UiDialog v-model:open="areaDialogOpen">
       <UiDialogContent
         :title="editingArea ? `Edit ${editingArea.name}` : `New area in ${selectedCity?.name}`"
-        description="A neighborhood name or a five-digit zip code."
+        description="A neighborhood, a city or town inside the market (like Decatur), or a five-digit zip code."
       >
         <template #content>
           <form id="area-form" class="space-y-4" novalidate @submit="saveArea">
             <UiVeeSelect name="kind" label="Type" required>
               <option value="neighborhood">Neighborhood</option>
+              <option value="city">City or town</option>
               <option value="zip">Zip code</option>
             </UiVeeSelect>
-            <UiVeeInput name="name" label="Name or zip code" required placeholder="e.g. Old Fourth Ward or 30312" />
+            <UiVeeInput name="name" label="Name or zip code" required placeholder="e.g. Old Fourth Ward, Decatur or 30312" />
           </form>
         </template>
         <template #footer>

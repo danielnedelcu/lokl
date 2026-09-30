@@ -22,7 +22,7 @@
           "name": "display_name",
           "type": "text",
           "nullable": false,
-          "comment": "Business or host name shown to customers."
+          "comment": "The business name. Public: shown on the provider's visible listings (\"Hosted by ...\")."
         },
         {
           "name": "status",
@@ -207,7 +207,7 @@
     {
       "name": "public.cities",
       "type": "BASE TABLE",
-      "comment": "The places lokl operates. Admin-managed. Never deleted: providers and listings point here, so a city is deactivated instead.",
+      "comment": "The markets lokl operates in, each named after its main city and covering its metro area (Atlanta covers Decatur, Marietta and so on). Admin-managed. Never deleted: providers and listings point here, so a market is deactivated instead.",
       "columns": [
         {
           "name": "id",
@@ -355,7 +355,7 @@
     {
       "name": "public.service_areas",
       "type": "BASE TABLE",
-      "comment": "Neighborhoods or zip codes within a city. Where \"I come to you\" Services travel, and the public location label on listings. Admin-managed. Never deleted: listings will point here, so an area is deactivated instead.",
+      "comment": "Areas within a market: neighborhoods, cities or towns, and zip codes. Where \"I come to you\" Services travel, and the public location label on listings. Admin-managed. Never deleted: listings will point here, so an area is deactivated instead.",
       "columns": [
         {
           "name": "id",
@@ -366,19 +366,20 @@
         {
           "name": "city_id",
           "type": "uuid",
-          "nullable": false
+          "nullable": false,
+          "comment": "The market this area belongs to."
         },
         {
           "name": "kind",
           "type": "text",
           "nullable": false,
-          "comment": "neighborhood or zip. A zip area's name is a five-digit zip code."
+          "comment": "neighborhood (e.g. Old Fourth Ward), city (a city or town within the market, e.g. Decatur) or zip (a five-digit zip code)."
         },
         {
           "name": "name",
           "type": "text",
           "nullable": false,
-          "comment": "Shown to customers, e.g. Old Fourth Ward or 30312. Unique per city and kind."
+          "comment": "Shown to customers, e.g. Old Fourth Ward, Decatur or 30312. Unique per market and kind."
         },
         {
           "name": "active",
@@ -441,7 +442,7 @@
         {
           "name": "service_areas_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['neighborhood'::text, 'zip'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['neighborhood'::text, 'city'::text, 'zip'::text])))",
           "table": "public.service_areas",
           "referenced_table": "",
           "columns": [

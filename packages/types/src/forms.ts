@@ -78,11 +78,13 @@ export const citySchema = z.object({
 });
 export type CityInput = z.input<typeof citySchema>;
 
-export const SERVICE_AREA_KINDS = ["neighborhood", "zip"] as const;
+// Areas inside a market: a neighborhood, a city or town within the metro
+// (like Decatur in the Atlanta market), or a zip code.
+export const SERVICE_AREA_KINDS = ["neighborhood", "city", "zip"] as const;
 
 export const serviceAreaSchema = z
   .object({
-    kind: z.enum(SERVICE_AREA_KINDS, "Choose neighborhood or zip code."),
+    kind: z.enum(SERVICE_AREA_KINDS, "Choose neighborhood, city or town, or zip code."),
     name: z.string().trim().min(1, "Enter the area's name or zip code.").max(80, "Keep the name under 80 characters."),
   })
   .refine((a) => a.kind !== "zip" || /^[0-9]{5}$/.test(a.name), {

@@ -28,7 +28,7 @@
 <polygon fill="none" stroke="black" points="729.72,-738.2 729.72,-769 2062.78,-769 2062.78,-738.2 729.72,-738.2"/>
 <text text-anchor="start" x="736.72" y="-750.4" font-family="Arial" font-size="14.00">display_name </text>
 <text text-anchor="start" x="827" y="-750.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="857.34" y="-750.4" font-family="Arial" font-size="14.00"> Business or host name shown to customers.</text>
+<text text-anchor="start" x="857.34" y="-750.4" font-family="Arial" font-size="14.00"> The business name. Public: shown on the provider&#39;s visible listings (&quot;Hosted by ...&quot;).</text>
 <polygon fill="none" stroke="black" points="729.72,-707.4 729.72,-738.2 2062.78,-738.2 2062.78,-707.4 729.72,-707.4"/>
 <text text-anchor="start" x="736.72" y="-719.6" font-family="Arial" font-size="14.00">status </text>
 <text text-anchor="start" x="777.97" y="-719.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
@@ -64,50 +64,50 @@
 <!-- public.cities -->
 <g id="node4" class="node">
 <title>public.cities</title>
-<polygon fill="#efefef" stroke="none" points="1007.15,-320.4 1007.15,-366.4 1785.35,-366.4 1785.35,-320.4 1007.15,-320.4"/>
-<polygon fill="none" stroke="black" points="1007.15,-320.4 1007.15,-366.4 1785.35,-366.4 1785.35,-320.4 1007.15,-320.4"/>
+<polygon fill="#efefef" stroke="none" points="661.28,-320.4 661.28,-366.4 2131.22,-366.4 2131.22,-320.4 661.28,-320.4"/>
+<polygon fill="none" stroke="black" points="661.28,-320.4 661.28,-366.4 2131.22,-366.4 2131.22,-320.4 661.28,-320.4"/>
 <text text-anchor="start" x="1290.27" y="-344.2" font-family="Arial Bold" font-size="18.00">public.cities</text>
 <text text-anchor="start" x="1377.75" y="-344.2" font-family="Arial" font-size="14.00">    </text>
 <text text-anchor="start" x="1408.86" y="-344.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="1014.15" y="-329.8" font-family="Arial" font-size="14.00" fill="#333333">The places lokl operates. Admin&#45;managed. Never deleted: providers and listings point here, so a city is deactivated instead.</text>
-<polygon fill="none" stroke="black" points="1007.15,-289.6 1007.15,-320.4 1785.35,-320.4 1785.35,-289.6 1007.15,-289.6"/>
-<text text-anchor="start" x="1014.15" y="-301.8" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="1028.94" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1007.15,-258.8 1007.15,-289.6 1785.35,-289.6 1785.35,-258.8 1007.15,-258.8"/>
-<text text-anchor="start" x="1014.15" y="-271" font-family="Arial" font-size="14.00">slug </text>
-<text text-anchor="start" x="1043.73" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="1074.07" y="-271" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, e.g. atlanta. Unique.</text>
-<polygon fill="none" stroke="black" points="1007.15,-228 1007.15,-258.8 1785.35,-258.8 1785.35,-228 1007.15,-228"/>
-<text text-anchor="start" x="1014.15" y="-240.2" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="1053.06" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1007.15,-197.2 1007.15,-228 1785.35,-228 1785.35,-197.2 1007.15,-197.2"/>
-<text text-anchor="start" x="1014.15" y="-209.4" font-family="Arial" font-size="14.00">state </text>
-<text text-anchor="start" x="1048.4" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="1078.74" y="-209.4" font-family="Arial" font-size="14.00"> Two&#45;letter US state code, e.g. GA.</text>
-<polygon fill="none" stroke="black" points="1007.15,-166.4 1007.15,-197.2 1785.35,-197.2 1785.35,-166.4 1007.15,-166.4"/>
-<text text-anchor="start" x="1014.15" y="-178.6" font-family="Arial" font-size="14.00">timezone </text>
-<text text-anchor="start" x="1074.85" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="1105.2" y="-178.6" font-family="Arial" font-size="14.00"> IANA time zone name, e.g. America/New_York. Experience session times are entered and shown in it.</text>
-<polygon fill="none" stroke="black" points="1007.15,-135.6 1007.15,-166.4 1785.35,-166.4 1785.35,-135.6 1007.15,-135.6"/>
-<text text-anchor="start" x="1014.15" y="-147.8" font-family="Arial" font-size="14.00">active </text>
-<text text-anchor="start" x="1054.62" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="1112.22" y="-147.8" font-family="Arial" font-size="14.00"> Inactive cities are hidden everywhere public and in the provider city picker.</text>
-<polygon fill="none" stroke="black" points="1007.15,-104.8 1007.15,-135.6 1785.35,-135.6 1785.35,-104.8 1007.15,-104.8"/>
-<text text-anchor="start" x="1014.15" y="-117" font-family="Arial" font-size="14.00">sort_order </text>
-<text text-anchor="start" x="1081.85" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="1132.44" y="-117" font-family="Arial" font-size="14.00"> Display order in lists and pickers, lowest first.</text>
-<polygon fill="none" stroke="black" points="1007.15,-74 1007.15,-104.8 1785.35,-104.8 1785.35,-74 1007.15,-74"/>
-<text text-anchor="start" x="1014.15" y="-86.2" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="1084.2" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1007.15,-43.2 1007.15,-74 1785.35,-74 1785.35,-43.2 1007.15,-43.2"/>
-<text text-anchor="start" x="1014.15" y="-55.4" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="1088.11" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="668.28" y="-329.8" font-family="Arial" font-size="14.00" fill="#333333">The markets lokl operates in, each named after its main city and covering its metro area (Atlanta covers Decatur, Marietta and so on). Admin&#45;managed. Never deleted: providers and listings point here, so a market is deactivated instead.</text>
+<polygon fill="none" stroke="black" points="661.28,-289.6 661.28,-320.4 2131.22,-320.4 2131.22,-289.6 661.28,-289.6"/>
+<text text-anchor="start" x="668.28" y="-301.8" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="683.07" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="661.28,-258.8 661.28,-289.6 2131.22,-289.6 2131.22,-258.8 661.28,-258.8"/>
+<text text-anchor="start" x="668.28" y="-271" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="697.86" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="728.2" y="-271" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, e.g. atlanta. Unique.</text>
+<polygon fill="none" stroke="black" points="661.28,-228 661.28,-258.8 2131.22,-258.8 2131.22,-228 661.28,-228"/>
+<text text-anchor="start" x="668.28" y="-240.2" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="707.19" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="661.28,-197.2 661.28,-228 2131.22,-228 2131.22,-197.2 661.28,-197.2"/>
+<text text-anchor="start" x="668.28" y="-209.4" font-family="Arial" font-size="14.00">state </text>
+<text text-anchor="start" x="702.52" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="732.87" y="-209.4" font-family="Arial" font-size="14.00"> Two&#45;letter US state code, e.g. GA.</text>
+<polygon fill="none" stroke="black" points="661.28,-166.4 661.28,-197.2 2131.22,-197.2 2131.22,-166.4 661.28,-166.4"/>
+<text text-anchor="start" x="668.28" y="-178.6" font-family="Arial" font-size="14.00">timezone </text>
+<text text-anchor="start" x="728.98" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="759.32" y="-178.6" font-family="Arial" font-size="14.00"> IANA time zone name, e.g. America/New_York. Experience session times are entered and shown in it.</text>
+<polygon fill="none" stroke="black" points="661.28,-135.6 661.28,-166.4 2131.22,-166.4 2131.22,-135.6 661.28,-135.6"/>
+<text text-anchor="start" x="668.28" y="-147.8" font-family="Arial" font-size="14.00">active </text>
+<text text-anchor="start" x="708.74" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="766.35" y="-147.8" font-family="Arial" font-size="14.00"> Inactive cities are hidden everywhere public and in the provider city picker.</text>
+<polygon fill="none" stroke="black" points="661.28,-104.8 661.28,-135.6 2131.22,-135.6 2131.22,-104.8 661.28,-104.8"/>
+<text text-anchor="start" x="668.28" y="-117" font-family="Arial" font-size="14.00">sort_order </text>
+<text text-anchor="start" x="735.98" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="786.57" y="-117" font-family="Arial" font-size="14.00"> Display order in lists and pickers, lowest first.</text>
+<polygon fill="none" stroke="black" points="661.28,-74 661.28,-104.8 2131.22,-104.8 2131.22,-74 661.28,-74"/>
+<text text-anchor="start" x="668.28" y="-86.2" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="738.33" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="661.28,-43.2 661.28,-74 2131.22,-74 2131.22,-43.2 661.28,-43.2"/>
+<text text-anchor="start" x="668.28" y="-55.4" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="742.24" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.providers&#45;&gt;public.cities -->
 <g id="edge3" class="edge">
 <title>public.providers:city_id&#45;&gt;public.cities:id</title>
-<path fill="none" stroke="black" d="M1396.6,-480.44C1407.54,-323.5 1675.57,-543.35 1785.35,-409.6 1814.85,-373.66 1832.84,-305 1786.35,-305"/>
-<polygon fill="black" stroke="black" points="1396.6,-480.47 1391.77,-490.32 1396.42,-485.8 1396.27,-490.13 1396.27,-490.13 1396.27,-490.13 1396.42,-485.8 1400.76,-490.62 1396.6,-480.47"/>
+<path fill="none" stroke="black" d="M1397.11,-480.71C1422.86,-335.14 2023.38,-528.86 2131.22,-409.6 2162.4,-375.12 2178.71,-305 2132.22,-305"/>
+<polygon fill="black" stroke="black" points="1397.12,-480.5 1391.8,-490.09 1396.67,-485.82 1396.31,-490.13 1396.31,-490.13 1396.31,-490.13 1396.67,-485.82 1400.76,-490.85 1397.12,-480.5"/>
 <text text-anchor="start" x="1317.38" y="-474.8" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.listings -->
