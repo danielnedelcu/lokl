@@ -34,6 +34,13 @@ export default defineNuxtConfig({
     name: "lokl",
   },
 
+  // Sitemap: the public pages, from a server route that reads as a signed-out
+  // visitor. Signed-in and sign-in pages stay out.
+  sitemap: {
+    sources: ["/api/__sitemap__/urls"],
+    exclude: ["/dashboard/**", "/login", "/confirm"],
+  },
+
   supabase: {
     // Auth cookies. The module's default forces Secure, which Safari refuses on
     // http://localhost (Chrome allows it), so the sign-in link's one-time code
@@ -61,6 +68,11 @@ export default defineNuxtConfig({
     // Public data (docs/design/browse-and-listing-pages.md, Caching). Browse
     // and market data refresh within a minute; a listing's own data isn't
     // cached, so a listing taken down disappears from its page at once.
+    // Temporary (302) while Atlanta is the only market; a market picker
+    // replaces them when there's a second (docs/design/browse-and-listing-pages.md).
+    // Exact paths only: /experiences/<slug> listing pages aren't redirected.
+    "/experiences": { redirect: { to: "/atlanta/experiences", statusCode: 302 } },
+    "/services": { redirect: { to: "/atlanta/services", statusCode: 302 } },
     "/api/public/browse": { swr: 60 },
     "/api/public/markets/**": { swr: 60 },
     "/dashboard/**": { robots: false },

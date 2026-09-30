@@ -157,66 +157,6 @@
                               >All</span
                             ></a
                           ><a
-                            href="/homes"
-                            role="tab"
-                            aria-selected="false"
-                            tabindex="-1"
-                            data-tabid="tabBarItem-STAYS"
-                            id="search-block-tab-STAYS"
-                            class="s5o62i6 atm_9j_tlke0l atm_vb_glywfm atm_r2_1j28jx2 atm_kd_glywfm atm_3f_glywfm_jo46a5 atm_l8_idpfg4_jo46a5 atm_gi_idpfg4_jo46a5 atm_3f_glywfm_1icshfk atm_kd_glywfm_19774hq w1et0buv atm_9s_1txwivl atm_h_1h6ojuz atm_gq_1fwxnve atm_5j_ftgil2_1w3cfyq atm_kd_16t75vl_1w3cfyq atm_kh_1y44olf_1w3cfyq w1tfrqzx atm_gy_1lpd5c9 atm_lj_14y27yu dir dir-ltr"
-                            data-happo-focus-visible="false"
-                            ><span
-                              class="w55pwm7 atm_mk_h2mmj6 dir dir-ltr"
-                              style="transform: none"
-                              aria-hidden="true"
-                              ><span
-                                class="s17dpylj atm_9s_1ulexfb atm_vy_14noui3 atm_e2_14noui3 dir dir-ltr"
-                                ><span
-                                  class="mzteif7 atm_mk_stnw88 atm_f6_idpfg4 atm_f9_idpfg4 atm_vy_1osqo2v atm_e2_1osqo2v atm_mj_glywfm v1aeofe6 atm_k4_kb7nvz dir dir-ltr"
-                                  style="transform: scale(2)"
-                                  ><video
-                                    class="m1mbhy26 atm_jp_1f51e7f atm_jr_1h6ojuz atm_vy_1osqo2v atm_e2_1osqo2v atm_mj_glywfm atm_mk_h2mmj6 dir dir-ltr"
-                                    playsinline=""
-                                    tabindex="-1"
-                                    poster="https://a0.muscache.com/im/pictures/airbnb-platform-assets/AirbnbPlatformAssets-search-bar-icons/original/a32adab1-f9df-47e1-a411-bdff91b579c3.png?im_w=240"
-                                    preload="auto"
-                                    data-testid="tab-bar-entry-video"
-                                  >
-                                    <source
-                                      src="https://a0.muscache.com/videos/search-bar-icons/hevc/house-twirl.mov"
-                                      type='video/mp4; codecs="hvc1"'
-                                    />
-                                    <source
-                                      src="https://a0.muscache.com/videos/search-bar-icons/webm/house-twirl.webm"
-                                      type="video/webm"
-                                    /></video></span
-                                ><span
-                                  class="mzteif7 atm_mk_stnw88 atm_f6_idpfg4 atm_f9_idpfg4 atm_vy_1osqo2v atm_e2_1osqo2v atm_mj_glywfm i1bqm7mn atm_k4_idpfg4 dir dir-ltr"
-                                  style="transform: scale(2)"
-                                  ><video
-                                    class="m1mbhy26 atm_jp_1f51e7f atm_jr_1h6ojuz atm_vy_1osqo2v atm_e2_1osqo2v atm_mj_glywfm atm_mk_h2mmj6 dir dir-ltr"
-                                    playsinline=""
-                                    tabindex="-1"
-                                    poster="https://a0.muscache.com/im/pictures/airbnb-platform-assets/AirbnbPlatformAssets-search-bar-icons/original/a32adab1-f9df-47e1-a411-bdff91b579c3.png?im_w=240"
-                                    preload="auto"
-                                  >
-                                    <source
-                                      src="https://a0.muscache.com/videos/search-bar-icons/hevc/house-selected.mov#t=0.001"
-                                      type='video/mp4; codecs="hvc1"'
-                                    />
-                                    <source
-                                      src="https://a0.muscache.com/videos/search-bar-icons/webm/house-selected.webm"
-                                      type="video/webm"
-                                    /></video></span></span></span
-                            ><span
-                              class="sxeg3i2 atm_7l_xeyu1p atm_ti_1q9ccgz atm_cs_1mexzig whclhl1 atm_c8_dlk8xv atm_g3_f6fqlb atm_7l_hfv0h6_1nos8r w1ppews5 atm_gy_exct8b dir dir-ltr"
-                              aria-hidden="true"
-                              >Homes</span
-                            ><span
-                              class="a8jt5op atm_3f_idpfg4 atm_7h_hxbz6r atm_7i_ysn8ba atm_e2_t94yts atm_ks_zryt35 atm_l8_idpfg4 atm_mk_stnw88 atm_vv_1q9ccgz atm_vy_t94yts dir dir-ltr"
-                              >Homes</span
-                            ></a
-                          ><a
                             href="/experiences"
                             role="tab"
                             aria-selected="false"

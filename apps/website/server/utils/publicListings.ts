@@ -220,3 +220,29 @@ export async function loadPublicMarket(db: SupabaseClient, slug: string): Promis
     areas: areas.data as (PublicArea & { id: string })[],
   };
 }
+
+/** Every public URL, for the sitemap: markets, their browse and category pages with listings, and each visible listing. */
+export async function publicSitemapEntries(db: SupabaseClient): Promise<{ loc: string; lastmod?: string }[]> {
+  const [markets, listings] = await Promise.all([
+    db.from("cities").select("slug").order("sort_order"),
+    db.from("listings")
+      .select("kind, slug, updated_at, city:cities!inner(slug), category:categories!inner(slug)")
+      .eq("status", "live")
+      .limit(BROWSE_LIMIT * 10),
+  ]);
+  for (const r of [markets, listings]) if (r.error) throw new Error(r.error.message);
+  const rows = listings.data as unknown as { kind: ListingKind; slug: string; updated_at: string; city: { slug: string }; category: { slug: string } }[];
+  const plural = (k: ListingKind) => (k === "experience" ? "experiences" : "services");
+
+  const entries = new Map<string, string | undefined>();
+  for (const m of markets.data as { slug: string }[]) {
+    entries.set(`/${m.slug}`, undefined);
+    entries.set(`/${m.slug}/experiences`, undefined);
+    entries.set(`/${m.slug}/services`, undefined);
+  }
+  for (const r of rows) {
+    entries.set(`/${r.city.slug}/${plural(r.kind)}/${r.category.slug}`, undefined);
+    entries.set(`/${plural(r.kind)}/${r.slug}`, r.updated_at);
+  }
+  return [...entries].map(([loc, lastmod]) => (lastmod ? { loc, lastmod } : { loc }));
+}

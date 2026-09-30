@@ -16,6 +16,7 @@ import {
   browsePublicListings,
   loadPublicListing,
   loadPublicMarket,
+  publicSitemapEntries,
   publicSupabase,
 } from "../../../apps/website/server/utils/publicListings";
 
@@ -119,11 +120,19 @@ try {
   const info = await loadPublicMarket(visitor, market.slug);
   check(info?.categories.find((c) => c.slug === category.slug)?.count === 1, "3c. the market's category count includes only the visible listing");
 
+  // 3d. The sitemap lists the visible listing and none of the others.
+  const sitemap = (await publicSitemapEntries(visitor)).map((e) => e.loc);
+  check(sitemap.includes(`/experiences/${slugs.visible}`), "3d. the sitemap lists the visible listing");
+  check(Object.entries(slugs).filter(([k]) => k !== "visible").every(([, slug]) => !sitemap.includes(`/experiences/${slug}`)),
+    "3e. the sitemap lists none of the hidden listings");
+  check(!sitemap.includes(`/${market.slug}/experiences/retired-${run}`), "3f. the sitemap has no page for an inactive category");
+
   // 4. An inactive market hides everything.
   await must(server.from("cities").update({ active: false }).eq("id", market.id));
   check((await loadPublicListing(visitor, "experience", slugs.visible)) === null, "4a. an inactive market's listing page is not found");
   check((await browsePublicListings(visitor, { market: market.slug, kind: "experience" })) === null, "4b. an inactive market can't be browsed");
   check((await loadPublicMarket(visitor, market.slug)) === null, "4c. an inactive market's page is not found");
+  check(!(await publicSitemapEntries(visitor)).some((e) => e.loc.startsWith(`/${market.slug}`)), "4d. an inactive market is left out of the sitemap");
 } catch (e) {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);

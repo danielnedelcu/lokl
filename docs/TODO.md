@@ -153,6 +153,15 @@ Each step depends on the ones before it.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
    email sender, and generated types wired into both apps' `supabase.types`.
    (The dashboards' phone menu was done 2026-09-30.)
+   - [ ] **Replace the homepage** (`apps/website/app/pages/index.vue`). Its
+     markup is copied from Airbnb's site (their `atm_…` class names and tab
+     bar) and loads 24 videos and images from Airbnb's CDN
+     (`a0.muscache.com`) on every visit: a legal and brand risk, and it breaks
+     if they change or block those files. Rebuild it in lokl's own design,
+     linking to the market, browse and category pages.
+   - [ ] On the production domain, check `robots.txt` allows crawling and
+     points to `/sitemap.xml`, and that the sitemap lists only public pages.
+     (In development the SEO module sends `Disallow: /` on purpose.)
    - [ ] UX polish pass across the public pages, once they all exist: font
      sizes, spacing and visual design.
    - [ ] Choose the Nuxt Image provider for production (`image.provider` in
