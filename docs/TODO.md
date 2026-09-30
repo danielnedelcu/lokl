@@ -127,7 +127,11 @@ Each step depends on the ones before it.
    Experiences queue for review; Services go live once payouts are ready.
 3. **Public browse and listing pages.** Category pages, search by city, a page
    per listing, all indexable.
-   - [ ] Decide image sizes and the Nuxt Image provider, including production hosting.
+   - [x] ~~Image sizes~~: card copies (~600px) saved at upload, 2026-09-30.
+   - [ ] Browse filters and sorts in the server over at most 1,000 visible
+     listings per market and kind (`BROWSE_LIMIT` in
+     `apps/website/server/utils/publicListings.ts`). Move it into a database
+     function before a market gets near that.
 4. **Booking and checkout.** Stripe Checkout with the platform fee split
    automatically. Commission settled 2026-09-30 (docs/decisions.md): the
    provider absorbs it, 12% for Services and 20% for Experiences; customers pay
@@ -149,6 +153,10 @@ Each step depends on the ones before it.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
    email sender, and generated types wired into both apps' `supabase.types`.
    (The dashboards' phone menu was done 2026-09-30.)
+   - [ ] Choose the Nuxt Image provider for production (`image.provider` in
+     the shared layer, `none` today), once hosting is chosen: the host's image
+     service, or Supabase image transformations
+     (docs/design/browse-and-listing-pages.md, Images).
    - [ ] Photo upload from an iPhone (any browser there uses Apple's engine):
      check the stored files are a JPEG or WebP photo plus a `.card.jpg` or
      `.card.webp` about 600px wide, with `card_path` set. Also one from Chrome,

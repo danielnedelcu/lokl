@@ -58,6 +58,11 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
+    // Public data (docs/design/browse-and-listing-pages.md, Caching). Browse
+    // and market data refresh within a minute; a listing's own data isn't
+    // cached, so a listing taken down disappears from its page at once.
+    "/api/public/browse": { swr: 60 },
+    "/api/public/markets/**": { swr: 60 },
     "/dashboard/**": { robots: false },
     "/login": { robots: false },
     "/confirm": { robots: false },
