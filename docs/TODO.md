@@ -88,6 +88,9 @@ These need Daniel, not Claude.
 - [x] **Commit the work** once reviewed.
 - [ ] **Pick a product name and domain**, needed for page titles (they show
       `%siteName` today), emails and Stripe branding.
+- [ ] **Replace the Nuxt favicon in both apps** (`apps/website/public/favicon.ico`,
+      `apps/admin/public/favicon.ico`): both still show Nuxt's logo from the
+      starter template. Needs the lokl logo.
 - [ ] **Register the Stripe webhook** before launch: production
       `/api/stripe/webhook` under "Events on connected accounts",
       `account.updated`. Locally: `stripe listen --forward-connect-to
@@ -153,12 +156,10 @@ Each step depends on the ones before it.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
    email sender, and generated types wired into both apps' `supabase.types`.
    (The dashboards' phone menu was done 2026-09-30.)
-   - [ ] **Replace the homepage** (`apps/website/app/pages/index.vue`). Its
-     markup is copied from Airbnb's site (their `atm_…` class names and tab
-     bar) and loads 24 videos and images from Airbnb's CDN
-     (`a0.muscache.com`) on every visit: a legal and brand risk, and it breaks
-     if they change or block those files. Rebuild it in lokl's own design,
-     linking to the market, browse and category pages.
+   - [x] ~~**Replace the homepage**~~. Done 2026-09-30: the copied Airbnb
+     markup and its 24 files from Airbnb's CDN are gone. The new page is our
+     own markup and components (headline, browse links, live listings, a
+     section for providers) and loads nothing from other sites.
    - [ ] On the production domain, check `robots.txt` allows crawling and
      points to `/sitemap.xml`, and that the sitemap lists only public pages.
      (In development the SEO module sends `Disallow: /` on purpose.)
