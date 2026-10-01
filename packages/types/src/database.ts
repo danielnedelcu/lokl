@@ -14,6 +14,253 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_addresses: {
+        Row: {
+          booking_id: string
+          city: string
+          instructions: string | null
+          line1: string
+          line2: string | null
+          postal_code: string
+          state: string
+        }
+        Insert: {
+          booking_id: string
+          city: string
+          instructions?: string | null
+          line1: string
+          line2?: string | null
+          postal_code: string
+          state: string
+        }
+        Update: {
+          booking_id?: string
+          city?: string
+          instructions?: string | null
+          line1?: string
+          line2?: string | null
+          postal_code?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_addresses_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_contacts: {
+        Row: {
+          booking_id: string
+          email: string
+          phone: string | null
+        }
+        Insert: {
+          booking_id: string
+          email: string
+          phone?: string | null
+        }
+        Update: {
+          booking_id?: string
+          email?: string
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_contacts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_events: {
+        Row: {
+          actor: string
+          booking_id: string
+          created_at: string
+          from_status: string | null
+          id: string
+          to_status: string
+        }
+        Insert: {
+          actor: string
+          booking_id: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          to_status: string
+        }
+        Update: {
+          actor?: string
+          booking_id?: string
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          commission_cents: number
+          commission_rate_bps: number
+          confirmed_at: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          customer_name: string
+          customer_notes: string | null
+          ends_at: string | null
+          id: string
+          kind: string
+          listing_id: string
+          party_size: number
+          payout_due_at: string | null
+          payout_failed_at: string | null
+          payout_failure: string | null
+          preferred_times: string[] | null
+          problem_note: string | null
+          problem_reported_at: string | null
+          provider_amount_cents: number
+          provider_id: string
+          refunded_at: string | null
+          refunded_cents: number
+          reserved_until: string | null
+          respond_by: string | null
+          session_id: string | null
+          starts_at: string | null
+          status: string
+          status_changed_by: string
+          stripe_charge_id: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_transfer_id: string | null
+          total_cents: number
+          unit_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          commission_cents: number
+          commission_rate_bps: number
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_id: string
+          customer_name: string
+          customer_notes?: string | null
+          ends_at?: string | null
+          id?: string
+          kind: string
+          listing_id: string
+          party_size?: number
+          payout_due_at?: string | null
+          payout_failed_at?: string | null
+          payout_failure?: string | null
+          preferred_times?: string[] | null
+          problem_note?: string | null
+          problem_reported_at?: string | null
+          provider_amount_cents: number
+          provider_id: string
+          refunded_at?: string | null
+          refunded_cents?: number
+          reserved_until?: string | null
+          respond_by?: string | null
+          session_id?: string | null
+          starts_at?: string | null
+          status?: string
+          status_changed_by?: string
+          stripe_charge_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+          total_cents: number
+          unit_price_cents: number
+          updated_at?: string
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          commission_cents?: number
+          commission_rate_bps?: number
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          customer_name?: string
+          customer_notes?: string | null
+          ends_at?: string | null
+          id?: string
+          kind?: string
+          listing_id?: string
+          party_size?: number
+          payout_due_at?: string | null
+          payout_failed_at?: string | null
+          payout_failure?: string | null
+          preferred_times?: string[] | null
+          problem_note?: string | null
+          problem_reported_at?: string | null
+          provider_amount_cents?: number
+          provider_id?: string
+          refunded_at?: string | null
+          refunded_cents?: number
+          reserved_until?: string | null
+          respond_by?: string | null
+          session_id?: string | null
+          starts_at?: string | null
+          status?: string
+          status_changed_by?: string
+          stripe_charge_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+          total_cents?: number
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "experience_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           active: boolean
@@ -83,6 +330,27 @@ export type Database = {
           state?: string
           timezone?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      commission_rates: {
+        Row: {
+          kind: string
+          rate_bps: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          kind: string
+          rate_bps: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          kind?: string
+          rate_bps?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -345,6 +613,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          booking_id: string | null
           created_at: string
           id: string
           kind: string
@@ -353,6 +622,7 @@ export type Database = {
           read_at: string | null
         }
         Insert: {
+          booking_id?: string | null
           created_at?: string
           id?: string
           kind: string
@@ -361,6 +631,7 @@ export type Database = {
           read_at?: string | null
         }
         Update: {
+          booking_id?: string | null
           created_at?: string
           id?: string
           kind?: string
@@ -369,6 +640,13 @@ export type Database = {
           read_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_listing_id_fkey"
             columns: ["listing_id"]
@@ -481,6 +759,70 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      booking_money: {
+        Args: { p_kind: string; p_party: number; p_unit_price: number }
+        Returns: Record<string, unknown>
+      }
+      create_service_request: {
+        Args: {
+          p_address: Json
+          p_customer_email: string
+          p_customer_id: string
+          p_customer_name: string
+          p_customer_notes: string
+          p_customer_phone: string
+          p_listing_id: string
+          p_preferred_times: string[]
+          p_reserved_until: string
+        }
+        Returns: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          commission_cents: number
+          commission_rate_bps: number
+          confirmed_at: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          customer_name: string
+          customer_notes: string | null
+          ends_at: string | null
+          id: string
+          kind: string
+          listing_id: string
+          party_size: number
+          payout_due_at: string | null
+          payout_failed_at: string | null
+          payout_failure: string | null
+          preferred_times: string[] | null
+          problem_note: string | null
+          problem_reported_at: string | null
+          provider_amount_cents: number
+          provider_id: string
+          refunded_at: string | null
+          refunded_cents: number
+          reserved_until: string | null
+          respond_by: string | null
+          session_id: string | null
+          starts_at: string | null
+          status: string
+          status_changed_by: string
+          stripe_charge_id: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_transfer_id: string | null
+          total_cents: number
+          unit_price_cents: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_provider_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
       listing_parents_active: {
@@ -495,6 +837,67 @@ export type Database = {
         Args: { p_listing_id: string; p_photo_ids: string[] }
         Returns: undefined
       }
+      reserve_experience_booking: {
+        Args: {
+          p_customer_email: string
+          p_customer_id: string
+          p_customer_name: string
+          p_customer_notes: string
+          p_customer_phone: string
+          p_party_size: number
+          p_reserved_until: string
+          p_session_id: string
+        }
+        Returns: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          commission_cents: number
+          commission_rate_bps: number
+          confirmed_at: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          customer_name: string
+          customer_notes: string | null
+          ends_at: string | null
+          id: string
+          kind: string
+          listing_id: string
+          party_size: number
+          payout_due_at: string | null
+          payout_failed_at: string | null
+          payout_failure: string | null
+          preferred_times: string[] | null
+          problem_note: string | null
+          problem_reported_at: string | null
+          provider_amount_cents: number
+          provider_id: string
+          refunded_at: string | null
+          refunded_cents: number
+          reserved_until: string | null
+          respond_by: string | null
+          session_id: string | null
+          starts_at: string | null
+          status: string
+          status_changed_by: string
+          stripe_charge_id: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_transfer_id: string | null
+          total_cents: number
+          unit_price_cents: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      session_spots_left: { Args: { p_session_id: string }; Returns: number }
+      session_spots_taken: { Args: { p_session_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

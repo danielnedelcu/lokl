@@ -30,6 +30,17 @@ Decided 2026-09-30; the sections below include them.
 9. **Customer bookings:** `/account/bookings` shows anyone's own bookings as a customer; bookings of a provider's listings stay in the dashboard.
 10. **Refund fees:** Stripe keeps its processing fee on refunds, and lokl absorbs it (`docs/decisions.md`).
 
+## Further decisions
+
+Also decided 2026-09-30.
+
+11. **Late customer cancellations:** a customer who cancels within 48 hours gets no refund, and the provider still receives their share at payout. (In the database, such a booking is `cancelled` but can still become `paid_out`.)
+12. **Sessions with bookings** can't be moved to another time; they can only be cancelled, with full refunds.
+13. **When a listing comes down** (the provider unlists it, the admin takes it down, or the provider is suspended): pending requests are declined automatically and their holds released; unpaid checkouts expire; confirmed bookings stay valid unless the admin cancels them, with full refunds.
+14. **Admin calls to the website** carry the admin's sign-in token explicitly, and the website accepts them only from the admin app's address (see "Admin actions on the website").
+15. **Failed transfers:** if a provider's Stripe account can't receive a transfer, the payout job holds it and flags it on the admin's "needs attention" list.
+16. **The hosted scheduler stays off** until production hosting exists; in development, jobs run with `npm run job`.
+
 ## Stripe approach
 
 ### Which charge type
@@ -192,13 +203,34 @@ Three timed jobs, all small, idempotent (safe to run twice) and safe to miss onc
 | --- | --- | --- |
 | `expire-requests` | 5 minutes | Services past `respond_by` still `requested`: cancel the PaymentIntent (release the hold), mark `expired`, email the customer |
 | `release-reservations` | 5 minutes | Experiences past `reserved_until` still `pending_payment`: expire the Checkout Session if it's still open, mark `expired` |
-| `pay-out` | hourly | Bookings `confirmed` with `payout_due_at` passed, no open dispute and no problem report: mark `completed`, transfer the provider's share, mark `paid_out` |
+| `pay-out` | hourly | Bookings `confirmed` (or cancelled late by the customer, with no refund) with `payout_due_at` passed, no open dispute, no problem report and no earlier failed transfer: mark `completed`, transfer the provider's share, mark `paid_out`. If Stripe refuses the transfer (the account can't receive it), record `payout_failed_at` and the reason, and leave it for the admin's "needs attention" list (decision 15) |
+| `withdraw-unavailable` | 5 minutes | Bookings `requested` or `pending_payment` whose listing is no longer live, or whose provider is suspended: release the hold or expire the checkout, mark `declined` or `expired` (by `system`), email the customer (decision 13) |
 
 `payout_due_at` is 24 hours after the booking's end (start plus duration; for a Service with no duration, its start), so a provider no-show can be reported before the money moves (answers 5 and 7).
 
-**How they run.** The jobs need the Stripe secret, which only exists on the website's server. So each is a server route (`/api/jobs/<name>`) that checks a shared secret header, and something calls it on a timer. Hosting isn't chosen yet, so the recommendation is Supabase's own scheduler: `pg_cron` with `pg_net` calls each route on its schedule. It works with any host and needs no extra service. The job secret lives in Supabase's vault, not in a migration. If the host chosen later has its own scheduler (for example Vercel Cron), the routes stay the same and only the caller changes. Each run logs what it did; failures surface in the admin's Bookings page.
+**How they run.** The jobs need the Stripe secret, which only exists on the website's server. So each is a server route (`/api/jobs/<name>`) that checks a shared secret header, and something calls it on a timer. The recommendation for production is Supabase's own scheduler: `pg_cron` with `pg_net` calls each route on its schedule. It works with any host and needs no extra service, and the job secret lives in Supabase's vault, not in a migration. If the host chosen later has its own scheduler (for example Vercel Cron), the routes stay the same and only the caller changes. Each run logs what it did; failures surface in the admin's Bookings page.
 
-Locally, run a job by calling its route with the secret (`npm run job -- expire-requests`), or let `pg_cron` on the local stack call `localhost:3100`.
+**Not enabled until production hosting exists** (decision 16): there's no public address for the scheduler to call, and nothing should run against the hosted database on a timer before then. In development, jobs run with `npm run job -- <name>`, which calls the route on `localhost:3100` with the secret from the website's `.env`. Enabling the scheduler goes in launch prep.
+
+## Admin actions on the website
+
+The admin app has no Stripe key (CLAUDE.md), so refunds and cancellations call the website's `/api/admin/...` routes. The two apps run on different addresses, so this is a cross-site request, and it's designed deliberately (decision 14):
+
+- **The token is sent explicitly.** The admin app sends `Authorization: Bearer <access token>`, the admin's own Supabase session token. No cookies cross between the apps (the website's cookies are its own, `SameSite=Lax`), so a page on another site can't make the admin's browser call these routes with the admin's rights.
+- **The website checks the token itself:** it verifies it with Supabase (`auth.getUser(token)`, not just decoding it), then requires `app_metadata.role = "admin"` (`requireAdminToken`, a new helper next to `requireProvider`).
+- **Only from the admin app's address.** The routes accept a request only when its `Origin` header is exactly the admin app's (`NUXT_ADMIN_ORIGIN`: `http://localhost:3101` in development). They answer the browser's CORS preflight for that origin only, with `Access-Control-Allow-Credentials` off. Any other origin, or no origin, is refused before the token is looked at.
+- **What it isn't:** a replacement for the database's rules. The routes use the server key only after these checks, and every change is logged in `booking_events` with `admin` as the actor.
+
+**Tests**, against the website's routes with the local stack:
+
+| Request | Expected |
+| --- | --- |
+| No token | 401 |
+| A valid token, not an admin | 403 |
+| An admin token, `Origin` missing or another site's | 403 |
+| An admin token with a forged or expired token | 401 |
+| An admin token from the admin app's origin | 200, and the change is logged as `admin` |
+| A preflight (`OPTIONS`) from another origin | No CORS allowance |
 
 ## Webhooks
 
@@ -258,13 +290,13 @@ Templates live in the website as small functions (subject, plain text, simple HT
   - **Requests:** each with the time left to answer, the customer's name and notes, and their preferred times, one of which the provider accepts, or Decline.
   - **Upcoming:** the customer's name, party size and notes, and, now that it's accepted or confirmed, their email, phone if given, and for an "I come to you" Service their address.
   - **Past.**
-- **Sessions:** spots booked per session; cancelling a session with bookings warns that everyone is refunded.
+- **Sessions:** spots booked per session. A session with bookings can't be moved (decision 12), only cancelled, which warns that everyone is refunded.
 - **Payouts:** booking payouts sent and due, alongside the existing setup status.
 - **The bell:** new requests, bookings and cancellations, through the existing notifications.
 
 ## Admin
 
-- **Bookings & payouts** (replacing the placeholder): every booking, with filters (status, kind, provider, date), the money split, and the payout state. Reported no-shows are listed first, with their payout held, for the admin to refund. Refund or cancel with a reason, through the website route. A "needs attention" list: failed transfers, reversals that couldn't be recovered, and jobs that failed.
+- **Bookings & payouts** (replacing the placeholder): every booking, with filters (status, kind, provider, date), the money split, and the payout state. Reported no-shows are listed first, with their payout held, for the admin to refund. Refund or cancel with a reason, through the website route. A "needs attention" list: transfers the provider's account couldn't receive (decision 15), reversals that couldn't be recovered, reported no-shows, and jobs that failed. When a listing comes down or a provider is suspended, the admin sees its confirmed bookings, which stay valid unless the admin cancels them with full refunds (decision 13).
 - **Disputes & refunds** (replacing the placeholder): open disputes, with their bookings and evidence due dates, linked to Stripe's dashboard.
 - **Settings:** commission rates per kind, with who changed them and when.
 - **Listing detail:** the listing's bookings.
@@ -291,7 +323,8 @@ All answered 2026-09-30 (see "Answers to the open questions" above).
 - pgTAP for every new table and rule (read access per role; no user writes; capacity and spots; the address rule), each broken once.
 - A spots test against the local stack: many simultaneous reservations for the last spot, and exactly one succeeds.
 - Webhook handlers tested with Stripe CLI events in the sandbox, including duplicates and out-of-order delivery.
-- Job routes tested with bookings in each state, run twice to prove they're idempotent.
+- Job routes tested with bookings in each state, run twice to prove they're idempotent, including a refused transfer that's held and flagged, and requests on a listing that came down.
+- The admin route checks in "Admin actions on the website".
 - A sandbox walkthrough: request, accept, decline and expire a Service; book, sell out and cancel an Experience; refunds before and after payout; a payout landing in a test provider's account.
 
 ## Build order

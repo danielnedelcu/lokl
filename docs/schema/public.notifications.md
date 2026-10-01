@@ -14,15 +14,17 @@ Things that happened to a provider's listings because of an admin action. Writte
 | listing_id  | uuid                     |                   | false    |          | [public.listings](public.listings.md)   |                                                                                                                                                                                                                                                 |
 | created_at  | timestamp with time zone | now()             | false    |          |                                         |                                                                                                                                                                                                                                                 |
 | read_at     | timestamp with time zone |                   | true     |          |                                         | When the provider marked it read; null while unread. Once set it doesn't change, and it can't be cleared.                                                                                                                                       |
+| booking_id  | uuid                     |                   | true     |          | [public.bookings](public.bookings.md)   | For booking notifications: the booking it's about.                                                                                                                                                                                              |
 
 ## Constraints
 
-| Name                           | Type        | Definition                                                                                                                              |
-| ------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| notifications_kind_check       | CHECK       | CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text]))) |
-| notifications_provider_id_fkey | FOREIGN KEY | FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT                                                                   |
-| notifications_listing_id_fkey  | FOREIGN KEY | FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE                                                                      |
-| notifications_pkey             | PRIMARY KEY | PRIMARY KEY (id)                                                                                                                        |
+| Name                           | Type        | Definition                                                                                                                                                                                                               |
+| ------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| notifications_kind_check       | CHECK       | CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text]))) |
+| notifications_provider_id_fkey | FOREIGN KEY | FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT                                                                                                                                                    |
+| notifications_listing_id_fkey  | FOREIGN KEY | FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE                                                                                                                                                       |
+| notifications_pkey             | PRIMARY KEY | PRIMARY KEY (id)                                                                                                                                                                                                         |
+| notifications_booking_id_fkey  | FOREIGN KEY | FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT                                                                                                                                                      |
 
 ## Indexes
 

@@ -154,6 +154,9 @@ Each step depends on the ones before it.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
    email sender, and generated types wired into both apps' `supabase.types`.
    (The dashboards' phone menu was done 2026-09-30.)
+   - [ ] Turn on the booking job scheduler (`pg_cron` + `pg_net` calling the
+     website's `/api/jobs/*`) once production hosting exists; until then
+     jobs run with `npm run job` (docs/design/booking-and-checkout.md).
    - **Blockers for live payments** (sandbox testing can go ahead):
      - [ ] Accountant consultation on Georgia marketplace sales tax,
        commission taxability, holding provider funds, 1099-K and business

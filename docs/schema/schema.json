@@ -1678,6 +1678,10 @@
       ],
       "triggers": [
         {
+          "name": "experience_sessions_booked_guard",
+          "def": "CREATE TRIGGER experience_sessions_booked_guard BEFORE UPDATE OF capacity, starts_at, status ON public.experience_sessions FOR EACH ROW EXECUTE FUNCTION experience_sessions_booked_guard()"
+        },
+        {
           "name": "experience_sessions_check",
           "def": "CREATE TRIGGER experience_sessions_check BEFORE INSERT OR UPDATE OF listing_id, starts_at, status ON public.experience_sessions FOR EACH ROW EXECUTE FUNCTION experience_sessions_check()"
         },
@@ -1730,6 +1734,12 @@
           "type": "timestamp with time zone",
           "nullable": true,
           "comment": "When the provider marked it read; null while unread. Once set it doesn't change, and it can't be cleared."
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "For booking notifications: the booking it's about."
         }
       ],
       "indexes": [
@@ -1771,7 +1781,7 @@
         {
           "name": "notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text])))",
           "table": "public.notifications",
           "referenced_table": "",
           "columns": [
@@ -1813,12 +1823,1061 @@
           "columns": [
             "id"
           ]
+        },
+        {
+          "name": "notifications_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.notifications",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
         }
       ],
       "triggers": [
         {
           "name": "notifications_set_read_at",
           "def": "CREATE TRIGGER notifications_set_read_at BEFORE UPDATE OF read_at ON public.notifications FOR EACH ROW EXECUTE FUNCTION notifications_set_read_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.commission_rates",
+      "type": "BASE TABLE",
+      "comment": "lokl's commission per kind of listing, in basis points (1200 = 12%). Admin-editable. Each booking copies the rate in force when it's created, so changes never touch past bookings. Never deleted.",
+      "columns": [
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "rate_bps",
+          "type": "integer",
+          "nullable": false,
+          "comment": "Commission in basis points, 0 to 5000 (0% to 50%)."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_by",
+          "type": "uuid",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "commission_rates_pkey",
+          "def": "CREATE UNIQUE INDEX commission_rates_pkey ON public.commission_rates USING btree (kind)",
+          "table": "public.commission_rates",
+          "columns": [
+            "kind"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "commission_rates_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['service'::text, 'experience'::text])))",
+          "table": "public.commission_rates",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "commission_rates_rate_bps_check",
+          "type": "CHECK",
+          "def": "CHECK (((rate_bps \u003e= 0) AND (rate_bps \u003c= 5000)))",
+          "table": "public.commission_rates",
+          "referenced_table": "",
+          "columns": [
+            "rate_bps"
+          ]
+        },
+        {
+          "name": "commission_rates_updated_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.commission_rates",
+          "referenced_table": "auth.users",
+          "columns": [
+            "updated_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "commission_rates_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (kind)",
+          "table": "public.commission_rates",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "commission_rates_stamp",
+          "def": "CREATE TRIGGER commission_rates_stamp BEFORE UPDATE ON public.commission_rates FOR EACH ROW EXECUTE FUNCTION commission_rates_stamp()"
+        }
+      ]
+    },
+    {
+      "name": "public.bookings",
+      "type": "BASE TABLE",
+      "comment": "A customer's booking of a Service (a request the provider accepts) or an Experience session (paid at once). Written only by the website's server. lokl holds the payment and transfers the provider's share 24 hours after the booking ends. Never deleted: payments, refunds and payouts point here.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending_payment'::text",
+          "comment": "pending_payment (in Stripe Checkout; spots held until reserved_until) -\u003e requested (Service: card on hold, waiting for the provider) -\u003e confirmed (accepted and charged, or Experience paid) -\u003e completed (it happened) -\u003e paid_out (provider's share transferred). Or declined, expired, cancelled. A customer's late cancellation (no refund) can still be paid out. The allowed changes are enforced by bookings_guard."
+        },
+        {
+          "name": "preferred_times",
+          "type": "timestamp with time zone[]",
+          "nullable": true,
+          "comment": "Services: one to three times the customer offers, each at least 24 hours ahead when requested. The provider accepts one, which becomes starts_at."
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "Experiences: the session's start, copied. Services: the accepted preferred time."
+        },
+        {
+          "name": "ends_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "starts_at plus the listing's duration (or starts_at if it has none). Set by the database."
+        },
+        {
+          "name": "party_size",
+          "type": "smallint",
+          "nullable": false,
+          "default": "1",
+          "comment": "People booked: 1 for Services; 1 to 10 for Experiences, and no more than the spots left."
+        },
+        {
+          "name": "customer_name",
+          "type": "text",
+          "nullable": false,
+          "comment": "The customer's name from checkout. The provider sees it on the request."
+        },
+        {
+          "name": "customer_notes",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "unit_price_cents",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "total_cents",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "nullable": false,
+          "default": "'usd'::text"
+        },
+        {
+          "name": "commission_rate_bps",
+          "type": "integer",
+          "nullable": false,
+          "comment": "The commission rate in force when the booking was made (commission_rates), kept so later changes never affect it."
+        },
+        {
+          "name": "commission_cents",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "provider_amount_cents",
+          "type": "integer",
+          "nullable": false,
+          "comment": "What the provider receives: total minus commission. lokl pays Stripe's fee from its commission."
+        },
+        {
+          "name": "refunded_cents",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "refunded_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "reserved_until",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "respond_by",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_due_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When the provider's share may be transferred: 24 hours after ends_at. Set by the database on confirmation."
+        },
+        {
+          "name": "payout_failed_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When the provider's Stripe account couldn't receive the transfer; the payout is held until it's fixed, and the admin sees it under \"needs attention\"."
+        },
+        {
+          "name": "payout_failure",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "problem_reported_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "Set when the customer reports the provider didn't show; holds the payout until the admin acts."
+        },
+        {
+          "name": "problem_note",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "cancelled_by",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "cancel_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "status_changed_by",
+          "type": "text",
+          "nullable": false,
+          "default": "'system'::text",
+          "comment": "Who made the latest status change; copied into booking_events."
+        },
+        {
+          "name": "stripe_checkout_session_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_payment_intent_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_charge_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_transfer_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "bookings_pkey",
+          "def": "CREATE UNIQUE INDEX bookings_pkey ON public.bookings USING btree (id)",
+          "table": "public.bookings",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "bookings_stripe_checkout_session_id_key",
+          "def": "CREATE UNIQUE INDEX bookings_stripe_checkout_session_id_key ON public.bookings USING btree (stripe_checkout_session_id)",
+          "table": "public.bookings",
+          "columns": [
+            "stripe_checkout_session_id"
+          ]
+        },
+        {
+          "name": "bookings_stripe_payment_intent_id_key",
+          "def": "CREATE UNIQUE INDEX bookings_stripe_payment_intent_id_key ON public.bookings USING btree (stripe_payment_intent_id)",
+          "table": "public.bookings",
+          "columns": [
+            "stripe_payment_intent_id"
+          ]
+        },
+        {
+          "name": "bookings_stripe_transfer_id_key",
+          "def": "CREATE UNIQUE INDEX bookings_stripe_transfer_id_key ON public.bookings USING btree (stripe_transfer_id)",
+          "table": "public.bookings",
+          "columns": [
+            "stripe_transfer_id"
+          ]
+        },
+        {
+          "name": "bookings_customer_id_idx",
+          "def": "CREATE INDEX bookings_customer_id_idx ON public.bookings USING btree (customer_id, created_at DESC)",
+          "table": "public.bookings",
+          "columns": [
+            "customer_id",
+            "created_at"
+          ]
+        },
+        {
+          "name": "bookings_provider_id_idx",
+          "def": "CREATE INDEX bookings_provider_id_idx ON public.bookings USING btree (provider_id, created_at DESC)",
+          "table": "public.bookings",
+          "columns": [
+            "provider_id",
+            "created_at"
+          ]
+        },
+        {
+          "name": "bookings_session_id_idx",
+          "def": "CREATE INDEX bookings_session_id_idx ON public.bookings USING btree (session_id) WHERE (session_id IS NOT NULL)",
+          "table": "public.bookings",
+          "columns": [
+            "session_id"
+          ]
+        },
+        {
+          "name": "bookings_listing_id_idx",
+          "def": "CREATE INDEX bookings_listing_id_idx ON public.bookings USING btree (listing_id)",
+          "table": "public.bookings",
+          "columns": [
+            "listing_id"
+          ]
+        },
+        {
+          "name": "bookings_due_idx",
+          "def": "CREATE INDEX bookings_due_idx ON public.bookings USING btree (status, payout_due_at) WHERE (status = ANY (ARRAY['confirmed'::text, 'completed'::text, 'cancelled'::text]))",
+          "table": "public.bookings",
+          "columns": [
+            "status",
+            "payout_due_at"
+          ]
+        },
+        {
+          "name": "bookings_respond_by_idx",
+          "def": "CREATE INDEX bookings_respond_by_idx ON public.bookings USING btree (respond_by) WHERE (status = 'requested'::text)",
+          "table": "public.bookings",
+          "columns": [
+            "respond_by"
+          ]
+        },
+        {
+          "name": "bookings_reserved_until_idx",
+          "def": "CREATE INDEX bookings_reserved_until_idx ON public.bookings USING btree (reserved_until) WHERE (status = 'pending_payment'::text)",
+          "table": "public.bookings",
+          "columns": [
+            "reserved_until"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "bookings_cancel_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(cancel_reason) \u003c= 1000))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "cancel_reason"
+          ]
+        },
+        {
+          "name": "bookings_cancelled_by_check",
+          "type": "CHECK",
+          "def": "CHECK ((cancelled_by = ANY (ARRAY['customer'::text, 'provider'::text, 'admin'::text, 'system'::text])))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "cancelled_by"
+          ]
+        },
+        {
+          "name": "bookings_commission_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((commission_cents \u003e= 0))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "commission_cents"
+          ]
+        },
+        {
+          "name": "bookings_commission_rate_bps_check",
+          "type": "CHECK",
+          "def": "CHECK (((commission_rate_bps \u003e= 0) AND (commission_rate_bps \u003c= 5000)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "commission_rate_bps"
+          ]
+        },
+        {
+          "name": "bookings_confirmed_has_time",
+          "type": "CHECK",
+          "def": "CHECK (((confirmed_at IS NULL) OR ((starts_at IS NOT NULL) AND (payout_due_at IS NOT NULL))))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "confirmed_at",
+            "starts_at",
+            "payout_due_at"
+          ]
+        },
+        {
+          "name": "bookings_currency_check",
+          "type": "CHECK",
+          "def": "CHECK ((currency = 'usd'::text))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "currency"
+          ]
+        },
+        {
+          "name": "bookings_customer_name_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(customer_name) \u003e= 1) AND (char_length(customer_name) \u003c= 120)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "customer_name"
+          ]
+        },
+        {
+          "name": "bookings_customer_notes_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(customer_notes) \u003c= 1000))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "customer_notes"
+          ]
+        },
+        {
+          "name": "bookings_experience_shape",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'experience'::text) OR ((session_id IS NOT NULL) AND (preferred_times IS NULL))))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "session_id",
+            "preferred_times"
+          ]
+        },
+        {
+          "name": "bookings_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['service'::text, 'experience'::text])))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "bookings_party_size_check",
+          "type": "CHECK",
+          "def": "CHECK (((party_size \u003e= 1) AND (party_size \u003c= 10)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "party_size"
+          ]
+        },
+        {
+          "name": "bookings_payout_failure_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(payout_failure) \u003c= 500))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "payout_failure"
+          ]
+        },
+        {
+          "name": "bookings_problem_note_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(problem_note) \u003c= 1000))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "problem_note"
+          ]
+        },
+        {
+          "name": "bookings_provider_amount_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((provider_amount_cents \u003e= 0))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "provider_amount_cents"
+          ]
+        },
+        {
+          "name": "bookings_refund",
+          "type": "CHECK",
+          "def": "CHECK (((refunded_cents \u003e= 0) AND (refunded_cents \u003c= total_cents)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "refunded_cents",
+            "total_cents"
+          ]
+        },
+        {
+          "name": "bookings_service_shape",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'service'::text) OR ((session_id IS NULL) AND (party_size = 1) AND ((cardinality(preferred_times) \u003e= 1) AND (cardinality(preferred_times) \u003c= 3)))))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "session_id",
+            "party_size",
+            "preferred_times"
+          ]
+        },
+        {
+          "name": "bookings_split",
+          "type": "CHECK",
+          "def": "CHECK (((commission_cents + provider_amount_cents) = total_cents))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "commission_cents",
+            "provider_amount_cents",
+            "total_cents"
+          ]
+        },
+        {
+          "name": "bookings_status_changed_by_check",
+          "type": "CHECK",
+          "def": "CHECK ((status_changed_by = ANY (ARRAY['customer'::text, 'provider'::text, 'admin'::text, 'system'::text, 'stripe'::text])))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "status_changed_by"
+          ]
+        },
+        {
+          "name": "bookings_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['pending_payment'::text, 'requested'::text, 'confirmed'::text, 'declined'::text, 'expired'::text, 'cancelled'::text, 'completed'::text, 'paid_out'::text])))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "bookings_total",
+          "type": "CHECK",
+          "def": "CHECK ((total_cents = (unit_price_cents * party_size)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "total_cents",
+            "unit_price_cents",
+            "party_size"
+          ]
+        },
+        {
+          "name": "bookings_unit_price_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((unit_price_cents \u003e 0))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "unit_price_cents"
+          ]
+        },
+        {
+          "name": "bookings_customer_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (customer_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+          "table": "public.bookings",
+          "referenced_table": "auth.users",
+          "columns": [
+            "customer_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "bookings_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.bookings",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "bookings_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT",
+          "table": "public.bookings",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "bookings_session_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (session_id) REFERENCES experience_sessions(id) ON DELETE RESTRICT",
+          "table": "public.bookings",
+          "referenced_table": "public.experience_sessions",
+          "columns": [
+            "session_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "bookings_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "bookings_stripe_checkout_session_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (stripe_checkout_session_id)",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "stripe_checkout_session_id"
+          ]
+        },
+        {
+          "name": "bookings_stripe_payment_intent_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (stripe_payment_intent_id)",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "stripe_payment_intent_id"
+          ]
+        },
+        {
+          "name": "bookings_stripe_transfer_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (stripe_transfer_id)",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "stripe_transfer_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "bookings_guard",
+          "def": "CREATE TRIGGER bookings_guard BEFORE INSERT OR UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_guard()"
+        },
+        {
+          "name": "bookings_log_status",
+          "def": "CREATE TRIGGER bookings_log_status AFTER INSERT OR UPDATE OF status ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_log_status()"
+        },
+        {
+          "name": "bookings_notify_provider",
+          "def": "CREATE TRIGGER bookings_notify_provider AFTER UPDATE OF status ON public.bookings FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION bookings_notify_provider()"
+        },
+        {
+          "name": "bookings_set_updated_at",
+          "def": "CREATE TRIGGER bookings_set_updated_at BEFORE UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.booking_events",
+      "type": "BASE TABLE",
+      "comment": "Every status change of a booking: from, to, who (customer, provider, admin, system, stripe) and when. Written by a trigger. Never changed or deleted.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "from_status",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "to_status",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "actor",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "booking_events_pkey",
+          "def": "CREATE UNIQUE INDEX booking_events_pkey ON public.booking_events USING btree (id)",
+          "table": "public.booking_events",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_events_booking_id_idx",
+          "def": "CREATE INDEX booking_events_booking_id_idx ON public.booking_events USING btree (booking_id, created_at)",
+          "table": "public.booking_events",
+          "columns": [
+            "booking_id",
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "booking_events_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.booking_events",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_events_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.booking_events",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.booking_contacts",
+      "type": "BASE TABLE",
+      "comment": "The customer's email and optional phone for a booking. The provider reads them only once the booking is accepted or confirmed. Never deleted.",
+      "columns": [
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "booking_contacts_pkey",
+          "def": "CREATE UNIQUE INDEX booking_contacts_pkey ON public.booking_contacts USING btree (booking_id)",
+          "table": "public.booking_contacts",
+          "columns": [
+            "booking_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "booking_contacts_email_check",
+          "type": "CHECK",
+          "def": "CHECK (((email ~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'::text) AND (char_length(email) \u003c= 320)))",
+          "table": "public.booking_contacts",
+          "referenced_table": "",
+          "columns": [
+            "email"
+          ]
+        },
+        {
+          "name": "booking_contacts_phone_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(phone) \u003e= 7) AND (char_length(phone) \u003c= 30)))",
+          "table": "public.booking_contacts",
+          "referenced_table": "",
+          "columns": [
+            "phone"
+          ]
+        },
+        {
+          "name": "booking_contacts_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.booking_contacts",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_contacts_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (booking_id)",
+          "table": "public.booking_contacts",
+          "referenced_table": "",
+          "columns": [
+            "booking_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.booking_addresses",
+      "type": "BASE TABLE",
+      "comment": "Where an \"I come to you\" Service takes place: the customer's address. The provider reads it only once the booking is accepted. Never deleted.",
+      "columns": [
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "line1",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "line2",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "city",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "postal_code",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "instructions",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "booking_addresses_pkey",
+          "def": "CREATE UNIQUE INDEX booking_addresses_pkey ON public.booking_addresses USING btree (booking_id)",
+          "table": "public.booking_addresses",
+          "columns": [
+            "booking_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "booking_addresses_city_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(city) \u003e= 2) AND (char_length(city) \u003c= 80)))",
+          "table": "public.booking_addresses",
+          "referenced_table": "",
+          "columns": [
+            "city"
+          ]
+        },
+        {
+          "name": "booking_addresses_instructions_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(instructions) \u003c= 500))",
+          "table": "public.booking_addresses",
+          "referenced_table": "",
+          "columns": [
+            "instructions"
+          ]
+        },
+        {
+          "name": "booking_addresses_line1_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(line1) \u003e= 3) AND (char_length(line1) \u003c= 200)))",
+          "table": "public.booking_addresses",
+          "referenced_table": "",
+          "columns": [
+            "line1"
+          ]
+        },
+        {
+          "name": "booking_addresses_line2_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(line2) \u003c= 200))",
+          "table": "public.booking_addresses",
+          "referenced_table": "",
+          "columns": [
+            "line2"
+          ]
+        },
+        {
+          "name": "booking_addresses_postal_code_check",
+          "type": "CHECK",
+          "def": "CHECK ((postal_code ~ '^[0-9]{5}(-[0-9]{4})?$'::text))",
+          "table": "public.booking_addresses",
+          "referenced_table": "",
+          "columns": [
+            "postal_code"
+          ]
+        },
+        {
+          "name": "booking_addresses_state_check",
+          "type": "CHECK",
+          "def": "CHECK ((state ~ '^[A-Z]{2}$'::text))",
+          "table": "public.booking_addresses",
+          "referenced_table": "",
+          "columns": [
+            "state"
+          ]
+        },
+        {
+          "name": "booking_addresses_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.booking_addresses",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_addresses_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (booking_id)",
+          "table": "public.booking_addresses",
+          "referenced_table": "",
+          "columns": [
+            "booking_id"
+          ]
         }
       ]
     }
@@ -1994,6 +3053,97 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.notifications",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.bookings",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.bookings",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.bookings",
+      "columns": [
+        "session_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.experience_sessions",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (session_id) REFERENCES experience_sessions(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.booking_events",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.booking_contacts",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.booking_addresses",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -2113,6 +3263,66 @@
     },
     {
       "name": "public.providers_owner_not_admin",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.commission_rates_stamp",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.bookings_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.bookings_log_status",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.session_spots_taken",
+      "return_type": "int4",
+      "arguments": "p_session_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.session_spots_left",
+      "return_type": "int4",
+      "arguments": "p_session_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.booking_money",
+      "return_type": "record",
+      "arguments": "p_kind text, p_unit_price integer, p_party smallint, OUT total integer, OUT rate integer, OUT commission integer, OUT provider_amount integer",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.reserve_experience_booking",
+      "return_type": "bookings",
+      "arguments": "p_session_id uuid, p_customer_id uuid, p_party_size smallint, p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_reserved_until timestamp with time zone",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.create_service_request",
+      "return_type": "bookings",
+      "arguments": "p_listing_id uuid, p_customer_id uuid, p_preferred_times timestamp with time zone[], p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_address jsonb, p_reserved_until timestamp with time zone",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.experience_sessions_booked_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.bookings_notify_provider",
       "return_type": "trigger",
       "arguments": "",
       "type": "FUNCTION"
