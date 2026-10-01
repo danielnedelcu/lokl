@@ -96,9 +96,6 @@ These need Daniel, not Claude.
       `account.updated`. Locally: `stripe listen --forward-connect-to
       localhost:3100/api/stripe/webhook`, and put the `whsec_…` value in
       `NUXT_STRIPE_WEBHOOK_SECRET`.
-- [ ] **Talk to an accountant about marketplace sales tax** before live
-      payments. Georgia's marketplace facilitator rules may apply, and rules
-      differ in every market.
 
 ## Walkthrough findings (2026-09-27)
 
@@ -135,7 +132,8 @@ Each step depends on the ones before it.
      listings per market and kind (`BROWSE_LIMIT` in
      `apps/website/server/utils/publicListings.ts`). Move it into a database
      function before a market gets near that.
-4. **Booking and checkout.** Stripe Checkout with the platform fee split
+4. **Booking and checkout.** Design for review: `docs/design/booking-and-checkout.md`.
+   Stripe Checkout with the platform fee split
    automatically. Commission settled 2026-09-30 (docs/decisions.md): the
    provider absorbs it, 12% for Services and 20% for Experiences; customers pay
    the listed price; lokl pays Stripe's fee from its commission. For the
@@ -156,6 +154,13 @@ Each step depends on the ones before it.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
    email sender, and generated types wired into both apps' `supabase.types`.
    (The dashboards' phone menu was done 2026-09-30.)
+   - **Blockers for live payments** (sandbox testing can go ahead):
+     - [ ] Accountant consultation on Georgia marketplace sales tax,
+       commission taxability, holding provider funds, 1099-K and business
+       setup.
+     - [ ] Customer terms, provider terms (including Stripe's Connected
+       Account Agreement), privacy policy and cancellation policy page,
+       drafted then reviewed by a marketplace lawyer.
    - [x] ~~**Replace the homepage**~~. Done 2026-09-30: the copied Airbnb
      markup and its 24 files from Airbnb's CDN are gone. The new page is our
      own markup and components (headline, browse links, live listings, a
@@ -214,6 +219,8 @@ tests, run through `db:test` before `db:push`.
 
 ## Notifications
 
+- [ ] Booking reminder emails the day before, to customer and provider
+  (docs/design/booking-and-checkout.md, answer 8).
 - [x] ~~Provider in-app notifications and live updates~~ (`docs/design/notifications.md`).
   Done 2026-09-28: trigger-created notifications, the dashboard bell, live
   page refreshes that keep unsaved changes. Walkthrough passed.
