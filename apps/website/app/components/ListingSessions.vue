@@ -34,8 +34,28 @@ const { data: sessions, refresh, error: loadError } = await useAsyncData(`listin
   return data as SessionRow[];
 });
 
+// Bookings per session: any booking row at all (even an expired checkout)
+// means the session can't be deleted, only cancelled with refunds.
+const { data: bookingsBySession, refresh: refreshBookings } = await useAsyncData(`listing-session-bookings-${props.listingId}`, async () => {
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("session_id, status, party_size, total_cents")
+    .eq("listing_id", props.listingId)
+    .not("session_id", "is", null);
+  if (error) throw error;
+  const map = new Map<string, { rows: number; booked: number; refundCents: number }>();
+  for (const b of data ?? []) {
+    const m = map.get(b.session_id!) ?? { rows: 0, booked: 0, refundCents: 0 };
+    m.rows++;
+    if (b.status === "confirmed") { m.booked += b.party_size; m.refundCents += b.total_cents; }
+    map.set(b.session_id!, m);
+  }
+  return Object.fromEntries(map);
+});
+const bookingsOf = (s: SessionRow) => bookingsBySession.value?.[s.id] ?? { rows: 0, booked: 0, refundCents: 0 };
+
 async function reload() {
-  await refresh();
+  await Promise.all([refresh(), refreshBookings()]);
   emit("changed");
 }
 
@@ -149,14 +169,31 @@ const save = form.handleSubmit(async (v) => {
 // Cancelling
 // ---------------------------------------------------------------------------
 
-// There are no bookings yet, so cancelling removes the session. When bookings
-// arrive, a session with bookings will be marked cancelled instead, with
-// refunds, through a server route.
+// A session nobody has booked is removed. One with bookings is cancelled
+// through the server, which refunds everyone in full (decision 12).
 const cancelling = ref<SessionRow | null>(null);
 const cancelOpen = ref(false);
+const cancelBookedOpen = ref(false);
+const cancelError = ref("");
 function askCancel(s: SessionRow) {
   cancelling.value = s;
-  cancelOpen.value = true;
+  cancelError.value = "";
+  if (bookingsOf(s).rows > 0) cancelBookedOpen.value = true;
+  else cancelOpen.value = true;
+}
+async function confirmCancelBooked(reason: string) {
+  if (!cancelling.value) return;
+  busy.value = true;
+  try {
+    await $fetch(`/api/sessions/${cancelling.value.id}/cancel`, { method: "POST", body: { reason } });
+    cancelBookedOpen.value = false;
+    useSonner.success("Session cancelled. Everyone booked is refunded in full.");
+  } catch (e) {
+    cancelError.value = (e as { statusMessage?: string }).statusMessage ?? "The session wasn't cancelled. Please try again.";
+  } finally {
+    busy.value = false;
+    await reload();
+  }
 }
 async function confirmCancel() {
   if (!cancelling.value) return;
@@ -196,7 +233,9 @@ async function confirmCancel() {
         <li v-for="s in upcoming" :key="s.id" class="flex flex-wrap items-center gap-x-4 gap-y-2 p-3">
           <div class="min-w-0 flex-1">
             <p class="font-medium">{{ dateOf(s) }}</p>
-            <p class="text-muted-foreground text-sm">{{ timeOf(s) }} · {{ spotsOf(s) }}</p>
+            <p class="text-muted-foreground text-sm">
+              {{ timeOf(s) }} · {{ spotsOf(s) }}<template v-if="bookingsOf(s).booked"> · {{ bookingsOf(s).booked }} booked</template>
+            </p>
           </div>
           <StatusBadge v-if="s.status === 'cancelled'" kind="session" :status="s.status" />
           <div v-else-if="editable" class="flex gap-1">
@@ -258,6 +297,10 @@ async function confirmCancel() {
       </template>
     </UiDialogContent>
   </UiDialog>
+
+  <SessionCancelDialog v-if="cancelling" v-model:open="cancelBookedOpen" :when="describe(cancelling)"
+    :booked="bookingsOf(cancelling).booked" :refund-cents="bookingsOf(cancelling).refundCents" :busy="busy" :error="cancelError"
+    @confirm="confirmCancelBooked" />
 
   <UiAlertDialog v-model:open="cancelOpen" title="Cancel this session?"
     :description="cancelling ? `The session on ${describe(cancelling)} will be removed. This can't be undone.` : ''">

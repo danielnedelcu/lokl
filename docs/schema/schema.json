@@ -1781,7 +1781,7 @@
         {
           "name": "notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text, 'booking_problem_reported'::text])))",
           "table": "public.notifications",
           "referenced_table": "",
           "columns": [
@@ -2705,6 +2705,10 @@
           "def": "CREATE TRIGGER bookings_log_status AFTER INSERT OR UPDATE OF status ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_log_status()"
         },
         {
+          "name": "bookings_notify_problem",
+          "def": "CREATE TRIGGER bookings_notify_problem AFTER UPDATE OF problem_reported_at ON public.bookings FOR EACH ROW WHEN (((old.problem_reported_at IS NULL) AND (new.problem_reported_at IS NOT NULL))) EXECUTE FUNCTION bookings_notify_problem()"
+        },
+        {
           "name": "bookings_notify_provider",
           "def": "CREATE TRIGGER bookings_notify_provider AFTER UPDATE OF status ON public.bookings FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION bookings_notify_provider()"
         },
@@ -3453,6 +3457,12 @@
     },
     {
       "name": "public.bookings_notify_provider",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.bookings_notify_problem",
       "return_type": "trigger",
       "arguments": "",
       "type": "FUNCTION"

@@ -3,6 +3,7 @@
 // one of which they accept (the card is charged), or Decline (the hold is
 // released). Overlaps with their confirmed bookings are a warning only
 // (decided 2026-10-02).
+import { z } from "zod";
 import type { ProviderBooking } from "~/composables/useProviderBookings";
 
 definePageMeta({ layout: "dashboard" });
@@ -14,6 +15,8 @@ interface Detail extends ProviderBooking {
   confirmed_at: string | null;
   payout_due_at: string | null;
   payout_hold: string | null;
+  cancel_reason: string | null;
+  problem_reported_at: string | null;
   events: { to_status: string; actor: string; created_at: string }[];
   /** For each offered time, the confirmed bookings it overlaps. */
   clashes: { id: string; starts_at: string; ends_at: string | null; title: string }[][];
@@ -78,12 +81,43 @@ const summary = computed(() => {
     case "expired": return s.refunded_cents > 0
       ? "This request ended and the customer was refunded."
       : "This request ended without an answer, or the customer's card couldn't be charged. The customer wasn't charged.";
-    case "cancelled": return s.cancelled_by === "provider" ? "You cancelled this booking." : "This booking was cancelled.";
+    case "cancelled":
+      if (s.cancelled_by === "provider") return `You cancelled this booking: “${s.cancel_reason}”. The customer was refunded in full.`;
+      if (s.cancelled_by === "customer") return s.refunded_cents > 0
+        ? "The customer cancelled in time and was refunded, so there's no payout."
+        : `The customer cancelled less than 48 hours before, so you'll still be paid ${money(s.provider_amount_cents)}.`;
+      return "This booking was cancelled, and the customer was refunded.";
     case "completed": return s.payout_hold
       ? "This booking has happened. lokl is reviewing it before paying you, and will be in touch."
       : `This booking has happened. You'll be paid ${money(s.provider_amount_cents)} after ${at(s.payout_due_at!)}.`;
     case "paid_out": return "This booking has happened and you've been paid.";
     default: return "";
+  }
+});
+
+// Cancelling a confirmed booking before it starts: always a full refund,
+// with a reason the customer sees.
+const canCancel = computed(() => b.value?.status === "confirmed" && !!b.value.starts_at && Date.parse(b.value.starts_at) > Date.now());
+const cancelOpen = ref(false);
+const cancelError = ref("");
+const { handleSubmit: handleCancel } = useForm<{ reason: string }>({
+  validationSchema: zodSchema(z.object({
+    reason: z.string().trim().min(5, "Say why you're cancelling. The customer sees it.").max(1000, "Keep it under 1,000 characters."),
+  })),
+  initialValues: { reason: "" },
+});
+const sendCancel = handleCancel(async (v) => {
+  busy.value = true;
+  cancelError.value = "";
+  try {
+    await $fetch(`/api/bookings/${id}/cancel`, { method: "POST", body: { reason: v.reason.trim() } });
+    cancelOpen.value = false;
+    useSonner.success("Cancelled. The customer is refunded in full.");
+  } catch (e) {
+    cancelError.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+  } finally {
+    busy.value = false;
+    await Promise.all([refresh(), refreshNuxtData("provider-bookings")]);
   }
 });
 
@@ -106,6 +140,13 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
     </div>
     <p class="mt-3" role="status" aria-live="polite">{{ summary }}</p>
     <p v-if="problem" class="mt-3 text-sm text-destructive" role="alert">{{ problem }}</p>
+    <UiAlert v-if="b.problem_reported_at" class="mt-4" icon="lucide:circle-alert">
+      <UiAlertTitle>The customer reported a problem</UiAlertTitle>
+      <UiAlertDescription>
+        They told lokl something went wrong with this booking. Your payout is on hold while lokl looks into it, and
+        lokl will be in touch.
+      </UiAlertDescription>
+    </UiAlert>
 
     <!-- Answer a request: choose a time, then accept; or decline. -->
     <section v-if="b.status === 'requested'" class="mt-6 rounded-lg border border-border bg-card p-4" aria-labelledby="answer-heading">
@@ -190,6 +231,31 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
         </dd>
       </div>
     </dl>
+
+    <div v-if="canCancel" class="mt-8 border-t border-border pt-6">
+      <UiButton variant="outline" :disabled="busy" @click="cancelOpen = true">Cancel this booking</UiButton>
+      <p class="mt-2 text-xs text-muted-foreground">The customer gets a full refund, and you won't be paid for it.</p>
+    </div>
+    <UiDialog v-model:open="cancelOpen">
+      <UiDialogContent>
+        <UiDialogHeader>
+          <UiDialogTitle>Cancel this booking?</UiDialogTitle>
+          <UiDialogDescription>
+            {{ b.customer_name }} gets a full refund of {{ money(b.total_cents) }}, and you won't be paid for it.
+            This can't be undone.
+          </UiDialogDescription>
+        </UiDialogHeader>
+        <form class="space-y-3" novalidate @submit="sendCancel">
+          <UiVeeTextarea name="reason" label="Why are you cancelling?" required :rows="3" maxlength="1000"
+            hint="The customer sees this." />
+          <p v-if="cancelError" class="text-sm text-destructive" role="alert">{{ cancelError }}</p>
+          <UiDialogFooter>
+            <UiButton type="button" variant="outline" @click="cancelOpen = false">Keep it</UiButton>
+            <UiButton type="submit" variant="destructive" :disabled="busy">{{ busy ? "Cancelling…" : "Cancel and refund" }}</UiButton>
+          </UiDialogFooter>
+        </form>
+      </UiDialogContent>
+    </UiDialog>
 
     <UiAlertDialog v-model:open="confirmAccept" title="Accept this time?"
       :description="chosen ? `${at(chosen)}. The customer's card is charged ${money(b.total_cents)}, and you'll see their contact details.` : ''">

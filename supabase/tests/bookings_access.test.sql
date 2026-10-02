@@ -174,7 +174,7 @@ select is((select updated_by from commission_rates where kind = 'service'), :'ad
 select is((select array_agg(kind order by kind) from notifications where provider_id = :'p' and booking_id = :'ba'),
   array['booking_cancelled', 'booking_requested'], '13a. the provider is told of the request and the customer''s cancellation');
 select tests.authenticate_as_service_role();
-update bookings set status = 'cancelled', cancelled_by = 'provider', refunded_cents = total_cents, status_changed_by = 'provider' where id = :'bh';
+update bookings set status = 'cancelled', cancelled_by = 'provider', cancel_reason = 'I''m unwell that day.', refunded_cents = total_cents, status_changed_by = 'provider' where id = :'bh';
 select tests.clear_authentication();
 select is((select array_agg(kind) from notifications where booking_id = :'bh'), array['booking_requested'],
   '13b. the provider''s own cancellation doesn''t notify them');

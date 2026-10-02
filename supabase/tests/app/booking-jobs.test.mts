@@ -44,6 +44,13 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
 }
 const row = async (id: string) => must(db.from("bookings").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
 const mentions = (r: { done: string[]; failed: string[] }, id: string) => [...r.done, ...r.failed].some((l) => l.startsWith(id));
+// Test-only: move a booking's times with the guard off (local database), for
+// "booked hours ago" and "already started" cases.
+const shift = (id: string, startsInHours: number, confirmedHoursAgo: number) => execFileSync("psql", [local.DB_URL!, "-q", "-c", `
+  alter table public.bookings disable trigger bookings_guard;
+  update public.bookings set starts_at = now() + interval '${startsInHours} hours', ends_at = now() + interval '${startsInHours + 1} hours',
+    payout_due_at = now() + interval '${startsInHours + 25} hours', confirmed_at = now() - interval '${confirmedHoursAgo} hours' where id = '${id}';
+  alter table public.bookings enable trigger bookings_guard;`]);
 const created = { users: [] as string[], providers: [] as string[], listings: [] as string[], categories: [] as string[], area: "" };
 const day = 864e5;
 
@@ -191,6 +198,7 @@ try {
 
   // A customer who cancelled late, with no refund: the provider still gets their share.
   const lateCancel = await paidBooking(exp);
+  shift(lateCancel.id, 30, 2); // inside 48 hours, booked 2 hours ago: no refund
   await must(db.from("bookings").update({ status: "cancelled", cancelled_by: "customer", status_changed_by: "customer" }).eq("id", lateCancel.id));
   await payOut(db, stripe, { bookingId: lateCancel.id, now: after(lateCancel.dueAt) });
   check((await row(lateCancel.id)).status === "paid_out", "4g. a late cancellation with no refund is still paid out");
@@ -203,6 +211,7 @@ try {
     return { hold: r.payout_hold as string | null, status: r.status as string, transfers, failure: r.payout_failure as string | null };
   };
   const noShow = await paidBooking(exp);
+  shift(noShow.id, -2, 48); // started 2 hours ago, so a problem can be reported
   await must(db.from("bookings").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there." }).eq("id", noShow.id));
   const h1 = await heldFor(noShow);
   check(h1.hold === "problem_reported" && h1.status === "completed" && h1.transfers === 0, "5a. a reported no-show holds the payout");

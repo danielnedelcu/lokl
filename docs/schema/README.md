@@ -54,6 +54,7 @@
 | public.create_service_request           | bookings   | p_listing_id uuid, p_customer_id uuid, p_preferred_times timestamp with time zone[], p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_address jsonb, p_reserved_until timestamp with time zone | FUNCTION |
 | public.experience_sessions_booked_guard | trigger    |                                                                                                                                                                                                                                            | FUNCTION |
 | public.bookings_notify_provider         | trigger    |                                                                                                                                                                                                                                            | FUNCTION |
+| public.bookings_notify_problem          | trigger    |                                                                                                                                                                                                                                            | FUNCTION |
 
 ## Enums
 

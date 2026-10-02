@@ -5,6 +5,10 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-02 | Cancellation grace period: a customer can cancel for a full refund within 1 hour of a booking being confirmed, as long as it hasn't started, even inside the 48-hour window. Shown in the policy before paying, stated in the cancel dialog, and enforced in the database | Someone who books a session for tomorrow and immediately realises it's the wrong date shouldn't lose their money; an hour is long enough to catch a mistake and too short to hold a spot speculatively |
+| 2026-10-02 | A provider who cancels a booking or a whole session must give a reason, which the customer sees; the customer is always refunded in full | Customers deserve to know why; a stated reason also discourages casual cancellations |
+| 2026-10-02 | "The provider didn't show up": the customer's note is for lokl only. The provider's bell says a problem was reported (not what), and their payout is held. A report is final once made | Providers can't yet reply through lokl, so the admin handles it and shares what's needed; a report that could be edited or withdrawn would be easy to game |
+| 2026-10-02 | Only lokl cancels a booking once it has started; customers and providers can't | After the start, cancelling is really a dispute about what happened, which the no-show report and the admin handle |
 | 2026-10-02 | A suspended provider's payouts are held for lokl's review, as well as their open requests being withdrawn | Suspension can mean fraud; money that has left for a connected account is hard to get back |
 | 2026-10-02 | A held payout stays held until the admin clears it, even when the reason goes away (a dispute won, an account fixed) | A person looks at every held payout once; the job never decides on its own that a problem is over |
 | 2026-10-02 | Jobs can run "as of" a later time for one booking, in development builds only (`npm run job -- pay-out --booking <id> --as-of due`) | Walkthroughs of payouts and expiries without waiting a day, and without a way to move real bookings' times |

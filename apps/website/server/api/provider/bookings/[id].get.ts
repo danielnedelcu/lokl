@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     .select(
       "id, kind, status, listing_id, session_id, starts_at, ends_at, preferred_times, party_size, unit_price_cents, total_cents, " +
       "commission_cents, provider_amount_cents, refunded_cents, respond_by, customer_name, customer_notes, customer_city, " +
-      "customer_postal_code, cancelled_by, confirmed_at, payout_due_at, payout_hold, created_at, " +
+      "customer_postal_code, cancelled_by, cancel_reason, confirmed_at, payout_due_at, payout_hold, problem_reported_at, created_at, " +
       "listing:listings(title, kind, location_mode, duration_minutes, city:cities(name, timezone)), " +
       "contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), " +
       "events:booking_events(to_status, actor, created_at)",

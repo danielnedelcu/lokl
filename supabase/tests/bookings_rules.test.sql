@@ -2,7 +2,7 @@
 -- Who can read them is in bookings_access.test.sql.
 begin;
 \ir _helpers/users.psql
-select plan(51);
+select plan(68);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -171,20 +171,34 @@ select is(
 );
 
 -- 13. A customer who cancels late (no refund) still lets the provider be paid;
--- a provider who cancels doesn't.
+-- a provider who cancels doesn't. "Late": 30 hours ahead, booked 2 hours ago
+-- (written with the guard off, as only a test can).
 update bookings set status = 'confirmed', status_changed_by = 'stripe' where id = :'b1';
+select tests.clear_authentication();
+alter table bookings disable trigger bookings_guard;
+update bookings set starts_at = now() + interval '30 hours', ends_at = now() + interval '32 hours',
+  confirmed_at = now() - interval '2 hours', payout_due_at = now() + interval '56 hours' where id = :'b1';
+alter table bookings enable trigger bookings_guard;
+select tests.authenticate_as_service_role();
 update bookings set status = 'cancelled', cancelled_by = 'customer', status_changed_by = 'customer' where id = :'b1';
 select lives_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_13a', status_changed_by = 'system' where id = %L $$, :'b1'),
   '13a. a late customer cancellation with no refund can still be paid out');
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id = :'b3';
 update bookings set status = 'confirmed', starts_at = :'t1', status_changed_by = 'provider' where id = :'b3';
-update bookings set status = 'cancelled', cancelled_by = 'provider', refunded_cents = total_cents, status_changed_by = 'provider' where id = :'b3';
+update bookings set status = 'cancelled', cancelled_by = 'provider', cancel_reason = 'I''m unwell that day.', refunded_cents = total_cents, status_changed_by = 'provider' where id = :'b3';
 select throws_ok(format($$ update bookings set status = 'paid_out', status_changed_by = 'system' where id = %L $$, :'b3'),
   '23514', 'A booking can''t go from cancelled to paid_out.', '13b. a provider''s cancellation is never paid out');
 select throws_ok(format($$ update bookings set refunded_cents = 0 where id = %L $$, :'b3'),
   '23514', 'A refund can''t be undone.', '13c. a refund can''t be undone');
 
--- 14. A reported no-show holds the payout.
+-- 14. A reported no-show holds the payout. (b2 is moved to yesterday with
+-- the guard off, so it has started.)
+select tests.clear_authentication();
+alter table bookings disable trigger bookings_guard;
+update bookings set starts_at = now() - interval '26 hours', ends_at = now() - interval '25 hours',
+  payout_due_at = now() - interval '1 hour' + interval '24 hours' where id = :'b2';
+alter table bookings enable trigger bookings_guard;
+select tests.authenticate_as_service_role();
 update bookings set status = 'completed', status_changed_by = 'system' where id = :'b2';
 update bookings set problem_reported_at = now(), problem_note = 'Nobody was there.' where id = :'b2';
 select throws_ok(format($$ update bookings set status = 'paid_out', status_changed_by = 'system' where id = %L $$, :'b2'),
@@ -226,6 +240,98 @@ select tests.authenticate_as(:'owner');
 select throws_ok(format($$ update bookings set payout_hold = null, payout_held_at = null where id = %L $$, :'b2'),
   '42501', NULL, '21. a provider can''t clear a payout hold');
 select tests.authenticate_as_service_role();
+
+-- ---------------------------------------------------------------------------
+-- CANCELLATIONS: the policy, with the 1-hour grace period
+-- ---------------------------------------------------------------------------
+
+-- Test-only: moves a confirmed booking's times (start, and when it was
+-- confirmed) with the guard off, so "started" and "late" cases can be made.
+-- Temporary; gone when the test rolls back.
+create function pg_temp.shift(p_id uuid, p_starts_in interval, p_confirmed_ago interval) returns void
+language plpgsql as $$
+begin
+  alter table public.bookings disable trigger bookings_guard;
+  update public.bookings set starts_at = now() + p_starts_in, ends_at = now() + p_starts_in + interval '1 hour',
+    payout_due_at = now() + p_starts_in + interval '25 hours', confirmed_at = now() - p_confirmed_ago
+   where id = p_id;
+  alter table public.bookings enable trigger bookings_guard;
+end;
+$$;
+
+insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '10 days', 20) returning id as s4 \gset
+select tests.authenticate_as_service_role();
+create temp table cx (label text primary key, id uuid);
+insert into cx select l, (reserve_experience_booking(:'s4', :'cust', 1::smallint, 'Sam', 'sam@test.local', null, null, now() + interval '30 minutes')).id
+  from unnest(array['ahead', 'grace', 'started', 'provider', 'done', 'report_early', 'report', 'report_late']) l;
+update bookings set status = 'confirmed', status_changed_by = 'stripe' where id in (select id from cx);
+select id as c_ahead from cx where label = 'ahead' \gset
+select id as c_grace from cx where label = 'grace' \gset
+select id as c_started from cx where label = 'started' \gset
+select id as c_provider from cx where label = 'provider' \gset
+select id as c_done from cx where label = 'done' \gset
+select id as c_early from cx where label = 'report_early' \gset
+select id as c_report from cx where label = 'report' \gset
+select id as c_late from cx where label = 'report_late' \gset
+select tests.clear_authentication();
+select pg_temp.shift(:'c_grace', interval '30 hours', interval '0 minutes');   -- booked just now, inside 48 hours
+select pg_temp.shift(:'c_started', interval '-1 hour', interval '3 days');     -- started an hour ago
+select pg_temp.shift(:'c_done', interval '-26 hours', interval '3 days');      -- happened yesterday
+select pg_temp.shift(:'c_report', interval '-2 hours', interval '3 days');     -- started 2 hours ago
+select pg_temp.shift(:'c_late', interval '-3 days', interval '5 days');        -- payout time has passed
+select tests.authenticate_as_service_role();
+update bookings set status = 'completed', status_changed_by = 'system' where id = :'c_done';
+
+-- 22. 48 hours or more ahead: a customer gets a full refund, so cancelling
+-- without one is refused.
+select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'customer', status_changed_by = 'customer' where id = %L $$, :'c_ahead'),
+  '23514', 'This cancellation gets a full refund. Refund it before cancelling.', '22a. a customer cancelling 48 hours ahead must be refunded in full');
+select lives_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'customer', refunded_cents = total_cents, status_changed_by = 'customer' where id = %L $$, :'c_ahead'),
+  '22b. ...and with the full refund, it''s cancelled');
+
+-- 23. The grace period: inside 48 hours, but within an hour of booking.
+select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'customer', status_changed_by = 'customer' where id = %L $$, :'c_grace'),
+  '23514', 'This cancellation gets a full refund. Refund it before cancelling.', '23a. within an hour of booking, a late cancellation is still refunded in full');
+select lives_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'customer', refunded_cents = total_cents, status_changed_by = 'customer' where id = %L $$, :'c_grace'),
+  '23b. ...and with the refund, it''s cancelled');
+
+-- 24. Once it has started, only lokl can cancel.
+select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'customer', refunded_cents = total_cents, status_changed_by = 'customer' where id = %L $$, :'c_started'),
+  '23514', 'This booking has started, so it can''t be cancelled.', '24a. a customer can''t cancel a booking that has started');
+select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'provider', cancel_reason = 'Running late, sorry.', refunded_cents = total_cents, status_changed_by = 'provider' where id = %L $$, :'c_started'),
+  '23514', 'This booking has started, so it can''t be cancelled.', '24b. nor can the provider');
+select lives_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'admin', refunded_cents = total_cents, status_changed_by = 'admin' where id = %L $$, :'c_started'),
+  '24c. lokl (the admin) can, with a full refund');
+
+-- 25. A provider says why, and always refunds in full.
+select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'provider', refunded_cents = total_cents, status_changed_by = 'provider' where id = %L $$, :'c_provider'),
+  '23514', 'Say why you''re cancelling. The customer sees it.', '25a. a provider must give a reason');
+select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'provider', cancel_reason = 'I''m unwell that day.', status_changed_by = 'provider' where id = %L $$, :'c_provider'),
+  '23514', 'This cancellation gets a full refund. Refund it before cancelling.', '25b. a provider''s cancellation is always refunded in full');
+select lives_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'provider', cancel_reason = 'I''m unwell that day.', refunded_cents = total_cents, status_changed_by = 'provider' where id = %L $$, :'c_provider'),
+  '25c. with a reason and a full refund, it''s cancelled');
+
+-- 26. A booking that has happened is only cancelled by lokl.
+select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'customer', status_changed_by = 'customer' where id = %L $$, :'c_done'),
+  '23514', 'This booking has already happened, so only lokl can cancel it.', '26. a customer can''t cancel a booking that has happened');
+
+-- ---------------------------------------------------------------------------
+-- "THE PROVIDER DIDN'T SHOW UP"
+-- ---------------------------------------------------------------------------
+
+-- 27. From the start until the payout, once, with a note.
+select throws_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_early'),
+  '23514', 'A problem can be reported from the start of a booking until its payout.', '27a. a problem can''t be reported before the booking starts');
+select throws_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Nope' where id = %L $$, :'c_report'),
+  '23514', 'Say what happened, in a sentence or two.', '27b. the report needs a note');
+select lives_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_report'),
+  '27c. after the start, the customer''s report is recorded');
+select is((select count(*)::int from notifications where booking_id = :'c_report' and kind = 'booking_problem_reported'), 1,
+  '27d. the provider is told a problem was reported');
+select throws_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Still nobody there, again.' where id = %L $$, :'c_report'),
+  '23514', 'A problem has already been reported on this booking.', '27e. a problem is reported once');
+select throws_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_late'),
+  '23514', 'A problem can be reported from the start of a booking until its payout.', '27f. not after the payout time');
 
 -- ---------------------------------------------------------------------------
 -- SESSIONS WITH BOOKINGS

@@ -13,6 +13,7 @@
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { abandonCheckout } from "./bookings";
+import { refundInFull } from "./bookingCancellations";
 
 export const JOB_NAMES = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out"] as const;
 export type JobName = (typeof JOB_NAMES)[number];
@@ -146,7 +147,7 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
   const { data, error } = await q.limit(500);
   if (error) throw new Error(error.message);
   const rows = ((data ?? []) as unknown as OpenBooking[]).filter((b) => unavailableBecause(b));
-  return each(result("withdraw-unavailable"), rows, async (b) => {
+  const r = await each(result("withdraw-unavailable"), rows, async (b) => {
     const why = unavailableBecause(b)!;
     if (b.status === "pending_payment") {
       if (!b.stripe_checkout_session_id) {
@@ -162,6 +163,29 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
       ? `declined, hold released: ${why}`
       : null;
   });
+
+  // Confirmed bookings left on a cancelled session (the session's
+  // cancellation stopped partway): refund and cancel them now.
+  let left = db
+    .from("bookings")
+    .select("id, kind, status, session_id, starts_at, confirmed_at, total_cents, refunded_cents, stripe_payment_intent_id, session:experience_sessions!inner(status)")
+    .eq("status", "confirmed")
+    .eq("session.status", "cancelled");
+  if (opts.bookingId) left = left.eq("id", opts.bookingId);
+  const { data: leftRows, error: leftError } = await left.limit(200);
+  if (leftError) throw new Error(leftError.message);
+  const extra = result("withdraw-unavailable");
+  await each(extra, (leftRows ?? []) as any[], async (b) => {
+    const refunded = await refundInFull(stripe, b);
+    return (await move(db, b.id, "confirmed", {
+      status: "cancelled", cancelled_by: "system", cancel_reason: "The session was cancelled.", status_changed_by: "system",
+      refunded_cents: refunded, refunded_at: new Date().toISOString(),
+    })) ? "cancelled with its session, refunded in full" : null;
+  });
+  r.checked += extra.checked;
+  r.done.push(...extra.done);
+  r.failed.push(...extra.failed);
+  return r;
 }
 
 // ---------------------------------------------------------------------------

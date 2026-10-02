@@ -44,3 +44,49 @@ export const experienceBookingRequestSchema = z.object({
   notes,
 });
 export type ExperienceBookingRequest = z.infer<typeof experienceBookingRequestSchema>;
+
+// ---------------------------------------------------------------------------
+// The cancellation policy (decision 5, with the 1-hour grace period decided
+// 2026-10-02). One function, so what a customer is told before cancelling is
+// exactly what the server does; bookings_guard enforces the same rules.
+// ---------------------------------------------------------------------------
+
+export const FREE_CANCEL_BEFORE_MS = 48 * 60 * 60 * 1000;
+export const GRACE_AFTER_BOOKING_MS = 60 * 60 * 1000;
+
+export type CustomerCancelOutcome =
+  /** A Service request not yet accepted: the hold is released, nothing was charged. */
+  | { kind: "release" }
+  /** 48 hours or more ahead, or within the hour after booking: everything back. */
+  | { kind: "full_refund"; reason: "ahead" | "grace"; graceEndsAt?: string }
+  /** Within 48 hours, after the grace hour: no refund. */
+  | { kind: "no_refund" }
+  /** Started, already over, or not cancellable. */
+  | { kind: "not_allowed"; why: string };
+
+export function customerCancelOutcome(
+  b: { status: string; starts_at: string | null; confirmed_at: string | null },
+  now = Date.now(),
+): CustomerCancelOutcome {
+  if (b.status === "requested") return { kind: "release" };
+  if (b.status !== "confirmed" || !b.starts_at) return { kind: "not_allowed", why: "This booking can't be cancelled." };
+  const start = Date.parse(b.starts_at);
+  if (now >= start) return { kind: "not_allowed", why: "This booking has started, so it can't be cancelled." };
+  if (now <= start - FREE_CANCEL_BEFORE_MS) return { kind: "full_refund", reason: "ahead" };
+  const graceEnds = b.confirmed_at ? Date.parse(b.confirmed_at) + GRACE_AFTER_BOOKING_MS : 0;
+  if (now <= graceEnds) return { kind: "full_refund", reason: "grace", graceEndsAt: new Date(graceEnds).toISOString() };
+  return { kind: "no_refund" };
+}
+
+/** When "The provider didn't show up" can be reported: from the start until the payout. */
+export function canReportProblem(
+  b: { status: string; starts_at: string | null; payout_due_at: string | null; problem_reported_at: string | null },
+  now = Date.now(),
+) {
+  return (
+    (b.status === "confirmed" || b.status === "completed") &&
+    !b.problem_reported_at &&
+    !!b.starts_at && now >= Date.parse(b.starts_at) &&
+    !!b.payout_due_at && now < Date.parse(b.payout_due_at)
+  );
+}

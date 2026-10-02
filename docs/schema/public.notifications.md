@@ -18,13 +18,13 @@ Things that happened to a provider's listings because of an admin action. Writte
 
 ## Constraints
 
-| Name                           | Type        | Definition                                                                                                                                                                                                               |
-| ------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| notifications_kind_check       | CHECK       | CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text]))) |
-| notifications_provider_id_fkey | FOREIGN KEY | FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT                                                                                                                                                    |
-| notifications_listing_id_fkey  | FOREIGN KEY | FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE                                                                                                                                                       |
-| notifications_pkey             | PRIMARY KEY | PRIMARY KEY (id)                                                                                                                                                                                                         |
-| notifications_booking_id_fkey  | FOREIGN KEY | FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT                                                                                                                                                      |
+| Name                           | Type        | Definition                                                                                                                                                                                                                                                 |
+| ------------------------------ | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| notifications_kind_check       | CHECK       | CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text, 'booking_problem_reported'::text]))) |
+| notifications_provider_id_fkey | FOREIGN KEY | FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT                                                                                                                                                                                      |
+| notifications_listing_id_fkey  | FOREIGN KEY | FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE                                                                                                                                                                                         |
+| notifications_pkey             | PRIMARY KEY | PRIMARY KEY (id)                                                                                                                                                                                                                                           |
+| notifications_booking_id_fkey  | FOREIGN KEY | FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT                                                                                                                                                                                        |
 
 ## Indexes
 

@@ -287,7 +287,7 @@ Templates live in the website as small functions (subject, plain text, simple HT
   - Not signed in: "Sign in to book", which comes back to the same listing afterwards.
 - **After Checkout:** a confirmation page for each kind. Services: "Request sent. You'll hear back by <time>. Your card is on hold, not charged." Experiences: "You're booked."
 - **My bookings** (`/account/bookings`, any signed-in user): upcoming and past, each with its status in words, and a detail page.
-  - **Details:** date and time, price, the exact address once confirmed, the notes, and "Cancel booking", with the refund outcome stated before confirming. After the booking time and before the payout: "The provider didn't show up", which holds the payout for the admin to refund (answer 7).
+  - **Details:** date and time, price, the exact address once confirmed, the notes, and "Cancel booking", with the refund outcome stated before confirming. A full refund also applies within 1 hour of the booking being confirmed, as long as it hasn't started (the grace period, decided 2026-10-02). After the booking time and before the payout: "The provider didn't show up", which holds the payout for the admin to refund (answer 7).
 
 ### Provider
 

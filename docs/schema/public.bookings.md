@@ -116,12 +116,13 @@ A customer's booking of a Service (a request the provider accepts) or an Experie
 
 ## Triggers
 
-| Name                     | Definition                                                                                                                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| bookings_guard           | CREATE TRIGGER bookings_guard BEFORE INSERT OR UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_guard()                                                                    |
-| bookings_log_status      | CREATE TRIGGER bookings_log_status AFTER INSERT OR UPDATE OF status ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_log_status()                                                 |
-| bookings_notify_provider | CREATE TRIGGER bookings_notify_provider AFTER UPDATE OF status ON public.bookings FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION bookings_notify_provider() |
-| bookings_set_updated_at  | CREATE TRIGGER bookings_set_updated_at BEFORE UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                                                     |
+| Name                     | Definition                                                                                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| bookings_guard           | CREATE TRIGGER bookings_guard BEFORE INSERT OR UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_guard()                                                                                                                    |
+| bookings_log_status      | CREATE TRIGGER bookings_log_status AFTER INSERT OR UPDATE OF status ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_log_status()                                                                                                 |
+| bookings_notify_problem  | CREATE TRIGGER bookings_notify_problem AFTER UPDATE OF problem_reported_at ON public.bookings FOR EACH ROW WHEN (((old.problem_reported_at IS NULL) AND (new.problem_reported_at IS NOT NULL))) EXECUTE FUNCTION bookings_notify_problem() |
+| bookings_notify_provider | CREATE TRIGGER bookings_notify_provider AFTER UPDATE OF status ON public.bookings FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION bookings_notify_provider()                                                 |
+| bookings_set_updated_at  | CREATE TRIGGER bookings_set_updated_at BEFORE UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                                                                                                     |
 
 ## Relations
 

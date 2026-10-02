@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { z } from "zod";
+import { canReportProblem, customerCancelOutcome } from "@repo/types";
 // One of the customer's bookings, and the page Stripe Checkout returns to
 // (?checkout=done). The webhook may not have arrived yet, so the page asks
 // the server to sync the booking with Stripe until it settles.
@@ -19,7 +21,11 @@ interface Detail {
   customer_notes: string | null;
   respond_by: string | null;
   cancelled_by: string | null;
+  cancel_reason: string | null;
   status_changed_by: string;
+  confirmed_at: string | null;
+  payout_due_at: string | null;
+  problem_reported_at: string | null;
   listing: { title: string; slug: string; kind: string; locationMode: string | null; isLive: boolean; market: string; timezone: string } | null;
   listingAddress: Address | null;
   givenAddress: Address | null;
@@ -73,10 +79,74 @@ const summary = computed(() => {
       ? "This listing isn't available any more, so your request was cancelled. The hold on your card was released, so nothing was charged."
       : "The provider couldn't take this one. The hold on your card was released, so nothing was charged.";
     case "expired": return s.kind === "service" && s.preferred_times ? "This request didn't go through, so nothing was charged." : "This booking didn't go through, so nothing was charged.";
-    case "cancelled": return s.refunded_cents > 0 ? `Cancelled. ${money(s.refunded_cents)} was refunded.` : "Cancelled.";
+    case "cancelled": {
+      const refund = s.refunded_cents > 0 ? ` ${money(s.refunded_cents)} was refunded to your card.` : s.confirmed_at ? " There was no refund." : " Nothing was charged.";
+      if (s.cancelled_by === "provider") return `The provider cancelled: “${s.cancel_reason}”.${refund}`;
+      if (s.cancelled_by === "customer") return `You cancelled this booking.${refund}`;
+      return `This booking was cancelled.${refund}`;
+    }
     default: return "This booking has happened.";
   }
 });
+// Cancelling: the outcome is stated before confirming (customerCancelOutcome
+// in @repo/types is the policy the server applies).
+const outcome = computed(() => (b.value ? customerCancelOutcome(b.value) : null));
+const canCancel = computed(() => !!outcome.value && outcome.value.kind !== "not_allowed");
+const cancelText = computed(() => {
+  const o = outcome.value;
+  if (!o || !b.value) return "";
+  switch (o.kind) {
+    case "release": return "The hold on your card is released, so you won't be charged.";
+    case "full_refund": return o.reason === "grace"
+      ? `You booked less than an hour ago, so you get a full refund of ${money(b.value.total_cents)}. This is free until ${at(o.graceEndsAt!)}.`
+      : `It's more than 48 hours before the start, so you get a full refund of ${money(b.value.total_cents)}.`;
+    case "no_refund": return `It's less than 48 hours before the start, so there's no refund. You've paid ${money(b.value.total_cents)}.`;
+    default: return "";
+  }
+});
+const confirmCancel = ref(false);
+const busy = ref(false);
+const problem = ref("");
+async function cancelBooking() {
+  busy.value = true;
+  problem.value = "";
+  try {
+    await $fetch(`/api/bookings/${id}/cancel`, { method: "POST", body: {} });
+    useSonner.success("Your booking is cancelled.");
+  } catch (e) {
+    problem.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+  } finally {
+    busy.value = false;
+    confirmCancel.value = false;
+    await refresh();
+  }
+}
+
+// "The provider didn't show up": from the start until the payout.
+const canReport = computed(() => !!b.value && canReportProblem(b.value));
+const reportOpen = ref(false);
+const reportError = ref("");
+const { handleSubmit: handleReport } = useForm<{ note: string }>({
+  validationSchema: zodSchema(z.object({
+    note: z.string().trim().min(10, "Say what happened, in a sentence or two.").max(1000, "Keep it under 1,000 characters."),
+  })),
+  initialValues: { note: "" },
+});
+const sendReport = handleReport(async (v) => {
+  busy.value = true;
+  reportError.value = "";
+  try {
+    await $fetch(`/api/bookings/${id}/report-problem`, { method: "POST", body: { note: v.note.trim() } });
+    reportOpen.value = false;
+    useSonner.success("Thanks. We've told lokl.");
+  } catch (e) {
+    reportError.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+  } finally {
+    busy.value = false;
+    await refresh();
+  }
+});
+
 const address = computed(() => b.value?.listing?.locationMode === "customer_location" ? b.value.givenAddress : b.value?.listingAddress);
 </script>
 
@@ -89,6 +159,10 @@ const address = computed(() => b.value?.listing?.locationMode === "customer_loca
     </div>
 
     <p class="mt-4" role="status" aria-live="polite">{{ summary }}</p>
+    <p v-if="b.problem_reported_at" class="mt-3 text-sm">
+      You told us the provider didn't show up. We're looking into it and will be in touch by email.
+    </p>
+    <p v-if="problem" class="mt-3 text-sm text-destructive" role="alert">{{ problem }}</p>
 
     <dl class="mt-8 space-y-6">
       <div v-if="b.starts_at">
@@ -136,9 +210,45 @@ const address = computed(() => b.value?.listing?.locationMode === "customer_loca
       </div>
     </dl>
 
+    <div v-if="canCancel || canReport" class="mt-8 flex flex-wrap gap-3">
+      <UiButton v-if="canCancel" variant="outline" :disabled="busy" @click="confirmCancel = true">
+        {{ b.status === "requested" ? "Cancel request" : "Cancel booking" }}
+      </UiButton>
+      <UiButton v-if="canReport" variant="outline" :disabled="busy" @click="reportOpen = true">The provider didn't show up</UiButton>
+    </div>
+
     <div class="border-border mt-8 border-t pt-6">
       <CancellationPolicy :kind="b.kind" heading />
     </div>
+
+    <UiAlertDialog v-model:open="confirmCancel" :title="b.status === 'requested' ? 'Cancel this request?' : 'Cancel this booking?'" :description="cancelText">
+      <template #footer>
+        <UiAlertDialogFooter>
+          <UiAlertDialogCancel text="Keep it" />
+          <UiAlertDialogAction :text="busy ? 'Cancelling…' : 'Cancel it'" variant="destructive" :disabled="busy" @click.prevent="cancelBooking" />
+        </UiAlertDialogFooter>
+      </template>
+    </UiAlertDialog>
+
+    <UiDialog v-model:open="reportOpen">
+      <UiDialogContent>
+        <UiDialogHeader>
+          <UiDialogTitle>The provider didn't show up</UiDialogTitle>
+          <UiDialogDescription>
+            Tell us what happened. Only lokl sees this. We hold the provider's payment while we look into it, and
+            we'll be in touch by email.
+          </UiDialogDescription>
+        </UiDialogHeader>
+        <form class="space-y-3" novalidate @submit="sendReport">
+          <UiVeeTextarea name="note" label="What happened?" required :rows="4" maxlength="1000" />
+          <p v-if="reportError" class="text-destructive text-sm" role="alert">{{ reportError }}</p>
+          <UiDialogFooter>
+            <UiButton type="button" variant="outline" @click="reportOpen = false">Not now</UiButton>
+            <UiButton type="submit" :disabled="busy">{{ busy ? "Sending…" : "Send to lokl" }}</UiButton>
+          </UiDialogFooter>
+        </form>
+      </UiDialogContent>
+    </UiDialog>
     <p v-if="listingPath && b.listing?.isLive" class="mt-6 text-sm">
       <NuxtLink :to="listingPath" class="underline underline-offset-4">See the listing</NuxtLink>
     </p>

@@ -165,8 +165,14 @@ Each step depends on the ones before it.
      24 hours after the end, with holds for the admin), dispute webhooks,
      `npm run job`. Built 2026-10-02; migration `booking_payouts` waiting
      for `db:push`. The hosted scheduler stays off (launch prep).
-   - [ ] Part 6 cancellations and refunds, part 7 emails, part 8 admin
-     (including clearing payout holds).
+   - [ ] Part 6: cancellations and refunds. Customers cancel by the policy
+     (free for requests; full refund 48 hours ahead or within 1 hour of
+     booking; none after), providers cancel a booking or a whole session
+     with a reason (full refunds), and "The provider didn't show up" holds
+     the payout. Built 2026-10-02; migration `booking_cancellations`
+     waiting for `db:push`.
+   - [ ] Part 7 emails, part 8 admin (including clearing payout holds and
+     acting on no-show reports).
 5. **Booking management.** Provider and customer booking views, cancellations,
    refunds, payout history; admin Bookings & payouts page.
 6. **Admin actions.** Suspend or reinstate providers, approve or reject
@@ -284,6 +290,7 @@ tests, run through `db:test` before `db:push`.
 - Provider profile pages ("More from this host").
 - Area pages such as `/atlanta/decatur`, once areas have enough listings to stand as pages (docs/design/browse-and-listing-pages.md).
 - Optional note to the customer when declining a request (stored on the booking, sent in the decline email).
+- Track provider cancellations and show patterns to the admin.
 
 ## Loose ends
 
