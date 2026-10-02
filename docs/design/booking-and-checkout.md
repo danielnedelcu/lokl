@@ -212,6 +212,8 @@ Three timed jobs, all small, idempotent (safe to run twice) and safe to miss onc
 
 **Not enabled until production hosting exists** (decision 16): there's no public address for the scheduler to call, and nothing should run against the hosted database on a timer before then. In development, jobs run with `npm run job -- <name>`, which calls the route on `localhost:3100` with the secret from the website's `.env`. Enabling the scheduler goes in launch prep.
 
+**As built (part 5, 2026-10-02).** `pay-out` first marks bookings that have ended `completed`, then pays those due. A payout is held, with `payout_hold` saying why, for a reported no-show, an open dispute, a refund on record, a suspended provider, an account that can't receive transfers, or a transfer Stripe refused; the job never clears a hold (the admin does, part 8), and the database refuses `paid_out` without a transfer, with a hold, or with a dispute open. Before transferring, the job re-reads the charge and the provider's account from Stripe, so a missed webhook can't let a disputed or refunded booking through, and it looks for an earlier transfer in the booking's transfer group, so a run that transferred but didn't record it never pays twice. Disputes are recorded from `charge.dispute.*` webhooks. For walkthroughs, development builds accept `npm run job -- pay-out --booking <id> --as-of due` (or a time), which runs the job for that one booking as if at a later time.
+
 ## Admin actions on the website
 
 The admin app has no Stripe key (CLAUDE.md), so refunds and cancellations call the website's `/api/admin/...` routes. The two apps run on different addresses, so this is a cross-site request, and it's designed deliberately (decision 14):

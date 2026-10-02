@@ -2,7 +2,7 @@
 -- Who can read them is in bookings_access.test.sql.
 begin;
 \ir _helpers/users.psql
-select plan(44);
+select plan(51);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -174,7 +174,7 @@ select is(
 -- a provider who cancels doesn't.
 update bookings set status = 'confirmed', status_changed_by = 'stripe' where id = :'b1';
 update bookings set status = 'cancelled', cancelled_by = 'customer', status_changed_by = 'customer' where id = :'b1';
-select lives_ok(format($$ update bookings set status = 'paid_out', status_changed_by = 'system' where id = %L $$, :'b1'),
+select lives_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_13a', status_changed_by = 'system' where id = %L $$, :'b1'),
   '13a. a late customer cancellation with no refund can still be paid out');
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id = :'b3';
 update bookings set status = 'confirmed', starts_at = :'t1', status_changed_by = 'provider' where id = :'b3';
@@ -189,6 +189,43 @@ update bookings set status = 'completed', status_changed_by = 'system' where id 
 update bookings set problem_reported_at = now(), problem_note = 'Nobody was there.' where id = :'b2';
 select throws_ok(format($$ update bookings set status = 'paid_out', status_changed_by = 'system' where id = %L $$, :'b2'),
   '23514', 'A reported problem holds the payout.', '14. a reported no-show holds the payout');
+
+-- ---------------------------------------------------------------------------
+-- PAYOUTS: only with a transfer, no hold and no open dispute
+-- ---------------------------------------------------------------------------
+
+-- A confirmed, completed Experience booking on its own session, ready to pay out.
+insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '8 days', 5) returning id as s3 \gset
+select (reserve_experience_booking(:'s3', :'cust', 1::smallint, 'Sam', 'sam@test.local', null, null, now() + interval '30 minutes')).id as b7 \gset
+update bookings set status = 'confirmed', status_changed_by = 'stripe' where id = :'b7';
+update bookings set status = 'completed', status_changed_by = 'system' where id = :'b7';
+
+-- 18. Nothing is paid out without its transfer recorded.
+select throws_ok(format($$ update bookings set status = 'paid_out', status_changed_by = 'system' where id = %L $$, :'b7'),
+  '23514', 'A booking is paid out only with its transfer recorded.', '18a. no transfer recorded, no payout');
+
+-- 19. A hold stops the payout, and must say when it was set.
+select throws_ok(format($$ update bookings set payout_hold = 'account_cannot_receive' where id = %L $$, :'b7'),
+  '23514', NULL, '19a. a hold without a time is refused');
+update bookings set payout_hold = 'account_cannot_receive', payout_held_at = now() where id = :'b7';
+select throws_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_19', status_changed_by = 'system' where id = %L $$, :'b7'),
+  '23514', 'This payout is on hold for lokl to review.', '19b. a held payout can''t be marked paid');
+select throws_ok(format($$ update bookings set payout_hold = 'not_a_reason', payout_held_at = now() where id = %L $$, :'b7'),
+  '23514', NULL, '19c. only the listed hold reasons are allowed');
+
+-- 20. An open dispute stops the payout; a closed one doesn't.
+update bookings set payout_hold = null, payout_held_at = null, disputed_at = now(), stripe_dispute_id = 'dp_test' where id = :'b7';
+select throws_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_20', status_changed_by = 'system' where id = %L $$, :'b7'),
+  '23514', 'An open dispute holds the payout.', '20a. an open dispute holds the payout');
+update bookings set dispute_closed_at = now(), dispute_outcome = 'won' where id = :'b7';
+select lives_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_20', status_changed_by = 'system' where id = %L $$, :'b7'),
+  '20b. once the dispute closes in lokl''s favour, with a transfer, it can be paid out');
+
+-- 21. Signed-in users can't set or clear a hold (the server does).
+select tests.authenticate_as(:'owner');
+select throws_ok(format($$ update bookings set payout_hold = null, payout_held_at = null where id = %L $$, :'b2'),
+  '42501', NULL, '21. a provider can''t clear a payout hold');
+select tests.authenticate_as_service_role();
 
 -- ---------------------------------------------------------------------------
 -- SESSIONS WITH BOOKINGS

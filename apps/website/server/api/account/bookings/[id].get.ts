@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const db = await serverSupabaseClient(event);
   const { data: b } = await db
     .from("bookings")
-    .select("id, kind, status, listing_id, starts_at, ends_at, preferred_times, party_size, unit_price_cents, total_cents, refunded_cents, customer_name, customer_notes, respond_by, confirmed_at, cancelled_at, cancelled_by, created_at")
+    .select("id, kind, status, listing_id, starts_at, ends_at, preferred_times, party_size, unit_price_cents, total_cents, refunded_cents, customer_name, customer_notes, respond_by, confirmed_at, cancelled_at, cancelled_by, status_changed_by, created_at")
     .eq("id", id).maybeSingle();
   if (!b) throw createError({ statusCode: 404, statusMessage: "We couldn't find that booking." });
   const [listingAddress, givenAddress] = await Promise.all([

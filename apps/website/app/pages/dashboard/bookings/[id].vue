@@ -13,6 +13,7 @@ interface Detail extends ProviderBooking {
   refunded_cents: number;
   confirmed_at: string | null;
   payout_due_at: string | null;
+  payout_hold: string | null;
   events: { to_status: string; actor: string; created_at: string }[];
   /** For each offered time, the confirmed bookings it overlaps. */
   clashes: { id: string; starts_at: string; ends_at: string | null; title: string }[][];
@@ -78,7 +79,9 @@ const summary = computed(() => {
       ? "This request ended and the customer was refunded."
       : "This request ended without an answer, or the customer's card couldn't be charged. The customer wasn't charged.";
     case "cancelled": return s.cancelled_by === "provider" ? "You cancelled this booking." : "This booking was cancelled.";
-    case "completed": return "This booking has happened. Your payout is on its way.";
+    case "completed": return s.payout_hold
+      ? "This booking has happened. lokl is reviewing it before paying you, and will be in touch."
+      : `This booking has happened. You'll be paid ${money(s.provider_amount_cents)} after ${at(s.payout_due_at!)}.`;
     case "paid_out": return "This booking has happened and you've been paid.";
     default: return "";
   }

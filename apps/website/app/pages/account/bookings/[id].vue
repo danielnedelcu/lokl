@@ -19,6 +19,7 @@ interface Detail {
   customer_notes: string | null;
   respond_by: string | null;
   cancelled_by: string | null;
+  status_changed_by: string;
   listing: { title: string; slug: string; kind: string; locationMode: string | null; isLive: boolean; market: string; timezone: string } | null;
   listingAddress: Address | null;
   givenAddress: Address | null;
@@ -68,7 +69,9 @@ const summary = computed(() => {
     case "pending_payment": return confirming.value ? "Payment received. Confirming your booking…" : "This booking isn't paid yet.";
     case "requested": return `We've sent your request. The provider has until ${s.respond_by ? at(s.respond_by) : "48 hours from now"} to accept one of your times. Your card is held for ${money(s.total_cents)}, not charged.`;
     case "confirmed": return s.kind === "experience" ? `You're booked. You paid ${money(s.total_cents)}.` : `Accepted. You were charged ${money(s.total_cents)}.`;
-    case "declined": return "The provider couldn't take this one. The hold on your card was released, so nothing was charged.";
+    case "declined": return s.status_changed_by === "system"
+      ? "This listing isn't available any more, so your request was cancelled. The hold on your card was released, so nothing was charged."
+      : "The provider couldn't take this one. The hold on your card was released, so nothing was charged.";
     case "expired": return s.kind === "service" && s.preferred_times ? "This request didn't go through, so nothing was charged." : "This booking didn't go through, so nothing was charged.";
     case "cancelled": return s.refunded_cents > 0 ? `Cancelled. ${money(s.refunded_cents)} was refunded.` : "Cancelled.";
     default: return "This booking has happened.";

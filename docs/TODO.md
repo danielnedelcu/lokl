@@ -160,8 +160,13 @@ Each step depends on the ones before it.
    - [x] Type errors: `vue-tsc` added 2026-10-02 (`npm run typecheck`, both
      apps). The first run found 196 (147 website, 49 admin); all fixed the
      same day, and typecheck now has to pass before committing (CLAUDE.md).
-   - [ ] Part 5 jobs, part 6 cancellations and refunds, part 7 emails, part 8
-     admin.
+   - [ ] Part 5: the timed jobs (expire requests, release reservations,
+     withdraw when a listing comes down or a provider is suspended, pay out
+     24 hours after the end, with holds for the admin), dispute webhooks,
+     `npm run job`. Built 2026-10-02; migration `booking_payouts` waiting
+     for `db:push`. The hosted scheduler stays off (launch prep).
+   - [ ] Part 6 cancellations and refunds, part 7 emails, part 8 admin
+     (including clearing payout holds).
 5. **Booking management.** Provider and customer booking views, cancellations,
    refunds, payout history; admin Bookings & payouts page.
 6. **Admin actions.** Suspend or reinstate providers, approve or reject

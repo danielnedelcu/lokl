@@ -5,6 +5,9 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-02 | A suspended provider's payouts are held for lokl's review, as well as their open requests being withdrawn | Suspension can mean fraud; money that has left for a connected account is hard to get back |
+| 2026-10-02 | A held payout stays held until the admin clears it, even when the reason goes away (a dispute won, an account fixed) | A person looks at every held payout once; the job never decides on its own that a problem is over |
+| 2026-10-02 | Jobs can run "as of" a later time for one booking, in development builds only (`npm run job -- pay-out --booking <id> --as-of due`) | Walkthroughs of payouts and expiries without waiting a day, and without a way to move real bookings' times |
 | 2026-10-02 | A Service request shows the provider the customer's city and zip code; the street address, email and phone stay hidden until they accept. The city and zip are copied onto the booking when the request is made (`bookings.customer_city`, `customer_postal_code`), not shared through a new read rule on `booking_addresses` | The provider can judge the trip before saying yes, without seeing where the customer lives. Copying two fields keeps the address table's rule simple: provider access only once accepted |
 | 2026-10-02 | When an offered time overlaps one of the provider's confirmed bookings, the request page warns; it never blocks accepting | Providers know their own schedule (travel time, a booking that can share the slot); lokl doesn't hold their calendar |
 | 2026-10-02 | Accepting a request is refused after its answer-by time or for a time that has passed, in the database (`bookings_guard`) as well as the route; if the booking changes while the card is being charged, the charge is refunded | A late or stale accept must never charge a customer for a booking that isn't happening |

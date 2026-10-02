@@ -2166,6 +2166,40 @@
           "type": "text",
           "nullable": true,
           "comment": "\"I come to you\" Services: the customer's zip code, copied like customer_city. The street address stays in booking_addresses until the provider accepts."
+        },
+        {
+          "name": "payout_hold",
+          "type": "text",
+          "nullable": true,
+          "comment": "Why this booking's payout is held for lokl to review: a reported no-show, an open dispute, a refund on record, a suspended provider, a provider account that can't receive transfers, or a refused transfer (details in payout_failure). Set by the pay-out job; cleared only by the admin."
+        },
+        {
+          "name": "payout_held_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When the payout was held."
+        },
+        {
+          "name": "stripe_dispute_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "disputed_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When the customer's bank opened a dispute (chargeback) on this booking's charge, from Stripe's webhook. Holds the payout while open."
+        },
+        {
+          "name": "dispute_closed_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When the dispute closed; dispute_outcome says how."
+        },
+        {
+          "name": "dispute_outcome",
+          "type": "text",
+          "nullable": true
         }
       ],
       "indexes": [
@@ -2257,6 +2291,16 @@
           "def": "CREATE INDEX bookings_reserved_until_idx ON public.bookings USING btree (reserved_until) WHERE (status = 'pending_payment'::text)",
           "table": "public.bookings",
           "columns": [
+            "reserved_until"
+          ]
+        },
+        {
+          "name": "bookings_open_idx",
+          "def": "CREATE INDEX bookings_open_idx ON public.bookings USING btree (status, respond_by, reserved_until) WHERE (status = ANY (ARRAY['pending_payment'::text, 'requested'::text]))",
+          "table": "public.bookings",
+          "columns": [
+            "status",
+            "respond_by",
             "reserved_until"
           ]
         }
@@ -2377,6 +2421,27 @@
           ]
         },
         {
+          "name": "bookings_dispute_order",
+          "type": "CHECK",
+          "def": "CHECK (((dispute_closed_at IS NULL) OR (disputed_at IS NOT NULL)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "dispute_closed_at",
+            "disputed_at"
+          ]
+        },
+        {
+          "name": "bookings_dispute_outcome_check",
+          "type": "CHECK",
+          "def": "CHECK ((dispute_outcome = ANY (ARRAY['won'::text, 'lost'::text, 'warning_closed'::text])))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "dispute_outcome"
+          ]
+        },
+        {
           "name": "bookings_experience_shape",
           "type": "CHECK",
           "def": "CHECK (((kind \u003c\u003e 'experience'::text) OR ((session_id IS NOT NULL) AND (preferred_times IS NULL))))",
@@ -2416,6 +2481,27 @@
           "referenced_table": "",
           "columns": [
             "payout_failure"
+          ]
+        },
+        {
+          "name": "bookings_payout_hold_check",
+          "type": "CHECK",
+          "def": "CHECK ((payout_hold = ANY (ARRAY['problem_reported'::text, 'dispute'::text, 'refunded'::text, 'provider_suspended'::text, 'account_cannot_receive'::text, 'transfer_failed'::text])))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "payout_hold"
+          ]
+        },
+        {
+          "name": "bookings_payout_hold_dated",
+          "type": "CHECK",
+          "def": "CHECK (((payout_hold IS NULL) = (payout_held_at IS NULL)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "payout_hold",
+            "payout_held_at"
           ]
         },
         {

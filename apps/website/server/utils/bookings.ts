@@ -271,8 +271,36 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
       return `refund recorded: ${refunded} cents`;
     }
 
+    // Disputes (chargebacks): recorded on the booking, and the payout held
+    // while one is open. Re-read from Stripe, so a late or repeated event
+    // can't reopen a closed dispute.
+    case "charge.dispute.created":
+    case "charge.dispute.updated":
+    case "charge.dispute.closed": {
+      const dispute = await stripe.disputes.retrieve((event.data.object as Stripe.Dispute).id);
+      const piId = typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
+      const booking = piId ? await bookingBy(db, "stripe_payment_intent_id", piId) : null;
+      if (!booking) return "ignored: no booking for this dispute";
+      const closed = ["won", "lost", "warning_closed"].includes(dispute.status);
+      const now = new Date().toISOString();
+      const update: Record<string, unknown> = {
+        stripe_dispute_id: dispute.id,
+        disputed_at: (booking.disputed_at as string | null) ?? new Date(dispute.created * 1000).toISOString(),
+        dispute_closed_at: closed ? ((booking.dispute_closed_at as string | null) ?? now) : null,
+        dispute_outcome: closed ? dispute.status : null,
+      };
+      // Not paid out yet: hold it. (Already paid out: the admin sees the
+      // dispute and decides whether to reverse the transfer, part 8.)
+      if (!closed && booking.status !== "paid_out" && !booking.payout_hold) {
+        Object.assign(update, { payout_hold: "dispute", payout_held_at: now });
+      }
+      const { error } = await db.from("bookings").update(update).eq("id", booking.id);
+      if (error) throw new Error(error.message);
+      return closed ? `dispute recorded as ${dispute.status}` : "dispute recorded, payout held";
+    }
+
     default:
-      // Disputes and transfer reversals come with the payout and admin parts.
+      // Transfer reversals come with the admin part.
       return `ignored: ${event.type} isn't handled yet`;
   }
 }

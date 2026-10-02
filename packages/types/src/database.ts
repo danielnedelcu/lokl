@@ -128,6 +128,9 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
+          dispute_closed_at: string | null
+          dispute_outcome: string | null
+          disputed_at: string | null
           ends_at: string | null
           id: string
           kind: string
@@ -136,6 +139,8 @@ export type Database = {
           payout_due_at: string | null
           payout_failed_at: string | null
           payout_failure: string | null
+          payout_held_at: string | null
+          payout_hold: string | null
           preferred_times: string[] | null
           problem_note: string | null
           problem_reported_at: string | null
@@ -151,6 +156,7 @@ export type Database = {
           status_changed_by: string
           stripe_charge_id: string | null
           stripe_checkout_session_id: string | null
+          stripe_dispute_id: string | null
           stripe_payment_intent_id: string | null
           stripe_transfer_id: string | null
           total_cents: number
@@ -171,6 +177,9 @@ export type Database = {
           customer_name: string
           customer_notes?: string | null
           customer_postal_code?: string | null
+          dispute_closed_at?: string | null
+          dispute_outcome?: string | null
+          disputed_at?: string | null
           ends_at?: string | null
           id?: string
           kind: string
@@ -179,6 +188,8 @@ export type Database = {
           payout_due_at?: string | null
           payout_failed_at?: string | null
           payout_failure?: string | null
+          payout_held_at?: string | null
+          payout_hold?: string | null
           preferred_times?: string[] | null
           problem_note?: string | null
           problem_reported_at?: string | null
@@ -194,6 +205,7 @@ export type Database = {
           status_changed_by?: string
           stripe_charge_id?: string | null
           stripe_checkout_session_id?: string | null
+          stripe_dispute_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_transfer_id?: string | null
           total_cents: number
@@ -214,6 +226,9 @@ export type Database = {
           customer_name?: string
           customer_notes?: string | null
           customer_postal_code?: string | null
+          dispute_closed_at?: string | null
+          dispute_outcome?: string | null
+          disputed_at?: string | null
           ends_at?: string | null
           id?: string
           kind?: string
@@ -222,6 +237,8 @@ export type Database = {
           payout_due_at?: string | null
           payout_failed_at?: string | null
           payout_failure?: string | null
+          payout_held_at?: string | null
+          payout_hold?: string | null
           preferred_times?: string[] | null
           problem_note?: string | null
           problem_reported_at?: string | null
@@ -237,6 +254,7 @@ export type Database = {
           status_changed_by?: string
           stripe_charge_id?: string | null
           stripe_checkout_session_id?: string | null
+          stripe_dispute_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_transfer_id?: string | null
           total_cents?: number
@@ -795,6 +813,9 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
+          dispute_closed_at: string | null
+          dispute_outcome: string | null
+          disputed_at: string | null
           ends_at: string | null
           id: string
           kind: string
@@ -803,6 +824,8 @@ export type Database = {
           payout_due_at: string | null
           payout_failed_at: string | null
           payout_failure: string | null
+          payout_held_at: string | null
+          payout_hold: string | null
           preferred_times: string[] | null
           problem_note: string | null
           problem_reported_at: string | null
@@ -818,6 +841,7 @@ export type Database = {
           status_changed_by: string
           stripe_charge_id: string | null
           stripe_checkout_session_id: string | null
+          stripe_dispute_id: string | null
           stripe_payment_intent_id: string | null
           stripe_transfer_id: string | null
           total_cents: number
@@ -870,6 +894,9 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
+          dispute_closed_at: string | null
+          dispute_outcome: string | null
+          disputed_at: string | null
           ends_at: string | null
           id: string
           kind: string
@@ -878,6 +905,8 @@ export type Database = {
           payout_due_at: string | null
           payout_failed_at: string | null
           payout_failure: string | null
+          payout_held_at: string | null
+          payout_hold: string | null
           preferred_times: string[] | null
           problem_note: string | null
           problem_reported_at: string | null
@@ -893,6 +922,7 @@ export type Database = {
           status_changed_by: string
           stripe_charge_id: string | null
           stripe_checkout_session_id: string | null
+          stripe_dispute_id: string | null
           stripe_payment_intent_id: string | null
           stripe_transfer_id: string | null
           total_cents: number

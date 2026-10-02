@@ -26,6 +26,9 @@ export default defineNuxtConfig({
     stripeSecretKey: "",
     stripeWebhookSecret: "",
     stripePaymentsWebhookSecret: "",
+    // NUXT_JOB_SECRET: the timed jobs' shared secret (/api/jobs/*). Empty
+    // means the job routes refuse every call.
+    jobSecret: "",
     public: {
       // NUXT_PUBLIC_STRIPE_KEY / NUXT_PUBLIC_SITE_URL
       stripeKey: "",
