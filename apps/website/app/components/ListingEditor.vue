@@ -432,7 +432,7 @@ const statusNote = computed(() => {
               </UiVeeSelect>
               <UiVeeInput name="title" label="Title" required :disabled="!editable" maxlength="100"
                 :placeholder="kind === 'service' ? 'e.g. Silk press and trim' : 'e.g. Sweet Auburn food walk'" />
-              <UiVeeTextarea name="description" label="Description" required rows="6" maxlength="5000"
+              <UiVeeTextarea name="description" label="Description" required :rows="6" maxlength="5000"
                 :disabled="!priceAndDescriptionEditable"
                 :hint="`What's included, what to expect, anything to bring. ${values.description?.length ?? 0} of 5,000 characters.`" />
             </UiCardContent>
@@ -511,7 +511,7 @@ const statusNote = computed(() => {
                     <UiVeeInput name="address.state" label="State" required maxlength="2" autocomplete="address-level1" />
                     <UiVeeInput name="address.postal_code" label="Zip code" required inputmode="numeric" autocomplete="postal-code" />
                   </div>
-                  <UiVeeTextarea name="address.instructions" label="Arrival notes (optional)" rows="2"
+                  <UiVeeTextarea name="address.instructions" label="Arrival notes (optional)" :rows="2"
                     hint='For example, "Side entrance, ring twice".' />
                 </fieldset>
               </template>

@@ -1,7 +1,9 @@
 // Admin screens show plain messages; the technical detail goes to the
 // browser console instead, where it's useful for debugging and isn't shown as
 // a sentence on screen. Returns the plain message, for alerts and toasts.
-export function reportError(message: string, error: unknown): string {
+// (Not named reportProblem: browsers have a global reportProblem(error), which
+// the type checker picked instead of this one.)
+export function reportProblem(message: string, error: unknown): string {
   console.error(`[admin] ${message}`, error);
   return message;
 }

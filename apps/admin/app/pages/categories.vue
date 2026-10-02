@@ -90,7 +90,7 @@ const save = handleSubmit(async (input) => {
     return;
   }
   if (error) {
-    useSonner.error(reportError("The category wasn't saved. Try again.", error));
+    useSonner.error(reportProblem("The category wasn't saved. Try again.", error));
     return;
   }
   useSonner.success(editing.value ? "Category saved." : "Category added.");
@@ -108,7 +108,7 @@ async function toggleActive(category: Category) {
   busy.value = true;
   const { error } = await supabase.from("categories").update({ active: !category.active }).eq("id", category.id);
   busy.value = false;
-  if (error) return useSonner.error(reportError("That didn't work. Try again.", error));
+  if (error) return useSonner.error(reportProblem("That didn't work. Try again.", error));
   useSonner.success(
     category.active
       ? `“${category.name}” is now inactive and hidden from the public site.`
@@ -133,7 +133,7 @@ async function askDeactivate(item: Category) {
     .eq("status", "live");
   if (error) {
     deactivateOpen.value = false;
-    return useSonner.error(reportError("Couldn't count its live listings. Try again.", error));
+    return useSonner.error(reportProblem("Couldn't count its live listings. Try again.", error));
   }
   liveCount.value = count ?? 0;
 }
@@ -148,12 +148,12 @@ async function move(kind: Kind, index: number, direction: -1 | 1) {
   try {
     await saveOrder(supabase, "categories", ofKind(kind), index, direction);
   } catch (e) {
-    useSonner.error(reportError("The new order wasn't saved. Try again.", e));
+    useSonner.error(reportProblem("The new order wasn't saved. Try again.", e));
   }
   busy.value = false;
   await refresh();
 }
-watch(error, (e) => e && reportError("Couldn't load categories", e), { immediate: true });
+watch(error, (e) => e && reportProblem("Couldn't load categories", e), { immediate: true });
 </script>
 
 <template>
@@ -272,7 +272,7 @@ watch(error, (e) => e && reportError("Couldn't load categories", e), { immediate
               name="description"
               label="Description"
               hint="Optional. Shown on the category page later. Up to 500 characters."
-              rows="3"
+              :rows="3"
             />
           </form>
         </template>

@@ -89,7 +89,7 @@ const saveCity = cityForm.handleSubmit(async (input) => {
     cityForm.setFieldError("slug", "Another market already uses this slug. Choose a different one.");
     return;
   }
-  if (error) return useSonner.error(reportError("The market wasn't saved. Try again.", error));
+  if (error) return useSonner.error(reportProblem("The market wasn't saved. Try again.", error));
   useSonner.success(editingCity.value ? "Market saved." : "Market added.");
   cityDialogOpen.value = false;
   await refresh();
@@ -99,7 +99,7 @@ async function toggleCity(city: City) {
   busy.value = true;
   const { error } = await supabase.from("cities").update({ active: !city.active }).eq("id", city.id);
   busy.value = false;
-  if (error) return useSonner.error(reportError("That didn't work. Try again.", error));
+  if (error) return useSonner.error(reportProblem("That didn't work. Try again.", error));
   useSonner.success(
     city.active
       ? `${city.name} is now inactive. It's hidden from the public site, and new providers can't choose it.`
@@ -123,7 +123,7 @@ async function askDeactivate(item: City) {
     .eq("status", "live");
   if (error) {
     deactivateOpen.value = false;
-    return useSonner.error(reportError("Couldn't count its live listings. Try again.", error));
+    return useSonner.error(reportProblem("Couldn't count its live listings. Try again.", error));
   }
   liveCount.value = count ?? 0;
 }
@@ -162,7 +162,7 @@ const saveArea = areaForm.handleSubmit(async (input) => {
     areaForm.setFieldError("name", `${selectedCity.value?.name} already has an area with this name.`);
     return;
   }
-  if (error) return useSonner.error(reportError("The area wasn't saved. Try again.", error));
+  if (error) return useSonner.error(reportProblem("The area wasn't saved. Try again.", error));
   useSonner.success(editingArea.value ? "Area saved." : "Area added.");
   areaDialogOpen.value = false;
   await refresh();
@@ -172,7 +172,7 @@ async function toggleArea(area: ServiceArea) {
   busy.value = true;
   const { error } = await supabase.from("service_areas").update({ active: !area.active }).eq("id", area.id);
   busy.value = false;
-  if (error) return useSonner.error(reportError("That didn't work. Try again.", error));
+  if (error) return useSonner.error(reportProblem("That didn't work. Try again.", error));
   useSonner.success(area.active ? `${area.name} is now inactive.` : `${area.name} is active again.`);
   await refresh();
 }
@@ -182,12 +182,12 @@ async function moveArea(index: number, direction: -1 | 1) {
   try {
     await saveOrder(supabase, "service_areas", areas.value, index, direction);
   } catch (e) {
-    useSonner.error(reportError("The new order wasn't saved. Try again.", e));
+    useSonner.error(reportProblem("The new order wasn't saved. Try again.", e));
   }
   busy.value = false;
   await refresh();
 }
-watch(error, (e) => e && reportError("Couldn't load markets", e), { immediate: true });
+watch(error, (e) => e && reportProblem("Couldn't load markets", e), { immediate: true });
 </script>
 
 <template>

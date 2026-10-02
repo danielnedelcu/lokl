@@ -30,7 +30,7 @@ const columns = [
   { accessorKey: "status", header: "Status" },
   { accessorKey: "created_at", header: "Joined" },
 ];
-watch(error, (e) => e && reportError("Couldn't load providers", e), { immediate: true });
+watch(error, (e) => e && reportProblem("Couldn't load providers", e), { immediate: true });
 </script>
 
 <template>

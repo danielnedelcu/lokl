@@ -151,7 +151,7 @@ async function run(action: Action, body?: ListingReasonInput) {
   } catch (e) {
     const err = e as { data?: { statusMessage?: string }; statusMessage?: string };
     // The routes' messages are written for the admin; anything else is logged.
-    useSonner.error(reportError(err.data?.statusMessage ?? "That didn't work. Try again, or check the server logs.", e));
+    useSonner.error(reportProblem(err.data?.statusMessage ?? "That didn't work. Try again, or check the server logs.", e));
   } finally {
     busy.value = false;
     await refresh();
@@ -160,7 +160,7 @@ async function run(action: Action, body?: ListingReasonInput) {
 
 const reasonForm = useForm<ListingReasonInput>({ validationSchema: zodSchema(listingReasonSchema) });
 const submitReason = reasonForm.handleSubmit((v) => run(pendingAction.value!, v));
-watch(error, (e) => e && reportError("Couldn't load this listing", e), { immediate: true });
+watch(error, (e) => e && reportProblem("Couldn't load this listing", e), { immediate: true });
 </script>
 
 <template>

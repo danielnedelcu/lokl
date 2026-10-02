@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { payoutSetupOf } from "@repo/types";
+import { payoutSetupOf, type Provider } from "@repo/types";
 
 definePageMeta({ layout: "dashboard" });
 
@@ -25,7 +25,8 @@ async function go(path: string) {
 // Coming back from Stripe: pull the latest status rather than waiting for the webhook.
 onMounted(async () => {
   if (route.query.stripe === "return" && provider.value?.stripe_account_id) {
-    provider.value = await $fetch("/api/provider/stripe/sync", { method: "POST" });
+    // Typed directly: inferring the route's return type exceeds the checker's depth.
+    provider.value = await $fetch<Provider>("/api/provider/stripe/sync", { method: "POST" });
   }
 });
 

@@ -24,7 +24,7 @@ const { data: rows, error, pending, refresh } = await useAsyncData("admin-review
 watchEffect(() => emit("count", rows.value?.length ?? 0));
 // New submissions arrive meanwhile: refresh when the tab is back in view.
 useLiveData({ refresh });
-watch(error, (e) => e && reportError("Couldn't load the review queue", e), { immediate: true });
+watch(error, (e) => e && reportProblem("Couldn't load the review queue", e), { immediate: true });
 </script>
 
 <template>

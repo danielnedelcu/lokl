@@ -4,7 +4,7 @@ export function useBookingCheckout() {
   const sending = ref(false);
   const problem = ref("");
 
-  async function start(path: "/api/bookings/service" | "/api/bookings/experience", body: unknown) {
+  async function start(path: "/api/bookings/service" | "/api/bookings/experience", body: Record<string, unknown>) {
     sending.value = true;
     problem.value = "";
     try {

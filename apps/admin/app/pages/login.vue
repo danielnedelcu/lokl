@@ -27,7 +27,7 @@ const signIn = handleSubmit(async ({ email }) => {
   if (error) {
     // Unknown addresses get an error too (shouldCreateUser: false), so this
     // doesn't say which it was.
-    errorMessage.value = reportError(
+    errorMessage.value = reportProblem(
       "We couldn't send a sign-in link. Check this is an admin's email address, or try again in a minute.",
       error,
     );

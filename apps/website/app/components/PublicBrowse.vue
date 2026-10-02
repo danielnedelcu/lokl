@@ -84,7 +84,7 @@ const withQuery = (extra: Record<string, string | undefined>) => ({
 });
 const pageLink = (n: number) => ({
   path: pagePath,
-  query: Object.fromEntries(Object.entries({ ...filters.value, page: n > 1 ? String(n) : undefined }).filter(([, v]) => v && v !== 1)),
+  query: Object.fromEntries(Object.entries({ ...filters.value, page: n > 1 ? String(n) : undefined }).filter(([, v]) => v)),
 });
 
 // SEO: category and unfiltered pages are indexed; filtered combinations and

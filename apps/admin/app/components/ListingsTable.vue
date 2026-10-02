@@ -73,7 +73,7 @@ const columns = [
   { accessorKey: "updated_at", header: "Last changed" },
 ];
 const plural = props.kind === "experience" ? "Experiences" : "Services";
-watch(error, (e) => e && reportError("Couldn't load listings", e), { immediate: true });
+watch(error, (e) => e && reportProblem("Couldn't load listings", e), { immediate: true });
 </script>
 
 <template>
