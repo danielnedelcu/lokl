@@ -70,3 +70,26 @@ export function timeZoneLabel(cityName: string, timeZone: string): string {
     .formatToParts(new Date()).find((p) => p.type === "timeZoneName")?.value;
   return abbr ? `${cityName} time (${abbr})` : `${cityName} time`;
 }
+
+/** What a TimeInput holds while only some of hour, minutes and AM/PM are chosen. */
+export const INCOMPLETE_TIME = "incomplete";
+
+/** True for a complete "HH:MM" time, as TimeInput gives it. */
+export const isTimeOfDay = (v: string) => /^\d{2}:\d{2}$/.test(v);
+
+/** "6", "30", "PM" → "18:30"; INCOMPLETE_TIME if only some are chosen; "" if none. */
+export function toTimeOfDay(hour: string, minute: string, half: "" | "AM" | "PM"): string {
+  if (hour && minute && half) {
+    const h24 = (Number(hour) % 12) + (half === "PM" ? 12 : 0);
+    return `${String(h24).padStart(2, "0")}:${minute}`;
+  }
+  return hour || minute || half ? INCOMPLETE_TIME : "";
+}
+
+/** "18:30" → { hour: "6", minute: "30", half: "PM" }; null if not a complete time. */
+export function fromTimeOfDay(v: string): { hour: string; minute: string; half: "AM" | "PM" } | null {
+  const m = /^(\d{2}):(\d{2})$/.exec(v);
+  if (!m) return null;
+  const h24 = Number(m[1]);
+  return { hour: String(h24 % 12 || 12), minute: m[2]!, half: h24 < 12 ? "AM" : "PM" };
+}

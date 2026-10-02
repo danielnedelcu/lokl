@@ -14,7 +14,7 @@
     "db:push": "npm run db:test && supabase db push && npm run db:types && npm run db:docs",
     "db:types": "supabase gen types typescript --linked --schema public > packages/types/src/database.ts.tmp && mv packages/types/src/database.ts.tmp packages/types/src/database.ts",
     "db:docs": "dotenv -e .env -- tbls doc --force -c .tbls.yml",
-    "test:ui": "tsx packages/ui/tests/sign-in-redirect.test.mts",
+    "test:ui": "tsx packages/ui/tests/sign-in-redirect.test.mts && tsx packages/ui/tests/time-of-day.test.mts",
     "typecheck": "turbo run check-types --continue",
     "job": "node scripts/job.mjs",
     "build:check": "node scripts/build-check.mjs"

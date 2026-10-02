@@ -66,6 +66,7 @@ Never hand-copy a component from the ui-thing website or another project.
 ## Formatting
 
 - Money is stored in cents and shown with one shared helper (for example `formatMoney(cents)` → `$45.00`). Price inputs use one shared `MoneyInput` that converts to cents.
+- Times of day use the shared `TimeInput` (hour, minutes and AM/PM dropdowns, holding `"HH:MM"`), never `<input type="time">`: a native time field stays empty until every part is filled, so "6:30" without AM or PM reads as no time at all. Schemas check `isTimeOfDay` so a half-chosen time says "Choose the hour, minutes and AM or PM."
 - Dates and times are shown in the listing's city time zone, using one shared helper. Never use `toISOString()` to get a calendar day, since it shifts to UTC and can land on the wrong date.
 - Statuses (listing, payouts, provider) are shown with one shared `StatusBadge` that maps each status to a label and a style. Pages never write their own status labels.
 - Listing and guide photos are always displayed with `<NuxtImg>` (Nuxt Image, set up in the shared layer), never a plain `<img>`, with `width` and `height` set so the page doesn't jump while they load. The layer's `image.provider` is `none` for now; choosing a provider later then resizes every photo in one place.

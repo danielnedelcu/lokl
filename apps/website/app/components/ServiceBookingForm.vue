@@ -12,7 +12,10 @@ const earliest = computed(() => addDays(todayIn(tz.value), 1));
 const maxDate = computed(() => addDays(todayIn(tz.value), 365));
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const slot = z.object({ date: z.string().min(1, "Choose a date."), time: z.string().min(1, "Choose a time.") });
+const slot = z.object({
+  date: z.string().min(1, "Choose a date."),
+  time: z.string().min(1, "Choose a time.").refine(isTimeOfDay, "Choose the hour, minutes and AM or PM."),
+});
 const schema = z
   .object({
     times: z.array(slot).min(1).max(3),
@@ -29,7 +32,7 @@ const schema = z
   .superRefine((v, ctx) => {
     const seen = new Set<string>();
     v.times.forEach((t, i) => {
-      if (!t.date || !t.time) return;
+      if (!t.date || !isTimeOfDay(t.time)) return;
       const at = zonedToInstant(t, props.listing.market.timezone);
       if (Date.parse(at) < Date.now() + DAY_MS) {
         ctx.addIssue({ code: "custom", path: ["times", i, "time"], message: "Choose a time at least 24 hours from now." });
@@ -86,9 +89,9 @@ const submit = handleSubmit((v) =>
             Remove
           </UiButton>
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid gap-3">
           <UiVeeInput :name="`times[${i}].date`" type="date" label="Date" required :min="earliest" :max="maxDate" />
-          <UiVeeInput :name="`times[${i}].time`" type="time" label="Time" required step="900" />
+          <TimeInput :name="`times[${i}].time`" label="Time" required :minute-step="15" />
         </div>
       </div>
       <UiButton v-if="times.length < 3" type="button" variant="outline" class="w-full" @click="push({ date: '', time: '' })">

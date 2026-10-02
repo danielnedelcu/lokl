@@ -93,7 +93,7 @@ const maxDate = computed(() => addDays(today.value, 365));
 const sessionSchema = z
   .object({
     date: z.string().min(1, "Choose a date."),
-    time: z.string().min(1, "Choose a start time."),
+    time: z.string().min(1, "Choose a start time.").refine(isTimeOfDay, "Choose the hour, minutes and AM or PM."),
     capacity: z.coerce
       .number({ message: "Enter the number of spots." })
       .int("Use a whole number.")
@@ -103,8 +103,12 @@ const sessionSchema = z
     weeks: z.coerce.number().optional(),
   })
   .superRefine((v, ctx) => {
-    if (v.date && v.time && Date.parse(zonedToInstant(v, props.timeZone)) <= Date.now()) {
-      ctx.addIssue({ code: "custom", path: ["time"], message: "Choose a time in the future." });
+    // A date that has passed says so on the date, whatever the time; today
+    // at a time that has passed says so on the time.
+    if (v.date && v.date < todayIn(props.timeZone)) {
+      ctx.addIssue({ code: "custom", path: ["date"], message: "The date has passed. The start time must be in the future." });
+    } else if (v.date && isTimeOfDay(v.time) && Date.parse(zonedToInstant(v, props.timeZone)) <= Date.now()) {
+      ctx.addIssue({ code: "custom", path: ["time"], message: "That time has passed. The start time must be in the future." });
     }
     if (v.repeat && (!Number.isInteger(v.weeks) || v.weeks! < 2 || v.weeks! > MAX_WEEKS)) {
       ctx.addIssue({ code: "custom", path: ["weeks"], message: `Choose 2 to ${MAX_WEEKS} weeks.` });
@@ -271,9 +275,9 @@ async function confirmCancel() {
     <UiDialogContent :title="editing ? 'Edit session' : 'Add a session'" :description="`Times are ${zoneLabel}.`">
       <template #content>
         <form id="session-form" class="space-y-4" novalidate @submit="save">
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-4">
             <UiVeeInput name="date" type="date" label="Date" required :min="today" :max="maxDate" />
-            <UiVeeInput name="time" type="time" label="Start time" required step="300" />
+            <TimeInput name="time" label="Start time" required :minute-step="5" />
           </div>
           <UiVeeInput name="capacity" type="number" inputmode="numeric" min="1" max="500" label="Spots" required
             hint="How many people can book this session." />
