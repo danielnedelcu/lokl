@@ -1,7 +1,16 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from "node:url";
 
+// `npm run build:check` (LOKL_BUILD_CHECK=1) builds into its own folders, so
+// a build check never touches the .nuxt, .output or Vite cache that a running
+// dev server uses (a plain `nuxt build` in the app folder can break it).
+const buildCheck = process.env.LOKL_BUILD_CHECK === "1";
+const buildCheckFolders = buildCheck
+  ? { buildDir: ".nuxt-check", nitro: { output: { dir: ".output-check" } }, vite: { cacheDir: "node_modules/.cache/vite-check" } }
+  : {};
+
 export default defineNuxtConfig({
+  ...buildCheckFolders,
   // Shared UI layer: ui-thing components, theme, Tailwind (docs/frontend.md).
   extends: ["@repo/ui"],
 

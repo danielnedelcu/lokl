@@ -38,8 +38,9 @@ accessibility, writing) are in `docs/frontend.md`. Read it before building UI.
 npm run dev                   # both apps
 npm run dev -w website        # localhost:3100
 npm run dev -w admin          # localhost:3101
-npx nuxt build                # run inside an app folder to check it builds
+npm run build:check           # check both apps build (own folders; safe beside npm run dev)
 npm run typecheck             # vue-tsc on both apps; must pass before committing
+npm run job -- <name>         # run one timed booking job against localhost:3100
 npm run db:test               # rebuild the local DB from migrations, run pgTAP tests
 npm run db:push               # db:test, then apply to hosted Supabase, then db:types + db:docs
 npm run db:types              # regenerate packages/types/src/database.ts from the linked project
@@ -54,6 +55,13 @@ if its port is taken. If you change a port, update the app's `dev` script,
 `.claude/launch.json`,
 `supabase/config.toml` (auth URLs), `NUXT_PUBLIC_SITE_URL` and the Supabase
 dashboard's redirect URLs as well.
+
+**Build checks use `npm run build:check`**, which builds each app into its
+own folders (`.nuxt-check`, `.output-check`, a separate Vite cache). **Don't
+run a plain `nuxt build` inside an app folder while that app's dev server is
+running:** it writes into the `.nuxt` folder the dev server reads, and every
+page then fails with a 500 until the dev server is restarted (seen
+2026-10-02). `npm run typecheck` is safe to run alongside the dev servers.
 
 `db:test` needs Docker running. It resets the **local** database only.
 
@@ -164,7 +172,7 @@ user id is `user.sub`, not `user.id`.
 - `providers.ts` still mirrors the providers table by hand. Replace it with
   the generated types when it's next touched.
 - **`npm run typecheck` must pass (0 errors) before committing.** It runs
-  `nuxt typecheck` (vue-tsc) on both apps; `nuxt build` doesn't check types.
+  `nuxt typecheck` (vue-tsc) on both apps; a build doesn't check types.
 - Stay on TypeScript 5.x. TypeScript 7 drops the JavaScript API that Vue's
   compiler uses to resolve component prop types, so every ui-thing component
   fails to build (`ts.findConfigFile is not a function`).

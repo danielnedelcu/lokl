@@ -16,7 +16,8 @@
     "db:docs": "dotenv -e .env -- tbls doc --force -c .tbls.yml",
     "test:ui": "tsx packages/ui/tests/sign-in-redirect.test.mts",
     "typecheck": "turbo run check-types --continue",
-    "job": "node scripts/job.mjs"
+    "job": "node scripts/job.mjs",
+    "build:check": "node scripts/build-check.mjs"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",
