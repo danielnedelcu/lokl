@@ -157,6 +157,11 @@ Each step depends on the ones before it.
    - [ ] Turn on the booking job scheduler (`pg_cron` + `pg_net` calling the
      website's `/api/jobs/*`) once production hosting exists; until then
      jobs run with `npm run job` (docs/design/booking-and-checkout.md).
+   - [ ] Set the live account's card statement descriptor to `LOKL` (what
+     customers see on card statements) and the Connect payout statement
+     descriptor to `LOKL` (what providers see on bank statements). The
+     sandbox's card setting couldn't be changed through the API, and isn't
+     needed in test mode.
    - **Blockers for live payments** (sandbox testing can go ahead):
      - [ ] Accountant consultation on Georgia marketplace sales tax,
        commission taxability, holding provider funds, 1099-K and business

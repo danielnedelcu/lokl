@@ -247,13 +247,16 @@ The existing endpoint (`/api/stripe/webhook`) listens to **connected account** e
 
 Webhooks can arrive late, twice or out of order, so each handler checks the booking's current status before changing it, and the routes also re-read the Checkout Session from Stripe rather than trusting the event body alone.
 
-**Testing locally:** the Stripe CLI, logged in to the **Lokl sandbox** only (CLAUDE.md, Stripe-key boundary):
+**Testing locally:** the Stripe CLI, logged in to the **Lokl sandbox** only (CLAUDE.md, Stripe-key boundary). This machine's CLI is also used for The Reserve, so lokl gets its own CLI profile and every command names it:
 
 ```bash
-stripe listen --forward-to localhost:3100/api/stripe/webhook-payments
+stripe login --project-name lokl
+stripe --project-name lokl listen --forward-to localhost:3100/api/stripe/webhook-payments
 ```
 
-It prints a signing secret for local use, which goes in the website's `.env`. Test cards cover success, decline and authentication (3D Secure). `stripe trigger` sends sample events, and a booking walkthrough with test cards exercises the real flow. A second `stripe listen --forward-connect-to …` covers the existing connected-account route.
+Check the profile before anything else: `stripe --project-name lokl config --list` must show account `acct_1UKIdIEfG7OyQ6pv`. `listen` prints a signing secret for local use, which goes in the website's `.env` as `NUXT_STRIPE_PAYMENTS_WEBHOOK_SECRET` (listed in `.env.example`); never paste it anywhere else.
+
+**Automated test** (`npm run db:test:checkout`): runs the checkout and webhook code against the local stack and the Lokl sandbox, refusing any other account or a live key. It opens a Service and an Experience checkout, waits up to 25 minutes for them to be paid with the test card in a browser (Stripe Checkout's bot check stops automated payment), then feeds Stripe's real events through the handler once, twice and in reverse order, and checks the last spot, an expired checkout and the webhook signature. Test cards cover success, decline and authentication (3D Secure). `stripe trigger` sends sample events, and a booking walkthrough with test cards exercises the real flow. A second `stripe listen --forward-connect-to …` covers the existing connected-account route.
 
 ## Emails
 

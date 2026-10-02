@@ -6,3 +6,4 @@ export * from "./reference";
 export * from "./roles";
 export * from "./notifications";
 export * from "./public";
+export * from "./bookings";

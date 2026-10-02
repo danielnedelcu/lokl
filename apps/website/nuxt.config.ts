@@ -18,9 +18,12 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    // Server only. Set via NUXT_STRIPE_SECRET_KEY / NUXT_STRIPE_WEBHOOK_SECRET.
+    // Server only. Set via NUXT_STRIPE_SECRET_KEY / NUXT_STRIPE_WEBHOOK_SECRET
+    // (connected-account events) / NUXT_STRIPE_PAYMENTS_WEBHOOK_SECRET (booking
+    // payments, events on lokl's own account).
     stripeSecretKey: "",
     stripeWebhookSecret: "",
+    stripePaymentsWebhookSecret: "",
     public: {
       // NUXT_PUBLIC_STRIPE_KEY / NUXT_PUBLIC_SITE_URL
       stripeKey: "",
