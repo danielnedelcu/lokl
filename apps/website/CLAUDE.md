@@ -18,8 +18,9 @@ Public site plus the provider dashboard. Port 3100 (fixed). Root `CLAUDE.md` app
   verifies the signature on the raw body before doing anything.
 - **Validate request bodies** with zod via `readValidatedBody`, as in
   `server/api/provider/index.post.ts`.
-- **Don't import from `"h3"`** here (the v2 pre-release is in this app's
-  dependencies). Use `ServerEvent` for event types.
+- **Don't import from `"h3"`** here (it isn't a direct dependency, and a
+  second copy breaks every route's event type). Use `ServerEvent` for event
+  types.
 - **Dashboard pages** use `definePageMeta({ layout: "dashboard" })` and read the
   provider through `useProvider()`, which shares the `"provider"` fetch key so
   every page sees the same record.

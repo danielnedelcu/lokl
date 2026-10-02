@@ -162,9 +162,12 @@ user id is `user.sub`, not `user.id`.
 - Stay on TypeScript 5.x. TypeScript 7 drops the JavaScript API that Vue's
   compiler uses to resolve component prop types, so every ui-thing component
   fails to build (`ts.findConfigFile is not a function`).
-- The website depends on `h3` v2, but Nuxt's server runs on h3 v1. In website
-  server code, don't import from `"h3"`; use the auto-imported helpers and the
-  `ServerEvent` type from `server/utils/provider.ts`.
+- Nuxt's server runs on h3 v1. Don't add h3 v2 (or any second h3) as a
+  dependency: two copies make every server route's event a type mismatch
+  (the website had an unused v2 until 2026-10-02). In website server code,
+  use the auto-imported helpers and the `ServerEvent` type from
+  `server/utils/provider.ts` rather than importing from `"h3"`, which isn't
+  a direct dependency.
 
 ## Secrets and data
 

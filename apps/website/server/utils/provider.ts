@@ -1,8 +1,8 @@
 import type { Provider } from "@repo/types";
 import { serverSupabaseClient, serverSupabaseUser } from "#supabase/server";
 
-// Nitro's request event. Not imported from "h3" because this app also depends
-// on h3 v2, which Nitro doesn't use.
+// Nitro's request event, taken from the Supabase helpers so it's always the
+// h3 that Nitro runs (h3 isn't a direct dependency of this app).
 export type ServerEvent = Parameters<typeof serverSupabaseUser>[0];
 
 export async function requireUser(event: ServerEvent) {
