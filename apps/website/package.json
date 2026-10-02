@@ -27,8 +27,6 @@
     "nuxt": "^4.5.2",
     "nuxt-gtag": "^5.0.0",
     "nuxt-locomotive-scroll": "^0.0.1",
-    "nuxt-mail": "^8.0.5",
-    "nuxt-resend": "^0.0.2",
     "nuxt-swiper": "^2.0.2",
     "nuxt-zod": "^1.5.0",
     "ofetch": "^1.5.1",

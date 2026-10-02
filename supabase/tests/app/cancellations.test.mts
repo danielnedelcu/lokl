@@ -108,6 +108,13 @@ try {
   check(o(at(30), booked(30.5)) === "full_refund" && o(at(29), booked(30.5)) === "no_refund", "0b. within an hour of booking is a full refund (the grace period); after the hour it isn't");
   check(o(start, booked(0.5)) === "not_allowed", "0c. once it starts, even inside the grace hour, it can't be cancelled");
   check(customerCancelOutcome({ status: "requested", starts_at: null, confirmed_at: null }).kind === "release", "0d. a request not yet accepted is free to cancel");
+  // Booked 27 minutes before the start: the grace period ends at the start, not an hour after booking.
+  const lastMinute = customerCancelOutcome({ status: "confirmed", starts_at: new Date(start).toISOString(), confirmed_at: booked(27 / 60) }, at(20 / 60));
+  check(lastMinute.kind === "full_refund" && lastMinute.reason === "grace" && lastMinute.graceEndsAt === new Date(start).toISOString() && lastMinute.graceEndsAtStart === true,
+    "0e. booked less than an hour before the start: free until the start, not an hour after booking");
+  const longBefore = customerCancelOutcome({ status: "confirmed", starts_at: new Date(start).toISOString(), confirmed_at: booked(30) }, at(29.5));
+  check(longBefore.kind === "full_refund" && longBefore.graceEndsAt === booked(29) && longBefore.graceEndsAtStart === false,
+    "0f. booked 30 hours before: the grace period still ends an hour after booking");
 
   // 1. A request: free, the hold released.
   const reqId = (await must(db.rpc("create_service_request", {
@@ -197,6 +204,7 @@ try {
     const ids = created.listings.map((i) => `'${i}'`).join(",");
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `
       set session_replication_role = replica;
+      delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from notifications where listing_id in (${ids});

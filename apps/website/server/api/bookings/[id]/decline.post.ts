@@ -5,5 +5,6 @@ import { serverSupabaseServiceRole } from "#supabase/server";
 export default defineEventHandler(async (event) => {
   const { booking } = await loadProviderBooking(event, getRouterParam(event, "id")!);
   const result = await answering(() => declineRequest(serverSupabaseServiceRole(event), useStripe(), booking.id));
+  kickBookingEmails(event, booking.id);
   return { result };
 });

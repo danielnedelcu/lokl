@@ -98,7 +98,7 @@ const cancelText = computed(() => {
   switch (o.kind) {
     case "release": return "The hold on your card is released, so you won't be charged.";
     case "full_refund": return o.reason === "grace"
-      ? `You booked less than an hour ago, so you get a full refund of ${money(b.value.total_cents)}. This is free until ${at(o.graceEndsAt!)}.`
+      ? `You booked less than an hour ago, so you get a full refund of ${money(b.value.total_cents)}. This is free until ${o.graceEndsAtStart ? "it starts, at " : ""}${at(o.graceEndsAt!)}.`
       : `It's more than 48 hours before the start, so you get a full refund of ${money(b.value.total_cents)}.`;
     case "no_refund": return `It's less than 48 hours before the start, so there's no refund. You've paid ${money(b.value.total_cents)}.`;
     default: return "";

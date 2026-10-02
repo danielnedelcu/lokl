@@ -19,6 +19,7 @@
 | [public.booking_events](public.booking_events.md)               | 6       | Every status change of a booking: from, to, who (customer, provider, admin, system, stripe) and when. Written by a trigger. Never changed or deleted.                                                                                                                                                                                         | BASE TABLE |
 | [public.booking_contacts](public.booking_contacts.md)           | 3       | The customer's email and optional phone for a booking. The provider reads them only once the booking is accepted or confirmed. Never deleted.                                                                                                                                                                                                 | BASE TABLE |
 | [public.booking_addresses](public.booking_addresses.md)         | 7       | Where an "I come to you" Service takes place: the customer's address. The provider reads it only once the booking is accepted. Never deleted.                                                                                                                                                                                                 | BASE TABLE |
+| [public.booking_emails](public.booking_emails.md)               | 14      | Booking emails to send and what happened to each (the outbox and the log). Filled by triggers on bookings; sent by the website's server. Server only; admins can read. Never deleted.                                                                                                                                                         | BASE TABLE |
 
 ## Stored procedures and functions
 
@@ -55,6 +56,8 @@
 | public.experience_sessions_booked_guard | trigger    |                                                                                                                                                                                                                                            | FUNCTION |
 | public.bookings_notify_provider         | trigger    |                                                                                                                                                                                                                                            | FUNCTION |
 | public.bookings_notify_problem          | trigger    |                                                                                                                                                                                                                                            | FUNCTION |
+| public.booking_emails_queue             | void       | p_booking_id uuid, p_kinds text[]                                                                                                                                                                                                          | FUNCTION |
+| public.bookings_queue_emails            | trigger    |                                                                                                                                                                                                                                            | FUNCTION |
 
 ## Enums
 

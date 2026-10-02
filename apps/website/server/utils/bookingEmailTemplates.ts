@@ -1,0 +1,315 @@
+// The booking emails' wording (docs/design/booking-and-checkout.md, Emails;
+// step 4 part 7). Each email: a subject, a plain-text body and a simple
+// HTML body. Short, plain sentences, one button to the booking page.
+//
+// Never in an email (they get forwarded): addresses, phone numbers, email
+// addresses, notes, and anything people wrote themselves (cancel reasons,
+// no-show notes). The customer's first name is the one personal detail, in
+// provider emails only (decided 2026-10-02). The rest is on the signed-in
+// booking page the button opens.
+//
+// Plain TypeScript with no Nuxt imports: the sender, the tests and
+// `npm run email:previews` all use these same functions.
+
+import { customerCancelOutcome } from "@repo/types";
+
+export const EMAIL_KINDS = [
+  "customer_request_sent", "customer_request_accepted", "customer_request_declined", "customer_request_expired",
+  "customer_booking_confirmed", "customer_booking_cancelled", "customer_problem_received",
+  "provider_new_request", "provider_new_booking", "provider_booking_cancelled", "provider_request_unanswered",
+  "provider_payout_sent", "provider_problem_reported", "provider_payout_problem",
+] as const;
+export type EmailKind = (typeof EMAIL_KINDS)[number];
+
+export interface EmailContext {
+  siteUrl: string;
+  booking: {
+    id: string;
+    kind: "service" | "experience";
+    status: string;
+    starts_at: string | null;
+    confirmed_at: string | null;
+    respond_by: string | null;
+    preferred_times: string[] | null;
+    party_size: number;
+    total_cents: number;
+    provider_amount_cents: number;
+    refunded_cents: number;
+    cancelled_by: string | null;
+    status_changed_by: string;
+    customer_name: string;
+  };
+  listing: { title: string; kind: "service" | "experience"; categorySlug: string | null; marketSlug: string; marketName: string; timezone: string };
+  provider: { name: string };
+}
+
+export interface RenderedEmail {
+  subject: string;
+  text: string;
+  html: string;
+}
+
+// ---------------------------------------------------------------------------
+// Formatting
+// ---------------------------------------------------------------------------
+
+const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+
+function dateOnly(iso: string, tz: string) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: tz }).format(new Date(iso));
+}
+function dateTime(iso: string, tz: string, marketName: string) {
+  const time = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz }).format(new Date(iso));
+  return `${dateOnly(iso, tz)}, ${time} (${marketName} time)`;
+}
+const firstName = (name: string) => name.trim().split(/\s+/)[0] || "The customer";
+
+const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// One email, built from paragraphs, an optional "When / People" list, one
+// button and an optional text link under it.
+interface Parts {
+  subject: string;
+  intro: string[];
+  facts?: [string, string][];
+  after?: string[];
+  button: { label: string; url: string };
+  link?: { label: string; url: string };
+  recipient: "customer" | "provider";
+}
+
+function render(p: Parts): RenderedEmail {
+  const why = p.recipient === "customer"
+    ? "You're getting this because of a booking on lokl."
+    : "You're getting this because of a booking on your lokl listing.";
+  const footer = ["Questions? Reply to this email.", "lokl · Services and Experiences from local people in Atlanta.", why];
+
+  const text = [
+    ...p.intro,
+    ...(p.facts?.length ? [p.facts.map(([k, v]) => `${k}: ${v}`).join("\n")] : []),
+    ...(p.after ?? []),
+    `${p.button.label}: ${p.button.url}`,
+    ...(p.link ? [`${p.link.label}: ${p.link.url}`] : []),
+    "--",
+    footer.join("\n"),
+  ].join("\n\n");
+
+  const para = (t: string) => `<p style="margin:0 0 16px">${escape(t)}</p>`;
+  const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(p.subject)}</title></head>
+<body style="margin:0;padding:0;background:#ffffff">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#111111">
+<p style="margin:0 0 24px;font-size:20px;font-weight:600">lokl</p>
+${p.intro.map(para).join("\n")}
+${p.facts?.length ? `<table role="presentation" style="margin:0 0 16px;border-collapse:collapse">${p.facts.map(([k, v]) => `<tr><td style="padding:2px 16px 2px 0;color:#555555;vertical-align:top">${escape(k)}</td><td style="padding:2px 0">${escape(v)}</td></tr>`).join("")}</table>` : ""}
+${(p.after ?? []).map(para).join("\n")}
+<p style="margin:24px 0 8px"><a href="${escape(p.button.url)}" style="display:inline-block;min-height:44px;line-height:44px;padding:0 20px;background:#111111;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">${escape(p.button.label)}</a></p>
+<p style="margin:0 0 16px;font-size:14px;color:#555555">Or open: <a href="${escape(p.button.url)}" style="color:#111111">${escape(p.button.url)}</a></p>
+${p.link ? `<p style="margin:0 0 16px"><a href="${escape(p.link.url)}" style="color:#111111">${escape(p.link.label)}</a></p>` : ""}
+<hr style="border:none;border-top:1px solid #dddddd;margin:24px 0 16px">
+${footer.map((l) => `<p style="margin:0 0 4px;font-size:14px;color:#555555">${escape(l)}</p>`).join("\n")}
+</div>
+</body></html>`;
+  return { subject: p.subject, text, html };
+}
+
+// ---------------------------------------------------------------------------
+// The policy line on "accepted" and "you're booked": the same rule as the
+// cancel dialog (customerCancelOutcome), as it stood when the booking was
+// confirmed.
+// ---------------------------------------------------------------------------
+
+export function policyLine(b: EmailContext["booking"], tz: string, marketName: string): string {
+  if (!b.starts_at || !b.confirmed_at) return "Free cancellation until 48 hours before.";
+  const o = customerCancelOutcome({ status: "confirmed", starts_at: b.starts_at, confirmed_at: b.confirmed_at }, Date.parse(b.confirmed_at));
+  if (o.kind === "full_refund" && o.reason === "grace") {
+    // Booked less than an hour before the start: free until it starts.
+    if (o.graceEndsAtStart) {
+      return `You booked less than an hour before the start, so you can cancel for free until it starts, at ${dateTime(o.graceEndsAt!, tz, marketName)}.`;
+    }
+    return `You booked less than 48 hours before the start, so you can cancel for free until ${dateTime(o.graceEndsAt!, tz, marketName)}. After that, there's no refund.`;
+  }
+  const until = new Date(Date.parse(b.starts_at) - 48 * 3600_000).toISOString();
+  return `Free cancellation until 48 hours before: ${dateTime(until, tz, marketName)}.`;
+}
+
+// ---------------------------------------------------------------------------
+// The emails
+// ---------------------------------------------------------------------------
+
+export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
+  const { booking: b, listing: l, provider } = c;
+  const tz = l.timezone;
+  const at = (iso: string) => dateTime(iso, tz, l.marketName);
+  const when = b.starts_at ? at(b.starts_at) : "";
+  const date = b.starts_at ? dateOnly(b.starts_at, tz) : "";
+  const customerUrl = `${c.siteUrl}/account/bookings/${b.id}`;
+  const providerUrl = `${c.siteUrl}/dashboard/bookings/${b.id}`;
+  const plural = l.kind === "experience" ? "experiences" : "services";
+  const similar = {
+    label: l.kind === "experience" ? "Browse similar Experiences" : "Browse similar Services",
+    url: l.categorySlug ? `${c.siteUrl}/${l.marketSlug}/${plural}/${l.categorySlug}` : `${c.siteUrl}/${l.marketSlug}/${plural}`,
+  };
+  const people = (n: number) => `${n} ${n === 1 ? "person" : "people"}`;
+  const name = firstName(b.customer_name);
+
+  switch (kind) {
+    // ----------------------------------------------------------- customer
+    case "customer_request_sent":
+      return render({
+        recipient: "customer",
+        subject: `Request sent: ${l.title}`,
+        intro: [
+          `We've sent your request to ${provider.name}. They have until ${b.respond_by ? at(b.respond_by) : "48 hours from now"} to accept one of the times you offered.`,
+          `Your card is on hold for ${money(b.total_cents)}. You won't be charged unless they accept.`,
+        ],
+        button: { label: "See your request", url: customerUrl },
+      });
+    case "customer_request_accepted":
+      return render({
+        recipient: "customer",
+        subject: `Accepted: ${l.title} on ${date}`,
+        intro: [`${provider.name} accepted your request.`],
+        facts: [["When", when]],
+        after: [`You were charged ${money(b.total_cents)}. The address and details are on your booking page.`, policyLine(b, tz, l.marketName)],
+        button: { label: "See your booking", url: customerUrl },
+      });
+    case "customer_request_declined":
+      return render({
+        recipient: "customer",
+        subject: `Not available: ${l.title}`,
+        intro: [
+          b.status_changed_by === "system"
+            ? "This Service isn't available any more, so your request was cancelled."
+            : `${provider.name} can't take your request this time.`,
+          "The hold on your card is released, so you weren't charged.",
+        ],
+        button: { label: "See your request", url: customerUrl },
+        link: similar,
+      });
+    case "customer_request_expired":
+      return render({
+        recipient: "customer",
+        subject: `Your request for ${l.title} didn't go through`,
+        intro: [
+          b.status_changed_by === "system"
+            ? `${provider.name} didn't answer in time, so your request has ended.`
+            : `We couldn't charge your card when ${provider.name} accepted, so your request has ended.`,
+          b.refunded_cents > 0 ? `We've refunded ${money(b.refunded_cents)} to your card.` : "Nothing was charged.",
+        ],
+        button: { label: "See your request", url: customerUrl },
+        link: similar,
+      });
+    case "customer_booking_confirmed":
+      return render({
+        recipient: "customer",
+        subject: `You're booked: ${l.title} on ${date}`,
+        intro: [`You're booked for ${l.title} with ${provider.name}.`],
+        facts: [["When", when], ["People", people(b.party_size)]],
+        after: [`You paid ${money(b.total_cents)}. The meeting point and details are on your booking page.`, policyLine(b, tz, l.marketName)],
+        button: { label: "See your booking", url: customerUrl },
+      });
+    case "customer_booking_cancelled": {
+      const wasRequest = !b.confirmed_at;
+      let first: string;
+      if (b.cancelled_by === "customer") {
+        first = wasRequest
+          ? "You cancelled your request. The hold on your card is released, so you weren't charged."
+          : b.refunded_cents > 0
+            ? `You cancelled your booking. We've refunded ${money(b.refunded_cents)} to your card. Refunds can take a few business days to appear.`
+            : "You cancelled less than 48 hours before, so there's no refund.";
+      } else if (b.cancelled_by === "provider") {
+        first = `${provider.name} had to cancel. We've refunded ${money(b.refunded_cents)} in full. Their message is on your booking page.`;
+      } else {
+        first = wasRequest
+          ? "Your request was cancelled. The hold on your card is released, so you weren't charged."
+          : `This booking was cancelled. We've refunded ${money(b.refunded_cents)} in full.`;
+      }
+      return render({
+        recipient: "customer",
+        subject: date ? `Cancelled: ${l.title} on ${date}` : `Cancelled: ${l.title}`,
+        intro: [first],
+        button: { label: wasRequest ? "See your request" : "See your booking", url: customerUrl },
+      });
+    }
+    case "customer_problem_received":
+      return render({
+        recipient: "customer",
+        subject: `We got your report about ${l.title}`,
+        intro: [`Thanks for telling us. We're holding ${provider.name}'s payment while we look into it, and we'll email you about what happens next.`],
+        button: { label: "See your booking", url: customerUrl },
+      });
+
+    // ----------------------------------------------------------- provider
+    case "provider_new_request":
+      return render({
+        recipient: "provider",
+        subject: `New request: ${l.title}`,
+        intro: [
+          `${name} sent a request for ${l.title}. Please accept one of the times offered, or decline, by ${b.respond_by ? at(b.respond_by) : "48 hours from now"}.`,
+        ],
+        facts: (b.preferred_times ?? []).map((t, i) => [i === 0 ? "First choice" : i === 1 ? "Second choice" : "Third choice", at(t)] as [string, string]),
+        after: ["If you don't answer by then, the request ends and the customer isn't charged."],
+        button: { label: "Answer the request", url: providerUrl },
+      });
+    case "provider_new_booking":
+      return render({
+        recipient: "provider",
+        subject: `New booking: ${l.title} on ${date}`,
+        intro: [`${name} booked ${l.title}.`],
+        facts: [["When", when], ["People", people(b.party_size)]],
+        after: [`You'll receive ${money(b.provider_amount_cents)} after it happens.`],
+        button: { label: "See the booking", url: providerUrl },
+      });
+    case "provider_booking_cancelled": {
+      const wasRequest = !b.confirmed_at;
+      const first = b.cancelled_by === "customer"
+        ? wasRequest
+          ? `${name} withdrew their request for ${l.title}.`
+          : b.refunded_cents > 0
+            ? `${name} cancelled in time and was refunded, so there's no payout for this booking.`
+            : `${name} cancelled less than 48 hours before. You'll still receive ${money(b.provider_amount_cents)} at payout.`
+        : "lokl cancelled this booking and refunded the customer.";
+      return render({
+        recipient: "provider",
+        subject: date ? `Cancelled: ${l.title} on ${date}` : `Cancelled: ${l.title}`,
+        intro: [first],
+        button: { label: "See the booking", url: providerUrl },
+      });
+    }
+    case "provider_request_unanswered":
+      return render({
+        recipient: "provider",
+        subject: `Request ended: ${l.title}`,
+        intro: [`You didn't answer ${name}'s request for ${l.title} in time, so it has ended. The customer wasn't charged.`],
+        button: { label: "See the request", url: providerUrl },
+      });
+    case "provider_payout_sent":
+      return render({
+        recipient: "provider",
+        subject: `Payout sent: ${money(b.provider_amount_cents)} for ${l.title}`,
+        intro: [
+          `We've sent ${money(b.provider_amount_cents)} for ${l.title}${date ? ` on ${date}` : ""} to your Stripe account. Stripe pays it into your bank on your usual payout schedule.`,
+        ],
+        button: { label: "See the booking", url: providerUrl },
+      });
+    case "provider_problem_reported":
+      return render({
+        recipient: "provider",
+        subject: `A customer reported a problem: ${l.title}`,
+        intro: [
+          `${name} reported a problem with their booking for ${l.title}${date ? ` on ${date}` : ""}. Your payout for it is on hold while lokl looks into it. We'll be in touch by email.`,
+        ],
+        button: { label: "See the booking", url: providerUrl },
+      });
+    case "provider_payout_problem":
+      return render({
+        recipient: "provider",
+        subject: `We couldn't send your payout for ${l.title}`,
+        intro: [
+          `We tried to send ${money(b.provider_amount_cents)} for ${l.title}, but your Stripe account can't receive it right now. Please check your payout settings. lokl will also be in touch.`,
+        ],
+        button: { label: "Check payout settings", url: `${c.siteUrl}/dashboard/payouts` },
+      });
+  }
+}

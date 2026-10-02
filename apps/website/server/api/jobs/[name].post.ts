@@ -22,8 +22,8 @@ export default defineEventHandler(async (event) => {
   if (!expected || !sameSecret(given, expected)) {
     throw createError({ statusCode: 401, statusMessage: "Not allowed." });
   }
-  const name = getRouterParam(event, "name") as JobName;
-  if (!JOB_NAMES.includes(name)) throw createError({ statusCode: 404, statusMessage: "No such job." });
+  const name = getRouterParam(event, "name") as JobName | "send-emails";
+  if (name !== "send-emails" && !JOB_NAMES.includes(name)) throw createError({ statusCode: 404, statusMessage: "No such job." });
 
   const opts: JobOptions = {};
   if (import.meta.dev) {
@@ -43,7 +43,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const started = Date.now();
+  // send-emails: retry what's due. Every other job then sends the emails
+  // its changes queued, so they don't wait for the next send-emails run.
+  if (name === "send-emails") {
+    const { settings, mailer } = bookingEmailDeps();
+    const r = await sendBookingEmails(serverSupabaseServiceRole(event), mailer, settings, { bookingId: opts.bookingId, limit: 200 });
+    console.info(`[jobs] send-emails: sent ${r.sent.length}, retrying ${r.retrying.length}, failed ${r.failed.length}, skipped ${r.skipped.length}`);
+    return {
+      job: name, checked: r.sent.length + r.retrying.length + r.failed.length + r.skipped.length,
+      done: [...r.sent, ...r.skipped.map((l) => `skipped ${l}`)], failed: [...r.failed, ...r.retrying.map((l) => `retrying ${l}`)],
+    };
+  }
   const result = await runJob(name, serverSupabaseServiceRole(event), useStripe(), opts);
+  kickBookingEmails(event);
   console.info(`[jobs] ${name}: checked ${result.checked}, done ${result.done.length}, failed ${result.failed.length} (${Date.now() - started} ms)`);
   return result;
 });

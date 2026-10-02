@@ -93,7 +93,9 @@ export async function acceptRequest(db: SupabaseClient, stripe: Stripe, bookingI
         console.error("[bookings] capture failed", b.id, (error as Error).message);
         throw new BookingError(STRIPE_DOWN, 502);
       }
-      await move(db, b.id, "requested", { status: "expired", status_changed_by: "system" });
+      // Marked as the provider's doing (they tried to accept), so the
+      // customer's email says the card failed, not that nobody answered.
+      await move(db, b.id, "requested", { status: "expired", status_changed_by: "provider" });
       throw new BookingError(CARD_NOT_CHARGED, 409);
     }
   }

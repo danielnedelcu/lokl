@@ -57,8 +57,12 @@ export const GRACE_AFTER_BOOKING_MS = 60 * 60 * 1000;
 export type CustomerCancelOutcome =
   /** A Service request not yet accepted: the hold is released, nothing was charged. */
   | { kind: "release" }
-  /** 48 hours or more ahead, or within the hour after booking: everything back. */
-  | { kind: "full_refund"; reason: "ahead" | "grace"; graceEndsAt?: string }
+  /**
+   * 48 hours or more ahead, or within the hour after booking: everything back.
+   * graceEndsAt: when the grace period ends, an hour after booking or at the
+   * start, whichever comes first; graceEndsAtStart says which.
+   */
+  | { kind: "full_refund"; reason: "ahead" | "grace"; graceEndsAt?: string; graceEndsAtStart?: boolean }
   /** Within 48 hours, after the grace hour: no refund. */
   | { kind: "no_refund" }
   /** Started, already over, or not cancellable. */
@@ -73,8 +77,13 @@ export function customerCancelOutcome(
   const start = Date.parse(b.starts_at);
   if (now >= start) return { kind: "not_allowed", why: "This booking has started, so it can't be cancelled." };
   if (now <= start - FREE_CANCEL_BEFORE_MS) return { kind: "full_refund", reason: "ahead" };
-  const graceEnds = b.confirmed_at ? Date.parse(b.confirmed_at) + GRACE_AFTER_BOOKING_MS : 0;
-  if (now <= graceEnds) return { kind: "full_refund", reason: "grace", graceEndsAt: new Date(graceEnds).toISOString() };
+  // The grace hour ends at the start if that comes sooner (booked at 4:18 PM
+  // for 4:45 PM: free until 4:45 PM, not 5:18 PM; found 2026-10-02).
+  const hourAfter = b.confirmed_at ? Date.parse(b.confirmed_at) + GRACE_AFTER_BOOKING_MS : 0;
+  const graceEnds = Math.min(hourAfter, start);
+  if (now <= hourAfter) {
+    return { kind: "full_refund", reason: "grace", graceEndsAt: new Date(graceEnds).toISOString(), graceEndsAtStart: graceEnds === start };
+  }
   return { kind: "no_refund" };
 }
 

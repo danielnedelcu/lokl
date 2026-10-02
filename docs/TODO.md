@@ -171,8 +171,41 @@ Each step depends on the ones before it.
      with a reason (full refunds), and "The provider didn't show up" holds
      the payout. Built 2026-10-02; migration `booking_cancellations`
      waiting for `db:push`.
-   - [ ] Part 7 emails, part 8 admin (including clearing payout holds and
-     acting on no-show reports).
+   - [ ] Part 7: booking emails (14 kinds, customer and provider), queued
+     by database triggers, sent through Resend with retries. Built
+     2026-10-02; migration `booking_emails` waiting for `db:push`. The
+     booking emails Resend key, the reply-to and the development allowlist
+     are set in `apps/website/.env`; `npm run email:test-send` passes.
+   - [ ] Part 7 walkthrough, steps 7 to 10 (steps 1 to 6 passed
+     2026-10-02; the rest wait for Resend's daily quota to reset). First run
+     `npm run job -- send-emails` once to send anything held by the quota.
+     As `+customer1` booking from `+provider1`:
+     - [ ] 7. The provider cancels a booking with a reason: the customer
+       gets "Cancelled … had to cancel", without the reason; the provider
+       gets nothing.
+     - [ ] 8. A no-show reported after the start: the customer gets "We got
+       your report"; the provider gets "A customer reported a problem",
+       without the note.
+     - [ ] 9. `npm run job -- pay-out --booking <id> --as-of due` (paid with
+       card 4000 0000 0000 0077): the provider gets "Payout sent".
+     - [ ] 10. A booking on a `+provider2` listing: the provider email goes
+       to `+provider2`, not `+provider1`.
+     - [ ] Decide: the provider's "Cancelled" subject is the same as the
+       customer's (Gmail groups them in one shared test inbox); maybe "A
+       customer cancelled: …".
+     - [ ] Decide: keep skipping "Request sent" / "New request" when they'd
+       go out after the request is answered, or always send them.
+   - [ ] Part 8 admin (including clearing payout holds, acting on no-show
+     reports, and the failed-emails list).
+   - [ ] Launch prep: set `NUXT_EMAIL_MODE=send` in production, and turn on
+     the `send-emails` job with the other jobs.
+   - [ ] Launch prep: a separate Resend account for lokl, so its quota can't
+     block The Reserve's emails (they share a Resend team today, whose daily
+     quota ran out during the part 7 walkthrough on 2026-10-02).
+   - [ ] Launch prep: a paid Resend plan before launch.
+   - [ ] Launch prep: switch the reply-to to an address on lokl's own domain
+     (booking emails reply to hilokl.help@gmail.com for now:
+     `NUXT_EMAIL_REPLY_TO`).
 5. **Booking management.** Provider and customer booking views, cancellations,
    refunds, payout history; admin Bookings & payouts page.
 6. **Admin actions.** Suspend or reinstate providers, approve or reject

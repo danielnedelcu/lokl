@@ -12,5 +12,7 @@ export default defineEventHandler(async (event) => {
   const booking = await loadCustomerBooking(event, getRouterParam(event, "id")!);
   if (booking.customer_id !== user.sub) throw createError({ statusCode: 404, statusMessage: "We couldn't find that booking." });
   const { note } = await readValidatedBody(event, body.parse);
-  return { result: await answering(() => reportProblem(serverSupabaseServiceRole(event), booking.id, note)) };
+  const result = await answering(() => reportProblem(serverSupabaseServiceRole(event), booking.id, note));
+  kickBookingEmails(event, booking.id);
+  return { result };
 });

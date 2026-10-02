@@ -38,6 +38,16 @@ export default defineNuxtConfig({
     // NUXT_JOB_SECRET: the timed jobs' shared secret (/api/jobs/*). Empty
     // means the job routes refuse every call.
     jobSecret: "",
+    // Booking emails (server/utils/bookingEmails.ts), all server only:
+    // NUXT_RESEND_API_KEY (its own Resend key, not the one Supabase uses for
+    // sign-in emails), NUXT_EMAIL_MODE (off | allowlist | send),
+    // NUXT_EMAIL_ALLOWLIST (comma-separated, for allowlist mode),
+    // NUXT_EMAIL_REPLY_TO (required to send), NUXT_EMAIL_FROM.
+    resendApiKey: "",
+    emailMode: "off",
+    emailAllowlist: "",
+    emailReplyTo: "",
+    emailFrom: "lokl <lokl@innatetheory.com>",
     public: {
       // NUXT_PUBLIC_STRIPE_KEY / NUXT_PUBLIC_SITE_URL
       stripeKey: "",
@@ -113,8 +123,6 @@ export default defineNuxtConfig({
     "lenis/nuxt",
     "nuxt-gtag",
     "nuxt-locomotive-scroll",
-    // 'nuxt-mail',
-    // 'nuxt-resend',
     "nuxt-swiper",
     "nuxt-zod",
   ],

@@ -18,13 +18,17 @@ export default defineEventHandler(async (event) => {
   const db = serverSupabaseServiceRole(event);
 
   if (b.customer_id === user.sub) {
-    return { result: await answering(() => customerCancel(db, useStripe(), id)) };
+    const result = await answering(() => customerCancel(db, useStripe(), id));
+    kickBookingEmails(event, id);
+    return { result };
   }
   const provider = await getOwnProvider(event);
   if (provider && provider.id === b.provider_id) {
     if (provider.status === "suspended") throw createError({ statusCode: 403, statusMessage: "This account is suspended" });
     if (!reason) throw createError({ statusCode: 400, statusMessage: "Say why you're cancelling. The customer sees it." });
-    return { result: await answering(() => providerCancel(db, useStripe(), id, reason)) };
+    const result = await answering(() => providerCancel(db, useStripe(), id, reason));
+    kickBookingEmails(event, id);
+    return { result };
   }
   throw createError({ statusCode: 404, statusMessage: "We couldn't find that booking." });
 });

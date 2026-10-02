@@ -273,8 +273,19 @@ Sent from the website's server through Resend's API (a new server-only key, `NUX
 | Booking confirmed | Customer, provider | Experience paid |
 | Booking cancelled | Customer, provider | Any cancellation, saying whether a refund applies |
 | Payout sent | Provider | Transfer made |
+| Report received | Customer | The customer reported a no-show (added 2026-10-02) |
+| Request ended unanswered | Provider | No answer by the answer-by time (added 2026-10-02) |
+| A customer reported a problem | Provider | A no-show report; never the customer's note (added 2026-10-02) |
+| Payout couldn't be sent | Provider | The account can't receive transfers, or Stripe refused one (added 2026-10-02) |
 
 Templates live in the website as small functions (subject, plain text, simple HTML), tested by sending to Resend's test addresses. Every send is logged against the booking. Reminder emails the day before are for later (`docs/TODO.md`).
+
+**As built (part 7, 2026-10-02).**
+- Wording: `apps/website/server/utils/bookingEmailTemplates.ts`; previews of every email with `npm run email:previews`.
+- No addresses, phone numbers, email addresses, notes or user-written text (cancel reasons, no-show notes) in any email. Provider emails use the customer's first name only. The footer says "Questions? Reply to this email."; replies go to `NUXT_EMAIL_REPLY_TO`, since `lokl@innatetheory.com` has no inbox, and nothing is sent until it's set.
+- "Accepted" and "You're booked" state the policy that applies to that booking, by the cancel dialog's rule as it stood when the booking was confirmed: free cancellation until 48 hours before, or, when booked inside 48 hours, the grace hour with its end time. "New request" lists the offered times. "Not available" and "didn't go through" link to similar listings.
+- Sending: triggers on `bookings` queue rows in `booking_emails` (one per booking and kind) in the same transaction as the change; `server/utils/bookingEmails.ts` claims each row, sends it through Resend with the row id as the idempotency key, and records the outcome. The route, webhook or job that made the change sends straight away without waiting; the `send-emails` job retries failures (1, 5, 15, 60, 240 minutes, then failed for the admin). A failed send never affects the booking.
+- Its own Resend key (`NUXT_RESEND_API_KEY`), not the one Supabase uses for sign-in. `NUXT_EMAIL_MODE`: `off`, `allowlist` (development: only `NUXT_EMAIL_ALLOWLIST`) or `send`.
 
 ## Pages
 

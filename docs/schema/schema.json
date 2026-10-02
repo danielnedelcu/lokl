@@ -2713,6 +2713,10 @@
           "def": "CREATE TRIGGER bookings_notify_provider AFTER UPDATE OF status ON public.bookings FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION bookings_notify_provider()"
         },
         {
+          "name": "bookings_queue_emails",
+          "def": "CREATE TRIGGER bookings_queue_emails AFTER UPDATE OF status, problem_reported_at, payout_hold ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_queue_emails()"
+        },
+        {
           "name": "bookings_set_updated_at",
           "def": "CREATE TRIGGER bookings_set_updated_at BEFORE UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
@@ -3014,6 +3018,227 @@
           ]
         }
       ]
+    },
+    {
+      "name": "public.booking_emails",
+      "type": "BASE TABLE",
+      "comment": "Booking emails to send and what happened to each (the outbox and the log). Filled by triggers on bookings; sent by the website's server. Server only; admins can read. Never deleted.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "comment": "Which email: customer_* go to the customer, provider_* to the provider (docs/design/booking-and-checkout.md, Emails)."
+        },
+        {
+          "name": "recipient",
+          "type": "text",
+          "nullable": false,
+          "extra_def": "GENERATED ALWAYS AS split_part(kind, '_'::text, 1) STORED",
+          "comment": "customer or provider, from the kind."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending'::text"
+        },
+        {
+          "name": "attempts",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()",
+          "comment": "When the sender may try a pending email (later after each failure)."
+        },
+        {
+          "name": "locked_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "to_address",
+          "type": "text",
+          "nullable": true,
+          "comment": "Where it was sent, recorded when sent (or skipped)."
+        },
+        {
+          "name": "resend_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "skip_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "booking_emails_pkey",
+          "def": "CREATE UNIQUE INDEX booking_emails_pkey ON public.booking_emails USING btree (id)",
+          "table": "public.booking_emails",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_emails_once",
+          "def": "CREATE UNIQUE INDEX booking_emails_once ON public.booking_emails USING btree (booking_id, kind)",
+          "table": "public.booking_emails",
+          "columns": [
+            "booking_id",
+            "kind"
+          ]
+        },
+        {
+          "name": "booking_emails_due_idx",
+          "def": "CREATE INDEX booking_emails_due_idx ON public.booking_emails USING btree (next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'sending'::text]))",
+          "table": "public.booking_emails",
+          "columns": [
+            "next_attempt_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "booking_emails_attempts_check",
+          "type": "CHECK",
+          "def": "CHECK ((attempts \u003e= 0))",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "attempts"
+          ]
+        },
+        {
+          "name": "booking_emails_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['customer_request_sent'::text, 'customer_request_accepted'::text, 'customer_request_declined'::text, 'customer_request_expired'::text, 'customer_booking_confirmed'::text, 'customer_booking_cancelled'::text, 'customer_problem_received'::text, 'provider_new_request'::text, 'provider_new_booking'::text, 'provider_booking_cancelled'::text, 'provider_request_unanswered'::text, 'provider_payout_sent'::text, 'provider_problem_reported'::text, 'provider_payout_problem'::text])))",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "booking_emails_last_error_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(last_error) \u003c= 500))",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "last_error"
+          ]
+        },
+        {
+          "name": "booking_emails_sent_has_time",
+          "type": "CHECK",
+          "def": "CHECK (((status \u003c\u003e 'sent'::text) OR (sent_at IS NOT NULL)))",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "sent_at"
+          ]
+        },
+        {
+          "name": "booking_emails_skip_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(skip_reason) \u003c= 200))",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "skip_reason"
+          ]
+        },
+        {
+          "name": "booking_emails_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'skipped'::text, 'failed'::text])))",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "booking_emails_to_address_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(to_address) \u003c= 320))",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "to_address"
+          ]
+        },
+        {
+          "name": "booking_emails_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.booking_emails",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_emails_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_emails_once",
+          "type": "UNIQUE",
+          "def": "UNIQUE (booking_id, kind)",
+          "table": "public.booking_emails",
+          "referenced_table": "",
+          "columns": [
+            "booking_id",
+            "kind"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -3278,6 +3503,19 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.booking_emails",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -3463,6 +3701,18 @@
     },
     {
       "name": "public.bookings_notify_problem",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.booking_emails_queue",
+      "return_type": "void",
+      "arguments": "p_booking_id uuid, p_kinds text[]",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.bookings_queue_emails",
       "return_type": "trigger",
       "arguments": "",
       "type": "FUNCTION"

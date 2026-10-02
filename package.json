@@ -10,14 +10,17 @@
     "db:test": "supabase db start && supabase db reset --local && supabase test db",
     "db:test:realtime": "node supabase/tests/realtime/notifications.realtime.test.mjs && tsx supabase/tests/realtime/notifications-page-load.realtime.test.mts",
     "db:test:checkout": "PAY_WAIT_MINUTES=25 tsx supabase/tests/app/booking-checkout.test.mts",
-    "db:test:app": "tsx supabase/tests/app/public-routes.leak.test.mts && tsx supabase/tests/app/booking-routes.test.mts && tsx supabase/tests/app/provider-bookings.test.mts && tsx supabase/tests/app/booking-jobs.test.mts && tsx supabase/tests/app/cancellations.test.mts",
+    "db:test:app": "tsx supabase/tests/app/public-routes.leak.test.mts && tsx supabase/tests/app/booking-routes.test.mts && tsx supabase/tests/app/provider-bookings.test.mts && tsx supabase/tests/app/booking-jobs.test.mts && tsx supabase/tests/app/cancellations.test.mts && tsx supabase/tests/app/booking-emails.test.mts",
     "db:push": "npm run db:test && supabase db push && npm run db:types && npm run db:docs",
     "db:types": "supabase gen types typescript --linked --schema public > packages/types/src/database.ts.tmp && mv packages/types/src/database.ts.tmp packages/types/src/database.ts",
     "db:docs": "dotenv -e .env -- tbls doc --force -c .tbls.yml",
     "test:ui": "tsx packages/ui/tests/sign-in-redirect.test.mts && tsx packages/ui/tests/time-of-day.test.mts",
     "typecheck": "turbo run check-types --continue",
     "job": "node scripts/job.mjs",
-    "build:check": "node scripts/build-check.mjs"
+    "build:check": "node scripts/build-check.mjs",
+    "test:emails": "tsx supabase/tests/app/booking-email-templates.test.mts",
+    "email:previews": "tsx scripts/email-previews.mts",
+    "email:test-send": "tsx scripts/email-test-send.mts"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",

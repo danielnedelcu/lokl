@@ -26,5 +26,6 @@ export default defineEventHandler(async (event) => {
   // A failure answers 500, so Stripe retries the event later.
   const result = await handlePaymentsEvent(serverSupabaseServiceRole(event), useStripe(), stripeEvent);
   console.info(`[webhook-payments] ${stripeEvent.type} ${stripeEvent.id}: ${result}`);
+  kickBookingEmails(event);
   return { received: true };
 });

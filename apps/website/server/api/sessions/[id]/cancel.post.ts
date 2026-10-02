@@ -18,5 +18,6 @@ export default defineEventHandler(async (event) => {
   if (Date.parse(s.starts_at) <= Date.now()) throw createError({ statusCode: 409, statusMessage: "This session has started, so it can't be cancelled." });
   const { reason } = await readValidatedBody(event, body.parse);
   const done = await answering(() => cancelSession(serverSupabaseServiceRole(event), useStripe(), id, reason));
+  kickBookingEmails(event);
   return { cancelled: done.length, done };
 });

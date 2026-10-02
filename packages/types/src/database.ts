@@ -78,6 +78,65 @@ export type Database = {
           },
         ]
       }
+      booking_emails: {
+        Row: {
+          attempts: number
+          booking_id: string
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          locked_at: string | null
+          next_attempt_at: string
+          recipient: string
+          resend_id: string | null
+          sent_at: string | null
+          skip_reason: string | null
+          status: string
+          to_address: string | null
+        }
+        Insert: {
+          attempts?: number
+          booking_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          locked_at?: string | null
+          next_attempt_at?: string
+          recipient?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          to_address?: string | null
+        }
+        Update: {
+          attempts?: number
+          booking_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          locked_at?: string | null
+          next_attempt_at?: string
+          recipient?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          to_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_emails_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_events: {
         Row: {
           actor: string
@@ -783,6 +842,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      booking_emails_queue: {
+        Args: { p_booking_id: string; p_kinds: string[] }
+        Returns: undefined
+      }
       booking_money: {
         Args: { p_kind: string; p_party: number; p_unit_price: number }
         Returns: Record<string, unknown>

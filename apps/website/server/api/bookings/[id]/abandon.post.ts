@@ -10,5 +10,6 @@ export default defineEventHandler(async (event) => {
     await abandonCheckout(serverSupabaseServiceRole(event), useStripe(), booking.stripe_checkout_session_id);
   }
   const { data } = await serverSupabaseServiceRole(event).from("bookings").select("status").eq("id", booking.id).single();
+  kickBookingEmails(event, booking.id);
   return { status: data!.status };
 });

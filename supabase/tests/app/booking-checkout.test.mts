@@ -226,6 +226,7 @@ try {
     const ids = created.listings.map((i) => `'${i}'`).join(",");
     execFileSync("psql", [L, "-q", "-c", `
       set session_replication_role = replica;
+      delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_addresses where booking_id in (select id from bookings where listing_id in (${ids}));

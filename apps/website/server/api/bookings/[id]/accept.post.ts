@@ -10,5 +10,6 @@ export default defineEventHandler(async (event) => {
   const { booking } = await loadProviderBooking(event, getRouterParam(event, "id")!);
   const { startsAt } = await readValidatedBody(event, body.parse);
   const result = await answering(() => acceptRequest(serverSupabaseServiceRole(event), useStripe(), booking.id, startsAt));
+  kickBookingEmails(event, booking.id);
   return { result };
 });
