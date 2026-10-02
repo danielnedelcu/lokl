@@ -10,18 +10,20 @@
     "db:test": "supabase db start && supabase db reset --local && supabase test db",
     "db:test:realtime": "node supabase/tests/realtime/notifications.realtime.test.mjs && tsx supabase/tests/realtime/notifications-page-load.realtime.test.mts",
     "db:test:checkout": "PAY_WAIT_MINUTES=25 tsx supabase/tests/app/booking-checkout.test.mts",
-    "db:test:app": "tsx supabase/tests/app/public-routes.leak.test.mts && tsx supabase/tests/app/booking-routes.test.mts",
+    "db:test:app": "tsx supabase/tests/app/public-routes.leak.test.mts && tsx supabase/tests/app/booking-routes.test.mts && tsx supabase/tests/app/provider-bookings.test.mts",
     "db:push": "npm run db:test && supabase db push && npm run db:types && npm run db:docs",
     "db:types": "supabase gen types typescript --linked --schema public > packages/types/src/database.ts.tmp && mv packages/types/src/database.ts.tmp packages/types/src/database.ts",
     "db:docs": "dotenv -e .env -- tbls doc --force -c .tbls.yml",
-    "test:ui": "tsx packages/ui/tests/sign-in-redirect.test.mts"
+    "test:ui": "tsx packages/ui/tests/sign-in-redirect.test.mts",
+    "typecheck": "turbo run check-types --continue"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",
     "prettier": "3.9.6",
     "supabase": "^2.118.0",
     "turbo": "^2.11.2",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vue-tsc": "^3.3.11"
   },
   "engines": {
     "node": ">=24"

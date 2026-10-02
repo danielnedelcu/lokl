@@ -27,6 +27,16 @@
       completed: "Done",
       paid_out: "Done",
     },
+    // Bookings, as the provider sees them.
+    providerBooking: {
+      requested: "Needs your answer",
+      confirmed: "Confirmed",
+      declined: "Declined",
+      expired: "Ended",
+      cancelled: "Cancelled",
+      completed: "Done",
+      paid_out: "Paid out",
+    },
   } as const;
 
   type Kind = keyof typeof labels;
@@ -56,6 +66,8 @@
     "booking:cancelled": "outline",
     "booking:completed": "outline",
     "booking:paid_out": "outline",
+    "providerBooking:requested": "default",
+    "providerBooking:confirmed": "secondary",
   };
 
   const label = computed(

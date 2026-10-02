@@ -2,7 +2,7 @@
 -- Who can read them is in bookings_access.test.sql.
 begin;
 \ir _helpers/users.psql
-select plan(39);
+select plan(44);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -68,7 +68,7 @@ select lives_ok(
   '3b. the last spot can be reserved');
 select throws_ok(
   format($$ select reserve_experience_booking(%L, %L, 1::smallint, 'Jo', 'jo@test.local', null, null, now() + interval '30 minutes') $$, :'s1', :'cust'),
-  '23514', 'There aren''t enough spots left for 1 people.', '3c. a full session can''t be reserved');
+  '23514', 'There aren''t enough spots left for 1 person.', '3c. a full session can''t be reserved');
 
 -- 4. An expired checkout releases its spots.
 update bookings set reserved_until = now() - interval '1 minute' where session_id = :'s1' and customer_id = :'admin';
@@ -110,6 +110,10 @@ select is((select line1 from booking_addresses where booking_id = :'b3'), '12 El
 select throws_ok(
   format($$ select create_service_request(%L, %L, array[now() + interval '2 days'], 'Sam', 'sam@test.local', null, null, '{"line1": "1 A St", "city": "Atlanta", "state": "GA", "postal_code": "30312"}'::jsonb, now() + interval '30 minutes') $$, :'ls', :'cust'),
   '23514', 'This Service happens at the provider''s place, so no address is needed.', '7c. a studio Service doesn''t take an address');
+select is((select array[customer_city, customer_postal_code] from bookings where id = :'b3'), array['Atlanta', '30312'],
+  '7d. an "I come to you" request copies the customer''s city and zip code onto the booking');
+select throws_ok(format($$ update bookings set customer_city = 'Decatur' where id = %L $$, :'b3'),
+  '23514', 'A booking''s listing, customer, size, times offered and price can''t be changed.', '7e. the city and zip code on a booking can''t be changed');
 
 -- ---------------------------------------------------------------------------
 -- STATUSES
@@ -129,6 +133,23 @@ select lives_ok(format($$ update bookings set status = 'confirmed', starts_at = 
 select is((select ends_at from bookings where id = :'b2'), :'t2'::timestamptz + interval '60 minutes', '9c. it ends after the listing''s duration');
 select is((select payout_due_at from bookings where id = :'b2'), :'t2'::timestamptz + interval '60 minutes' + interval '24 hours',
   '9d. the payout is due 24 hours after it ends');
+
+-- 9e. A request whose answer-by time has passed can't be accepted.
+select (create_service_request(:'ls', :'cust', array[:'t1'::timestamptz], 'Sam Customer', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id as b5 \gset
+update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() - interval '1 minute' where id = :'b5';
+select throws_ok(format($$ update bookings set status = 'confirmed', starts_at = %L, status_changed_by = 'provider' where id = %L $$, :'t1', :'b5'),
+  '23514', 'The time to answer this request has passed.', '9e. a request can''t be accepted after its answer-by time');
+
+-- 9f. A time that has already passed can't be accepted. (Requests are made
+-- 24 hours ahead, so this one is written directly, as only the server could.)
+insert into bookings (kind, listing_id, provider_id, customer_id, preferred_times, customer_name, unit_price_cents, total_cents,
+  commission_rate_bps, commission_cents, provider_amount_cents, status_changed_by)
+values ('service', :'ls', :'p', :'cust', array[now() - interval '1 hour'], 'Sam Customer', 4500, 4500, 1200, 540, 3960, 'customer')
+returning id as b6 \gset
+update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id = :'b6';
+select throws_ok(format($$ update bookings set status = 'confirmed', starts_at = preferred_times[1], status_changed_by = 'provider' where id = %L $$, :'b6'),
+  '23514', 'That time has already passed.', '9f. a time that has passed can''t be accepted');
+select is((select customer_city from bookings where id = :'b2'), null, '9g. a studio Service request has no customer city');
 
 -- 10. Statuses only move along the allowed paths.
 select throws_ok(format($$ update bookings set status = 'requested' where id = %L $$, :'b2'),

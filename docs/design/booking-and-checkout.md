@@ -290,7 +290,7 @@ Templates live in the website as small functions (subject, plain text, simple HT
 ### Provider
 
 - **Bookings** (`/dashboard/bookings`, replacing the placeholder):
-  - **Requests:** each with the time left to answer, the customer's name and notes, and their preferred times, one of which the provider accepts, or Decline.
+  - **Requests:** each with the time left to answer, the customer's name and notes, for "I come to you" their city and zip code (copied onto the booking; the street address stays hidden until they accept, decided 2026-10-02), and their preferred times, one of which the provider accepts, or Decline. A time that overlaps one of their confirmed bookings shows a warning, never a block.
   - **Upcoming:** the customer's name, party size and notes, and, now that it's accepted or confirmed, their email, phone if given, and for an "I come to you" Service their address.
   - **Past.**
 - **Sessions:** spots booked per session. A session with bookings can't be moved (decision 12), only cancelled, which warns that everyone is refunded.

@@ -7,7 +7,8 @@
     "dev": "node ../../scripts/check-port.mjs 3100 \"the lokl website\" && nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "check-types": "nuxt typecheck"
   },
   "dependencies": {
     "@nuxt/eslint": "^1.17.0",

@@ -123,9 +123,11 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           currency: string
+          customer_city: string | null
           customer_id: string
           customer_name: string
           customer_notes: string | null
+          customer_postal_code: string | null
           ends_at: string | null
           id: string
           kind: string
@@ -164,9 +166,11 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           currency?: string
+          customer_city?: string | null
           customer_id: string
           customer_name: string
           customer_notes?: string | null
+          customer_postal_code?: string | null
           ends_at?: string | null
           id?: string
           kind: string
@@ -205,9 +209,11 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           currency?: string
+          customer_city?: string | null
           customer_id?: string
           customer_name?: string
           customer_notes?: string | null
+          customer_postal_code?: string | null
           ends_at?: string | null
           id?: string
           kind?: string
@@ -784,9 +790,11 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           currency: string
+          customer_city: string | null
           customer_id: string
           customer_name: string
           customer_notes: string | null
+          customer_postal_code: string | null
           ends_at: string | null
           id: string
           kind: string
@@ -857,9 +865,11 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           currency: string
+          customer_city: string | null
           customer_id: string
           customer_name: string
           customer_notes: string | null
+          customer_postal_code: string | null
           ends_at: string | null
           id: string
           kind: string

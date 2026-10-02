@@ -9,12 +9,15 @@ const props = defineProps<{
   providerId: string;
   /** Where a notification leads, e.g. (id) => `/dashboard/listings/${id}`. */
   listingPath: (listingId: string) => string;
+  /** Where a booking notification leads, e.g. (id) => `/dashboard/bookings/${id}`. */
+  bookingPath?: (bookingId: string) => string;
 }>();
 
 interface Item {
   id: string;
   kind: NotificationKind;
   listing_id: string;
+  booking_id: string | null;
   created_at: string;
   read_at: string | null;
   listing: { title: string } | null;
@@ -33,7 +36,7 @@ async function load() {
   const [recent, count] = await Promise.all([
     supabase
       .from("notifications")
-      .select("id, kind, listing_id, created_at, read_at, listing:listings(title)")
+      .select("id, kind, listing_id, booking_id, created_at, read_at, listing:listings(title)")
       .eq("provider_id", props.providerId)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -102,7 +105,7 @@ async function markAllRead() {
 async function openItem(n: Item) {
   if (!n.read_at) void markRead([n.id]);
   open.value = false;
-  await navigateTo(props.listingPath(n.listing_id));
+  await navigateTo(n.booking_id && props.bookingPath ? props.bookingPath(n.booking_id) : props.listingPath(n.listing_id));
 }
 
 const label = computed(() => bellLabel(unread.value));
@@ -138,7 +141,7 @@ const label = computed(() => bellLabel(unread.value));
           Your notifications didn't load. Close this and try again.
         </p>
         <p v-else-if="!items.length" class="text-muted-foreground p-4 text-sm">
-          No notifications yet. We'll let you know here when lokl reviews or changes one of your listings.
+          No notifications yet. We'll let you know here about new bookings, and when lokl reviews or changes one of your listings.
         </p>
         <div v-else class="max-h-[min(28rem,70vh)] overflow-y-auto py-1">
           <UiDropdownMenuItem

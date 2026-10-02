@@ -151,9 +151,16 @@ Each step depends on the ones before it.
      Also fixed: sign-in now returns to the saved page (it went to
      /dashboard), `/dashboard` explains itself to someone with no business,
      and the 404 page is generic outside listing pages.
-   - [ ] Part 4: provider accept and decline, provider bookings pages. In its
-     migration, fix the spots message "enough spots left for 1 people"
-     (`20261001012101_bookings.sql`, already pushed) and its two tests.
+   - [x] Part 4: provider accept and decline, provider bookings pages
+     (Requests, Upcoming, Past, and a page per booking), the customer's city
+     and zip on requests, overlap warnings, booking notifications in the
+     bell, the public header's account menu, and the "1 person" fix.
+     Done 2026-10-02 (migration `booking_requests_answers` pushed;
+     walkthrough passed).
+   - [ ] Type errors: `vue-tsc` added 2026-10-02 (`npm run typecheck`, both
+     apps); the first run found 196 errors (147 website, 49 admin). Fixing
+     them in order: generated database types, the h3 event type, then the
+     toasts and the rest.
    - [ ] Part 5 jobs, part 6 cancellations and refunds, part 7 emails, part 8
      admin.
 5. **Booking management.** Provider and customer booking views, cancellations,
@@ -271,6 +278,7 @@ tests, run through `db:test` before `db:push`.
 - "Don't see your area? Tell us" link next to the area picker.
 - Provider profile pages ("More from this host").
 - Area pages such as `/atlanta/decatur`, once areas have enough listings to stand as pages (docs/design/browse-and-listing-pages.md).
+- Optional note to the customer when declining a request (stored on the booking, sent in the decline email).
 
 ## Loose ends
 

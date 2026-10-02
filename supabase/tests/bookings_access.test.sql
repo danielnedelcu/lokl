@@ -5,7 +5,7 @@
 -- and the provider's notifications.
 begin;
 \ir _helpers/users.psql
-select plan(34);
+select plan(36);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -86,6 +86,11 @@ select is((select line1 from booking_addresses where booking_id = :'bh'), '12 El
 select tests.authenticate_as(:'owner');
 select is((select count(*)::int from booking_contacts), 0, '5c. the provider cannot read the customer''s email or phone on a request');
 select is((select count(*)::int from booking_addresses), 0, '5d. the provider cannot read the customer''s address on a request');
+select is((select customer_city || ' ' || customer_postal_code from bookings where id = :'bh'), 'Atlanta 30312',
+  '5e. the provider sees the customer''s city and zip code on a request');
+select tests.authenticate_as(:'owner2');
+select is((select count(*)::int from bookings where id = :'bh'), 0, '5f. another provider can''t see the request, or its city and zip code');
+select tests.authenticate_as(:'owner');
 
 -- 6. After acceptance: the provider sees them, for that booking only.
 select tests.authenticate_as_service_role();

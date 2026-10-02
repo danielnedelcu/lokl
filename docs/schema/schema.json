@@ -2154,6 +2154,18 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "now()"
+        },
+        {
+          "name": "customer_city",
+          "type": "text",
+          "nullable": true,
+          "comment": "\"I come to you\" Services: the customer's city, copied from their address when the request is made, so the provider sees roughly where before accepting. Never changes."
+        },
+        {
+          "name": "customer_postal_code",
+          "type": "text",
+          "nullable": true,
+          "comment": "\"I come to you\" Services: the customer's zip code, copied like customer_city. The street address stays in booking_addresses until the provider accepts."
         }
       ],
       "indexes": [
@@ -2313,6 +2325,28 @@
           ]
         },
         {
+          "name": "bookings_customer_area",
+          "type": "CHECK",
+          "def": "CHECK ((((customer_city IS NULL) = (customer_postal_code IS NULL)) AND ((kind = 'service'::text) OR (customer_city IS NULL))))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "customer_city",
+            "customer_postal_code",
+            "kind"
+          ]
+        },
+        {
+          "name": "bookings_customer_city_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(customer_city) \u003e= 2) AND (char_length(customer_city) \u003c= 80)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "customer_city"
+          ]
+        },
+        {
           "name": "bookings_customer_name_check",
           "type": "CHECK",
           "def": "CHECK (((char_length(customer_name) \u003e= 1) AND (char_length(customer_name) \u003c= 120)))",
@@ -2330,6 +2364,16 @@
           "referenced_table": "",
           "columns": [
             "customer_notes"
+          ]
+        },
+        {
+          "name": "bookings_customer_postal_code_check",
+          "type": "CHECK",
+          "def": "CHECK ((customer_postal_code ~ '^[0-9]{5}(-[0-9]{4})?$'::text))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "customer_postal_code"
           ]
         },
         {
