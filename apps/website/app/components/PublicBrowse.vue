@@ -25,7 +25,7 @@ const filters = computed(() => ({
   page: Math.max(1, Math.floor(Number(q("page") ?? 1)) || 1),
 }));
 
-const notFound = () => createError({ statusCode: 404, statusMessage: "We couldn't find that page.", fatal: true });
+const notFound = () => createError({ statusCode: 404, fatal: true });
 
 const { data: info, error: infoError } = await useFetch<PublicMarketInfo>(`/api/public/markets/${marketSlug}`, {
   key: `public-market-${marketSlug}`,

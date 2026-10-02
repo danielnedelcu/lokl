@@ -48,8 +48,8 @@ const LISTING_SELECT = `
   area:service_areas!listings_area_id_fkey(id, name, kind),
   travel:listing_service_areas(area:service_areas!listing_service_areas_service_area_id_fkey(id, name, kind)),
   photos:listing_photos(storage_path, card_path, alt_text, position),
-  hostedBy:providers(display_name),
-  sessions:experience_sessions(starts_at)
+  hostedBy:providers(id, display_name),
+  sessions:experience_sessions(id, starts_at)
 `;
 
 interface Row {
@@ -68,8 +68,8 @@ interface Row {
   area: { id: string; name: string; kind: AreaKind } | null;
   travel: { area: { id: string; name: string; kind: AreaKind } | null }[];
   photos: { storage_path: string; card_path: string | null; alt_text: string; position: number }[];
-  hostedBy: { display_name: string } | null;
-  sessions: { starts_at: string }[];
+  hostedBy: { id: string; display_name: string } | null;
+  sessions: { id: string; starts_at: string }[];
 }
 
 const toArea = (a: { name: string; kind: AreaKind }): PublicArea => ({ name: a.name, kind: a.kind });
@@ -117,14 +117,22 @@ export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, s
   if (!data) return null;
   const r = data as unknown as Row;
   const card = toCard(r);
+  // Spots left per upcoming session (session_spots_left counts bookings and
+  // unexpired reservations the visitor can't read).
+  const upcoming = r.sessions.filter((s) => Date.parse(s.starts_at) > Date.now()).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const spots = await Promise.all(upcoming.map(async (s) => {
+    const { data: left } = await db.rpc("session_spots_left", { p_session_id: s.id });
+    return { id: s.id, startsAt: new Date(s.starts_at).toISOString(), spotsLeft: (left as number | null) ?? 0 };
+  }));
   return {
     ...stripInternal(card),
     description: r.description,
     locationMode: r.location_mode,
     market: r.city,
     hostedBy: r.hostedBy?.display_name ?? "",
+    providerId: r.hostedBy?.id ?? "",
     photos: [...r.photos].sort((a, b) => a.position - b.position).map(toPhoto),
-    sessions: card.sessionTimes.map((t) => ({ startsAt: new Date(t).toISOString() })),
+    sessions: spots,
   };
 }
 

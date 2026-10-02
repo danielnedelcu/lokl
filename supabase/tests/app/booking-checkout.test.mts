@@ -18,6 +18,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import {
+  abandonCheckout,
   handlePaymentsEvent,
   startExperienceCheckout,
   startServiceCheckout,
@@ -92,6 +93,8 @@ try {
   const customer = await user("customer");
   const customer2 = await user("customer2");
   created.provider = (await must(db.from("providers").insert({ owner_id: owner.id, display_name: "Checkout Test", city_id: atl.id }).select("id").single())).id;
+  // Payouts ready, or the booking routes refuse (booking-routes.test.mts covers that).
+  await must(db.from("providers").update({ stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", created.provider));
   const svcCat = (await must(db.from("categories").insert({ kind: "service", name: `Checkout svc ${run}`, slug: `checkout-svc-${run}` }).select("id").single())).id;
   const expCat = (await must(db.from("categories").insert({ kind: "experience", name: `Checkout exp ${run}`, slug: `checkout-exp-${run}` }).select("id").single())).id;
   created.category.push(svcCat, expCat);
@@ -195,6 +198,11 @@ try {
   const fakeExpired = { ...expired[0]!, data: { object: { ...(expired[0]!.data.object as object), id: expBooking.stripe_checkout_session_id } } } as Stripe.Event;
   check((await handlePaymentsEvent(db, stripe, fakeExpired)).startsWith("ignored") && (await booking(exp.bookingId)).status === "confirmed",
     "7. an expiry event naming a paid checkout is ignored; the handler goes by what Stripe says now");
+
+  // --- 7b. Abandoning a paid checkout (the customer pressed back after paying) never touches it.
+  const abandoned = await abandonCheckout(db, stripe, expBooking.stripe_checkout_session_id);
+  check(abandoned.startsWith("ignored") && (await booking(exp.bookingId)).status === "confirmed",
+    `7b. abandoning a paid checkout leaves the booking confirmed (${abandoned})`);
 
   // --- 8. The webhook signature.
   const secret = "whsec_test_" + randomBytes(12).toString("hex");

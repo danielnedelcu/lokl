@@ -16,6 +16,17 @@
     },
     // Experience sessions.
     session: { scheduled: "Scheduled", cancelled: "Cancelled" },
+    // Bookings, as the customer sees them.
+    booking: {
+      pending_payment: "Waiting for payment",
+      requested: "Waiting for the provider",
+      confirmed: "Confirmed",
+      declined: "Declined",
+      expired: "Didn't go through",
+      cancelled: "Cancelled",
+      completed: "Done",
+      paid_out: "Done",
+    },
   } as const;
 
   type Kind = keyof typeof labels;
@@ -37,6 +48,14 @@
     "listing:unpublished": "secondary",
     "session:scheduled": "outline",
     "session:cancelled": "secondary",
+    "booking:pending_payment": "outline",
+    "booking:requested": "secondary",
+    "booking:confirmed": "default",
+    "booking:declined": "destructive",
+    "booking:expired": "outline",
+    "booking:cancelled": "outline",
+    "booking:completed": "outline",
+    "booking:paid_out": "outline",
   };
 
   const label = computed(

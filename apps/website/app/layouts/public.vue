@@ -2,6 +2,9 @@
 // Customer-facing pages: listing, browse, market. A plain header and footer;
 // the homepage keeps its own markup (app/pages/index.vue).
 const user = useSupabaseUser();
+// "Dashboard" only for providers; every signed-in visitor has "My bookings".
+// Only when signed in: /api/provider is for signed-in users.
+const { data: provider } = user.value ? await useProvider() : { data: ref(null) };
 </script>
 
 <template>
@@ -12,9 +15,11 @@ const user = useSupabaseUser();
         <nav aria-label="Main" class="flex items-center text-sm sm:gap-1">
           <NuxtLink to="/experiences" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">Experiences</NuxtLink>
           <NuxtLink to="/services" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">Services</NuxtLink>
-          <NuxtLink :to="user ? '/dashboard' : '/login'" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">
-            {{ user ? "Dashboard" : "Sign in" }}
-          </NuxtLink>
+          <template v-if="user">
+            <NuxtLink to="/account/bookings" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">My bookings</NuxtLink>
+            <NuxtLink v-if="provider" to="/dashboard" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">Dashboard</NuxtLink>
+          </template>
+          <NuxtLink v-else to="/login" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">Sign in</NuxtLink>
         </nav>
       </div>
     </header>

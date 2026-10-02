@@ -2,9 +2,11 @@
 
 Public site plus the provider dashboard. Port 3100 (fixed). Root `CLAUDE.md` applies too.
 
-- **What's public.** Only `/dashboard*` requires sign-in (`supabase.redirectOptions.include`).
-  Every other page stays public. `/dashboard/**`, `/login` and `/confirm` are
-  `robots: false` in `routeRules`; keep new signed-in pages under `/dashboard`.
+- **What's public.** Only `/dashboard*` (providers) and `/account*` (anyone's
+  own bookings as a customer) require sign-in (`supabase.redirectOptions.include`).
+  Every other page stays public. `/dashboard/**`, `/account/**`, `/login` and
+  `/confirm` are `robots: false` in `routeRules`; keep new signed-in pages under
+  one of those two.
 - **Server routes start with a check** from `server/utils/provider.ts`:
   `requireUser` (any signed-in user), `requireProvider` (owns an active
   provider; also blocks suspended ones) or `getOwnProvider` (may be null).

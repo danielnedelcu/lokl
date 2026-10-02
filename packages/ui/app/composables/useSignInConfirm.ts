@@ -16,13 +16,9 @@ export function useSignInConfirm(fallbackPath: string) {
   const redirect = useSupabaseCookieRedirect();
   const failed = ref<null | "expired" | "browser">(null);
 
-  watch(
-    user,
-    () => {
-      if (user.value) navigateTo(redirect.pluck() || fallbackPath);
-    },
-    { immediate: true },
-  );
+  // Decided once: see createSignInRedirect.
+  const after = createSignInRedirect({ takeSaved: () => redirect.pluck(), fallback: fallbackPath, go: (path) => navigateTo(path) });
+  watch(user, (u) => after.onUser(u), { immediate: true });
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   onMounted(() => {

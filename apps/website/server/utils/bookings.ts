@@ -53,6 +53,16 @@ function fromDatabase(error: { message: string; code?: string }): BookingError {
   return new BookingError("Something went wrong on our side. Please try again.", 500);
 }
 
+// A provider whose Stripe account can't take charges or receive payouts
+// can't be booked (decision, 2026-10-01). Live listings normally can; this
+// catches an account Stripe has since switched off.
+export const NOT_TAKING_BOOKINGS = "This listing isn't taking bookings right now.";
+async function assertProviderCanBeBooked(db: SupabaseClient, listingId: string) {
+  const { data } = await db.from("listings").select("provider:providers(stripe_charges_enabled, stripe_payouts_enabled)").eq("id", listingId).maybeSingle();
+  const p = (data as { provider: { stripe_charges_enabled: boolean; stripe_payouts_enabled: boolean } | null } | null)?.provider;
+  if (!p?.stripe_charges_enabled || !p?.stripe_payouts_enabled) throw new BookingError(NOT_TAKING_BOOKINGS, 409);
+}
+
 async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: string, listingPath: string) {
   const expiresAt = Math.floor((Date.now() + CHECKOUT_WINDOW_MS) / 1000);
   let session: Stripe.Checkout.Session;
@@ -75,7 +85,7 @@ async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: 
         },
         expires_at: expiresAt,
         success_url: `${ctx.siteUrl}/account/bookings/${booking.id}?checkout=done`,
-        cancel_url: `${ctx.siteUrl}${listingPath}?checkout=cancelled`,
+        cancel_url: `${ctx.siteUrl}${listingPath}?checkout=cancelled&booking=${booking.id}`,
       },
       { idempotencyKey: idempotencyKey(booking.id, "checkout") },
     );
@@ -96,6 +106,7 @@ async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: 
 export async function startServiceCheckout(ctx: CheckoutContext, input: ServiceBookingRequest) {
   const { data: listing } = await ctx.db.from("listings").select("slug, title").eq("id", input.listingId).maybeSingle();
   if (!listing) throw new BookingError("This Service isn't available to book.", 404);
+  await assertProviderCanBeBooked(ctx.db, input.listingId);
   const { data, error } = await ctx.db.rpc("create_service_request", {
     p_listing_id: input.listingId,
     p_customer_id: ctx.customer.id,
@@ -114,9 +125,10 @@ export async function startServiceCheckout(ctx: CheckoutContext, input: ServiceB
 /** An Experience booking: spots reserved for the checkout window, then a Checkout Session that charges at once. */
 export async function startExperienceCheckout(ctx: CheckoutContext, input: ExperienceBookingRequest) {
   const { data: session } = await ctx.db
-    .from("experience_sessions").select("listing:listings(slug, title)").eq("id", input.sessionId).maybeSingle();
+    .from("experience_sessions").select("listing_id, listing:listings(slug, title)").eq("id", input.sessionId).maybeSingle();
   const listing = (session as { listing: { slug: string; title: string } | null } | null)?.listing;
   if (!listing) throw new BookingError("That date isn't available any more.", 404);
+  await assertProviderCanBeBooked(ctx.db, (session as { listing_id: string }).listing_id);
   const { data, error } = await ctx.db.rpc("reserve_experience_booking", {
     p_session_id: input.sessionId,
     p_customer_id: ctx.customer.id,
@@ -155,6 +167,74 @@ async function move(db: SupabaseClient, booking: BookingRow, update: Record<stri
 }
 
 /**
+ * Brings a booking in line with its Checkout Session, as Stripe has it now:
+ * paid (a Service becomes a request, an Experience is confirmed), expired, or
+ * still open (nothing to do). Safe to call any number of times. Used by the
+ * payments webhook, by the confirmation page (in case the webhook is late)
+ * and by abandoning a checkout.
+ */
+export async function syncCheckoutSession(db: SupabaseClient, stripe: Stripe, sessionId: string): Promise<string> {
+  const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ["payment_intent"] });
+  const booking = await bookingBy(db, "stripe_checkout_session_id", session.id);
+  if (!booking) return "ignored: no booking for this Checkout Session";
+  const pi = session.payment_intent as Stripe.PaymentIntent | null;
+
+  if (session.status === "expired") {
+    if (booking.status !== "pending_payment") return `ignored: expired, but the booking is ${booking.status}`;
+    return (await move(db, booking, { status: "expired", status_changed_by: "stripe" })) ? "expired" : "ignored: changed meanwhile";
+  }
+  if (session.status !== "complete" || !pi) return "ignored: checkout not complete";
+
+  if (booking.status !== "pending_payment") {
+    // Paid after we'd already let the booking go (shouldn't happen: Checkout
+    // expires with the reservation). Give the money back.
+    if (["expired", "cancelled"].includes(booking.status) && pi.status === "succeeded" && !booking["refunded_at"]) {
+      await stripe.refunds.create({ payment_intent: pi.id }, { idempotencyKey: idempotencyKey(booking.id, "late-refund") });
+      await db.from("bookings").update({ stripe_payment_intent_id: pi.id, refunded_cents: booking.total_cents, refunded_at: new Date().toISOString() }).eq("id", booking.id);
+      return "refunded: paid after the booking had lapsed";
+    }
+    return `ignored: already ${booking.status}`;
+  }
+
+  if (booking.kind === "service") {
+    if (pi.status !== "requires_capture") return `ignored: payment is ${pi.status}`;
+    const ok = await move(db, booking, {
+      status: "requested",
+      status_changed_by: "stripe",
+      stripe_payment_intent_id: pi.id,
+      respond_by: new Date(Date.now() + RESPOND_WITHIN_MS).toISOString(),
+    });
+    return ok ? "requested" : "ignored: changed meanwhile";
+  }
+  if (session.payment_status !== "paid") return `ignored: payment is ${session.payment_status}`;
+  const ok = await move(db, booking, {
+    status: "confirmed",
+    status_changed_by: "stripe",
+    stripe_payment_intent_id: pi.id,
+    stripe_charge_id: typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge?.id ?? null,
+  });
+  return ok ? "confirmed" : "ignored: changed meanwhile";
+}
+
+/**
+ * The customer left Checkout. Re-reads the Checkout Session first: only one
+ * Stripe still has as open is expired (freeing the spots or request at once);
+ * a paid one is never touched, just synced (decision, 2026-10-01).
+ */
+export async function abandonCheckout(db: SupabaseClient, stripe: Stripe, sessionId: string): Promise<string> {
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  if (session.status === "open") {
+    try {
+      await stripe.checkout.sessions.expire(sessionId);
+    } catch (e) {
+      // Completed or expired between the read and now: the sync below sorts it.
+      console.warn("[bookings] expire", (e as Error).message);
+    }
+  }
+  return syncCheckoutSession(db, stripe, sessionId);
+}
+
+/**
  * Handles one payments event. Webhooks can arrive late, twice or out of order,
  * so it acts on what Stripe says now (the Checkout Session or PaymentIntent is
  * re-read), and on the booking's current status, never on the event body
@@ -165,50 +245,8 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
     case "checkout.session.completed":
     case "checkout.session.expired":
     case "checkout.session.async_payment_succeeded":
-    case "checkout.session.async_payment_failed": {
-      const session = await stripe.checkout.sessions.retrieve((event.data.object as Stripe.Checkout.Session).id, {
-        expand: ["payment_intent"],
-      });
-      const booking = await bookingBy(db, "stripe_checkout_session_id", session.id);
-      if (!booking) return "ignored: no booking for this Checkout Session";
-      const pi = session.payment_intent as Stripe.PaymentIntent | null;
-
-      if (session.status === "expired") {
-        if (booking.status !== "pending_payment") return `ignored: expired, but the booking is ${booking.status}`;
-        return (await move(db, booking, { status: "expired", status_changed_by: "stripe" })) ? "expired" : "ignored: changed meanwhile";
-      }
-      if (session.status !== "complete" || !pi) return "ignored: checkout not complete";
-
-      if (booking.status !== "pending_payment") {
-        // Paid after we'd already let the booking go (shouldn't happen: Checkout
-        // expires with the reservation). Give the money back.
-        if (["expired", "cancelled"].includes(booking.status) && pi.status === "succeeded" && !booking["refunded_at"]) {
-          await stripe.refunds.create({ payment_intent: pi.id }, { idempotencyKey: idempotencyKey(booking.id, "late-refund") });
-          await db.from("bookings").update({ stripe_payment_intent_id: pi.id, refunded_cents: booking.total_cents, refunded_at: new Date().toISOString() }).eq("id", booking.id);
-          return "refunded: paid after the booking had lapsed";
-        }
-        return `ignored: already ${booking.status}`;
-      }
-
-      if (booking.kind === "service") {
-        if (pi.status !== "requires_capture") return `ignored: payment is ${pi.status}`;
-        const ok = await move(db, booking, {
-          status: "requested",
-          status_changed_by: "stripe",
-          stripe_payment_intent_id: pi.id,
-          respond_by: new Date(Date.now() + RESPOND_WITHIN_MS).toISOString(),
-        });
-        return ok ? "requested" : "ignored: changed meanwhile";
-      }
-      if (session.payment_status !== "paid") return `ignored: payment is ${session.payment_status}`;
-      const ok = await move(db, booking, {
-        status: "confirmed",
-        status_changed_by: "stripe",
-        stripe_payment_intent_id: pi.id,
-        stripe_charge_id: typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge?.id ?? null,
-      });
-      return ok ? "confirmed" : "ignored: changed meanwhile";
-    }
+    case "checkout.session.async_payment_failed":
+      return syncCheckoutSession(db, stripe, (event.data.object as Stripe.Checkout.Session).id);
 
     case "payment_intent.canceled": {
       const pi = await stripe.paymentIntents.retrieve((event.data.object as Stripe.PaymentIntent).id);

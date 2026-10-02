@@ -13,16 +13,33 @@ const kindWord = props.kind === "experience" ? "Experiences" : "Services";
 const { data: listing, error } = await useFetch<PublicListing>(`/api/public/listings/${plural}/${slug}`, {
   key: `public-listing-${plural}-${slug}`,
 });
+// Only a real 404 is "not found". Any other failure, including a fetch cut
+// off by another navigation, is "didn't load", so a listing never reads as
+// taken down because of a network blip (found 2026-10-01).
+const missing = error.value ? error.value.statusCode === 404 : !listing.value;
 if (error.value || !listing.value) {
   throw createError({
-    statusCode: error.value?.statusCode === 404 || !listing.value ? 404 : 500,
-    statusMessage: error.value?.statusCode === 404 || !listing.value
-      ? "We couldn't find that listing. It may have been taken down."
-      : "This page didn't load. Please try again in a moment.",
+    statusCode: missing ? 404 : 500,
+    data: missing ? { message: "We couldn't find that listing. It may have been taken down." } : undefined,
     fatal: true,
   });
 }
 const l = computed(() => listing.value!);
+
+// Back from a cancelled Stripe Checkout: free the hold at once rather than
+// after the checkout window (the route only expires a checkout Stripe still
+// has as open; a paid one is never touched).
+const checkoutCancelled = ref(false);
+onMounted(async () => {
+  if (route.query.checkout !== "cancelled") return;
+  checkoutCancelled.value = true;
+  const bookingId = typeof route.query.booking === "string" ? route.query.booking : null;
+  await navigateTo({ path: route.path }, { replace: true });
+  if (bookingId) {
+    await $fetch(`/api/bookings/${bookingId}/abandon`, { method: "POST" }).catch(() => null);
+    await refreshNuxtData(`public-listing-${plural}-${slug}`);
+  }
+});
 
 // Photos come from public storage; the card copy is used for small images.
 const supabase = useSupabaseClient();
@@ -191,20 +208,12 @@ useSchemaOrg([
       </div>
 
       <!-- Price and booking: beside the details on wide screens, below them on phones. -->
-      <aside aria-label="Price and booking" class="lg:sticky lg:top-6">
-        <UiCard>
-          <UiCardContent class="space-y-4">
-            <div>
-              <p class="text-2xl font-semibold">{{ price }}</p>
-              <p v-if="l.durationMinutes" class="text-muted-foreground text-sm">{{ formatDuration(l.durationMinutes) }}</p>
-            </div>
-            <UiButton class="w-full" disabled aria-describedby="booking-note">Booking opens soon</UiButton>
-            <p id="booking-note" class="text-muted-foreground text-sm">
-              You'll be able to book {{ kind === "experience" ? "a date" : "this" }} here soon.
-              The exact meeting place is shared after you book.
-            </p>
-          </UiCardContent>
-        </UiCard>
+      <aside aria-label="Price and booking" class="space-y-4 lg:sticky lg:top-6">
+        <UiAlert v-if="checkoutCancelled" role="status">
+          <UiAlertTitle>Checkout cancelled</UiAlertTitle>
+          <UiAlertDescription>Nothing was charged. You can book again whenever you're ready.</UiAlertDescription>
+        </UiAlert>
+        <BookingPanel :listing="l" />
       </aside>
     </div>
 

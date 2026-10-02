@@ -58,11 +58,13 @@ export default defineNuxtConfig({
     },
     // Point this at packages/types/src/database.ts once it holds generated types.
     types: false,
-    // Public pages stay open; only the provider dashboard requires sign-in.
+    // Public pages stay open; the provider dashboard and the customer's
+    // account pages require sign-in.
     redirectOptions: {
       login: "/login",
       callback: "/confirm",
-      include: ["/dashboard*"],
+      // Providers' dashboard, and customers' own bookings.
+      include: ["/dashboard*", "/account*"],
       saveRedirectToCookie: true,
     },
   },
@@ -79,6 +81,7 @@ export default defineNuxtConfig({
     "/api/public/browse": { swr: 60 },
     "/api/public/markets/**": { swr: 60 },
     "/dashboard/**": { robots: false },
+    "/account/**": { robots: false },
     "/login": { robots: false },
     "/confirm": { robots: false },
   },

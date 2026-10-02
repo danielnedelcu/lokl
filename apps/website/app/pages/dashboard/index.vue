@@ -61,8 +61,22 @@ const steps = computed(() => [
 <template>
   <div>
     <h1 class="text-2xl font-semibold tracking-tight">
-      Welcome{{ provider ? `, ${provider.display_name}` : "" }}
+      {{ provider ? `Welcome, ${provider.display_name}` : "Offer Services or host Experiences" }}
     </h1>
+    <!-- Signed in with no business yet: often a customer, so say what this
+         page is for and where their bookings are. -->
+    <div v-if="!provider" class="mt-3 max-w-lg space-y-3">
+      <p>
+        Offer a service people book, like dog walking or a haircut, or host an experience
+        on set dates, like a food tour or a class. Customers book and pay on lokl, and
+        lokl pays you through Stripe.
+      </p>
+      <p class="text-sm">
+        Here to book something?
+        <NuxtLink to="/account/bookings" class="font-medium underline underline-offset-4">See my bookings</NuxtLink>
+        or <NuxtLink to="/experiences" class="font-medium underline underline-offset-4">browse Experiences</NuxtLink>.
+      </p>
+    </div>
     <UiAlert v-if="needsAttention?.length" variant="destructive" class="mt-6 max-w-lg" icon="lucide:alert-circle">
       <UiAlertTitle as="h2">{{ attentionTitle }}</UiAlertTitle>
       <UiAlertDescription>
@@ -75,7 +89,9 @@ const steps = computed(() => [
       </UiAlertDescription>
     </UiAlert>
 
-    <p class="mt-1 text-sm text-muted-foreground">Finish these steps to start taking bookings.</p>
+    <p class="text-sm text-muted-foreground" :class="provider ? 'mt-1' : 'mt-6'">
+      {{ provider ? "Finish these steps to start taking bookings." : "To get started, follow these three steps." }}
+    </p>
 
     <ol class="mt-6 max-w-lg space-y-3">
       <li v-for="(step, i) in steps" :key="step.to">

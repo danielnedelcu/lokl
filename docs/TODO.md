@@ -143,6 +143,19 @@ Each step depends on the ones before it.
      never affect past bookings, payouts or reports.
    - [ ] Check that a listing's address matches its city and area (zip check,
      or geocoding).
+
+   Build progress:
+   - [x] Part 1, database (2026-10-01). Part 2, checkout routes and payments
+     webhook (2026-10-01).
+   - [x] Part 3, booking forms, return pages and My bookings (2026-10-01).
+     Also fixed: sign-in now returns to the saved page (it went to
+     /dashboard), `/dashboard` explains itself to someone with no business,
+     and the 404 page is generic outside listing pages.
+   - [ ] Part 4: provider accept and decline, provider bookings pages. In its
+     migration, fix the spots message "enough spots left for 1 people"
+     (`20261001012101_bookings.sql`, already pushed) and its two tests.
+   - [ ] Part 5 jobs, part 6 cancellations and refunds, part 7 emails, part 8
+     admin.
 5. **Booking management.** Provider and customer booking views, cancellations,
    refunds, payout history; admin Bookings & payouts page.
 6. **Admin actions.** Suspend or reinstate providers, approve or reject

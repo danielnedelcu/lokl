@@ -7,7 +7,7 @@ import type { PublicBrowseResult, PublicMarketInfo } from "@repo/types";
 definePageMeta({ layout: "public" });
 
 const marketSlug = String(useRoute().params.market);
-const notFound = () => createError({ statusCode: 404, statusMessage: "We couldn't find that page.", fatal: true });
+const notFound = () => createError({ statusCode: 404, fatal: true });
 
 const { data: info, error } = await useFetch<PublicMarketInfo>(`/api/public/markets/${marketSlug}`, { key: `public-market-${marketSlug}` });
 if (error.value || !info.value) throw notFound();

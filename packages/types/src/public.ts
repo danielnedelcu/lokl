@@ -49,9 +49,11 @@ export interface PublicListing extends PublicListingCard {
   locationMode: LocationMode | null;
   market: PublicMarket;
   hostedBy: string;
+  /** Public: lets the page tell a provider "this is your listing". */
+  providerId: string;
   photos: PublicPhoto[];
-  /** Experiences: upcoming scheduled sessions, soonest first. */
-  sessions: { startsAt: string }[];
+  /** Experiences: upcoming scheduled sessions, soonest first, with spots left. */
+  sessions: { id: string; startsAt: string; spotsLeft: number }[];
 }
 
 export interface PublicBrowseResult {
