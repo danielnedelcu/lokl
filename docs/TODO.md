@@ -157,10 +157,9 @@ Each step depends on the ones before it.
      bell, the public header's account menu, and the "1 person" fix.
      Done 2026-10-02 (migration `booking_requests_answers` pushed;
      walkthrough passed).
-   - [ ] Type errors: `vue-tsc` added 2026-10-02 (`npm run typecheck`, both
-     apps); the first run found 196 errors (147 website, 49 admin). Fixing
-     them in order: generated database types, the h3 event type, then the
-     toasts and the rest.
+   - [x] Type errors: `vue-tsc` added 2026-10-02 (`npm run typecheck`, both
+     apps). The first run found 196 (147 website, 49 admin); all fixed the
+     same day, and typecheck now has to pass before committing (CLAUDE.md).
    - [ ] Part 5 jobs, part 6 cancellations and refunds, part 7 emails, part 8
      admin.
 5. **Booking management.** Provider and customer booking views, cancellations,
@@ -172,7 +171,8 @@ Each step depends on the ones before it.
 7. **Destination guides.** AI draft (Anthropic API), editor with photo, slug and
    publish state, links into listings. Can start any time after step 3.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
-   email sender, and generated types wired into both apps' `supabase.types`.
+   email sender. (Generated types were wired into both apps' `supabase.types`
+   on 2026-10-02.)
    (The dashboards' phone menu was done 2026-09-30.)
    - [ ] Turn on the booking job scheduler (`pg_cron` + `pg_net` calling the
      website's `/api/jobs/*`) once production hosting exists; until then
