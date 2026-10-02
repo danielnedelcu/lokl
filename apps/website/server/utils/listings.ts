@@ -1,4 +1,5 @@
-import { listingReadiness, payoutSetupOf, type Listing, type Provider } from "@repo/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { listingReadiness, payoutSetupOf, type Database, type Listing, type Provider } from "@repo/types";
 import { serverSupabaseServiceRole } from "#supabase/server";
 import type { ServerEvent } from "./provider";
 
@@ -53,9 +54,9 @@ export function notReadyMessage(readiness: ReturnType<typeof listingReadiness>):
 // Updates the status only if it's still what was checked, so two clicks at
 // once can't both succeed. Returns the updated listing.
 export async function setStatus(
-  supabase: ReturnType<typeof serverSupabaseServiceRole>,
+  supabase: SupabaseClient<Database>,
   listing: Listing,
-  update: Record<string, unknown>,
+  update: Database["public"]["Tables"]["listings"]["Update"],
 ) {
   const { data, error } = await supabase
     .from("listings")

@@ -1,6 +1,7 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { H3Event } from "h3";
 import { serverSupabaseServiceRole } from "#supabase/server";
-import { listingReasonSchema, reviewBlockers, type Listing, type Provider } from "@repo/types";
+import { listingReasonSchema, reviewBlockers, type Database, type Listing, type Provider } from "@repo/types";
 
 // A database failure: the detail goes to the server log, the admin sees a
 // plain message.
@@ -58,9 +59,9 @@ export function assertNoBlockers(blockers: string[]) {
 // once can't both succeed (same as the website's setStatus). Returns the
 // updated listing.
 export async function setStatus(
-  supabase: ReturnType<typeof serverSupabaseServiceRole>,
+  supabase: SupabaseClient<Database>,
   listing: Listing,
-  update: Record<string, unknown>,
+  update: Database["public"]["Tables"]["listings"]["Update"],
 ) {
   const { data, error } = await supabase
     .from("listings")

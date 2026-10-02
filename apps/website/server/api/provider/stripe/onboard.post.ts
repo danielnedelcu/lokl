@@ -7,8 +7,11 @@ export default defineEventHandler(async (event) => {
   const stripe = useStripe();
   const { siteUrl } = useRuntimeConfig().public;
 
-  let accountId = provider.stripe_account_id;
-  if (!accountId) {
+  // The provider's account if they have one; otherwise a new one, claimed below.
+  let accountId: string;
+  if (provider.stripe_account_id) {
+    accountId = provider.stripe_account_id;
+  } else {
     const account = await stripe.accounts.create(
       {
         type: "express",
@@ -51,9 +54,15 @@ export default defineEventHandler(async (event) => {
         .eq("id", provider.id)
         .single();
       if (readError) throw createError({ statusCode: 500, statusMessage: readError.message });
-      if (current.stripe_account_id !== accountId) {
+      // The claim only fails when an account is already saved; if none is,
+      // something else changed the row, so stop rather than guess.
+      const savedId = current.stripe_account_id;
+      if (!savedId) {
+        throw createError({ statusCode: 409, statusMessage: "Your payout setup changed in the meantime. Please try again." });
+      }
+      if (savedId !== accountId) {
         await stripe.accounts.del(accountId);
-        accountId = current.stripe_account_id;
+        accountId = savedId;
       }
     }
   }

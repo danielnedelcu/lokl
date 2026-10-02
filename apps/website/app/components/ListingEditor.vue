@@ -5,6 +5,8 @@ import {
   needsAddress,
   payoutSetupOf,
   type ListingInput,
+  type ListingOutput,
+  type Database,
   type ListingKind,
   type Listing,
   type ListingAddress,
@@ -119,7 +121,9 @@ function formValues(): ListingInput {
   };
 }
 
-const { handleSubmit, isSubmitting, resetForm, setFieldValue, values, meta } = useForm<ListingInput>({
+type ListingInsert = Database["public"]["Tables"]["listings"]["Insert"];
+
+const { handleSubmit, isSubmitting, resetForm, setFieldValue, values, meta } = useForm<ListingInput, ListingOutput>({
   validationSchema: zodSchema(listingSchema),
   initialValues: formValues(),
 });
@@ -239,7 +243,9 @@ const save = handleSubmit(async (v) => {
       const created = await run(
         supabase
           .from("listings")
-          .insert({ ...fields, provider_id: provider.value!.id, kind: kind.value })
+          // The database sets the slug (listings_set_slug), and users may not
+          // write it, so it's the one required column left out here.
+          .insert({ ...fields, provider_id: provider.value!.id, kind: kind.value } satisfies Omit<ListingInsert, "slug"> as ListingInsert)
           .select("id")
           .single(),
       );
