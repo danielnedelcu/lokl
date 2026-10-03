@@ -94,8 +94,17 @@ Each step depends on the ones before it.
    - [x] Part 3: AI draft. Prompt (`apps/admin/server/prompts/guide-writer.ts`),
      draft and undo routes, stale-phrase scanner and highlights, review
      confirmation, cost log, limits. Built 2026-10-03.
-   - [ ] Part 4: public pages. Next.
-   - [ ] Part 5: homepage.
+   - [ ] One real AI draft in the editor to confirm the body-loading fix
+     (2026-10-03: the body now loads after the editor unlocks, autosave
+     holds the body meanwhile; covered by
+     `apps/admin/tests/guide-editor-order.test.mts`).
+   - [x] Parts 4 and 5 together: public guide pages, the guides index,
+     the homepage features and the admin's Homepage page; the first
+     publish confirms the web address. Migration `public_guides` pushed
+     2026-10-03. Browser checks done, and "Ten things to do on a weekend
+     in Atlanta" unpublished and republished on the hosted database
+     (gone from the page, index, homepage and sitemap within a minute,
+     after the cache fix; back on republish, re-featured as the hero).
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
 ## Admin tables at scale
@@ -111,6 +120,31 @@ Each step depends on the ones before it.
   customer (both booking forms). Checked by the owner, 2026-10-03.
 - [x] Money totals for the filtered bookings, summed in the database
   (migration `admin_booking_totals`, pushed 2026-10-03).
+
+## Automated checks
+
+- [ ] **GitHub Actions on every push:** the database tests (`npm run
+  db:test`, on a local Supabase stack started in the job, never the hosted
+  one), the app tests (`npm run db:test:app`), the type check (`npm run
+  typecheck`) and the build check (`npm run build:check`).
+  - The app tests that use Stripe need the Lokl sandbox's test key as a
+    repository secret (test mode only; the tests already refuse anything
+    else). Never a live key.
+  - Some app tests call the running apps (ports 3100 and 3101): the job
+    starts both against the local stack first.
+  - Email: keep `NUXT_EMAIL_MODE` off (or allowlist) in the job, so no real
+    email is sent.
+- [ ] **Playwright end-to-end tests for the key journeys**, against the
+  local stack and the Lokl sandbox:
+  - booking an Experience, through to payment (Stripe's test cards);
+  - requesting a Service, and the provider accepting a time;
+  - cancelling with a refund;
+  - a payout to the provider.
+  - **Signing in without email** during tests: a test-only route that
+    works only against the local stack (refusing to run anywhere else, like
+    the app tests), signing a test user in with a link made by the
+    service role. It must not exist in production builds.
+  - Run in the same GitHub Actions job once they're stable.
 
 ## Staging site
 

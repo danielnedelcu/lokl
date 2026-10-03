@@ -12,7 +12,7 @@ export interface DashboardNavSection {
   items: DashboardNavItem[];
 }
 
-defineProps<{
+const props = defineProps<{
   sections: DashboardNavSection[];
   /** The route that only highlights on an exact match (the overview). */
   exactRoot: string;
@@ -20,6 +20,15 @@ defineProps<{
 const emit = defineEmits<{ navigate: [] }>();
 
 const activeClass = "bg-accent font-medium !text-foreground";
+// The one item to highlight: the closest match for the current page, so
+// /content/homepage highlights "Homepage", not "Destination guides" too.
+const route = useRoute();
+const current = computed(() => {
+  const path = route.path.replace(/\/$/, "") || "/";
+  const matches = props.sections.flatMap((s) => s.items).map((i) => i.to)
+    .filter((to) => to === path || (to !== props.exactRoot && path.startsWith(`${to}/`)));
+  return matches.sort((a, b) => b.length - a.length)[0];
+});
 </script>
 
 <template>
@@ -33,8 +42,10 @@ const activeClass = "bg-accent font-medium !text-foreground";
         :key="item.to"
         :to="item.to"
         class="text-muted-foreground hover:bg-accent hover:text-foreground flex min-h-11 items-center gap-3 rounded-md px-2 text-sm md:min-h-0 md:gap-2 md:py-1.5"
-        :active-class="item.to === exactRoot ? '' : activeClass"
-        :exact-active-class="activeClass"
+        active-class=""
+        exact-active-class=""
+        :class="item.to === current && activeClass"
+        :aria-current="item.to === current ? 'page' : undefined"
         @click="emit('navigate')"
       >
         <Icon :name="item.icon" class="size-4" aria-hidden="true" />

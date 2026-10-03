@@ -1567,6 +1567,10 @@ export type Database = {
         Returns: Json
       }
       admin_search_patterns: { Args: { p_q: string }; Returns: string[] }
+      admin_set_homepage_features: {
+        Args: { p_guide_ids: string[] }
+        Returns: undefined
+      }
       admin_set_provider_status: {
         Args: {
           p_admin_id: string
@@ -1653,6 +1657,16 @@ export type Database = {
         Args: { p_account_id: string; p_charges: boolean; p_payouts: boolean }
         Returns: string
       }
+      public_guide: {
+        Args: { p_market: string; p_slug: string }
+        Returns: Json
+      }
+      public_guide_photo_json: {
+        Args: { p: Database["public"]["Tables"]["guide_photos"]["Row"] }
+        Returns: Json
+      }
+      public_guides: { Args: { p_market: string }; Returns: Json }
+      public_homepage_guides: { Args: never; Returns: Json }
       publish_guide: {
         Args: { p_admin_id: string; p_guide_id: string }
         Returns: undefined

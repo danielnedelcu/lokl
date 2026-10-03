@@ -110,8 +110,19 @@ export default defineNuxtConfig({
     // Exact paths only: /experiences/<slug> listing pages aren't redirected.
     "/experiences": { redirect: { to: "/atlanta/experiences", statusCode: 302 } },
     "/services": { redirect: { to: "/atlanta/services", statusCode: 302 } },
-    "/api/public/browse": { swr: 60 },
-    "/api/public/markets/**": { swr: 60 },
+    //
+    // Cached for 60 seconds, without serving stale copies (swr: false). With
+    // stale-while-revalidate, a page whose fresh answer had become a 404 (a
+    // guide unpublished, a category or market switched off) kept serving its
+    // old copy indefinitely, because errors aren't cached and so never replace
+    // it (found 2026-10-03). Now, once a copy is a minute old, the next
+    // request waits for a fresh answer, 404s included.
+    "/api/public/browse": { cache: { maxAge: 60, swr: false } },
+    "/api/public/markets/**": { cache: { maxAge: 60, swr: false } },
+    // Guides (docs/design/destination-guides.md, Caching): a publish or
+    // unpublish in the admin app shows on the site within a minute.
+    "/api/public/guides/**": { cache: { maxAge: 60, swr: false } },
+    "/api/public/homepage-guides": { cache: { maxAge: 60, swr: false } },
     "/dashboard/**": { robots: false },
     "/account/**": { robots: false },
     "/login": { robots: false },

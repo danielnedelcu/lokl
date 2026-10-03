@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PublicBrowseResult, PublicListingCard } from "@repo/types";
+import type { HomepageGuide, PublicBrowseResult, PublicListingCard } from "@repo/types";
 
 // The homepage: our own markup and components only, nothing loaded from
 // other sites. Deliberately simple; the design comes in the UX polish pass
@@ -8,10 +8,15 @@ definePageMeta({ layout: "public" });
 
 const MARKET = "atlanta";
 
-const [{ data: experiences }, { data: services }] = await Promise.all([
+const [{ data: experiences }, { data: services }, { data: homeGuides }] = await Promise.all([
   useFetch<PublicBrowseResult>("/api/public/browse", { key: "home-experiences", query: { market: MARKET, kind: "experience" } }),
   useFetch<PublicBrowseResult>("/api/public/browse", { key: "home-services", query: { market: MARKET, kind: "service" } }),
+  useFetch<HomepageGuide[]>("/api/public/homepage-guides", { key: "home-guides" }),
 ]);
+// Featured guides come first (docs/design/destination-guides.md, The
+// homepage); without any, the page is as it was, headline first.
+const guides = computed(() => homeGuides.value ?? []);
+const headline = "Book local Experiences and Services in Atlanta";
 
 // Up to six live listings, alternating Experiences and Services.
 const featured = computed(() => {
@@ -36,11 +41,18 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
 
 <template>
   <div>
+    <!-- With guides first, the page's main heading still comes first for screen
+         readers (hidden), and the visible headline below the guides is styled
+         the same but isn't a heading (decided 2026-10-03). -->
+    <template v-if="guides.length">
+      <h1 class="sr-only">{{ headline }}</h1>
+      <HomepageGuides :guides="guides" />
+    </template>
     <section class="border-border border-b">
       <div class="mx-auto max-w-6xl px-4 py-14 md:py-20">
-        <h1 class="max-w-2xl text-3xl font-semibold tracking-tight md:text-5xl">
-          Book local Experiences and Services in Atlanta
-        </h1>
+        <component :is="guides.length ? 'p' : 'h1'" class="max-w-2xl text-3xl font-semibold tracking-tight md:text-5xl">
+          {{ headline }}
+        </component>
         <p class="text-muted-foreground mt-4 max-w-xl text-lg">
           Tours, classes and outings hosted by local people, and services at your place or theirs, across the metro.
         </p>

@@ -243,3 +243,70 @@ export function photoCredit(p: Pick<GuidePhoto, "source" | "credit_name" | "cred
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// What visitors get (the public_guide* functions): the live copy of
+// published guides only.
+// ---------------------------------------------------------------------------
+
+export interface PublicGuidePhoto {
+  id: string;
+  path: string;
+  card_path: string | null;
+  width: number;
+  height: number;
+  alt: string;
+  source: GuidePhotoSource;
+  credit_name: string | null;
+  credit_url: string | null;
+  source_url: string | null;
+  licence: string | null;
+}
+
+export interface PublicGuideMarket {
+  name: string;
+  slug: string;
+  state: string;
+  timezone: string;
+}
+
+export interface PublicGuideSummary {
+  slug: string;
+  title: string;
+  teaser: string;
+  published_at: string;
+  content_updated_at: string;
+  cover: PublicGuidePhoto;
+}
+
+export interface PublicGuidesIndex {
+  market: PublicGuideMarket;
+  guides: PublicGuideSummary[];
+}
+
+export interface PublicGuide {
+  slug: string;
+  title: string;
+  teaser: string;
+  body: unknown;
+  published_at: string;
+  content_updated_at: string;
+  market: PublicGuideMarket;
+  listings: {
+    kind: "service" | "experience" | null;
+    area: { id: string; name: string; kind: string } | null;
+    category: { id: string; name: string; slug: string; kind: "service" | "experience" } | null;
+  };
+  cover_photo_id: string;
+  photos: PublicGuidePhoto[];
+}
+
+/** A guide on the homepage: position 1 is the hero. */
+export interface HomepageGuide {
+  position: number;
+  market: string;
+  slug: string;
+  title: string;
+  teaser: string;
+  cover: PublicGuidePhoto;
+}

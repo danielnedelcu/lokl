@@ -252,5 +252,15 @@ export async function publicSitemapEntries(db: SupabaseClient): Promise<{ loc: s
     entries.set(`/${r.city.slug}/${plural(r.kind)}/${r.category.slug}`, undefined);
     entries.set(`/${plural(r.kind)}/${r.slug}`, r.updated_at);
   }
+  // Destination guides: each market's index (once it has a guide) and every
+  // published guide, dated by when its content last changed.
+  for (const m of markets.data as { slug: string }[]) {
+    const { data, error } = await db.rpc("public_guides", { p_market: m.slug });
+    if (error) throw new Error(error.message);
+    const guides = ((data as { guides?: { slug: string; content_updated_at: string }[] } | null)?.guides) ?? [];
+    if (!guides.length) continue;
+    entries.set(`/${m.slug}/guides`, guides[0]!.content_updated_at);
+    for (const g of guides) entries.set(`/${m.slug}/guides/${g.slug}`, g.content_updated_at);
+  }
   return [...entries].map(([loc, lastmod]) => (lastmod ? { loc, lastmod } : { loc }));
 }

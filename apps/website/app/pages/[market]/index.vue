@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PublicBrowseResult, PublicMarketInfo } from "@repo/types";
+import type { PublicBrowseResult, PublicGuidesIndex, PublicMarketInfo } from "@repo/types";
 
 // A market's page, e.g. /atlanta (docs/design/browse-and-listing-pages.md):
 // a short hub with the first few Experiences and Services, and the
@@ -12,10 +12,13 @@ const notFound = () => createError({ statusCode: 404, fatal: true });
 const { data: info, error } = await useFetch<PublicMarketInfo>(`/api/public/markets/${marketSlug}`, { key: `public-market-${marketSlug}` });
 if (error.value || !info.value) throw notFound();
 
-const [{ data: experiences }, { data: services }] = await Promise.all([
+const [{ data: experiences }, { data: services }, { data: guidesIndex }] = await Promise.all([
   useFetch<PublicBrowseResult>("/api/public/browse", { key: `public-market-exp-${marketSlug}`, query: { market: marketSlug, kind: "experience" } }),
   useFetch<PublicBrowseResult>("/api/public/browse", { key: `public-market-svc-${marketSlug}`, query: { market: marketSlug, kind: "service" } }),
+  // The market's guides: shown, and linked, once there are any.
+  useFetch<PublicGuidesIndex>(`/api/public/guides/${marketSlug}`, { key: `public-guides-${marketSlug}` }),
 ]);
+const guides = computed(() => guidesIndex.value?.guides ?? []);
 
 const market = computed(() => info.value!.market);
 const sections = computed(() => [
@@ -40,6 +43,19 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/${marketSlug}` }] });
       <h1 class="text-2xl font-semibold tracking-tight md:text-4xl">Things to do and book in {{ market.name }}</h1>
       <p class="mt-3">Experiences and services from local people across the {{ market.name }} metro.</p>
     </header>
+
+    <section v-if="guides.length" aria-labelledby="guides-heading" class="mt-12">
+      <div class="flex flex-wrap items-end justify-between gap-2">
+        <h2 id="guides-heading" class="text-xl font-semibold">Guides to {{ market.name }}</h2>
+        <NuxtLink :to="`/${marketSlug}/guides`" class="text-sm underline underline-offset-4">See all guides ({{ guides.length }})</NuxtLink>
+      </div>
+      <ul class="mt-6 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        <li v-for="g in guides.slice(0, 3)" :key="g.slug">
+          <GuideCard :href="`/${marketSlug}/guides/${g.slug}`" :title="g.title" :teaser="g.teaser" :cover="g.cover"
+            sizes="100vw sm:50vw lg:33vw" />
+        </li>
+      </ul>
+    </section>
 
     <section v-for="s in sections" :key="s.kind" :aria-labelledby="`${s.kind}-heading`" class="mt-12">
       <div class="flex flex-wrap items-end justify-between gap-2">

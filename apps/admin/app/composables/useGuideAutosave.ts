@@ -35,6 +35,10 @@ export function useGuideAutosave(guideId: string, updatedAt: string) {
   let known = updatedAt;
   let pending: GuideFields = {};
   let attempts = 0;
+  // While a new body is being loaded into the editor (an AI draft landing, a
+  // version or the draft before coming back), the editor's own changes are
+  // redraws, not edits: the body is never saved until it's released.
+  const bodyHeld = ref(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
   let running: Promise<void> | null = null;
 
@@ -45,6 +49,11 @@ export function useGuideAutosave(guideId: string, updatedAt: string) {
 
   /** Queue changed fields. `now` saves straight away (a choice from a list, the cover). */
   function change(fields: GuideFields, now = false) {
+    if (bodyHeld.value && "draft_body" in fields) {
+      const { draft_body: _ignored, ...rest } = fields;
+      fields = rest;
+      if (!Object.keys(fields).length) return;
+    }
     Object.assign(pending, fields);
     if (state.value === "conflict") return;
     if (state.value !== "retrying" && state.value !== "failing") state.value = "waiting";
@@ -58,8 +67,14 @@ export function useGuideAutosave(guideId: string, updatedAt: string) {
   }
 
   async function save() {
+    // The last line of defence: a held body is never sent, whatever got queued.
+    if (bodyHeld.value) delete pending.draft_body;
     const fields = pending;
     pending = {};
+    if (!Object.keys(fields).length) {
+      state.value = "saved";
+      return;
+    }
     state.value = "saving";
     const { data, error } = await supabase
       .from("guides")
@@ -124,6 +139,15 @@ export function useGuideAutosave(guideId: string, updatedAt: string) {
     state.value = "saved";
   }
 
+  /** Hold the body: no body change is saved until releaseBody(). */
+  function holdBody() {
+    bodyHeld.value = true;
+    delete pending.draft_body;
+  }
+  function releaseBody() {
+    bodyHeld.value = false;
+  }
+
   /** The guide's updated_at as this tab last saw it. */
   const current = () => known;
 
@@ -144,5 +168,5 @@ export function useGuideAutosave(guideId: string, updatedAt: string) {
     return window.confirm("Some changes haven't saved yet. Leave anyway and lose them?");
   });
 
-  return { state: readonly(state), message: readonly(message), unsaved, change, discard, flush, rebase, stop, current };
+  return { state: readonly(state), message: readonly(message), unsaved, change, discard, flush, rebase, stop, current, holdBody, releaseBody, bodyHeld: readonly(bodyHeld) };
 }

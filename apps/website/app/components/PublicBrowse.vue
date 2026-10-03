@@ -45,6 +45,10 @@ const { data: result, error, pending } = await useFetch<PublicBrowseResult>("/ap
   })),
 });
 if (error.value?.statusCode === 404) throw notFound();
+// Any other failure shows "This list didn't load" in the page, sent as 503
+// so search engines treat it as temporary rather than index it (as the
+// guide pages do).
+if (error.value && import.meta.server) setResponseStatus(useRequestEvent()!, 503);
 // A page number past the last page isn't a page.
 if (result.value && filters.value.page > 1 && !result.value.items.length) throw notFound();
 

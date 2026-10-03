@@ -121,6 +121,8 @@ const liveIds = computed(() => {
 
 const bodyNote = ref("");
 function onBody(body: unknown) {
+  // A new body being loaded: the editor's changes are redraws, not edits.
+  if (autosave.bodyHeld.value) return;
   bodyNote.value = "";
   draft.body = body;
   autosave.change({ draft_body: body as Guide["draft_body"] });
@@ -176,7 +178,7 @@ function setCover(photoId: string) {
 // ---------------------------------------------------------------------------
 
 const bodyEditor = ref<{
-  replace: (b: unknown) => Promise<void>;
+  replace: (b: unknown) => Promise<boolean>;
   removePhoto: (id: string) => Promise<boolean>;
   reveal: (key: string) => void;
   setReadOnly: (on: boolean) => Promise<void>;
@@ -203,8 +205,14 @@ async function removePhoto(photo: GuidePhoto) {
 const pendingReview = computed(() => !!guide.value?.ai_draft_pending_review);
 // While an AI draft is being written, nothing on the page can be edited.
 const locked = ref(false);
+// The body is held (never autosaved) from the moment an AI draft is asked
+// for until the editor shows exactly what landed (takeGuide), so a redraw
+// can't save an empty or old body over it.
+let landing = false;
 async function onAiRunning(running: boolean) {
   locked.value = running;
+  if (running) autosave.holdBody();
+  else if (!landing && !bodyNotShown.value) autosave.releaseBody();
   await bodyEditor.value?.setReadOnly(running);
 }
 /** Save what's waiting; the guide's updated_at for the server to check, or null. */
@@ -212,7 +220,10 @@ async function prepare() {
   return (await autosave.flush()) ? autosave.current() : null;
 }
 /** Show a guide row that changed on the server (an AI draft landed, or the draft before it came back). */
+const bodyNotShown = ref(false);
 async function takeGuide(row: Guide) {
+  landing = true;
+  autosave.holdBody();
   guide.value = row;
   autosave.rebase(row.updated_at);
   Object.assign(draft, {
@@ -225,7 +236,14 @@ async function takeGuide(row: Guide) {
     body: row.draft_body,
   });
   bodyNote.value = "";
-  await bodyEditor.value?.replace(row.draft_body);
+  try {
+    const shown = await bodyEditor.value?.replace(row.draft_body);
+    bodyNotShown.value = shown === false;
+    // Only once the editor shows exactly what's saved can edits be saved again.
+    if (!bodyNotShown.value) autosave.releaseBody();
+  } finally {
+    landing = false;
+  }
 }
 function useSuggestedSlug(slug: string) {
   draft.slug = slug;
@@ -290,6 +308,33 @@ const publishLabel = computed(() =>
 );
 const nothingToPublish = computed(() => state.value === "published");
 
+// The first publish fixes the guide's web address for good, so it's
+// confirmed: and if the address doesn't match the one the current title
+// suggests (such as a leftover from an earlier title), the confirmation says
+// so and offers to switch to it in one click.
+const firstPublishOpen = ref(false);
+const suggestedSlug = computed(() => slugify(draft.title).slice(0, 80).replace(/-+$/, ""));
+const slugDiffers = computed(() => guideSlugSchema.safeParse(suggestedSlug.value).success && suggestedSlug.value !== draft.slug);
+const suggestedTaken = ref(false);
+const marketPath = computed(() => `/${data.value?.market.slug ?? ""}/guides/`);
+
+async function askPublish() {
+  if (everPublished.value) return void act("publish");
+  suggestedTaken.value = false;
+  if (slugDiffers.value) {
+    const { data: taken, error: e } = await supabase.from("guides").select("id")
+      .eq("market_id", guide.value!.market_id).eq("slug", suggestedSlug.value).neq("id", id.value).limit(1);
+    suggestedTaken.value = !!e || !!taken?.length;
+  }
+  firstPublishOpen.value = true;
+}
+async function publishWithSuggested() {
+  draft.slug = suggestedSlug.value;
+  slugError.value = "";
+  autosave.change({ slug: suggestedSlug.value }, true);
+  await act("publish");
+}
+
 async function act(action: "publish" | "unpublish") {
   busy.value = true;
   try {
@@ -299,6 +344,7 @@ async function act(action: "publish" | "unpublish") {
     await $fetch(`/api/guides/${id.value}/${action}`, { method: "POST" });
     useSonner.success(action === "publish" ? "Published. It's live on the site." : "Unpublished. It's off the site and the homepage.");
     unpublishOpen.value = false;
+    firstPublishOpen.value = false;
   } catch (e) {
     const err = e as { data?: { statusMessage?: string }; statusMessage?: string };
     useSonner.error(reportProblem(err.data?.statusMessage ?? "That didn't work. Try again, or check the server logs.", e));
@@ -398,7 +444,14 @@ const saveLabel = computed(() => {
         </p>
       </div>
 
-      <UiAlert v-if="autosave.state.value === 'conflict'" variant="destructive" icon="lucide:alert-triangle" class="mb-4">
+      <UiAlert v-if="bodyNotShown" variant="destructive" icon="lucide:alert-triangle" class="mb-4">
+        <UiAlertTitle>The new text is saved, but the editor couldn't show it.</UiAlertTitle>
+        <UiAlertDescription>
+          Reload the page before editing the text. Until then, changes to the text aren't saved, so nothing overwrites it.
+          <UiButton size="sm" variant="outline" class="mt-2" @click="reloadNuxtApp()">Reload</UiButton>
+        </UiAlertDescription>
+      </UiAlert>
+      <UiAlert v-else-if="autosave.state.value === 'conflict'" variant="destructive" icon="lucide:alert-triangle" class="mb-4">
         <UiAlertTitle>{{ autosave.message.value }}</UiAlertTitle>
         <UiAlertDescription>
           Copy anything you want to keep from this page first: reloading shows the saved version.
@@ -455,7 +508,7 @@ const saveLabel = computed(() => {
             </p>
             <div class="flex flex-wrap gap-2">
               <UiButton :disabled="busy || !!blockers.length || nothingToPublish"
-                :aria-describedby="blockers.length ? 'publish-blockers' : undefined" @click="act('publish')">
+                :aria-describedby="blockers.length ? 'publish-blockers' : undefined" @click="askPublish">
                 {{ busy ? "Working…" : publishLabel }}
               </UiButton>
               <UiButton variant="outline" :disabled="busy" @click="preview">Preview</UiButton>
@@ -541,6 +594,38 @@ const saveLabel = computed(() => {
       </div>
 
       <GuideVersions v-model:open="versionsOpen" :guide-id="guide.id" :photos="photoMap" @copy="copyVersion" />
+
+      <UiAlertDialog v-model:open="firstPublishOpen">
+        <template #header>
+          <UiAlertDialogHeader>
+            <UiAlertDialogTitle title="Publish this guide?" />
+            <UiAlertDialogDescription description="It goes live on the site. Its web address can't change after this, because it's in search results." />
+          </UiAlertDialogHeader>
+          <div class="space-y-3 text-sm">
+            <p>
+              Web address: <code class="bg-muted rounded px-1 break-all">{{ marketPath }}{{ draft.slug }}</code>
+            </p>
+            <div v-if="slugDiffers" class="border-border rounded-md border p-3">
+              <p class="font-medium">This address doesn't match the title.</p>
+              <p v-if="!suggestedTaken" class="text-muted-foreground mt-1">
+                The title suggests <code class="bg-muted rounded px-1 break-all">{{ marketPath }}{{ suggestedSlug }}</code>.
+              </p>
+              <p v-else class="text-muted-foreground mt-1">
+                The address that matches the title, <code class="bg-muted rounded px-1 break-all">{{ suggestedSlug }}</code>, is used by another guide.
+              </p>
+            </div>
+          </div>
+        </template>
+        <template #footer>
+          <!-- Three long buttons: let them wrap rather than run off the dialog. -->
+          <UiAlertDialogFooter class="flex-wrap gap-2">
+            <UiAlertDialogCancel text="Not yet" />
+            <UiButton v-if="slugDiffers && !suggestedTaken" variant="outline" :disabled="busy" @click="act('publish')">Keep this address and publish</UiButton>
+            <UiButton v-if="slugDiffers && !suggestedTaken" :disabled="busy" @click="publishWithSuggested">Use the suggested address and publish</UiButton>
+            <UiButton v-else :disabled="busy" @click="act('publish')">Publish</UiButton>
+          </UiAlertDialogFooter>
+        </template>
+      </UiAlertDialog>
 
       <UiAlertDialog v-model:open="unpublishOpen" title="Unpublish this guide?"
         description="This takes the guide off the site and the homepage. Its address stops working until you publish again.">

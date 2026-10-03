@@ -6474,6 +6474,36 @@
       "return_type": "jsonb",
       "arguments": "p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_payout_setup text DEFAULT NULL::text, p_city_id uuid DEFAULT NULL::uuid, p_sort text DEFAULT 'joined'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25",
       "type": "FUNCTION"
+    },
+    {
+      "name": "public.public_guide_photo_json",
+      "return_type": "jsonb",
+      "arguments": "p guide_photos",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.public_guides",
+      "return_type": "jsonb",
+      "arguments": "p_market text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.public_guide",
+      "return_type": "jsonb",
+      "arguments": "p_market text, p_slug text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.public_homepage_guides",
+      "return_type": "jsonb",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_set_homepage_features",
+      "return_type": "void",
+      "arguments": "p_guide_ids uuid[]",
+      "type": "FUNCTION"
     }
   ],
   "enums": [

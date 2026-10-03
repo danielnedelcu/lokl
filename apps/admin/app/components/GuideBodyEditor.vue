@@ -4,6 +4,7 @@ import type { OutputData } from "@editorjs/editorjs";
 import { findStalePhrases, guideBodySchema, phraseContext, type GuideBody } from "@repo/types";
 import type { PhotoOption } from "~/utils/guidePhotoTool";
 import type { BodyPhrase } from "~/utils/guidePhrases";
+import type { EditorLike } from "~/utils/guideEditorControl";
 
 // The guide's body in Editor.js (docs/design/destination-guides.md, The
 // editor): headings (levels 2 and 3; the title is the page's h1),
@@ -108,11 +109,11 @@ function reveal(key: string) {
 }
 
 /** While an AI draft is being written: no edits. */
-async function setReadOnly(on: boolean) {
-  if (!editor) return;
-  await editor.isReady;
-  if (editor.readOnly.isEnabled !== on) await editor.readOnly.toggle(on);
-}
+// Changes to the editor's content or mode run one after another, in the
+// order asked, and a new body is checked once drawn (utils/guideEditorControl).
+const control = createEditorControl(() => editor as unknown as EditorLike | null);
+/** While an AI draft is being written: no edits. */
+const setReadOnly = (on: boolean) => control.setReadOnly(on);
 
 let changeTimer: ReturnType<typeof setTimeout> | undefined;
 async function readBody() {
@@ -166,20 +167,17 @@ onBeforeUnmount(() => {
 });
 
 /** Replace the editor's content (copying a version into the draft). */
+/** Draw a new body (an AI draft, a version, the draft before). True once the editor shows exactly it. */
 async function replace(body: unknown) {
-  if (!editor) return;
-  await editor.isReady;
-  await editor.render(toEditorData(body));
+  const shown = await control.replace(body);
   scan();
+  return shown;
 }
 
 /** Remove a deleted photo's blocks from the draft. Returns true if any were removed. */
 async function removePhoto(photoId: string) {
-  if (!editor) return false;
-  const out = await editor.save();
-  const next = out.blocks.filter((b) => !(b.type === "photo" && b.data?.photoId === photoId));
-  if (next.length === out.blocks.length) return false;
-  await editor.render({ blocks: next });
+  const next = await control.removePhoto(photoId);
+  if (!next) return false;
   await readBody();
   return true;
 }

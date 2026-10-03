@@ -283,7 +283,20 @@ Following the blog's pattern, with its gaps closed:
   - The sitemap lists the index and every published guide, with `lastmod`.
   - The market page `/atlanta` links to the guides index.
 - **Caching:** like browse pages, guide pages may be cached for up to 60
-  seconds; the listings block inside them is part of that.
+  seconds; the listings block inside them is part of that. A cached copy is
+  never served past its minute (no stale-while-revalidate), so an
+  unpublished guide's address is a 404 within a minute (2026-10-03).
+- **First publish and the address:** the address can't change once
+  published, so the first publish asks to confirm it. If it doesn't match
+  the address the current title suggests, the confirmation says so and
+  offers "Use the suggested address and publish" in one click (or says the
+  suggested address is taken by another guide).
+- **How visitors read guides (decided 2026-10-03):** through database
+  functions, not the website's server key: `public_guides(market)`,
+  `public_guide(market, slug)` and `public_homepage_guides()` return only
+  published guides in public markets, only their live copy (never a draft
+  column, the AI review fields or who wrote it), and only the photos the
+  live copy uses. pgTAP checks each of these.
 
 ## The homepage
 
@@ -301,6 +314,17 @@ is published), the top of the homepage is:
 
 **Without a featured, published guide**, the homepage is exactly as today,
 headline first.
+
+**Headings (decided 2026-10-03):** with guides first, the page's `h1` is
+still the headline ("Book local Experiences and Services in Atlanta"),
+first in the page and visually hidden; the guides follow under a visible
+"Guides to Atlanta" heading, and the visible headline below them keeps its
+look but isn't a heading.
+
+**Choosing them:** the admin app's Content › Homepage page: up to five
+published guides, reordered with up and down buttons (the first is the
+hero), with a preview drawn by the website's own component. Saved in one
+step (`admin_set_homepage_features`), so the homepage is never half-changed.
 
 Text is never over the photo. Images get proper `alt` text, sizes (`srcset`)
 so phones download the smaller copy, and the hero loads first (high priority,
