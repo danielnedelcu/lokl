@@ -2,7 +2,7 @@
 // The provider's bookings (docs/design/booking-and-checkout.md, Provider
 // pages): Requests to answer, Upcoming and Past. The customer's email, phone
 // and street address appear only once a booking is accepted or confirmed.
-definePageMeta({ layout: "dashboard" });
+definePageMeta({ layout: "dashboard", middleware: "provider-only" });
 useSeoMeta({ title: "Bookings" });
 
 const route = useRoute();

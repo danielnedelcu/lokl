@@ -6,7 +6,7 @@
 import { z } from "zod";
 import type { ProviderBooking } from "~/composables/useProviderBookings";
 
-definePageMeta({ layout: "dashboard" });
+definePageMeta({ layout: "dashboard", middleware: "provider-only" });
 
 interface Detail extends ProviderBooking {
   unit_price_cents: number;
@@ -121,11 +121,24 @@ const sendCancel = handleCancel(async (v) => {
   }
 });
 
-const historyLabels: Record<string, string> = {
-  requested: "Requested", confirmed: "Confirmed", declined: "Declined", expired: "Ended",
-  cancelled: "Cancelled", completed: "Done", paid_out: "Paid out",
-};
-const actorLabels: Record<string, string> = { customer: "the customer", provider: "you", admin: "lokl", system: "lokl", stripe: "payment" };
+// Each step of the history in words. Requests and paid bookings are recorded
+// by the payment coming through (actor "stripe"), but it was the customer
+// who did it (found 2026-10-03: it read "Requested by payment").
+function historyLine(e: { to_status: string; actor: string }): string {
+  const who = ({ customer: "the customer", stripe: "the customer", provider: "you", admin: "lokl", system: "lokl" } as Record<string, string>)[e.actor] ?? e.actor;
+  switch (e.to_status) {
+    case "requested": return "Requested by the customer";
+    case "confirmed": return e.actor === "provider" ? "Accepted by you" : "Booked and paid by the customer";
+    case "declined": return e.actor === "provider" ? "Declined by you" : "Withdrawn by lokl (the listing wasn't available)";
+    case "expired":
+      return e.actor === "provider" ? "Ended: the customer's card couldn't be charged"
+        : e.actor === "stripe" ? "Ended: the hold on the customer's card lapsed" : "Ended: not answered in time";
+    case "cancelled": return `Cancelled by ${who}`;
+    case "completed": return "Took place";
+    case "paid_out": return "Paid out to you";
+    default: return `${e.to_status} by ${who}`;
+  }
+}
 const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status !== "pending_payment"));
 </script>
 
@@ -225,7 +238,7 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
         <dd class="mt-1">
           <ol class="space-y-0.5 text-sm">
             <li v-for="e in history" :key="e.created_at + e.to_status">
-              {{ historyLabels[e.to_status] ?? e.to_status }} by {{ actorLabels[e.actor] ?? e.actor }}, {{ at(e.created_at) }}
+              {{ historyLine(e) }}, {{ at(e.created_at) }}
             </li>
           </ol>
         </dd>

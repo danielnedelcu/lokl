@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ListingKind } from "@repo/types";
 
-definePageMeta({ layout: "dashboard" });
+definePageMeta({ layout: "dashboard", middleware: "provider-only" });
 
 const route = useRoute();
 const kind = computed<ListingKind>(() => (route.query.kind === "experience" ? "experience" : "service"));

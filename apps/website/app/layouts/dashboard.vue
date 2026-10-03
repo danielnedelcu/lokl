@@ -1,16 +1,24 @@
 <script setup lang="ts">
-const sections = [{ items: [
-  { to: "/dashboard", label: "Overview", icon: "lucide:layout-dashboard" },
-  { to: "/dashboard/services", label: "My services", icon: "lucide:wrench" },
-  { to: "/dashboard/experiences", label: "My experiences", icon: "lucide:compass" },
-  { to: "/dashboard/bookings", label: "Bookings", icon: "lucide:calendar" },
-  { to: "/dashboard/payouts", label: "Payouts", icon: "lucide:wallet" },
-  { to: "/dashboard/settings", label: "Business profile", icon: "lucide:settings" },
-] }];
-
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 const { data: provider } = await useProvider();
+
+// A provider's links; someone with no business yet (often a customer) gets
+// the setup page and their own bookings instead (found 2026-10-03).
+const sections = computed(() => [{ items: provider.value
+  ? [
+      { to: "/dashboard", label: "Overview", icon: "lucide:layout-dashboard" },
+      { to: "/dashboard/services", label: "My services", icon: "lucide:wrench" },
+      { to: "/dashboard/experiences", label: "My experiences", icon: "lucide:compass" },
+      { to: "/dashboard/bookings", label: "Bookings", icon: "lucide:calendar" },
+      { to: "/dashboard/payouts", label: "Payouts", icon: "lucide:wallet" },
+      { to: "/dashboard/settings", label: "Business profile", icon: "lucide:settings" },
+    ]
+  : [
+      { to: "/dashboard", label: "Overview", icon: "lucide:layout-dashboard" },
+      { to: "/dashboard/settings", label: "Set up your business", icon: "lucide:store" },
+      { to: "/account/bookings", label: "My bookings", icon: "lucide:calendar" },
+    ] }]);
 const supportEmail = useRuntimeConfig().public.supportEmail;
 
 async function signOut() {

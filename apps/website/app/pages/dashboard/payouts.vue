@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { payoutSetupOf, type Provider } from "@repo/types";
 
-definePageMeta({ layout: "dashboard" });
+definePageMeta({ layout: "dashboard", middleware: "provider-only" });
 
 const route = useRoute();
 const { data: provider } = await useProvider();

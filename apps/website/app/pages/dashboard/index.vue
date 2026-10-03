@@ -53,8 +53,10 @@ const steps = computed(() => [
     label: "Connect Stripe to get paid",
     to: "/dashboard/payouts",
     done: !!provider.value && payoutSetupOf(provider.value) === "ready",
+    // These pages need a business, so they open once step 1 is done.
+    locked: !provider.value,
   },
-  { label: "Create your first listing", to: "/dashboard/services", done: !!hasListedSomething.value },
+  { label: "Create your first listing", to: "/dashboard/services", done: !!hasListedSomething.value, locked: !provider.value },
 ]);
 </script>
 
@@ -95,9 +97,11 @@ const steps = computed(() => [
 
     <ol class="mt-6 max-w-lg space-y-3">
       <li v-for="(step, i) in steps" :key="step.to">
-        <NuxtLink
-          :to="step.to"
-          class="flex items-center gap-3 rounded-lg border border-border bg-card p-4 hover:border-muted-foreground"
+        <component
+          :is="step.locked ? 'div' : resolveComponent('NuxtLink')"
+          :to="step.locked ? undefined : step.to"
+          class="flex items-center gap-3 rounded-lg border border-border bg-card p-4"
+          :class="step.locked ? 'text-muted-foreground' : 'hover:border-muted-foreground'"
         >
           <span
             class="flex size-7 shrink-0 items-center justify-center rounded-full border text-sm font-medium"
@@ -109,9 +113,10 @@ const steps = computed(() => [
           <span class="text-sm">
             {{ step.label }}
             <span v-if="step.done" class="text-muted-foreground">(done)</span>
+            <span v-else-if="step.locked" class="block text-xs">After your business profile</span>
           </span>
-          <Icon name="lucide:chevron-right" class="ml-auto size-4 text-muted-foreground" aria-hidden="true" />
-        </NuxtLink>
+          <Icon v-if="!step.locked" name="lucide:chevron-right" class="ml-auto size-4 text-muted-foreground" aria-hidden="true" />
+        </component>
       </li>
     </ol>
   </div>
