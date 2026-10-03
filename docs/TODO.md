@@ -80,8 +80,14 @@ Each step depends on the ones before it.
 5. [x] **Booking management.** Covered by step 4 (parts 4, 6 and 8).
 6. [x] **Admin actions.** Covered by step 4, part 8. Its leftover, the audit
    log for listing reviews, is under "Open now".
-7. [ ] **Destination guides.** AI draft (Anthropic API), editor with photo,
-   slug and publish state, links into listings. Can start any time.
+7. [ ] **Destination guides** (`docs/design/destination-guides.md`, reviewed
+   2026-10-03). In parts: database, editor, AI draft, public pages, homepage.
+   - [x] Part 1: database. Guides with draft and live copies (including
+     the listings block), photos, versions, AI draft log, homepage
+     features, `publish_guide()` and `unpublish_guide()`, the
+     `guide-photos` bucket. Pushed 2026-10-03.
+   - [ ] Part 2: admin editor (no AI). Next.
+   - [ ] Part 3: AI draft. Part 4: public pages. Part 5: homepage.
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
 ## Staging site
@@ -136,6 +142,9 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [ ] Reply-to `help@hilokl.com`, forwarding to `hilokl.help@gmail.com`
     (`NUXT_EMAIL_REPLY_TO`, and `NUXT_PUBLIC_SUPPORT_EMAIL` on pages).
   - [ ] `NUXT_EMAIL_MODE=send` in production.
+- **Anthropic**
+  - [ ] Create a separate production Anthropic API key for the admin app
+    (`NUXT_ANTHROPIC_API_KEY`), apart from the development one.
 - **Stripe**
   - [ ] Live keys (see "Separate production environment" under Open
     decisions).

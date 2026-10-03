@@ -678,6 +678,372 @@ export type Database = {
           },
         ]
       }
+      guide_ai_drafts: {
+        Row: {
+          area_id: string | null
+          category_id: string | null
+          cost_usd: number | null
+          created_at: string
+          error: string | null
+          guide_id: string | null
+          id: string
+          input_tokens: number | null
+          model: string
+          notes: string | null
+          output_tokens: number | null
+          reply: Json | null
+          requested_by: string | null
+          topic: string
+        }
+        Insert: {
+          area_id?: string | null
+          category_id?: string | null
+          cost_usd?: number | null
+          created_at?: string
+          error?: string | null
+          guide_id?: string | null
+          id?: string
+          input_tokens?: number | null
+          model: string
+          notes?: string | null
+          output_tokens?: number | null
+          reply?: Json | null
+          requested_by?: string | null
+          topic: string
+        }
+        Update: {
+          area_id?: string | null
+          category_id?: string | null
+          cost_usd?: number | null
+          created_at?: string
+          error?: string | null
+          guide_id?: string | null
+          id?: string
+          input_tokens?: number | null
+          model?: string
+          notes?: string | null
+          output_tokens?: number | null
+          reply?: Json | null
+          requested_by?: string | null
+          topic?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_ai_drafts_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_ai_drafts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_ai_drafts_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_photos: {
+        Row: {
+          alt_text: string
+          card_path: string | null
+          commercial_use_confirmed: boolean
+          created_at: string
+          credit_name: string | null
+          credit_url: string | null
+          guide_id: string
+          height: number
+          id: string
+          licence: string | null
+          source: string
+          source_url: string | null
+          storage_path: string
+          width: number
+        }
+        Insert: {
+          alt_text: string
+          card_path?: string | null
+          commercial_use_confirmed?: boolean
+          created_at?: string
+          credit_name?: string | null
+          credit_url?: string | null
+          guide_id: string
+          height: number
+          id?: string
+          licence?: string | null
+          source: string
+          source_url?: string | null
+          storage_path: string
+          width: number
+        }
+        Update: {
+          alt_text?: string
+          card_path?: string | null
+          commercial_use_confirmed?: boolean
+          created_at?: string
+          credit_name?: string | null
+          credit_url?: string | null
+          guide_id?: string
+          height?: number
+          id?: string
+          licence?: string | null
+          source?: string
+          source_url?: string | null
+          storage_path?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_photos_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guide_versions: {
+        Row: {
+          area_id: string | null
+          body: Json
+          category_id: string | null
+          cover_photo_id: string | null
+          guide_id: string
+          id: string
+          listing_kind: string | null
+          published_at: string
+          published_by: string | null
+          teaser: string
+          title: string
+        }
+        Insert: {
+          area_id?: string | null
+          body: Json
+          category_id?: string | null
+          cover_photo_id?: string | null
+          guide_id: string
+          id?: string
+          listing_kind?: string | null
+          published_at?: string
+          published_by?: string | null
+          teaser: string
+          title: string
+        }
+        Update: {
+          area_id?: string | null
+          body?: Json
+          category_id?: string | null
+          cover_photo_id?: string | null
+          guide_id?: string
+          id?: string
+          listing_kind?: string | null
+          published_at?: string
+          published_by?: string | null
+          teaser?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_versions_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_versions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_versions_cover_photo_id_fkey"
+            columns: ["cover_photo_id"]
+            isOneToOne: false
+            referencedRelation: "guide_photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guide_versions_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guides: {
+        Row: {
+          ai_draft_pending_review: boolean
+          ai_reviewed_at: string | null
+          ai_reviewed_by: string | null
+          area_id: string | null
+          body: Json | null
+          category_id: string | null
+          content_updated_at: string | null
+          cover_photo_id: string | null
+          created_at: string
+          created_by: string | null
+          draft_area_id: string | null
+          draft_body: Json
+          draft_category_id: string | null
+          draft_cover_photo_id: string | null
+          draft_listing_kind: string | null
+          draft_teaser: string
+          draft_title: string
+          id: string
+          listing_kind: string | null
+          market_id: string
+          published_at: string | null
+          slug: string
+          status: string
+          teaser: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_draft_pending_review?: boolean
+          ai_reviewed_at?: string | null
+          ai_reviewed_by?: string | null
+          area_id?: string | null
+          body?: Json | null
+          category_id?: string | null
+          content_updated_at?: string | null
+          cover_photo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          draft_area_id?: string | null
+          draft_body?: Json
+          draft_category_id?: string | null
+          draft_cover_photo_id?: string | null
+          draft_listing_kind?: string | null
+          draft_teaser?: string
+          draft_title?: string
+          id?: string
+          listing_kind?: string | null
+          market_id: string
+          published_at?: string | null
+          slug: string
+          status?: string
+          teaser?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_draft_pending_review?: boolean
+          ai_reviewed_at?: string | null
+          ai_reviewed_by?: string | null
+          area_id?: string | null
+          body?: Json | null
+          category_id?: string | null
+          content_updated_at?: string | null
+          cover_photo_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          draft_area_id?: string | null
+          draft_body?: Json
+          draft_category_id?: string | null
+          draft_cover_photo_id?: string | null
+          draft_listing_kind?: string | null
+          draft_teaser?: string
+          draft_title?: string
+          id?: string
+          listing_kind?: string | null
+          market_id?: string
+          published_at?: string | null
+          slug?: string
+          status?: string
+          teaser?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guides_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guides_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guides_cover_fk"
+            columns: ["cover_photo_id"]
+            isOneToOne: false
+            referencedRelation: "guide_photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guides_draft_area_id_fkey"
+            columns: ["draft_area_id"]
+            isOneToOne: false
+            referencedRelation: "service_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guides_draft_category_id_fkey"
+            columns: ["draft_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guides_draft_cover_fk"
+            columns: ["draft_cover_photo_id"]
+            isOneToOne: false
+            referencedRelation: "guide_photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guides_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      homepage_features: {
+        Row: {
+          created_at: string
+          guide_id: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          guide_id: string
+          position: number
+        }
+        Update: {
+          created_at?: string
+          guide_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homepage_features_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: true
+            referencedRelation: "guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_runs: {
         Row: {
           changed: number
@@ -1232,6 +1598,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      publish_guide: {
+        Args: { p_admin_id: string; p_guide_id: string }
+        Returns: undefined
+      }
       reorder_listing_photos: {
         Args: { p_listing_id: string; p_photo_ids: string[] }
         Returns: undefined
@@ -1291,6 +1661,10 @@ export type Database = {
       }
       session_spots_left: { Args: { p_session_id: string }; Returns: number }
       session_spots_taken: { Args: { p_session_id: string }; Returns: number }
+      unpublish_guide: {
+        Args: { p_admin_id: string; p_guide_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
