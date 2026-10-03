@@ -1522,6 +1522,51 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_bookings_page: {
+        Args: {
+          p_attention?: string
+          p_desc?: boolean
+          p_from?: string
+          p_kind?: string
+          p_page?: number
+          p_page_size?: number
+          p_provider_id?: string
+          p_q?: string
+          p_sort?: string
+          p_status?: string
+          p_to?: string
+          p_with_attention?: boolean
+        }
+        Returns: Json
+      }
+      admin_listings_page: {
+        Args: {
+          p_city_id?: string
+          p_desc?: boolean
+          p_kind: string
+          p_page?: number
+          p_page_size?: number
+          p_provider_id?: string
+          p_q?: string
+          p_sort?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      admin_providers_page: {
+        Args: {
+          p_city_id?: string
+          p_desc?: boolean
+          p_page?: number
+          p_page_size?: number
+          p_payout_setup?: string
+          p_q?: string
+          p_sort?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      admin_search_patterns: { Args: { p_q: string }; Returns: string[] }
       admin_set_provider_status: {
         Args: {
           p_admin_id: string
@@ -1603,6 +1648,10 @@ export type Database = {
           p_provider_id: string
         }
         Returns: boolean
+      }
+      provider_payout_setup: {
+        Args: { p_account_id: string; p_charges: boolean; p_payouts: boolean }
+        Returns: string
       }
       publish_guide: {
         Args: { p_admin_id: string; p_guide_id: string }

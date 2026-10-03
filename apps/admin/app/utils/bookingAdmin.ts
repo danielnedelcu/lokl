@@ -43,6 +43,8 @@ export interface AdminBookingRow {
   dispute_outcome: string | null;
   reversal_failed_at: string | null;
   customer_name: string;
+  /** From the admin search function (admin_bookings_page). */
+  customer_email?: string | null;
   listing: { title: string; kind: string; status: string; city: { name: string; timezone: string } | null } | null;
   provider: { display_name: string; status: string } | null;
 }

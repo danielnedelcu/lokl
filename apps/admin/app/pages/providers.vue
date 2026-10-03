@@ -1,35 +1,56 @@
 <script setup lang="ts">
-import { payoutSetupOf, type Provider } from "@repo/types";
+import type { PayoutSetup, ProviderStatus } from "@repo/types";
 
 useHead({ title: "Providers · Admin" });
 
-type ProviderRow = Provider & { city: { name: string; state: string } | null };
+// Providers, a page at a time from the database (admin_providers_page, which
+// also gives each owner's email and payout setup), with the search, filters,
+// page and sort in the URL (useServerTable).
+interface ProviderRow {
+  id: string;
+  display_name: string;
+  status: ProviderStatus;
+  created_at: string;
+  owner_email: string;
+  payout_setup: PayoutSetup;
+  city: { name: string; state: string } | null;
+}
 
 const supabase = useSupabaseClient();
-
-// RLS only lets admins read other people's providers, so this is safe client-side.
-const { data: providers, error, pending, refresh } = await useAsyncData("admin-providers", async () => {
-  const { data, error } = await supabase
-    .from("providers")
-    .select("*, city:cities(name, state)")
-    .order("created_at", { ascending: false });
+const { data: cities } = await useAsyncData("admin-provider-cities", async () => {
+  const { data, error } = await supabase.from("cities").select("id, name, state").order("sort_order").order("name");
   if (error) throw error;
-  return data as ProviderRow[];
+  return data;
 });
 
-// Sortable by every column. Cells that need a component (badges, dates) are
-// filled through the table's `<column id>-cell` slots below.
-const columns = [
-  { accessorKey: "display_name", header: "Name" },
-  {
-    id: "city",
-    header: "City",
-    accessorFn: (p: ProviderRow) => (p.city ? `${p.city.name}, ${p.city.state}` : ""),
+const table = useServerTable({
+  filters: { status: oneOf("active", "suspended"), payouts: oneOf("not_started", "in_progress", "ready"), city: isUuid },
+  sorts: ["joined", "name", "city", "payouts", "status"],
+  async load({ q, filters, page, sort, desc }, signal) {
+    const { data, error } = await supabase
+      .rpc("admin_providers_page", {
+        p_q: q || undefined,
+        p_status: filters.status,
+        p_payout_setup: filters.payouts,
+        p_city_id: filters.city,
+        p_sort: sort,
+        p_desc: desc,
+        p_page: page,
+      })
+      .abortSignal(signal);
+    return asServerPage<ProviderRow>(data, error);
   },
-  { id: "payouts", header: "Payouts", accessorFn: (p: ProviderRow) => payoutSetupOf(p) },
-  { accessorKey: "status", header: "Status" },
-  { accessorKey: "created_at", header: "Joined" },
-  { id: "actions", header: "", enableSorting: false },
+});
+const f = computed(() => table.query.value.filters);
+
+const columns = [
+  { accessorKey: "display_name", header: "Name", meta: { sortKey: "name" } },
+  { accessorKey: "owner_email", header: "Owner email" },
+  { id: "city", header: "City", meta: { sortKey: "city" } },
+  { id: "payouts", header: "Payouts", meta: { sortKey: "payouts" } },
+  { accessorKey: "status", header: "Status", meta: { sortKey: "status" } },
+  { accessorKey: "created_at", header: "Joined", meta: { sortKey: "joined" } },
+  { id: "actions", header: "" },
 ];
 
 // Suspending or reinstating, with a reason, through the website: it hides
@@ -60,10 +81,9 @@ async function confirmStatus(reason: string, message: string) {
     actionError.value = (e as Error).message;
   } finally {
     busy.value = false;
-    await refresh();
+    await table.refresh();
   }
 }
-watch(error, (e) => e && reportProblem("Couldn't load providers", e), { immediate: true });
 </script>
 
 <template>
@@ -73,33 +93,61 @@ watch(error, (e) => e && reportProblem("Couldn't load providers", e), { immediat
       description="Businesses and hosts who sell Services and Experiences, and where each one is in payout setup."
     />
 
-    <UiAlert v-if="error" variant="destructive">
+    <form class="mb-3 flex flex-wrap items-end gap-3 text-sm" role="search" aria-label="Filter providers" @submit.prevent>
+      <div class="w-40">
+        <UiLabel for="filter-status" class="mb-1">Status</UiLabel>
+        <SelectInput id="filter-status" :model-value="f.status ?? ''"
+          :options="[{ value: '', label: 'Any' }, { value: 'active', label: statusLabel('provider', 'active') }, { value: 'suspended', label: statusLabel('provider', 'suspended') }]"
+          @update:model-value="(v) => table.setFilter('status', v)" />
+      </div>
+      <div class="w-44">
+        <UiLabel for="filter-payouts" class="mb-1">Payout setup</UiLabel>
+        <SelectInput id="filter-payouts" :model-value="f.payouts ?? ''" :options="[
+          { value: '', label: 'Any' },
+          ...['not_started', 'in_progress', 'ready'].map((s) => ({ value: s, label: statusLabel('payouts', s) })),
+        ]" @update:model-value="(v) => table.setFilter('payouts', v)" />
+      </div>
+      <div v-if="(cities?.length ?? 0) > 1" class="w-44">
+        <UiLabel for="filter-city" class="mb-1">City</UiLabel>
+        <SelectInput id="filter-city" :model-value="f.city ?? ''"
+          :options="[{ value: '', label: 'All cities' }, ...(cities ?? []).map((c) => ({ value: c.id, label: `${c.name}, ${c.state}` }))]"
+          @update:model-value="(v) => table.setFilter('city', v)" />
+      </div>
+      <TableSearch id="filter-search" :value="table.query.value.q" placeholder="Business or owner email"
+        hint="Matches the business name or the owner's email. Results update as you type." @search="table.setSearch" />
+    </form>
+
+    <div class="mb-3 flex flex-wrap items-center gap-x-3 text-sm">
+      <p class="text-muted-foreground" aria-live="polite">
+        {{ table.total.value.toLocaleString("en-US") }} {{ table.total.value === 1 ? "provider" : "providers" }}
+      </p>
+      <UiButton v-if="table.filtering.value" variant="link" size="sm" class="h-auto px-1" @click="table.clear()">Clear filters</UiButton>
+    </div>
+
+    <UiAlert v-if="table.error.value" variant="destructive">
       <UiAlertTitle>Couldn't load providers</UiAlertTitle>
       <UiAlertDescription>{{ loadFailedHint }}</UiAlertDescription>
     </UiAlert>
-
-    <EmptyState
-      v-else-if="!pending && !providers?.length"
-      icon="lucide:store"
-      title="No providers yet"
-      description="Providers appear here once they create a business profile on the website."
-    />
+    <EmptyState v-else-if="!table.pending.value && !table.total.value && !table.filtering.value" icon="lucide:store"
+      title="No providers yet" description="Providers appear here once they create a business profile on the website." />
+    <EmptyState v-else-if="!table.pending.value && !table.total.value" icon="lucide:search-x"
+      title="No providers match these filters" description="Try a different search, or clear the filters." />
 
     <UiCard v-else class="py-0">
-      <UiTanStackTable
-        :data="providers ?? []"
-        :columns="columns"
-        :loading="pending"
-        empty-text="No providers yet."
-      >
+      <ServerTable :rows="table.rows.value" :columns="columns" :total="table.total.value" :page="table.query.value.page"
+        :sort="table.query.value.sort" :desc="table.query.value.desc" :pending="table.pending.value"
+        @page="table.setPage" @sort="table.setSort">
         <template #display_name-cell="{ row }">
           <span class="font-medium">{{ row.original.display_name }}</span>
         </template>
+        <template #owner_email-cell="{ row }">
+          <span class="text-muted-foreground">{{ row.original.owner_email }}</span>
+        </template>
         <template #city-cell="{ row }">
-          <span class="text-muted-foreground">{{ row.getValue("city") || "—" }}</span>
+          <span class="text-muted-foreground">{{ row.original.city ? `${row.original.city.name}, ${row.original.city.state}` : "—" }}</span>
         </template>
         <template #payouts-cell="{ row }">
-          <StatusBadge kind="payouts" :status="row.getValue('payouts')" />
+          <StatusBadge kind="payouts" :status="row.original.payout_setup" />
         </template>
         <template #status-cell="{ row }">
           <StatusBadge kind="provider" :status="row.original.status" />
@@ -113,7 +161,7 @@ watch(error, (e) => e && reportProblem("Couldn't load providers", e), { immediat
             {{ row.original.status === "suspended" ? "Reinstate" : "Suspend" }}
           </UiButton>
         </template>
-      </UiTanStackTable>
+      </ServerTable>
     </UiCard>
 
     <ReasonDialog v-model:open="dialogOpen"

@@ -98,6 +98,15 @@ Each step depends on the ones before it.
    - [ ] Part 5: homepage.
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
+## Admin tables at scale
+
+- [x] Server-side search, filters and pages for Bookings, Experiences,
+  Services and Providers (migration `admin_search_pages`, pushed
+  2026-10-03); seed and timings in `scripts/seed-admin-load.mjs` and
+  `scripts/bench-admin-search.mjs` (local only).
+- [ ] Signed-in check of the four pages (keyboard, screen reader, phone).
+- [ ] Optional: money totals for the filtered bookings, from the database.
+
 ## Staging site
 
 A real address before the live one: `staging.hilokl.com` (website) and

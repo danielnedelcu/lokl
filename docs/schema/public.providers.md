@@ -40,6 +40,9 @@ A business or host that sells Services or Experiences. One per login (owner_id i
 | providers_owner_id_key          | CREATE UNIQUE INDEX providers_owner_id_key ON public.providers USING btree (owner_id)                   |
 | providers_stripe_account_id_key | CREATE UNIQUE INDEX providers_stripe_account_id_key ON public.providers USING btree (stripe_account_id) |
 | providers_city_id_idx           | CREATE INDEX providers_city_id_idx ON public.providers USING btree (city_id)                            |
+| providers_display_name_trgm     | CREATE INDEX providers_display_name_trgm ON public.providers USING gin (display_name gin_trgm_ops)      |
+| providers_created_idx           | CREATE INDEX providers_created_idx ON public.providers USING btree (created_at DESC)                    |
+| providers_status_idx            | CREATE INDEX providers_status_idx ON public.providers USING btree (status)                              |
 
 ## Triggers
 

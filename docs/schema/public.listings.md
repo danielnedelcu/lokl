@@ -65,6 +65,9 @@ A Service or Experience a provider offers. Deleted only while it has never been 
 | listings_slug_key               | CREATE UNIQUE INDEX listings_slug_key ON public.listings USING btree (slug)                                                      |
 | listings_provider_id_idx        | CREATE INDEX listings_provider_id_idx ON public.listings USING btree (provider_id)                                               |
 | listings_live_city_category_idx | CREATE INDEX listings_live_city_category_idx ON public.listings USING btree (city_id, category_id) WHERE (status = 'live'::text) |
+| listings_title_trgm             | CREATE INDEX listings_title_trgm ON public.listings USING gin (title gin_trgm_ops)                                               |
+| listings_kind_updated_idx       | CREATE INDEX listings_kind_updated_idx ON public.listings USING btree (kind, updated_at DESC)                                    |
+| listings_kind_status_idx        | CREATE INDEX listings_kind_status_idx ON public.listings USING btree (kind, status)                                              |
 
 ## Triggers
 

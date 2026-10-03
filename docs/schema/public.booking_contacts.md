@@ -23,9 +23,10 @@ The customer's email and optional phone for a booking. The provider reads them o
 
 ## Indexes
 
-| Name                  | Definition                                                                                    |
-| --------------------- | --------------------------------------------------------------------------------------------- |
-| booking_contacts_pkey | CREATE UNIQUE INDEX booking_contacts_pkey ON public.booking_contacts USING btree (booking_id) |
+| Name                        | Definition                                                                                         |
+| --------------------------- | -------------------------------------------------------------------------------------------------- |
+| booking_contacts_pkey       | CREATE UNIQUE INDEX booking_contacts_pkey ON public.booking_contacts USING btree (booking_id)      |
+| booking_contacts_email_trgm | CREATE INDEX booking_contacts_email_trgm ON public.booking_contacts USING gin (email gin_trgm_ops) |
 
 ## Relations
 

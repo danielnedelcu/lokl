@@ -109,6 +109,30 @@
           "columns": [
             "city_id"
           ]
+        },
+        {
+          "name": "providers_display_name_trgm",
+          "def": "CREATE INDEX providers_display_name_trgm ON public.providers USING gin (display_name gin_trgm_ops)",
+          "table": "public.providers",
+          "columns": [
+            "display_name"
+          ]
+        },
+        {
+          "name": "providers_created_idx",
+          "def": "CREATE INDEX providers_created_idx ON public.providers USING btree (created_at DESC)",
+          "table": "public.providers",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "providers_status_idx",
+          "def": "CREATE INDEX providers_status_idx ON public.providers USING btree (status)",
+          "table": "public.providers",
+          "columns": [
+            "status"
+          ]
         }
       ],
       "constraints": [
@@ -832,6 +856,32 @@
           "columns": [
             "city_id",
             "category_id"
+          ]
+        },
+        {
+          "name": "listings_title_trgm",
+          "def": "CREATE INDEX listings_title_trgm ON public.listings USING gin (title gin_trgm_ops)",
+          "table": "public.listings",
+          "columns": [
+            "title"
+          ]
+        },
+        {
+          "name": "listings_kind_updated_idx",
+          "def": "CREATE INDEX listings_kind_updated_idx ON public.listings USING btree (kind, updated_at DESC)",
+          "table": "public.listings",
+          "columns": [
+            "kind",
+            "updated_at"
+          ]
+        },
+        {
+          "name": "listings_kind_status_idx",
+          "def": "CREATE INDEX listings_kind_status_idx ON public.listings USING btree (kind, status)",
+          "table": "public.listings",
+          "columns": [
+            "kind",
+            "status"
           ]
         }
       ],
@@ -2207,6 +2257,48 @@
             "respond_by",
             "reserved_until"
           ]
+        },
+        {
+          "name": "bookings_customer_name_trgm",
+          "def": "CREATE INDEX bookings_customer_name_trgm ON public.bookings USING gin (customer_name gin_trgm_ops)",
+          "table": "public.bookings",
+          "columns": [
+            "customer_name"
+          ]
+        },
+        {
+          "name": "bookings_created_idx",
+          "def": "CREATE INDEX bookings_created_idx ON public.bookings USING btree (created_at DESC) WHERE (status \u003c\u003e 'pending_payment'::text)",
+          "table": "public.bookings",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "bookings_status_created_idx",
+          "def": "CREATE INDEX bookings_status_created_idx ON public.bookings USING btree (status, created_at DESC)",
+          "table": "public.bookings",
+          "columns": [
+            "status",
+            "created_at"
+          ]
+        },
+        {
+          "name": "bookings_kind_created_idx",
+          "def": "CREATE INDEX bookings_kind_created_idx ON public.bookings USING btree (kind, created_at DESC)",
+          "table": "public.bookings",
+          "columns": [
+            "kind",
+            "created_at"
+          ]
+        },
+        {
+          "name": "bookings_when_idx",
+          "def": "CREATE INDEX bookings_when_idx ON public.bookings USING btree (COALESCE(starts_at, created_at))",
+          "table": "public.bookings",
+          "columns": [
+            "coalesce"
+          ]
         }
       ],
       "constraints": [
@@ -2628,6 +2720,14 @@
           "table": "public.booking_contacts",
           "columns": [
             "booking_id"
+          ]
+        },
+        {
+          "name": "booking_contacts_email_trgm",
+          "def": "CREATE INDEX booking_contacts_email_trgm ON public.booking_contacts USING gin (email gin_trgm_ops)",
+          "table": "public.booking_contacts",
+          "columns": [
+            "email"
           ]
         }
       ],
@@ -6343,6 +6443,36 @@
       "name": "public.unpublish_guide",
       "return_type": "void",
       "arguments": "p_guide_id uuid, p_admin_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.provider_payout_setup",
+      "return_type": "text",
+      "arguments": "p_account_id text, p_charges boolean, p_payouts boolean",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_search_patterns",
+      "return_type": "_text",
+      "arguments": "p_q text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_bookings_page",
+      "return_type": "jsonb",
+      "arguments": "p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_provider_id uuid DEFAULT NULL::uuid, p_from date DEFAULT NULL::date, p_to date DEFAULT NULL::date, p_attention text DEFAULT NULL::text, p_sort text DEFAULT 'created'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25, p_with_attention boolean DEFAULT false",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_listings_page",
+      "return_type": "jsonb",
+      "arguments": "p_kind text, p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_city_id uuid DEFAULT NULL::uuid, p_provider_id uuid DEFAULT NULL::uuid, p_sort text DEFAULT 'updated'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_providers_page",
+      "return_type": "jsonb",
+      "arguments": "p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_payout_setup text DEFAULT NULL::text, p_city_id uuid DEFAULT NULL::uuid, p_sort text DEFAULT 'joined'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25",
       "type": "FUNCTION"
     }
   ],

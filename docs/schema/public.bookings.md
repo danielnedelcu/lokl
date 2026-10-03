@@ -85,6 +85,11 @@ A customer's booking of a Service (a request the provider accepts) or an Experie
 | bookings_respond_by_idx     | CREATE INDEX bookings_respond_by_idx ON public.bookings USING btree (respond_by) WHERE (status = 'requested'::text)                                                         |
 | bookings_reserved_until_idx | CREATE INDEX bookings_reserved_until_idx ON public.bookings USING btree (reserved_until) WHERE (status = 'pending_payment'::text)                                           |
 | bookings_open_idx           | CREATE INDEX bookings_open_idx ON public.bookings USING btree (status, respond_by, reserved_until) WHERE (status = ANY (ARRAY['pending_payment'::text, 'requested'::text])) |
+| bookings_customer_name_trgm | CREATE INDEX bookings_customer_name_trgm ON public.bookings USING gin (customer_name gin_trgm_ops)                                                                          |
+| bookings_created_idx        | CREATE INDEX bookings_created_idx ON public.bookings USING btree (created_at DESC) WHERE (status <> 'pending_payment'::text)                                                |
+| bookings_status_created_idx | CREATE INDEX bookings_status_created_idx ON public.bookings USING btree (status, created_at DESC)                                                                           |
+| bookings_kind_created_idx   | CREATE INDEX bookings_kind_created_idx ON public.bookings USING btree (kind, created_at DESC)                                                                               |
+| bookings_when_idx           | CREATE INDEX bookings_when_idx ON public.bookings USING btree (COALESCE(starts_at, created_at))                                                                             |
 
 ## Triggers
 

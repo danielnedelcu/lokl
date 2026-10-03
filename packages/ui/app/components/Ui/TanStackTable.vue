@@ -2,7 +2,9 @@
   lokl change (docs/frontend.md, 2026-10-03): the footer's page controls use
   ui-thing's Pagination (Reka Pagination) instead of four icon-only buttons
   without names, and the rows-per-page select is named by its text (if a
-  table ever turns it on). Every table pages the same way: 25 rows a page,
+  table ever turns it on). Sortable headers are buttons (keyboard) and the
+  header cell carries aria-sort (screen readers). Server-side tables (manualPagination and
+  manualSorting) pass rowCount, page and sortingState, so the URL drives them. Every table pages the same way: 25 rows a page,
   with no rows-per-page choice shown (decided 2026-10-03). Keep these if the
   component is re-added with the ui-thing CLI.
 -->
@@ -26,6 +28,7 @@
             :colspan="header.colSpan"
             :class="header.column.columnDef.meta?.class?.th"
             :style="getPinnedHeaderStyle(header.column)"
+            :aria-sort="header.column.getCanSort() ? (header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : 'none') : undefined"
           >
             <template v-if="!header.isPlaceholder">
               <slot
@@ -35,42 +38,21 @@
                 :table="table"
               >
                 <div class="flex items-center gap-2">
-                  <div
+                  <!-- lokl change: a real button, so sorting works from the keyboard;
+                       the <th>'s aria-sort tells screen readers the current sort. -->
+                  <button
                     v-if="header.column.getCanSort()"
-                    :class="[
-                      'flex items-center gap-2',
-                      header.column.getCanSort() ? 'cursor-pointer select-none' : '',
-                    ]"
+                    type="button"
+                    class="hover:text-foreground focus-visible:ring-ring/50 -mx-1 inline-flex items-center gap-2 rounded-md px-1 outline-none focus-visible:ring-[3px]"
                     @click="header.column.getToggleSortingHandler()?.($event)"
                   >
                     <FlexRender :header="header" />
-                    <UiTooltip>
-                      <UiTooltipTrigger>
-                        <Icon
-                          v-if="header.column.getIsSorted() === 'asc'"
-                          name="lucide:arrow-up"
-                          class="size-4"
-                        />
-                        <Icon
-                          v-else-if="header.column.getIsSorted() === 'desc'"
-                          name="lucide:arrow-down"
-                          class="size-4"
-                        />
-                        <Icon v-else name="lucide:arrow-up-down" class="size-4 opacity-50" />
-                      </UiTooltipTrigger>
-                      <UiTooltipContent>
-                        <span>
-                          {{
-                            header.column.getIsSorted() === "asc"
-                              ? "Sorted ascending"
-                              : header.column.getIsSorted() === "desc"
-                                ? "Sorted descending"
-                                : "Not sorted"
-                          }}
-                        </span>
-                      </UiTooltipContent>
-                    </UiTooltip>
-                  </div>
+                    <Icon
+                      :name="header.column.getIsSorted() === 'asc' ? 'lucide:arrow-up' : header.column.getIsSorted() === 'desc' ? 'lucide:arrow-down' : 'lucide:arrow-up-down'"
+                      :class="['size-4', !header.column.getIsSorted() && 'opacity-50']"
+                      aria-hidden="true"
+                    />
+                  </button>
                   <div v-else class="flex items-center gap-2">
                     <FlexRender :header="header" />
                   </div>
@@ -298,7 +280,7 @@
         <slot name="footer-right" :table="table">
           <div v-if="showPageInfo" class="text-muted-foreground text-sm whitespace-nowrap">
             Page {{ table.atoms.pagination.get().pageIndex + 1 }} of
-            {{ table.getPageCount() }}
+            {{ Math.max(1, table.getPageCount()) }}
           </div>
 
           <!-- lokl change: the page controls are ui-thing's Pagination (Reka),
@@ -307,7 +289,7 @@
             v-if="showPagination"
             aria-label="Table pages"
             :page="table.atoms.pagination.get().pageIndex + 1"
-            :total="table.getFilteredRowModel().rows.length"
+            :total="manualPagination && rowCount != null ? rowCount : table.getFilteredRowModel().rows.length"
             :items-per-page="table.atoms.pagination.get().pageSize"
             :sibling-count="1"
             show-edges
@@ -445,6 +427,12 @@
       manualSorting?: boolean;
       /** Enable manual filtering (for server-side filtering) */
       manualFiltering?: boolean;
+      /** lokl: with manualPagination, the server's total row count (sets the page count and Pagination). */
+      rowCount?: number;
+      /** lokl: with manualPagination, the current page (1-based), e.g. from the URL. */
+      page?: number;
+      /** lokl: with manualSorting, the current sort, e.g. from the URL. */
+      sortingState?: SortingState;
       /** Enable row pinning. */
       enableRowPinning?: boolean;
       /** Enable column pinning. */
@@ -669,9 +657,30 @@
     manualPagination: props.manualPagination,
     manualSorting: props.manualSorting,
     manualFiltering: props.manualFiltering,
-    pageCount: props.manualPagination ? props.pageCount : undefined,
+    // lokl: with a server total (rowCount), the page count follows it.
+    get pageCount() {
+      if (!props.manualPagination) return undefined;
+      if (props.rowCount != null) return Math.ceil(props.rowCount / pagination.value.pageSize);
+      return props.pageCount;
+    },
     ...props.tableOptions,
   });
+
+  // lokl: a controlled page and sort (server-side tables keep them in the URL).
+  watch(
+    () => props.page,
+    (page) => {
+      if (page != null && page - 1 !== pagination.value.pageIndex) pagination.value = { ...pagination.value, pageIndex: page - 1 };
+    },
+    { immediate: true },
+  );
+  watch(
+    () => props.sortingState,
+    (state) => {
+      if (state && JSON.stringify(state) !== JSON.stringify(sorting.value)) sorting.value = state;
+    },
+    { immediate: true },
+  );
 
   const pageSize = computed({
     get() {
