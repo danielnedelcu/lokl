@@ -21,6 +21,18 @@ const { data: markets } = await useAsyncData("admin-guide-markets", async () => 
   return data;
 });
 
+// AI drafting this month (the cost log, guide_ai_drafts), in the viewer's time zone.
+const { data: aiMonth } = await useAsyncData("admin-guide-ai-month", async () => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const { data, error } = await supabase.from("guide_ai_drafts").select("cost_usd").gte("created_at", monthStart);
+  if (error) {
+    reportProblem("Couldn't load this month's AI drafting cost", error);
+    return null;
+  }
+  return { count: data.length, cents: Math.round(data.reduce((n, r) => n + Number(r.cost_usd ?? 0), 0) * 100) };
+});
+
 const columns = [
   { id: "title", header: "Title", accessorFn: (r: Row) => r.draft_title || r.title || "Untitled guide" },
   { id: "market", header: "City", accessorFn: (r: Row) => r.market?.name ?? "" },
@@ -70,6 +82,11 @@ const create = form.handleSubmit(async ({ title, slug }) => {
         </UiButton>
       </template>
     </PageHeader>
+
+    <p v-if="aiMonth?.count" class="text-muted-foreground mb-4 flex items-center gap-1 text-sm">
+      <Icon name="lucide:sparkles" aria-hidden="true" />
+      AI drafting this month: {{ formatMoney(aiMonth.cents) }} ({{ aiMonth.count }} {{ aiMonth.count === 1 ? "draft" : "drafts" }})
+    </p>
 
     <UiAlert v-if="error" variant="destructive">
       <UiAlertTitle>Couldn't load guides</UiAlertTitle>

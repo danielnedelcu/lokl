@@ -691,6 +691,8 @@ export type Database = {
           model: string
           notes: string | null
           output_tokens: number | null
+          previous_draft: Json | null
+          previous_draft_restored_at: string | null
           reply: Json | null
           requested_by: string | null
           topic: string
@@ -707,6 +709,8 @@ export type Database = {
           model: string
           notes?: string | null
           output_tokens?: number | null
+          previous_draft?: Json | null
+          previous_draft_restored_at?: string | null
           reply?: Json | null
           requested_by?: string | null
           topic: string
@@ -723,6 +727,8 @@ export type Database = {
           model?: string
           notes?: string | null
           output_tokens?: number | null
+          previous_draft?: Json | null
+          previous_draft_restored_at?: string | null
           reply?: Json | null
           requested_by?: string | null
           topic?: string

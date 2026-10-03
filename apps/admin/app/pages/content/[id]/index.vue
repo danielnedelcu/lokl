@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {
   bodyPhotoIds,
+  findStalePhrases,
+  phraseContext,
   guidePublishBlockers,
   guideSlugSchema,
   guideState,
@@ -14,6 +16,7 @@ import {
   type ListingKind,
   type ServiceArea,
 } from "@repo/types";
+import type { BodyPhrase } from "~/utils/guidePhrases";
 
 // The guide editor (docs/design/destination-guides.md, The editor). It edits
 // the draft only; "Publish" copies the draft over the live copy through the
@@ -172,7 +175,12 @@ function setCover(photoId: string) {
 // Photos: deleting takes the photo out of the draft too
 // ---------------------------------------------------------------------------
 
-const bodyEditor = ref<{ replace: (b: unknown) => Promise<void>; removePhoto: (id: string) => Promise<boolean> } | null>(null);
+const bodyEditor = ref<{
+  replace: (b: unknown) => Promise<void>;
+  removePhoto: (id: string) => Promise<boolean>;
+  reveal: (key: string) => void;
+  setReadOnly: (on: boolean) => Promise<void>;
+} | null>(null);
 
 async function removePhoto(photo: GuidePhoto) {
   if (!(await autosave.flush())) {
@@ -186,6 +194,86 @@ async function removePhoto(photo: GuidePhoto) {
   await reloadPhotos();
   await bodyEditor.value?.removePhoto(photo.id);
   useSonner.success("Photo deleted.");
+}
+
+// ---------------------------------------------------------------------------
+// AI drafts and review
+// ---------------------------------------------------------------------------
+
+const pendingReview = computed(() => !!guide.value?.ai_draft_pending_review);
+// While an AI draft is being written, nothing on the page can be edited.
+const locked = ref(false);
+async function onAiRunning(running: boolean) {
+  locked.value = running;
+  await bodyEditor.value?.setReadOnly(running);
+}
+/** Save what's waiting; the guide's updated_at for the server to check, or null. */
+async function prepare() {
+  return (await autosave.flush()) ? autosave.current() : null;
+}
+/** Show a guide row that changed on the server (an AI draft landed, or the draft before it came back). */
+async function takeGuide(row: Guide) {
+  guide.value = row;
+  autosave.rebase(row.updated_at);
+  Object.assign(draft, {
+    title: row.draft_title,
+    teaser: row.draft_teaser,
+    areaId: row.draft_area_id,
+    categoryId: row.draft_category_id,
+    kind: row.draft_listing_kind as ListingKind | null,
+    coverId: row.draft_cover_photo_id,
+    body: row.draft_body,
+  });
+  bodyNote.value = "";
+  await bodyEditor.value?.replace(row.draft_body);
+}
+function useSuggestedSlug(slug: string) {
+  draft.slug = slug;
+  onSlug();
+}
+
+// Phrases to check: the body's come from the editor; the title's and teaser's from here.
+const bodyPhrases = ref<BodyPhrase[]>([]);
+const fieldPhrases = computed<BodyPhrase[]>(() =>
+  pendingReview.value
+    ? (["title", "teaser"] as const).flatMap((field) => {
+        const text = field === "title" ? draft.title : draft.teaser;
+        return findStalePhrases(text).map((p, i) => ({ ...p, key: `${field}:${i}`, blockId: field, context: phraseContext(text, p) }));
+      })
+    : [],
+);
+const phrases = computed(() => [...fieldPhrases.value, ...bodyPhrases.value]);
+function reveal(p: BodyPhrase) {
+  if (p.blockId === "title" || p.blockId === "teaser") {
+    const el = document.getElementById(p.blockId === "title" ? "guide-title" : "guide-teaser") as HTMLInputElement | null;
+    el?.focus();
+    el?.setSelectionRange(p.start, p.end);
+    return;
+  }
+  bodyEditor.value?.reveal(p.key);
+}
+
+const review = ref<{ close: () => void } | null>(null);
+async function markReviewed() {
+  busy.value = true;
+  try {
+    if (!(await autosave.flush())) return void useSonner.error("Your latest changes haven't saved yet. Wait for “Saved”, then try again.");
+    // The database records who and when (guides_guard).
+    const { data: rows, error: e } = await supabase
+      .from("guides")
+      .update({ ai_draft_pending_review: false })
+      .eq("id", id.value)
+      .eq("updated_at", autosave.current())
+      .select("*");
+    if (e) return void useSonner.error(reportProblem("It wasn't marked as reviewed. Try again.", e));
+    if (!rows.length) return void useSonner.error("This guide changed somewhere else. Reload, then try again.");
+    guide.value = rows[0] as Guide;
+    autosave.rebase(rows[0]!.updated_at);
+    review.value?.close();
+    useSonner.success("Marked as reviewed. It can be published now.");
+  } finally {
+    busy.value = false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -326,7 +414,10 @@ const categoryLabel = (c: Category) => `${c.name}${c.active ? "" : " (hidden fro
 
       <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <!-- Writing column -->
-        <div class="min-w-0 space-y-6">
+        <fieldset :disabled="locked" class="min-w-0 space-y-6">
+          <legend class="sr-only">The guide's draft</legend>
+          <GuideReview v-if="pendingReview" ref="review" :phrases="phrases" :busy="busy || locked" @reveal="reveal"
+            @confirm="markReviewed" />
           <div>
             <UiLabel for="guide-title" class="mb-2">Title</UiLabel>
             <input id="guide-title" v-model="draft.title" :maxlength="GUIDE_TITLE_MAX" autocomplete="off"
@@ -337,7 +428,7 @@ const categoryLabel = (c: Category) => `${c.name}${c.active ? "" : " (hidden fro
             <p id="body-label" class="mb-2 text-sm font-medium">Guide text</p>
             <div class="border-input rounded-md border px-4 py-3 sm:px-12">
               <GuideBodyEditor ref="bodyEditor" :body="draft.body" :photos="photoOptions" labelledby="body-label"
-                @change="onBody" @invalid="(m) => (bodyNote = m)" />
+                :highlight="pendingReview" @change="onBody" @invalid="(m) => (bodyNote = m)" @phrases="(p) => (bodyPhrases = p)" />
             </div>
             <p v-if="bodyNote" class="text-destructive mt-2 flex items-center gap-1 text-sm" role="alert">
               <Icon name="lucide:alert-circle" aria-hidden="true" />{{ bodyNote }}
@@ -346,10 +437,16 @@ const categoryLabel = (c: Category) => `${c.name}${c.active ? "" : " (hidden fro
               Press Tab in an empty line for headings, lists, quotes and photos. Select text for bold, italic and links.
             </p>
           </div>
-        </div>
+        </fieldset>
 
         <!-- Side panel -->
         <aside class="space-y-6" aria-label="Guide settings">
+          <GuideAiDraft :guide="guide" :draft-title="draft.title" :draft-area-id="draft.areaId" :draft-category-id="draft.categoryId"
+            :has-text="!!(draft.title.trim() || draft.teaser.trim() || ((draft.body as { blocks?: unknown[] })?.blocks?.length ?? 0))"
+            :areas="areas" :categories="categories" :prepare="prepare" @running="onAiRunning"
+            @landed="(r) => takeGuide(r.guide)" @restored="takeGuide" @use-slug="useSuggestedSlug" />
+          <fieldset :disabled="locked" class="space-y-6">
+          <legend class="sr-only">Guide settings</legend>
           <section aria-labelledby="status-heading" class="border-border space-y-3 rounded-lg border p-4">
             <div class="flex items-center justify-between gap-2">
               <h2 id="status-heading" class="font-medium">Status</h2>
@@ -452,6 +549,7 @@ const categoryLabel = (c: Category) => `${c.name}${c.active ? "" : " (hidden fro
 
           <GuidePhotos :guide-id="guide.id" :photos="photos" :cover-id="draft.coverId" :live-ids="liveIds"
             :remove="removePhoto" @changed="reloadPhotos" @cover="setCover" />
+          </fieldset>
         </aside>
       </div>
 

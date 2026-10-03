@@ -18,6 +18,10 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
 
   runtimeConfig: {
+    // AI drafts of guides (server only, never NUXT_PUBLIC_): NUXT_ANTHROPIC_API_KEY,
+    // and NUXT_ANTHROPIC_MODEL to change the model (settled: Opus).
+    anthropicApiKey: "",
+    anthropicModel: "claude-opus-5-5",
     public: {
       // NUXT_PUBLIC_WEBSITE_URL: where the website's /api/admin/* routes are.
       // Refunds and anything else that needs Stripe go through them, with

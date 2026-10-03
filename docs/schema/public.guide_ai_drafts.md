@@ -6,22 +6,24 @@ Every AI draft request: what was sent (topic, area, category, the admin's notes)
 
 ## Columns
 
-| Name          | Type                     | Default           | Nullable | Children | Parents                                         | Comment |
-| ------------- | ------------------------ | ----------------- | -------- | -------- | ----------------------------------------------- | ------- |
-| id            | uuid                     | gen_random_uuid() | false    |          |                                                 |         |
-| guide_id      | uuid                     |                   | true     |          | [public.guides](public.guides.md)               |         |
-| requested_by  | uuid                     |                   | true     |          |                                                 |         |
-| topic         | text                     |                   | false    |          |                                                 |         |
-| area_id       | uuid                     |                   | true     |          | [public.service_areas](public.service_areas.md) |         |
-| category_id   | uuid                     |                   | true     |          | [public.categories](public.categories.md)       |         |
-| notes         | text                     |                   | true     |          |                                                 |         |
-| model         | text                     |                   | false    |          |                                                 |         |
-| reply         | jsonb                    |                   | true     |          |                                                 |         |
-| error         | text                     |                   | true     |          |                                                 |         |
-| input_tokens  | integer                  |                   | true     |          |                                                 |         |
-| output_tokens | integer                  |                   | true     |          |                                                 |         |
-| cost_usd      | numeric(10,4)            |                   | true     |          |                                                 |         |
-| created_at    | timestamp with time zone | clock_timestamp() | false    |          |                                                 |         |
+| Name                       | Type                     | Default           | Nullable | Children | Parents                                         | Comment                                                                                                                                                 |
+| -------------------------- | ------------------------ | ----------------- | -------- | -------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                         | uuid                     | gen_random_uuid() | false    |          |                                                 |                                                                                                                                                         |
+| guide_id                   | uuid                     |                   | true     |          | [public.guides](public.guides.md)               |                                                                                                                                                         |
+| requested_by               | uuid                     |                   | true     |          |                                                 |                                                                                                                                                         |
+| topic                      | text                     |                   | false    |          |                                                 |                                                                                                                                                         |
+| area_id                    | uuid                     |                   | true     |          | [public.service_areas](public.service_areas.md) |                                                                                                                                                         |
+| category_id                | uuid                     |                   | true     |          | [public.categories](public.categories.md)       |                                                                                                                                                         |
+| notes                      | text                     |                   | true     |          |                                                 |                                                                                                                                                         |
+| model                      | text                     |                   | false    |          |                                                 |                                                                                                                                                         |
+| reply                      | jsonb                    |                   | true     |          |                                                 |                                                                                                                                                         |
+| error                      | text                     |                   | true     |          |                                                 |                                                                                                                                                         |
+| input_tokens               | integer                  |                   | true     |          |                                                 |                                                                                                                                                         |
+| output_tokens              | integer                  |                   | true     |          |                                                 |                                                                                                                                                         |
+| cost_usd                   | numeric(10,4)            |                   | true     |          |                                                 |                                                                                                                                                         |
+| created_at                 | timestamp with time zone | clock_timestamp() | false    |          |                                                 |                                                                                                                                                         |
+| previous_draft             | jsonb                    |                   | true     |          |                                                 | The guide's draft just before this AI draft replaced it: title, teaser, body, area, category, kind and its review state. Null if the draft didn't land. |
+| previous_draft_restored_at | timestamp with time zone |                   | true     |          |                                                 | When the admin put the previous draft back. Set once; the previous draft can be restored only while this is the guide's latest AI draft.                |
 
 ## Constraints
 

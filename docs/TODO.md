@@ -91,8 +91,11 @@ Each step depends on the ones before it.
      preview), photos with credits, publish and unpublish routes,
      versions with "Copy into draft", draft preview, shared `GuideBody`
      renderer. Built 2026-10-03.
-   - [ ] Part 3: AI draft. Next.
-   - [ ] Part 4: public pages. Part 5: homepage.
+   - [x] Part 3: AI draft. Prompt (`apps/admin/server/prompts/guide-writer.ts`),
+     draft and undo routes, stale-phrase scanner and highlights, review
+     confirmation, cost log, limits. Built 2026-10-03.
+   - [ ] Part 4: public pages. Next.
+   - [ ] Part 5: homepage.
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
 ## Staging site

@@ -11,6 +11,7 @@
     "check-types": "nuxt typecheck"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@editorjs/editorjs": "^2.31.7",
     "@editorjs/header": "^2.8.9",
     "@editorjs/list": "^2.0.9",

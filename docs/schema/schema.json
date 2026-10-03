@@ -5272,6 +5272,18 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "clock_timestamp()"
+        },
+        {
+          "name": "previous_draft",
+          "type": "jsonb",
+          "nullable": true,
+          "comment": "The guide's draft just before this AI draft replaced it: title, teaser, body, area, category, kind and its review state. Null if the draft didn't land."
+        },
+        {
+          "name": "previous_draft_restored_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When the admin put the previous draft back. Set once; the previous draft can be restored only while this is the guide's latest AI draft."
         }
       ],
       "indexes": [

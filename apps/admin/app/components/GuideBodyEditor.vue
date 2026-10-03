@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type EditorJS from "@editorjs/editorjs";
 import type { OutputData } from "@editorjs/editorjs";
-import { guideBodySchema, type GuideBody } from "@repo/types";
+import { findStalePhrases, guideBodySchema, phraseContext, type GuideBody } from "@repo/types";
 import type { PhotoOption } from "~/utils/guidePhotoTool";
+import type { BodyPhrase } from "~/utils/guidePhrases";
 
 // The guide's body in Editor.js (docs/design/destination-guides.md, The
 // editor): headings (levels 2 and 3; the title is the page's h1),
@@ -13,8 +14,15 @@ import type { PhotoOption } from "~/utils/guidePhotoTool";
 // Editor.js is weaker for keyboard and screen-reader use than a plain form
 // (decision 2026-10-03): acceptable because only the admin edits guides,
 // and the public page is drawn by lokl's own renderer.
-const props = defineProps<{ body: unknown; photos: PhotoOption[]; labelledby: string }>();
-const emit = defineEmits<{ change: [body: GuideBody]; invalid: [message: string] }>();
+const props = defineProps<{
+  body: unknown;
+  photos: PhotoOption[];
+  labelledby: string;
+  /** Point out stale-looking phrases (while an AI draft waits for review). */
+  highlight?: boolean;
+}>();
+
+const emit = defineEmits<{ change: [body: GuideBody]; invalid: [message: string]; phrases: [phrases: BodyPhrase[]] }>();
 
 const holder = ref<HTMLDivElement | null>(null);
 const loadError = ref("");
@@ -28,9 +36,88 @@ function toEditorData(body: unknown): OutputData {
   return { blocks: Array.isArray(blocks) ? (blocks as OutputData["blocks"]) : [] };
 }
 
+// ---------------------------------------------------------------------------
+// Stale-looking phrases: found in each block's visible text and highlighted
+// with the browser's highlight feature (CSS.highlights), which marks ranges
+// without changing the text, so nothing extra is ever saved. Browsers
+// without it still get the list, which is the main signal.
+// ---------------------------------------------------------------------------
+
+const HIGHLIGHT = "guide-stale";
+const supportsHighlight = () => typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined";
+let ranges = new Map<string, Range>();
+
+function textOf(el: Element) {
+  const nodes: { node: Text; start: number }[] = [];
+  let text = "";
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    nodes.push({ node: n as Text, start: text.length });
+    text += (n as Text).data;
+  }
+  return { text, nodes };
+}
+function rangeFor(nodes: { node: Text; start: number }[], start: number, end: number): Range | null {
+  // The text node holding a character offset: the start falls inside a node,
+  // the end may sit at a node's very end.
+  const startAt = nodes.find((n) => start >= n.start && start < n.start + n.node.data.length);
+  const endAt = nodes.find((n) => end > n.start && end <= n.start + n.node.data.length);
+  if (!startAt || !endAt) return null;
+  const r = document.createRange();
+  r.setStart(startAt.node, start - startAt.start);
+  r.setEnd(endAt.node, end - endAt.start);
+  return r;
+}
+
+function scan() {
+  if (!holder.value) return;
+  ranges = new Map();
+  const found: BodyPhrase[] = [];
+  if (props.highlight) {
+    for (const block of holder.value.querySelectorAll<HTMLElement>(".ce-block")) {
+      const content = block.querySelector(".ce-block__content");
+      if (!content) continue;
+      const blockId = block.dataset.id ?? "";
+      const { text, nodes } = textOf(content);
+      findStalePhrases(text).forEach((p, i) => {
+        const key = `${blockId}:${i}`;
+        const r = rangeFor(nodes, p.start, p.end);
+        if (r) ranges.set(key, r);
+        found.push({ ...p, key, blockId, context: phraseContext(text, p) });
+      });
+    }
+  }
+  if (supportsHighlight()) {
+    if (ranges.size) CSS.highlights.set(HIGHLIGHT, new Highlight(...ranges.values()));
+    else CSS.highlights.delete(HIGHLIGHT);
+  }
+  emit("phrases", found);
+}
+watch(() => props.highlight, () => scan());
+
+/** Scroll to a flagged phrase and select it. */
+function reveal(key: string) {
+  const r = ranges.get(key);
+  if (!r) return;
+  const el = r.startContainer.parentElement;
+  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  el?.closest<HTMLElement>("[contenteditable]")?.focus();
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(r);
+}
+
+/** While an AI draft is being written: no edits. */
+async function setReadOnly(on: boolean) {
+  if (!editor) return;
+  await editor.isReady;
+  if (editor.readOnly.isEnabled !== on) await editor.readOnly.toggle(on);
+}
+
 let changeTimer: ReturnType<typeof setTimeout> | undefined;
 async function readBody() {
   if (!editor || !ready) return;
+  scan();
   const out = await editor.save();
   // Only the blocks: Editor.js's timestamp would make every save look like a change.
   const parsed = guideBodySchema.safeParse({ blocks: out.blocks });
@@ -59,6 +146,7 @@ onMounted(async () => {
       },
       onReady: () => {
         ready = true;
+        scan();
       },
       onChange: () => {
         clearTimeout(changeTimer);
@@ -72,6 +160,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   clearTimeout(changeTimer);
+  if (supportsHighlight()) CSS.highlights.delete(HIGHLIGHT);
   editor?.destroy();
   editor = null;
 });
@@ -81,6 +170,7 @@ async function replace(body: unknown) {
   if (!editor) return;
   await editor.isReady;
   await editor.render(toEditorData(body));
+  scan();
 }
 
 /** Remove a deleted photo's blocks from the draft. Returns true if any were removed. */
@@ -94,7 +184,7 @@ async function removePhoto(photoId: string) {
   return true;
 }
 
-defineExpose({ replace, removePhoto, readBody });
+defineExpose({ replace, removePhoto, readBody, reveal, setReadOnly });
 </script>
 
 <template>
@@ -105,6 +195,16 @@ defineExpose({ replace, removePhoto, readBody });
     <div ref="holder" role="group" :aria-labelledby="labelledby" class="guide-body-editor" />
   </div>
 </template>
+
+<style>
+/* Stale-looking phrases (CSS.highlights): a wavy underline and a tint, so
+   the mark isn't colour alone. Not scoped: highlights belong to the page. */
+::highlight(guide-stale) {
+  background-color: color-mix(in oklab, var(--color-destructive) 15%, transparent);
+  text-decoration: underline wavy var(--color-destructive);
+  text-underline-offset: 3px;
+}
+</style>
 
 <style scoped>
 /* Tailwind's reset makes headings look like paragraphs; give the editor's

@@ -3,7 +3,7 @@
 -- homepage shows only published guides, and visitors read nothing directly.
 begin;
 \ir _helpers/users.psql
-select plan(52);
+select plan(58);
 
 select tests.create_user('admin@test.local') as admin \gset
 select tests.create_user('provider@test.local') as owner \gset
@@ -176,6 +176,28 @@ select is((select count(*)::int from guides) + (select count(*)::int from guide_
   '7d. a provider reads no guides, versions or AI drafts');
 select tests.authenticate_as_admin(:'admin');
 select ok((select count(*) from guides) = 2 and (select count(*) from guide_versions) = 4, '7e. the admin reads every guide and version');
+
+-- ---------------------------------------------------------------------------
+-- 8. THE AI DRAFT LOG AND UNDO (written by the admin app's server only)
+-- ---------------------------------------------------------------------------
+
+select tests.authenticate_as_service_role();
+insert into guide_ai_drafts (guide_id, requested_by, topic, model, reply, previous_draft)
+values (:'g', :'admin', 'A day in Old Fourth Ward', 'claude-opus-5-5', '{"title": "A day in Old Fourth Ward"}',
+        '{"title": "My own words", "teaser": "", "body": {"blocks": []}}')
+returning id as ai \gset
+select tests.authenticate_as_admin(:'admin');
+select is((select previous_draft ->> 'title' from guide_ai_drafts where id = :'ai'), 'My own words', '8a. the admin reads the draft from before an AI draft');
+select throws_ok(format($$ update guide_ai_drafts set previous_draft = '{}' where id = %L $$, :'ai'), '42501', NULL,
+  '8b. ...but can''t change it from their sign-in (the server keeps it)');
+select throws_ok(format($$ update guide_ai_drafts set previous_draft_restored_at = now() where id = %L $$, :'ai'), '42501', NULL,
+  '8c. ...or mark it restored (the server does, when it puts it back)');
+select throws_ok(format($$ insert into guide_ai_drafts (guide_id, topic, model) values (%L, 'x', 'x') $$, :'g'), '42501', NULL,
+  '8d. ...or add to the log (only the server logs AI drafts)');
+select tests.authenticate_as(:'owner');
+select is((select count(*)::int from guide_ai_drafts), 0, '8e. a provider reads no AI drafts, or the drafts kept for undo');
+select tests.authenticate_as_anon();
+select throws_ok($$ select previous_draft from guide_ai_drafts $$, '42501', NULL, '8f. signed-out visitors read nothing of the log');
 
 select * from finish();
 rollback;

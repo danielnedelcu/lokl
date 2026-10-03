@@ -126,11 +126,18 @@ area and/or category (from lokl's lists), and their own notes (what to
 mention, the angle, places they know). The notes are sent to Anthropic, so the
 editor says not to put personal details in them.
 
-**What comes back:** a structured reply, enforced by having the model answer
-through a single tool with a fixed schema rather than free text: a suggested
-title, teaser (up to 160 characters), slug, and the body as blocks (headings,
-paragraphs, lists; no images, no links). It lands in the draft columns, sets
-`ai_draft_pending_review`, and is logged in `guide_ai_drafts`.
+**What comes back:** JSON in a fixed shape, enforced by the API's structured
+outputs (`output_config.format`, `GUIDE_DRAFT_SCHEMA`) and checked again with
+zod: a suggested title, teaser (up to 160 characters), slug, and the body as
+blocks (headings, subheadings, paragraphs, lists; no images, no links). Opus 5.5
+doesn't accept a forced tool choice, so the design's original "one tool" became
+structured outputs (2026-10-03). The text is escaped as it becomes the editor's
+blocks, so the model can't add HTML or links. It lands in the draft columns
+only if the guide hasn't changed since the editor saw it, sets
+`ai_draft_pending_review`, and is logged in `guide_ai_drafts` with the draft
+from before (`previous_draft`), so "Put back the draft from before" can undo
+the latest AI draft, once. The suggested address is offered ("Use it"), never
+applied.
 
 **How the prompt keeps drafts general.** The system prompt (in its own file,
 `apps/admin/server/prompts/guide-writer.ts`) tells the model to:
@@ -150,12 +157,29 @@ paragraphs, lists; no images, no links). It lands in the draft columns, sets
   bookable.
 - Use the admin's notes as the main source; plain, warm, clear sentences; short
   paragraphs; about 600 to 900 words; headings a reader can scan.
+- No stock travel-writing phrases ("hidden gem", "vibrant", "bustling",
+  "nestled", "something for everyone", "a feast for the senses", "whether
+  you're a local or a visitor"): concrete, observable detail about lasting
+  public places instead (added by the owner 2026-10-03).
+
+The full prompt is in `apps/admin/server/prompts/guide-writer.ts`.
 
 **A second check after the reply.** The route scans the draft for things that
 go stale or shouldn't be there, and the editor highlights them for the admin:
 money amounts, times of day, days of the week next to times, years, phone
 numbers, web addresses, street addresses, words like "currently", "new",
-"best", "top-rated". It doesn't change the text; it points.
+"best", "top-rated", and the stock phrases the prompt bans. It doesn't change
+the text; it points. The scanner is `findStalePhrases()` in `@repo/types`; the
+editor runs it again as the admin edits, lists each phrase with its reason
+under the review banner, and highlights it in the text with the browser's
+highlight feature (`CSS.highlights`), which never changes what's saved.
+
+**Limits.** One request at a time per guide (a request logged in the last 3
+minutes without a result counts as running), and at most 10 an hour across
+all guides (`AI_DRAFTS_PER_HOUR`). Every request is logged, including
+failures, with its tokens and cost (Opus 5.5 at $4 / $20 per million input /
+output tokens, `MODEL_PRICES`). The editor lists each guide's AI drafts with
+their cost; the guides list shows the month's total.
 
 ## Review
 

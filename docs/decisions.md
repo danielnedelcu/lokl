@@ -5,6 +5,11 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-03 | The drafting prompt says not to describe the listings below beyond saying they're there | The first real draft promised the listings were "all based in and around the neighborhood", which lokl can't guarantee: the block shows whatever matches the area |
+| 2026-10-03 | AI guide drafts come back as JSON through structured outputs (`output_config.format`), not a forced tool call | Opus 5.5 rejects a forced tool choice (400); structured outputs give the fixed shape, checked again with zod |
+| 2026-10-03 | The drafting prompt bans stock travel-writing phrases ("hidden gem", "vibrant", "bustling", "nestled"…) and asks for concrete, observable detail about lasting public places; the scanner flags those phrases too | The owner's addition when approving the prompt |
+| 2026-10-03 | An AI draft can be undone once: the draft before it is kept on its log row (`guide_ai_drafts.previous_draft`) and put back by a server route | Replacing a long hand-written draft by mistake shouldn't lose it |
+| 2026-10-03 | AI drafts: at most 10 an hour across all guides, one at a time per guide; costs logged at $4 / $20 per million tokens (Opus 5.5) | A spending backstop alongside the Anthropic workspace limit; a double click or second tab can't pay twice for the same guide |
 | 2026-10-03 | A guide's cover minimum is lowered to 1,600 × 900, landscape (was 2,000 × 1,125), in the editor, `guidePublishBlockers()` and `publish_guide()` (migration `guide_cover_minimum_1600`). Photos in the body still have no minimum | The owner's decision. Same 16:9 shape as before; the earlier minimum was chosen for the homepage hero on large screens |
 | 2026-10-03 | The guide editor uses Editor.js, though it's weaker for keyboard and screen-reader use than a plain form | Only the admin edits guides; the public page is drawn by lokl's own renderer, which escapes text and allows only bold, italic and links |
 | 2026-10-03 | Guide body headings are level 2 or 3 only; links to other sites get `rel="noopener noreferrer"` | The title is the page's h1; external pages get no access to the guide's window or the referring address |

@@ -124,6 +124,9 @@ export function useGuideAutosave(guideId: string, updatedAt: string) {
     state.value = "saved";
   }
 
+  /** The guide's updated_at as this tab last saw it. */
+  const current = () => known;
+
   const unsaved = computed(() => state.value !== "saved");
 
   // Leaving with unsaved changes asks first: closing the tab, or a link
@@ -141,5 +144,5 @@ export function useGuideAutosave(guideId: string, updatedAt: string) {
     return window.confirm("Some changes haven't saved yet. Leave anyway and lose them?");
   });
 
-  return { state: readonly(state), message: readonly(message), unsaved, change, discard, flush, rebase, stop };
+  return { state: readonly(state), message: readonly(message), unsaved, change, discard, flush, rebase, stop, current };
 }

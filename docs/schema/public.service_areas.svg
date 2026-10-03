@@ -374,61 +374,69 @@
 <!-- public.guide_ai_drafts -->
 <g id="node6" class="node">
 <title>public.guide_ai_drafts</title>
-<polygon fill="#efefef" stroke="none" points="5672.83,-1525.6 5672.83,-1571.6 7135.67,-1571.6 7135.67,-1525.6 5672.83,-1525.6"/>
-<polygon fill="none" stroke="black" points="5672.83,-1525.6 5672.83,-1571.6 7135.67,-1571.6 7135.67,-1525.6 5672.83,-1525.6"/>
-<text text-anchor="start" x="6261.28" y="-1549.4" font-family="Arial Bold" font-size="18.00">public.guide_ai_drafts</text>
-<text text-anchor="start" x="6422.74" y="-1549.4" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="6453.85" y="-1549.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="5679.83" y="-1535" font-family="Arial" font-size="14.00" fill="#333333">Every AI draft request: what was sent (topic, area, category, the admin&#39;s notes), the model, the reply or error, tokens and cost, who and when. Written by the admin app&#39;s server; read by admins. Kept if its guide is deleted (the cost log).</text>
+<polygon fill="#efefef" stroke="none" points="5672.83,-1556.4 5672.83,-1602.4 7135.67,-1602.4 7135.67,-1556.4 5672.83,-1556.4"/>
+<polygon fill="none" stroke="black" points="5672.83,-1556.4 5672.83,-1602.4 7135.67,-1602.4 7135.67,-1556.4 5672.83,-1556.4"/>
+<text text-anchor="start" x="6261.28" y="-1580.2" font-family="Arial Bold" font-size="18.00">public.guide_ai_drafts</text>
+<text text-anchor="start" x="6422.74" y="-1580.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="6453.85" y="-1580.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="5679.83" y="-1565.8" font-family="Arial" font-size="14.00" fill="#333333">Every AI draft request: what was sent (topic, area, category, the admin&#39;s notes), the model, the reply or error, tokens and cost, who and when. Written by the admin app&#39;s server; read by admins. Kept if its guide is deleted (the cost log).</text>
+<polygon fill="none" stroke="black" points="5672.83,-1525.6 5672.83,-1556.4 7135.67,-1556.4 7135.67,-1525.6 5672.83,-1525.6"/>
+<text text-anchor="start" x="5679.83" y="-1537.8" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="5694.62" y="-1537.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1494.8 5672.83,-1525.6 7135.67,-1525.6 7135.67,-1494.8 5672.83,-1494.8"/>
-<text text-anchor="start" x="5679.83" y="-1507" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="5694.62" y="-1507" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="5679.83" y="-1507" font-family="Arial" font-size="14.00">guide_id </text>
+<text text-anchor="start" x="5736.66" y="-1507" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1464 5672.83,-1494.8 7135.67,-1494.8 7135.67,-1464 5672.83,-1464"/>
-<text text-anchor="start" x="5679.83" y="-1476.2" font-family="Arial" font-size="14.00">guide_id </text>
-<text text-anchor="start" x="5736.66" y="-1476.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="5679.83" y="-1476.2" font-family="Arial" font-size="14.00">requested_by </text>
+<text text-anchor="start" x="5768.56" y="-1476.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1433.2 5672.83,-1464 7135.67,-1464 7135.67,-1433.2 5672.83,-1433.2"/>
-<text text-anchor="start" x="5679.83" y="-1445.4" font-family="Arial" font-size="14.00">requested_by </text>
-<text text-anchor="start" x="5768.56" y="-1445.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="5679.83" y="-1445.4" font-family="Arial" font-size="14.00">topic </text>
+<text text-anchor="start" x="5713.29" y="-1445.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1402.4 5672.83,-1433.2 7135.67,-1433.2 7135.67,-1402.4 5672.83,-1402.4"/>
-<text text-anchor="start" x="5679.83" y="-1414.6" font-family="Arial" font-size="14.00">topic </text>
-<text text-anchor="start" x="5713.29" y="-1414.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="5679.83" y="-1414.6" font-family="Arial" font-size="14.00">area_id </text>
+<text text-anchor="start" x="5730.42" y="-1414.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1371.6 5672.83,-1402.4 7135.67,-1402.4 7135.67,-1371.6 5672.83,-1371.6"/>
-<text text-anchor="start" x="5679.83" y="-1383.8" font-family="Arial" font-size="14.00">area_id </text>
-<text text-anchor="start" x="5730.42" y="-1383.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="5679.83" y="-1383.8" font-family="Arial" font-size="14.00">category_id </text>
+<text text-anchor="start" x="5756.1" y="-1383.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1340.8 5672.83,-1371.6 7135.67,-1371.6 7135.67,-1340.8 5672.83,-1340.8"/>
-<text text-anchor="start" x="5679.83" y="-1353" font-family="Arial" font-size="14.00">category_id </text>
-<text text-anchor="start" x="5756.1" y="-1353" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="5679.83" y="-1353" font-family="Arial" font-size="14.00">notes </text>
+<text text-anchor="start" x="5717.97" y="-1353" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1310 5672.83,-1340.8 7135.67,-1340.8 7135.67,-1310 5672.83,-1310"/>
-<text text-anchor="start" x="5679.83" y="-1322.2" font-family="Arial" font-size="14.00">notes </text>
-<text text-anchor="start" x="5717.97" y="-1322.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="5679.83" y="-1322.2" font-family="Arial" font-size="14.00">model </text>
+<text text-anchor="start" x="5721.85" y="-1322.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1279.2 5672.83,-1310 7135.67,-1310 7135.67,-1279.2 5672.83,-1279.2"/>
-<text text-anchor="start" x="5679.83" y="-1291.4" font-family="Arial" font-size="14.00">model </text>
-<text text-anchor="start" x="5721.85" y="-1291.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="5679.83" y="-1291.4" font-family="Arial" font-size="14.00">reply </text>
+<text text-anchor="start" x="5714.07" y="-1291.4" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1248.4 5672.83,-1279.2 7135.67,-1279.2 7135.67,-1248.4 5672.83,-1248.4"/>
-<text text-anchor="start" x="5679.83" y="-1260.6" font-family="Arial" font-size="14.00">reply </text>
-<text text-anchor="start" x="5714.07" y="-1260.6" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
+<text text-anchor="start" x="5679.83" y="-1260.6" font-family="Arial" font-size="14.00">error </text>
+<text text-anchor="start" x="5713.28" y="-1260.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1217.6 5672.83,-1248.4 7135.67,-1248.4 7135.67,-1217.6 5672.83,-1217.6"/>
-<text text-anchor="start" x="5679.83" y="-1229.8" font-family="Arial" font-size="14.00">error </text>
-<text text-anchor="start" x="5713.28" y="-1229.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="5679.83" y="-1229.8" font-family="Arial" font-size="14.00">input_tokens </text>
+<text text-anchor="start" x="5763.11" y="-1229.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1186.8 5672.83,-1217.6 7135.67,-1217.6 7135.67,-1186.8 5672.83,-1186.8"/>
-<text text-anchor="start" x="5679.83" y="-1199" font-family="Arial" font-size="14.00">input_tokens </text>
-<text text-anchor="start" x="5763.11" y="-1199" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="5679.83" y="-1199" font-family="Arial" font-size="14.00">output_tokens </text>
+<text text-anchor="start" x="5771.68" y="-1199" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1156 5672.83,-1186.8 7135.67,-1186.8 7135.67,-1156 5672.83,-1156"/>
-<text text-anchor="start" x="5679.83" y="-1168.2" font-family="Arial" font-size="14.00">output_tokens </text>
-<text text-anchor="start" x="5771.68" y="-1168.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="5679.83" y="-1168.2" font-family="Arial" font-size="14.00">cost_usd </text>
+<text text-anchor="start" x="5739.75" y="-1168.2" font-family="Arial" font-size="14.00" fill="#666666">[numeric(10,4)]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1125.2 5672.83,-1156 7135.67,-1156 7135.67,-1125.2 5672.83,-1125.2"/>
-<text text-anchor="start" x="5679.83" y="-1137.4" font-family="Arial" font-size="14.00">cost_usd </text>
-<text text-anchor="start" x="5739.75" y="-1137.4" font-family="Arial" font-size="14.00" fill="#666666">[numeric(10,4)]</text>
+<text text-anchor="start" x="5679.83" y="-1137.4" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="5749.88" y="-1137.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 <polygon fill="none" stroke="black" points="5672.83,-1094.4 5672.83,-1125.2 7135.67,-1125.2 7135.67,-1094.4 5672.83,-1094.4"/>
-<text text-anchor="start" x="5679.83" y="-1106.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="5749.88" y="-1106.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="5679.83" y="-1106.6" font-family="Arial" font-size="14.00">previous_draft </text>
+<text text-anchor="start" x="5772.44" y="-1106.6" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
+<text text-anchor="start" x="5813.69" y="-1106.6" font-family="Arial" font-size="14.00"> The guide&#39;s draft just before this AI draft replaced it: title, teaser, body, area, category, kind and its review state. Null if the draft didn&#39;t land.</text>
+<polygon fill="none" stroke="black" points="5672.83,-1063.6 5672.83,-1094.4 7135.67,-1094.4 7135.67,-1063.6 5672.83,-1063.6"/>
+<text text-anchor="start" x="5679.83" y="-1075.8" font-family="Arial" font-size="14.00">previous_draft_restored_at </text>
+<text text-anchor="start" x="5851.04" y="-1075.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="6016.77" y="-1075.8" font-family="Arial" font-size="14.00"> When the admin put the previous draft back. Set once; the previous draft can be restored only while this is the guide&#39;s latest AI draft.</text>
 </g>
 <!-- public.guide_ai_drafts&#45;&gt;public.service_areas -->
 <g id="edge6" class="edge">
 <title>public.guide_ai_drafts:area_id&#45;&gt;public.service_areas:id</title>
-<path fill="none" stroke="black" d="M5661.69,-1385.74C5564.55,-1360.01 5699.93,-946.95 5621.25,-866.4 5528.38,-771.32 4566.58,-722.8 4433.67,-722.8"/>
-<polygon fill="black" stroke="black" points="5661.57,-1385.73 5670.95,-1391.42 5666.87,-1386.38 5671.17,-1386.92 5671.17,-1386.92 5671.17,-1386.92 5666.87,-1386.38 5672.05,-1382.49 5661.57,-1385.73"/>
-<text text-anchor="start" x="5293.06" y="-1397" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE SET NULL</text>
+<path fill="none" stroke="black" d="M5661.73,-1416.63C5557.84,-1390.98 5704.48,-952.07 5621.25,-866.4 5528.63,-771.07 4566.58,-722.8 4433.67,-722.8"/>
+<polygon fill="black" stroke="black" points="5661.57,-1416.61 5670.98,-1422.23 5666.86,-1417.22 5671.17,-1417.72 5671.17,-1417.72 5671.17,-1417.72 5666.86,-1417.22 5672.02,-1413.29 5661.57,-1416.61"/>
+<text text-anchor="start" x="5293.06" y="-1427.8" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE SET NULL</text>
 </g>
 </g>
 </svg>
