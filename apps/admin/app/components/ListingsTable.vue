@@ -91,24 +91,18 @@ watch(error, (e) => e && reportProblem("Couldn't load listings", e), { immediate
         </div>
         <div>
           <UiLabel :for="`status-${kind}`" class="mb-2">Status</UiLabel>
-          <UiNativeSelect :id="`status-${kind}`" v-model="status">
-            <option value="">All statuses</option>
-            <option v-for="s in shownStatuses" :key="s.value" :value="s.value">{{ s.label }}</option>
-          </UiNativeSelect>
+          <SelectInput :id="`status-${kind}`" v-model="status" class="min-w-40"
+            :options="[{ value: '', label: 'All statuses' }, ...shownStatuses]" />
         </div>
         <div v-if="cities.length > 1">
           <UiLabel :for="`city-${kind}`" class="mb-2">City</UiLabel>
-          <UiNativeSelect :id="`city-${kind}`" v-model="cityId">
-            <option value="">All cities</option>
-            <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </UiNativeSelect>
+          <SelectInput :id="`city-${kind}`" v-model="cityId" class="min-w-40"
+            :options="[{ value: '', label: 'All cities' }, ...cities.map((c) => ({ value: c.id, label: c.name }))]" />
         </div>
         <div>
           <UiLabel :for="`provider-${kind}`" class="mb-2">Provider</UiLabel>
-          <UiNativeSelect :id="`provider-${kind}`" v-model="providerId">
-            <option value="">All providers</option>
-            <option v-for="p in providers" :key="p.id" :value="p.id">{{ p.display_name }}</option>
-          </UiNativeSelect>
+          <SearchSelect :id="`provider-${kind}`" v-model="providerId" placeholder="All providers" empty-text="No provider matches."
+            :options="[{ value: '', label: 'All providers' }, ...providers.map((p) => ({ value: p.id, label: p.display_name }))]" />
         </div>
         <UiButton v-if="filtering" variant="ghost" size="sm" @click="clearFilters">Clear filters</UiButton>
       </div>
@@ -130,9 +124,6 @@ watch(error, (e) => e && reportProblem("Couldn't load listings", e), { immediate
           :data="filtered"
           :columns="columns"
           :loading="pending"
-          :show-pagination="filtered.length > 20"
-          :show-rows-per-page="filtered.length > 20"
-          :show-page-info="filtered.length > 20"
         >
           <template #title-cell="{ row }">
             <NuxtLink :to="`/listings/${row.original.id}`" class="font-medium underline-offset-4 hover:underline">

@@ -53,11 +53,34 @@ Never hand-copy a component from the ui-thing website or another project.
 - Submit buttons show a loading state and are disabled while submitting, so a double click can't send twice.
 - Success and failure of an action are confirmed with a toast; errors that need the user to act stay on the page.
 
+### Form controls (decided 2026-10-03)
+
+Every form control in both apps is one of ui-thing's own components, never a native control or ui-thing's native-wrapping ones (`UiNativeSelect`, `vee-native-checkbox`). In forms, use the vee-validate version (`UiVee…`).
+
+| Control | Use | Not |
+| --- | --- | --- |
+| Choosing one of a short list | The shared `SelectInput` (ui-thing's `UiSelect`, Reka Select), or `UiVeeSelect` in forms, which wraps it (a lokl change: ui-thing's own wraps the native select). Options are `{ value, label, group? }`; a `null` or `""` value ("None", "All") works, though Reka can't hold an empty value, because `SelectInput` swaps in a stand-in and back. | `UiNativeSelect`, `<select>` |
+| Choosing from a list that can grow long (providers, listings, areas once there are many) | The shared `SearchSelect` (ui-thing's `UiAutocomplete`, Reka Combobox): type to narrow, arrows and Enter to choose | A long select |
+| A date | The shared `DatePicker` (plain, `v-model`) or `DateInput` (in forms, with label, hint and error), built on Reka UI's own DatePicker: type the month, day and year, or open the calendar. ui-thing's date picker isn't used: it's built on v-calendar, a second component library that draws only in the browser and has weaker keyboard and screen-reader support (decided 2026-10-03). The value is `"YYYY-MM-DD"`, `""` when empty. Link the label with `labelledby` (the field is a group of parts). | `<input type="date">`, ui-thing's `datepicker` |
+| A range of days (filters such as "bookings between") | The shared `DateRangePicker` (Reka DateRangePicker): one button showing the range, opening a calendar of two months (one on a phone), with "Clear dates". Holds `{ start, end }` as `"YYYY-MM-DD"`. Not two separate From and To fields, and not ui-thing's v-calendar date picker in range mode. | Two date fields |
+| A time of day | The shared `TimeInput`, whose hour, minute and AM/PM parts are `UiSelect`s (below, Formatting) | `<input type="time">` |
+| A number | `UiNumberField` / `UiVeeNumberField` (Reka NumberField), with `min`, `max` and `step` | `<input type="number">` |
+| Money | The shared `MoneyInput` (`UiCurrencyInput`) | A number field |
+| One of a few options, shown together | `UiRadioGroup` / `UiVeeRadioGroup` | `<input type="radio">` |
+| Yes or no, or several of a list | `UiCheckbox` / `UiVeeCheckbox` | `<input type="checkbox">`, `vee-native-checkbox` |
+| Text | `UiInput`, `UiTextarea` and their `UiVee…` versions (ui-thing's own, styling the native element) | A bare `<input>` or `<textarea>` |
+| A file | A `UiButton` that opens a hidden `<input type="file">` (an exception, decided 2026-10-03): every file picker ends in the native input, ui-thing's `vee-file-input` only restyles it, and its `Dropfile` area can't be reached by keyboard. The button can, and says what it does ("Add photos"). | A visible native file input |
+
+- **Forms that submit as a normal page request** (the public browse filters, a GET form): give `SelectInput`, `SearchSelect` or `DatePicker` a `name`, and a hidden field carries the value. The controls need JavaScript to open; the form still submits without it.
+- **Exceptions:** the Editor.js writing area in the guide editor, including its photo block, which Editor.js draws as plain HTML outside Vue; and file pickers (above).
+- Numbers: the number field's +/− buttons are skipped by Tab (arrow keys change the value), and an emptied field gives the form `undefined` or `NaN`, so schemas treat those as "not set" where the field is optional.
+- Every control still needs a visible label linked to it, works with the keyboard alone, announces its state to screen readers, and fits a phone screen (popovers stay inside the viewport, and touch targets are at least 44 pixels on the website).
+
 ## Data and states
 
 - Reads that access rules already protect go through the Supabase client. Privileged actions (anything the provider or admin can't write directly, like publishing or approving) go through a server route.
 - Every list or data view has three designed states besides success: loading, empty and error. Empty states say what the thing is and what to do next ("You haven't created any Services yet. Create your first one to start getting booking requests.").
-- Tables in the admin app use TanStack Table through ui-thing's table components: sortable columns where useful, filters above the table, and a sticky header on long tables.
+- Tables in the admin app use TanStack Table through ui-thing's table components (`UiTanStackTable`), never a hand-built `<table>`: sortable columns where useful, filters above the table, and a sticky header on long tables. Every table shows ui-thing's `Pagination` and the page count in its footer, 25 rows a page, with no rows-per-page choice (set once in `UiTanStackTable`; don't change them per page).
 - **Data someone else can change stays current** (listings, their status, anything an admin or another tab can change). Use the shared `useLiveData()` (docs/design/notifications.md):
   - Refresh when the tab becomes visible again, at most every 15 seconds.
   - Where a notification exists for the change, refresh live when it arrives.
@@ -66,7 +89,7 @@ Never hand-copy a component from the ui-thing website or another project.
 ## Formatting
 
 - Money is stored in cents and shown with one shared helper (for example `formatMoney(cents)` → `$45.00`). Price inputs use one shared `MoneyInput` that converts to cents.
-- Times of day use the shared `TimeInput` (hour, minutes and AM/PM dropdowns, holding `"HH:MM"`), never `<input type="time">`: a native time field stays empty until every part is filled, so "6:30" without AM or PM reads as no time at all. Schemas check `isTimeOfDay` so a half-chosen time says "Choose the hour, minutes and AM or PM."
+- Times of day use the shared `TimeInput` (hour, minutes and AM/PM dropdowns, each a `UiSelect`, holding `"HH:MM"`), never `<input type="time">`: a native time field stays empty until every part is filled, so "6:30" without AM or PM reads as no time at all. Schemas check `isTimeOfDay` so a half-chosen time says "Choose the hour, minutes and AM or PM."
 - Dates and times are shown in the listing's city time zone, using one shared helper. Never use `toISOString()` to get a calendar day, since it shifts to UTC and can land on the wrong date.
 - Statuses (listing, payouts, provider) are shown with one shared `StatusBadge` that maps each status to a label and a style. Pages never write their own status labels.
 - Listing and guide photos are always displayed with `<NuxtImg>` (Nuxt Image, set up in the shared layer), never a plain `<img>`, with `width` and `height` set so the page doesn't jump while they load. The layer's `image.provider` is `none` for now; choosing a provider later then resizes every photo in one place.
@@ -100,6 +123,7 @@ Plain language on every screen, especially the website, where providers are smal
 ## Not allowed
 
 - Other component or icon libraries.
+- Native form controls, or ui-thing's native-wrapping ones, outside the Editor.js writing area (see Form controls).
 - Hard-coded colours.
 - Status labels, money formatting or date formatting written inline in a page.
 - A plain `<img>` for listing or guide photos (use `<NuxtImg>`).

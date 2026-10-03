@@ -26,6 +26,8 @@
   const forwarded = useForwardProps(reactiveOmit(props, "class"));
 
   const styles = tv({
-    base: "size-4 shrink-0 opacity-50",
+    // lokl change: the muted text colour, not half opacity, so it matches
+    // SearchSelect's chevron and isn't washed out (2026-10-03).
+    base: "text-muted-foreground size-4 shrink-0",
   });
 </script>

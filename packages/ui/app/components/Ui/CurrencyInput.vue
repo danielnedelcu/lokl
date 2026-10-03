@@ -1,4 +1,10 @@
 <!-- eslint-disable vue/html-self-closing -->
+<!--
+  lokl change (2026-10-03): the field's background is the page's background
+  colour (bg-background, white in the light theme), not transparent, so every
+  input and select looks the same on grey admin pages. Keep it if the
+  component is re-added with the ui-thing CLI.
+-->
 <template>
   <input
     :id
@@ -51,7 +57,7 @@
   const id = computed(() => props.id || `currency-input-${useId()}`);
 
   const styles = tv({
-    base: "border-input selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40 flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+    base: "border-input selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40 flex h-9 w-full min-w-0 rounded-md border bg-background px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
   });
 
   defineExpose({ inputRef, formattedValue, numberValue, setOptions, setValue });

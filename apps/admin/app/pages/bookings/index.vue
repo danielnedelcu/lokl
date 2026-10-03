@@ -48,15 +48,51 @@ const attentionCount = computed(() =>
 // Every booking, filtered
 // ---------------------------------------------------------------------------
 
-const filters = reactive({ status: "", kind: "", provider: "", from: "", to: "" });
+const filters = reactive({ status: "", kind: "", provider: "", from: "", to: "", q: "" });
+// The date filter as one range (DateRangePicker), kept in filters.from and filters.to.
+const dateRange = computed({
+  get: () => ({ start: filters.from, end: filters.to }),
+  set: (r: { start: string; end: string }) => Object.assign(filters, { from: r.start, to: r.end }),
+});
 const providers = computed(() => [...new Map(all.value.map((b) => [b.provider_id, b.provider?.display_name ?? "?"])).entries()].sort((a, b) => a[1].localeCompare(b[1])));
+// The search box matches any text the table shows for a booking: listing,
+// provider, customer, when, status (as its badge reads), amounts and payout.
+const searchText = (b: AdminBookingRow) =>
+  [
+    b.listing?.title,
+    b.provider?.display_name,
+    b.customer_name,
+    whenOf(b),
+    statusLabel("adminBooking", b.status),
+    b.kind === "experience" ? "Experience" : "Service",
+    money(b.total_cents),
+    wasCharged(b) ? `${money(b.commission_cents)} ${money(b.provider_amount_cents)}` : "Not charged On hold",
+    b.refunded_cents ? `${money(b.refunded_cents)} refunded` : "",
+    payoutState(b),
+  ].join(" ").toLowerCase();
+const query = computed(() => filters.q.trim().toLowerCase().split(/\s+/).filter(Boolean));
 const shown = computed(() => all.value.filter((b) =>
-  (!filters.status || b.status === filters.status)
+  (!query.value.length || query.value.every((word) => searchText(b).includes(word)))
+  && (!filters.status || b.status === filters.status)
   && (!filters.kind || b.kind === filters.kind)
   && (!filters.provider || b.provider_id === filters.provider)
   && (!filters.from || (b.starts_at ?? b.created_at) >= filters.from)
   && (!filters.to || (b.starts_at ?? b.created_at).slice(0, 10) <= filters.to)));
 const money = (cents: number) => formatMoney(cents, "usd");
+
+// Every booking, in ui-thing's TanStack table (docs/frontend.md): sortable
+// columns; money columns sort by what was charged (never-charged bookings last).
+const right = { meta: { class: { th: "text-right", td: "text-right" } } };
+const charged = (b: AdminBookingRow, cents: number) => (wasCharged(b) ? cents : -1);
+const columns = [
+  { id: "booking", header: "Booking", accessorFn: (b: AdminBookingRow) => b.listing?.title ?? "Booking" },
+  { id: "when", header: "When", accessorFn: (b: AdminBookingRow) => b.starts_at ?? b.created_at },
+  { accessorKey: "status", header: "Status" },
+  { id: "charged", header: "Charged", accessorFn: (b: AdminBookingRow) => charged(b, b.total_cents), ...right },
+  { id: "commission", header: "Commission", accessorFn: (b: AdminBookingRow) => charged(b, b.commission_cents), ...right },
+  { id: "providerAmount", header: "Provider", accessorFn: (b: AdminBookingRow) => charged(b, b.provider_amount_cents), ...right },
+  { id: "payout", header: "Payout", accessorFn: (b: AdminBookingRow) => payoutState(b) },
+];
 // Only what was actually charged: requests that were never accepted only
 // held the card. Commission is what lokl keeps after refunds.
 const totals = computed(() => shown.value.filter(wasCharged).reduce(
@@ -67,7 +103,6 @@ const totals = computed(() => shown.value.filter(wasCharged).reduce(
   }),
   { total: 0, commission: 0, refunded: 0 },
 ));
-const selectClass = "border-input bg-background h-9 rounded-md border px-2 text-sm";
 </script>
 
 <template>
@@ -122,66 +157,71 @@ const selectClass = "border-input bg-background h-9 rounded-md border px-2 text-
       <section aria-labelledby="all-heading">
         <h2 id="all-heading" class="font-medium">All bookings</h2>
         <form class="mt-3 flex flex-wrap items-end gap-3 text-sm" @submit.prevent>
-          <label class="flex flex-col gap-1">Status
-            <select v-model="filters.status" :class="selectClass">
-              <option value="">Any</option>
-              <option v-for="s in ['requested', 'confirmed', 'completed', 'paid_out', 'cancelled', 'declined', 'expired']" :key="s" :value="s">{{ s.replace('_', ' ') }}</option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1">Kind
-            <select v-model="filters.kind" :class="selectClass">
-              <option value="">Any</option><option value="service">Service</option><option value="experience">Experience</option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1">Provider
-            <select v-model="filters.provider" :class="selectClass">
-              <option value="">Any</option>
-              <option v-for="[id, name] in providers" :key="id" :value="id">{{ name }}</option>
-            </select>
-          </label>
-          <label class="flex flex-col gap-1">From <input v-model="filters.from" type="date" :class="selectClass"></label>
-          <label class="flex flex-col gap-1">To <input v-model="filters.to" type="date" :class="selectClass"></label>
+          <div class="w-44">
+            <UiLabel for="filter-status" class="mb-1">Status</UiLabel>
+            <SelectInput id="filter-status" v-model="filters.status" :options="[
+              { value: '', label: 'Any' },
+              ...['requested', 'confirmed', 'completed', 'paid_out', 'cancelled', 'declined', 'expired'].map((s) => ({ value: s, label: s.replace('_', ' ') })),
+            ]" />
+          </div>
+          <div class="w-40">
+            <UiLabel for="filter-kind" class="mb-1">Kind</UiLabel>
+            <SelectInput id="filter-kind" v-model="filters.kind"
+              :options="[{ value: '', label: 'Any' }, { value: 'service', label: 'Service' }, { value: 'experience', label: 'Experience' }]" />
+          </div>
+          <div class="w-56">
+            <UiLabel for="filter-provider" class="mb-1">Provider</UiLabel>
+            <SearchSelect id="filter-provider" v-model="filters.provider" placeholder="Any provider" empty-text="No provider matches."
+              :options="[{ value: '', label: 'Any provider' }, ...providers.map(([id, name]) => ({ value: id, label: name }))]" />
+          </div>
+          <div>
+            <p class="mb-1 text-sm font-medium" aria-hidden="true">Dates</p>
+            <DateRangePicker v-model="dateRange" label="Bookings between" empty-text="Any dates" />
+          </div>
+          <!-- Right-aligned on wider screens; full width on a phone. -->
+          <div class="w-full sm:ml-auto sm:w-64">
+            <UiLabel for="filter-search" class="mb-1">Search</UiLabel>
+            <UiInput id="filter-search" v-model="filters.q" type="search" placeholder="Listing, name, amount…"
+              aria-describedby="filter-search-hint" />
+            <p id="filter-search-hint" class="sr-only">Matches any text in the table. Results update as you type.</p>
+          </div>
         </form>
         <p class="mt-3 text-sm text-muted-foreground">
           {{ shown.length }} {{ shown.length === 1 ? "booking" : "bookings" }} · {{ money(totals.total) }} charged ·
           {{ money(totals.refunded) }} refunded · {{ money(totals.commission) }} commission kept
         </p>
         <EmptyState v-if="!shown.length" class="mt-4" icon="lucide:receipt" title="No bookings" description="Nothing matches these filters." />
-        <div v-else class="mt-3 overflow-x-auto rounded-lg border border-border bg-card">
-          <table class="w-full text-sm">
-            <thead class="border-b border-border text-left text-muted-foreground">
-              <tr>
-                <th class="p-3 font-medium">Booking</th><th class="p-3 font-medium">When</th><th class="p-3 font-medium">Status</th>
-                <th class="p-3 text-right font-medium">Charged</th><th class="p-3 text-right font-medium">Commission</th>
-                <th class="p-3 text-right font-medium">Provider</th><th class="p-3 font-medium">Payout</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="b in shown" :key="b.id" class="border-b border-border last:border-0">
-                <td class="p-3">
-                  <NuxtLink :to="`/bookings/${b.id}`" class="font-medium underline-offset-4 hover:underline">{{ b.listing?.title ?? "Booking" }}</NuxtLink>
-                  <span class="block text-xs text-muted-foreground">{{ b.provider?.display_name }} · {{ b.customer_name }}</span>
-                </td>
-                <td class="p-3 whitespace-nowrap">{{ whenOf(b) }}</td>
-                <td class="p-3"><StatusBadge kind="adminBooking" :status="b.status" /></td>
-                <template v-if="wasCharged(b)">
-                  <td class="p-3 text-right">{{ money(b.total_cents) }}<span v-if="b.refunded_cents" class="block text-xs text-muted-foreground">−{{ money(b.refunded_cents) }} refunded</span></td>
-                  <td class="p-3 text-right">{{ money(b.commission_cents) }}</td>
-                  <td class="p-3 text-right">{{ money(b.provider_amount_cents) }}</td>
-                </template>
-                <template v-else>
-                  <td class="p-3 text-right text-muted-foreground">
-                    {{ b.status === "requested" ? "On hold" : "Not charged" }}
-                    <span class="block text-xs">{{ money(b.total_cents) }} {{ b.status === "requested" ? "held" : "was held" }}</span>
-                  </td>
-                  <td class="p-3 text-right text-muted-foreground">—</td>
-                  <td class="p-3 text-right text-muted-foreground">—</td>
-                </template>
-                <td class="p-3">{{ payoutState(b) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <UiCard v-else class="mt-3 py-0">
+          <UiTanStackTable :data="shown" :columns="columns">
+            <template #booking-cell="{ row }">
+              <NuxtLink :to="`/bookings/${row.original.id}`" class="font-medium underline-offset-4 hover:underline">
+                {{ row.original.listing?.title ?? "Booking" }}
+              </NuxtLink>
+              <span class="text-muted-foreground block text-xs">{{ row.original.provider?.display_name }} · {{ row.original.customer_name }}</span>
+            </template>
+            <template #when-cell="{ row }"><span class="whitespace-nowrap">{{ whenOf(row.original) }}</span></template>
+            <template #status-cell="{ row }"><StatusBadge kind="adminBooking" :status="row.original.status" /></template>
+            <template #charged-cell="{ row }">
+              <template v-if="wasCharged(row.original)">
+                {{ money(row.original.total_cents) }}
+                <span v-if="row.original.refunded_cents" class="text-muted-foreground block text-xs">−{{ money(row.original.refunded_cents) }} refunded</span>
+              </template>
+              <span v-else class="text-muted-foreground">
+                {{ row.original.status === "requested" ? "On hold" : "Not charged" }}
+                <span class="block text-xs">{{ money(row.original.total_cents) }} {{ row.original.status === "requested" ? "held" : "was held" }}</span>
+              </span>
+            </template>
+            <template #commission-cell="{ row }">
+              <template v-if="wasCharged(row.original)">{{ money(row.original.commission_cents) }}</template>
+              <span v-else class="text-muted-foreground"><span aria-hidden="true">—</span><span class="sr-only">None</span></span>
+            </template>
+            <template #providerAmount-cell="{ row }">
+              <template v-if="wasCharged(row.original)">{{ money(row.original.provider_amount_cents) }}</template>
+              <span v-else class="text-muted-foreground"><span aria-hidden="true">—</span><span class="sr-only">None</span></span>
+            </template>
+            <template #payout-cell="{ row }">{{ payoutState(row.original) }}</template>
+          </UiTanStackTable>
+        </UiCard>
       </section>
     </template>
   </div>

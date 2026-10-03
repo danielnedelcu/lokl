@@ -1,3 +1,9 @@
+<!--
+  lokl change (2026-10-03): the field's background is the page's background
+  colour (bg-background, white in the light theme), not transparent, so every
+  input and select looks the same on grey admin pages. Keep it if the
+  component is re-added with the ui-thing CLI.
+-->
 <template>
   <textarea
     v-bind="props"
@@ -72,7 +78,7 @@
   };
 
   const styles = tv({
-    base: "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+    base: "border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 dark:aria-invalid:ring-destructive/40 flex field-sizing-content min-h-16 w-full rounded-md border bg-background px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
   });
 
   onMounted(() => {

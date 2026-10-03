@@ -90,9 +90,6 @@ watch(error, (e) => e && reportProblem("Couldn't load providers", e), { immediat
         :data="providers ?? []"
         :columns="columns"
         :loading="pending"
-        :show-pagination="(providers?.length ?? 0) > 10"
-        :show-rows-per-page="(providers?.length ?? 0) > 10"
-        :show-page-info="(providers?.length ?? 0) > 10"
         empty-text="No providers yet."
       >
         <template #display_name-cell="{ row }">

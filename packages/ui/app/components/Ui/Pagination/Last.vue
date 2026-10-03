@@ -14,7 +14,7 @@
   import { PaginationLast } from "reka-ui";
   import type { PaginationLastProps } from "reka-ui";
 
-  import type { ButtonProps } from "~/components/Ui/Button.vue";
+  import type { ButtonProps } from "../Button.vue";
 
   const props = withDefaults(
     defineProps<

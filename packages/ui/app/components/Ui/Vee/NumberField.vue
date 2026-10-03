@@ -1,3 +1,11 @@
+<!--
+  lokl changes (docs/frontend.md, Form controls and WCAG 2.2 AA). Keep them
+  if the component is re-added with the ui-thing CLI:
+  - The input is marked aria-invalid when there's an error, and
+    aria-describedby points at the error (or the hint), which now have ids.
+  - Leaving the field validates it (handleBlur), like the other fields.
+  - `touch` makes it 44px tall, for touch targets on the website.
+-->
 <template>
   <div class="w-full">
     <UiLabel
@@ -14,17 +22,21 @@
         v-model="value"
         :disabled="disabled"
         :required="required"
-        :aria-invalid="!!errorMessage"
         :name="name"
+        :class="touch && 'h-11'"
       >
         <template v-for="(_, slotName) in $slots" #[slotName]="scope">
           <slot :name="slotName" v-bind="scope" />
+        </template>
+        <template v-if="!$slots.input" #input>
+          <UiNumberFieldInput :aria-invalid="!!errorMessage || undefined" :aria-describedby="describedBy" @blur="handleBlur" />
         </template>
       </UiNumberField>
     </div>
     <AnimatePresence as="div" multiple mode="wait">
       <motion.p
         v-if="hint && !errorMessage"
+        :id="`${inputId}-hint`"
         :variants
         initial="initial"
         exit="initial"
@@ -37,6 +49,7 @@
 
       <motion.p
         v-if="errorMessage"
+        :id="`${inputId}-error`"
         :variants
         initial="initial"
         exit="initial"
@@ -51,7 +64,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { motion } from "motion-v";
+  import { AnimatePresence, motion } from "motion-v";
   import type { NumberFieldRootProps } from "reka-ui";
 
   const variants = {
@@ -78,12 +91,18 @@
     validateOnMount?: boolean;
     /** Whether the field is required. */
     required?: boolean;
+    /** 44px tall, for touch targets on the website (lokl change). */
+    touch?: boolean;
   }
   const props = defineProps<Props>();
 
   const inputId = computed(() => props.id || useId());
 
-  const { errorMessage, value } = useField(() => props.name || inputId.value, props.rules, {
+  const describedBy = computed(() =>
+    errorMessage.value ? `${inputId.value}-error` : props.hint ? `${inputId.value}-hint` : undefined,
+  );
+
+  const { errorMessage, value, handleBlur } = useField(() => props.name || inputId.value, props.rules, {
     initialValue: props.modelValue,
     label: props.label,
     validateOnMount: props.validateOnMount,

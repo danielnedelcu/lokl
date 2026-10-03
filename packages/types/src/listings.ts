@@ -147,9 +147,9 @@ export const listingSchema = z
       .number("Enter a price.")
       .int()
       .positive("Enter a price above $0."),
-    // A number input hands the form a string; an empty one means "not set".
+    // An empty number field means "not set" (it hands the form "", undefined or NaN).
     duration_minutes: z.preprocess(
-      (v) => (v === "" || v == null ? null : Number(v)),
+      (v) => (v === "" || v == null || (typeof v === "number" && Number.isNaN(v)) ? null : Number(v)),
       z
         .number("Enter the length in minutes.")
         .int("Enter whole minutes.")

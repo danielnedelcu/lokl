@@ -59,25 +59,23 @@ const submit = handleSubmit(async (v) => {
     <fieldset>
       <legend class="mb-2 text-sm font-medium">Choose a date <span class="text-destructive">*</span></legend>
       <p class="text-muted-foreground mb-2 text-xs">Times are {{ timeZoneLabel(listing.market.name, tz) }}.</p>
-      <ul class="max-h-72 space-y-2 overflow-y-auto" :aria-describedby="sessionError ? 'session-error' : undefined">
-        <li v-for="s in listing.sessions" :key="s.id">
-          <label
-            class="border-border has-[:checked]:border-primary has-[:checked]:ring-primary/30 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 has-[:checked]:ring-2 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"
-          >
-            <input type="radio" name="sessionId" :value="s.id" :checked="values.sessionId === s.id" :disabled="s.spotsLeft <= 0"
-              class="size-4" @change="setFieldValue('sessionId', s.id)">
-            <span class="flex-1">
-              <span class="block text-sm font-medium">{{ formatSessionDate(s.startsAt, tz) }}</span>
-              <span class="text-muted-foreground block text-xs">{{ timeRange(s.startsAt) }}</span>
-            </span>
-            <span class="text-xs" :class="s.spotsLeft <= 0 ? 'text-muted-foreground' : ''">{{ spotsText(s.spotsLeft) }}</span>
-          </label>
-        </li>
-      </ul>
+      <UiRadioGroup :model-value="values.sessionId" class="max-h-72 gap-2 overflow-y-auto p-0.5"
+        :aria-describedby="sessionError ? 'session-error' : undefined" :aria-invalid="!!sessionError || undefined"
+        @update:model-value="(v) => setFieldValue('sessionId', String(v))">
+        <label v-for="s in listing.sessions" :key="s.id"
+          class="border-border has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:ring-primary/30 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 has-[[data-state=checked]]:ring-2 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
+          <UiRadioGroupItem :value="s.id" :disabled="s.spotsLeft <= 0" />
+          <span class="flex-1">
+            <span class="block text-sm font-medium">{{ formatSessionDate(s.startsAt, tz) }}</span>
+            <span class="text-muted-foreground block text-xs">{{ timeRange(s.startsAt) }}</span>
+          </span>
+          <span class="text-xs" :class="s.spotsLeft <= 0 ? 'text-muted-foreground' : ''">{{ spotsText(s.spotsLeft) }}</span>
+        </label>
+      </UiRadioGroup>
       <p v-if="sessionError" id="session-error" class="text-destructive mt-1 text-sm">{{ sessionError }}</p>
     </fieldset>
 
-    <UiVeeInput name="partySize" type="number" inputmode="numeric" min="1" :max="maxPeople" label="How many people?" required
+    <UiVeeNumberField name="partySize" :min="1" :max="maxPeople" label="How many people?" required touch
       :hint="chosen ? `Up to ${maxPeople} on this date.` : 'Up to 10 at a time.'" />
     <p class="text-sm" aria-live="polite"><span class="text-muted-foreground">Total:</span> <span class="font-medium">{{ total }}</span></p>
 

@@ -220,9 +220,6 @@ watch(error, (e) => e && reportProblem("Couldn't load markets", e), { immediate:
             :data="cities"
             :columns="cityColumns"
             :loading="pending"
-            :show-pagination="false"
-            :show-rows-per-page="false"
-            :show-page-info="false"
           >
             <template #name-cell="{ row }">
               <span class="font-medium">{{ row.original.name }}, {{ row.original.state }}</span>
@@ -268,9 +265,8 @@ watch(error, (e) => e && reportProblem("Couldn't load markets", e), { immediate:
           <div class="flex items-end gap-2">
             <div v-if="cities.length > 1">
               <UiLabel for="area-city" class="mb-1">Show areas in</UiLabel>
-              <UiNativeSelect id="area-city" v-model="selectedCityId">
-                <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}, {{ c.state }}</option>
-              </UiNativeSelect>
+              <SelectInput id="area-city" v-model="selectedCityId" class="min-w-48"
+                :options="cities.map((c) => ({ value: c.id, label: `${c.name}, ${c.state}` }))" />
             </div>
             <UiButton size="sm" @click="openCreateArea">New area</UiButton>
           </div>
@@ -286,9 +282,6 @@ watch(error, (e) => e && reportProblem("Couldn't load markets", e), { immediate:
             :data="areas"
             :columns="areaColumns"
             :loading="pending"
-            :show-pagination="false"
-            :show-rows-per-page="false"
-            :show-page-info="false"
           >
             <template #order-cell="{ row }">
               <div class="flex gap-1">
@@ -360,9 +353,8 @@ watch(error, (e) => e && reportProblem("Couldn't load markets", e), { immediate:
               @input="citySlugEdited = true"
             />
             <UiVeeInput name="state" label="State" required maxlength="2" hint="Two-letter code, like GA." />
-            <UiVeeSelect name="timezone" label="Time zone" required hint="Experience session times are shown in it.">
-              <option v-for="t in US_TIME_ZONES" :key="t.value" :value="t.value">{{ t.label }} ({{ t.value }})</option>
-            </UiVeeSelect>
+            <UiVeeSelect name="timezone" label="Time zone" required hint="Experience session times are shown in it."
+              placeholder="Choose a time zone" :options="US_TIME_ZONES.map((t) => ({ value: t.value, label: `${t.label} (${t.value})` }))" />
           </form>
         </template>
         <template #footer>
@@ -384,11 +376,11 @@ watch(error, (e) => e && reportProblem("Couldn't load markets", e), { immediate:
       >
         <template #content>
           <form id="area-form" class="space-y-4" novalidate @submit="saveArea">
-            <UiVeeSelect name="kind" label="Type" required>
-              <option value="neighborhood">Neighborhood</option>
-              <option value="city">City or town</option>
-              <option value="zip">Zip code</option>
-            </UiVeeSelect>
+            <UiVeeSelect name="kind" label="Type" required placeholder="Choose a type" :options="[
+              { value: 'neighborhood', label: 'Neighborhood' },
+              { value: 'city', label: 'City or town' },
+              { value: 'zip', label: 'Zip code' },
+            ]" />
             <UiVeeInput name="name" label="Name or zip code" required placeholder="e.g. Old Fourth Ward, Decatur or 30312" />
           </form>
         </template>

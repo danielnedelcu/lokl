@@ -373,8 +373,6 @@ const saveLabel = computed(() => {
       return { icon: "lucide:alert-triangle", text: "Not saved" };
   }
 });
-const areaLabel = (a: ServiceArea) => `${a.name}${a.active ? "" : " (hidden from the site)"}`;
-const categoryLabel = (c: Category) => `${c.name}${c.active ? "" : " (hidden from the site)"}`;
 </script>
 
 <template>
@@ -420,9 +418,9 @@ const categoryLabel = (c: Category) => `${c.name}${c.active ? "" : " (hidden fro
             @confirm="markReviewed" />
           <div>
             <UiLabel for="guide-title" class="mb-2">Title</UiLabel>
-            <input id="guide-title" v-model="draft.title" :maxlength="GUIDE_TITLE_MAX" autocomplete="off"
-              class="border-input focus-visible:ring-ring w-full rounded-md border bg-transparent px-3 py-2 text-2xl font-semibold tracking-tight focus-visible:ring-2 focus-visible:outline-none"
-              placeholder="Murals of the Eastside Trail" @input="autosave.change({ draft_title: draft.title })">
+            <UiInput id="guide-title" v-model="draft.title" :maxlength="GUIDE_TITLE_MAX" autocomplete="off"
+              class="h-auto py-2 text-2xl font-semibold tracking-tight md:text-2xl"
+              placeholder="Murals of the Eastside Trail" @input="autosave.change({ draft_title: draft.title })" />
           </div>
           <div>
             <p id="body-label" class="mb-2 text-sm font-medium">Guide text</p>
@@ -516,32 +514,21 @@ const categoryLabel = (c: Category) => `${c.name}${c.active ? "" : " (hidden fro
             </div>
             <div>
               <UiLabel for="guide-area" class="mb-2">Area</UiLabel>
-              <UiNativeSelect id="guide-area" v-model="draft.areaId"
-                @change="autosave.change({ draft_area_id: draft.areaId }, true)">
-                <option :value="null">None</option>
-                <option v-for="a in areas" :key="a.id" :value="a.id">{{ areaLabel(a) }}</option>
-              </UiNativeSelect>
+              <SelectInput id="guide-area" v-model="draft.areaId" :options="guideAreaOptions(areas)"
+                @update:model-value="autosave.change({ draft_area_id: draft.areaId }, true)" />
             </div>
             <div>
               <UiLabel for="guide-category" class="mb-2">Category</UiLabel>
-              <UiNativeSelect id="guide-category" v-model="draft.categoryId" @change="onCategory">
-                <option :value="null">None</option>
-                <optgroup label="Services">
-                  <option v-for="c in categories.filter((c) => c.kind === 'service')" :key="c.id" :value="c.id">{{ categoryLabel(c) }}</option>
-                </optgroup>
-                <optgroup label="Experiences">
-                  <option v-for="c in categories.filter((c) => c.kind === 'experience')" :key="c.id" :value="c.id">{{ categoryLabel(c) }}</option>
-                </optgroup>
-              </UiNativeSelect>
+              <SelectInput id="guide-category" v-model="draft.categoryId" :options="guideCategoryOptions(categories)"
+                @update:model-value="onCategory" />
             </div>
             <div v-if="!draft.categoryId">
               <UiLabel for="guide-kind" class="mb-2">Type</UiLabel>
-              <UiNativeSelect id="guide-kind" v-model="draft.kind"
-                @change="autosave.change({ draft_listing_kind: draft.kind }, true)">
-                <option :value="null">Services and Experiences</option>
-                <option value="service">Services only</option>
-                <option value="experience">Experiences only</option>
-              </UiNativeSelect>
+              <SelectInput id="guide-kind" :model-value="draft.kind" :options="[
+                { value: null, label: 'Services and Experiences' },
+                { value: 'service', label: 'Services only' },
+                { value: 'experience', label: 'Experiences only' },
+              ]" @update:model-value="(v) => { draft.kind = (v ?? null) as ListingKind | null; autosave.change({ draft_listing_kind: draft.kind }, true); }" />
             </div>
             <GuideListingsPreview :market-id="guide.market_id" :area-id="draft.areaId" :category-id="draft.categoryId"
               :kind="draft.kind" />

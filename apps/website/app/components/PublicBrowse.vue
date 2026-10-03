@@ -53,6 +53,13 @@ const categories = computed(() => info.value!.categories.filter((c) => c.kind ==
 const category = computed(() => info.value!.categories.find((c) => c.kind === props.kind && c.slug === categorySlug));
 const areas = computed(() => info.value!.areas);
 const filtering = computed(() => !!(filters.value.area || filters.value.from || filters.value.to));
+// The filter form's choices, starting from the page's address (and following it).
+const chosen = reactive({ area: "", from: "", to: "" });
+watch(filters, (f) => Object.assign(chosen, { area: f.area ?? "", from: f.from ?? "", to: f.to ?? "" }), { immediate: true });
+const areaOptions = computed(() => [
+  { value: "", label: `Anywhere in ${market.value.name}` },
+  ...areas.value.map((a) => ({ value: a.id, label: areaLabel(a, market.value.name) })),
+]);
 const pages = computed(() => (result.value ? Math.max(1, Math.ceil(result.value.total / result.value.pageSize)) : 1));
 
 const heading = computed(() => (category.value ? category.value.name : `${kindWord} in ${market.value.name}`));
@@ -140,23 +147,21 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
       </ul>
     </nav>
 
-    <!-- Area and dates: a plain form, so it works without JavaScript. -->
+    <!-- Area and dates: submitted as a plain form (a page address with the
+         filters in it), through each control's hidden field. -->
     <form method="get" :action="pagePath" class="mt-6 flex flex-wrap items-end gap-3" aria-label="Filter">
       <div class="w-full sm:w-64">
         <UiLabel for="filter-area" class="mb-2">Area</UiLabel>
-        <UiNativeSelect id="filter-area" name="area" :model-value="filters.area ?? ''">
-          <option value="">Anywhere in {{ market.name }}</option>
-          <option v-for="a in areas" :key="a.id" :value="a.id">{{ areaLabel(a, market.name) }}</option>
-        </UiNativeSelect>
+        <SelectInput id="filter-area" v-model="chosen.area" name="area" :options="areaOptions" touch />
       </div>
       <template v-if="kind === 'experience'">
-        <div>
-          <UiLabel for="filter-from" class="mb-2">From</UiLabel>
-          <UiInput id="filter-from" name="from" type="date" :model-value="filters.from ?? ''" :min="today" />
+        <div class="w-full sm:w-48">
+          <p id="filter-from-label" class="mb-2 text-sm font-medium">From</p>
+          <DatePicker v-model="chosen.from" name="from" labelledby="filter-from-label" :min="today" touch />
         </div>
-        <div>
-          <UiLabel for="filter-to" class="mb-2">To</UiLabel>
-          <UiInput id="filter-to" name="to" type="date" :model-value="filters.to ?? ''" :min="today" />
+        <div class="w-full sm:w-48">
+          <p id="filter-to-label" class="mb-2 text-sm font-medium">To</p>
+          <DatePicker v-model="chosen.to" name="to" labelledby="filter-to-label" :min="chosen.from || today" touch />
         </div>
       </template>
       <UiButton type="submit" variant="outline">Show results</UiButton>

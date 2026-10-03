@@ -59,11 +59,11 @@ const save = handleSubmit(async (values) => {
             name="city_id"
             label="Metro area"
             required
+            touch
+            placeholder="Choose your metro area"
+            :options="(cities ?? []).map((c) => ({ value: c.id, label: `${c.name}, ${c.state}` }))"
             :hint="savedCityGone ? 'Your metro area is no longer on the list. Please choose another one.' : 'Atlanta covers the whole metro, including Decatur, Sandy Springs and Alpharetta.'"
-          >
-            <option value="" disabled>Choose your metro area</option>
-            <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}, {{ c.state }}</option>
-          </UiVeeSelect>
+          />
 
           <UiButton type="submit" :disabled="isSubmitting">
             {{ isSubmitting ? "Saving…" : provider ? "Save changes" : "Create profile" }}

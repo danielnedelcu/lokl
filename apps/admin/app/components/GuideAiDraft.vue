@@ -160,8 +160,8 @@ async function undo() {
   }
 }
 
-const areaLabel = (a: ServiceArea) => `${a.name}${a.active ? "" : " (hidden from the site)"}`;
-const categoryLabel = (c: Category) => `${c.name}${c.active ? "" : " (hidden from the site)"}`;
+const areaOptions = computed(() => guideAreaOptions(props.areas));
+const categoryOptions = computed(() => guideCategoryOptions(props.categories));
 const money = (n: number | null) => (n == null ? "" : formatMoney(Math.round(n * 100)));
 </script>
 
@@ -188,22 +188,11 @@ const money = (n: number | null) => (n == null ? "" : formatMoney(Math.round(n *
       </div>
       <div>
         <UiLabel for="ai-area" class="mb-2">Area</UiLabel>
-        <UiNativeSelect id="ai-area" v-model="areaId" :disabled="running">
-          <option :value="null">None</option>
-          <option v-for="a in areas" :key="a.id" :value="a.id">{{ areaLabel(a) }}</option>
-        </UiNativeSelect>
+        <SelectInput id="ai-area" v-model="areaId" :disabled="running" :options="areaOptions" />
       </div>
       <div>
         <UiLabel for="ai-category" class="mb-2">Category</UiLabel>
-        <UiNativeSelect id="ai-category" v-model="categoryId" :disabled="running">
-          <option :value="null">None</option>
-          <optgroup label="Services">
-            <option v-for="c in categories.filter((c) => c.kind === 'service')" :key="c.id" :value="c.id">{{ categoryLabel(c) }}</option>
-          </optgroup>
-          <optgroup label="Experiences">
-            <option v-for="c in categories.filter((c) => c.kind === 'experience')" :key="c.id" :value="c.id">{{ categoryLabel(c) }}</option>
-          </optgroup>
-        </UiNativeSelect>
+        <SelectInput id="ai-category" v-model="categoryId" :disabled="running" :options="categoryOptions" />
       </div>
       <div>
         <UiLabel for="ai-notes" class="mb-2">Your notes (optional)</UiLabel>

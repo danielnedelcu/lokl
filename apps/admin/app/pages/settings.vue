@@ -65,8 +65,10 @@ const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 2 : 0)}%`;
         applies to bookings made after it; existing bookings keep their rate.
       </p>
       <form class="mt-4 grid gap-4 sm:grid-cols-2" novalidate @submit="save">
-        <UiVeeInput name="service" type="number" inputmode="decimal" step="0.01" min="0" max="50" label="Services (%)" required />
-        <UiVeeInput name="experience" type="number" inputmode="decimal" step="0.01" min="0" max="50" label="Experiences (%)" required />
+        <UiVeeNumberField name="service" :step="0.01" :min="0" :max="50" :format-options="{ maximumFractionDigits: 2 }"
+          label="Services (%)" required />
+        <UiVeeNumberField name="experience" :step="0.01" :min="0" :max="50" :format-options="{ maximumFractionDigits: 2 }"
+          label="Experiences (%)" required />
         <div class="sm:col-span-2">
           <UiButton type="submit" :disabled="saving || !meta.dirty">{{ saving ? "Saving…" : "Save rates" }}</UiButton>
         </div>

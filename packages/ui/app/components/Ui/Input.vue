@@ -1,4 +1,13 @@
 <!-- eslint-disable vue/html-self-closing -->
+<!--
+  lokl change (2026-10-03): the field's background is the page's background
+  colour (bg-background, white in the light theme), not transparent, so every
+  input and select looks the same on grey admin pages; search fields also
+  drop the browser's native look (appearance-none), which Safari draws grey.
+  Placeholders use the full muted text colour, not 70% of it, which read as
+  greyed out and fell below 4.5:1 contrast. Keep all three if the component
+  is re-added with the ui-thing CLI.
+-->
 <template>
   <input
     v-bind="props"
@@ -75,14 +84,16 @@
 
   const styles = tv({
     base: [
-      "border-input selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground/70 dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+      "border-input selection:bg-primary selection:text-primary-foreground file:text-foreground placeholder:text-muted-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border bg-background px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
       "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
       "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
     ],
     variants: {
       type: {
+        // lokl change: appearance-none, or Safari draws its own native search-field
+        // background and ignores bg-background (2026-10-03).
         search:
-          "[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none [&::-webkit-search-results-button]:appearance-none [&::-webkit-search-results-decoration]:appearance-none",
+          "appearance-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none [&::-webkit-search-results-button]:appearance-none [&::-webkit-search-results-decoration]:appearance-none",
         file: "text-muted-foreground/70 file:border-input file:text-foreground p-0 pr-3 italic file:me-3 file:h-full file:border-0 file:border-r file:border-solid file:bg-transparent file:px-3 file:text-sm file:font-medium file:not-italic",
       },
     },

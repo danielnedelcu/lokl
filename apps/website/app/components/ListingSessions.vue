@@ -276,15 +276,15 @@ async function confirmCancel() {
       <template #content>
         <form id="session-form" class="space-y-4" novalidate @submit="save">
           <div class="grid gap-4">
-            <UiVeeInput name="date" type="date" label="Date" required :min="today" :max="maxDate" />
+            <DateInput name="date" label="Date" required :min="today" :max="maxDate" touch />
             <TimeInput name="time" label="Start time" required :minute-step="5" />
           </div>
-          <UiVeeInput name="capacity" type="number" inputmode="numeric" min="1" max="500" label="Spots" required
+          <UiVeeNumberField name="capacity" :min="1" :max="500" label="Spots" required touch
             hint="How many people can book this session." />
           <template v-if="!editing">
             <UiVeeCheckbox name="repeat" label="Repeat every week" />
             <template v-if="repeating">
-              <UiVeeInput name="weeks" type="number" inputmode="numeric" min="2" :max="MAX_WEEKS"
+              <UiVeeNumberField name="weeks" :min="2" :max="MAX_WEEKS" touch
                 label="How many weeks in total?" required :hint="`Including the first one. Up to ${MAX_WEEKS}.`" />
               <p v-if="seriesSummary" class="text-muted-foreground text-sm" aria-live="polite">{{ seriesSummary }}</p>
             </template>

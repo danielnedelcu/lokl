@@ -29,3 +29,11 @@ export function formatDuration(minutes: number): string {
 export function formatDateTime(value: string | Date, timeZone?: string): string {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value));
 }
+
+// A range of calendar days ("YYYY-MM-DD"), shortest clear form: "Oct 3 – 10,
+// 2026", "Oct 28 – Nov 2, 2026". The days are calendar dates, not instants,
+// so they're read and shown in UTC and never shift across a time zone.
+export function formatDateRange(start: string, end: string): string {
+  const at = (d: string) => new Date(`${d}T00:00:00Z`);
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).formatRange(at(start), at(end));
+}

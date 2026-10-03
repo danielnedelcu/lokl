@@ -18,7 +18,7 @@
   import { PaginationPrev } from "reka-ui";
   import type { PaginationPrevProps } from "reka-ui";
 
-  import type { ButtonProps } from "~/components/Ui/Button.vue";
+  import type { ButtonProps } from "../Button.vue";
 
   const props = withDefaults(
     defineProps<

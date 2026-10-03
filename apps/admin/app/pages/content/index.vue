@@ -95,8 +95,7 @@ const create = form.handleSubmit(async ({ title, slug }) => {
     <EmptyState v-else-if="!pending && !rows?.length" icon="lucide:map" title="No guides yet"
       description="Guides lead readers to bookable listings in the same area or category. Start with “New guide”." />
     <UiCard v-else class="py-0">
-      <UiTanStackTable :data="rows ?? []" :columns="columns" :loading="pending" :show-pagination="(rows?.length ?? 0) > 20"
-        :show-rows-per-page="(rows?.length ?? 0) > 20" :show-page-info="(rows?.length ?? 0) > 20">
+      <UiTanStackTable :data="rows ?? []" :columns="columns" :loading="pending">
         <template #title-cell="{ row }">
           <NuxtLink :to="`/content/${row.original.id}`" class="font-medium underline-offset-4 hover:underline">
             {{ row.original.draft_title || row.original.title || "Untitled guide" }}
@@ -117,9 +116,7 @@ const create = form.handleSubmit(async ({ title, slug }) => {
           <form id="new-guide" class="space-y-4" novalidate @submit="create">
             <div v-if="(markets?.length ?? 0) > 1">
               <UiLabel for="new-guide-market" class="mb-2">City</UiLabel>
-              <UiNativeSelect id="new-guide-market" v-model="marketId">
-                <option v-for="m in markets" :key="m.id" :value="m.id">{{ m.name }}</option>
-              </UiNativeSelect>
+              <SelectInput id="new-guide-market" v-model="marketId" :options="(markets ?? []).map((m) => ({ value: m.id, label: m.name }))" />
             </div>
             <UiVeeInput name="title" label="Title" required placeholder="Murals of the Eastside Trail" />
             <UiVeeInput name="slug" label="Web address" required hint="Lowercase letters, numbers and hyphens."

@@ -5,6 +5,9 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-03 | Every form control in both apps is a ui-thing component, never a native control or ui-thing's native-wrapping ones; shared `SelectInput`, `SearchSelect` (searchable), `DatePicker` / `DateInput` and `DateRangePicker`. Exceptions: the Editor.js writing area, and file pickers (a button opening a hidden file input) | One look and behaviour everywhere; see docs/frontend.md, Form controls |
+| 2026-10-03 | Dates use Reka UI's own DatePicker and DateRangePicker, not ui-thing's date picker | ui-thing's is built on v-calendar: a second component library that draws only in the browser and has weaker keyboard and screen-reader support. Reka's types or picks from a calendar, draws on the server and submits a hidden field |
+| 2026-10-03 | Admin tables use `UiTanStackTable` with ui-thing's Pagination: 25 rows a page, no rows-per-page choice; inputs and selects have the page background (white), not a transparent one | The owner's choice, for the same look on every page |
 | 2026-10-03 | The drafting prompt says not to describe the listings below beyond saying they're there | The first real draft promised the listings were "all based in and around the neighborhood", which lokl can't guarantee: the block shows whatever matches the area |
 | 2026-10-03 | AI guide drafts come back as JSON through structured outputs (`output_config.format`), not a forced tool call | Opus 5.5 rejects a forced tool choice (400); structured outputs give the fixed shape, checked again with zod |
 | 2026-10-03 | The drafting prompt bans stock travel-writing phrases ("hidden gem", "vibrant", "bustling", "nestled"…) and asks for concrete, observable detail about lasting public places; the scanner flags those phrases too | The owner's addition when approving the prompt |

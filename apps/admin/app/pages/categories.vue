@@ -191,9 +191,6 @@ watch(error, (e) => e && reportProblem("Couldn't load categories", e), { immedia
             :data="ofKind(k.value)"
             :columns="columns"
             :loading="pending"
-            :show-pagination="false"
-            :show-rows-per-page="false"
-            :show-page-info="false"
           >
             <template #order-cell="{ row }">
               <div class="flex gap-1">

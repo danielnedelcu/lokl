@@ -1,36 +1,30 @@
 <!--
-  lokl change (docs/frontend.md, WCAG 2.2 AA): the field is marked
-  aria-invalid when it has an error, and aria-describedby points at the error
-  text (or the hint when there's no error), each of which now has an id, so
-  screen readers announce it with the field. Keep this if the component is
-  re-added with the ui-thing CLI.
+  lokl changes (docs/frontend.md). Keep them if the component is re-added
+  with the ui-thing CLI, whose version wraps the native select:
+  - Form controls (2026-10-03): wraps the shared SelectInput (ui-thing's
+    UiSelect, Reka Select) instead of UiNativeSelect, so choices are passed
+    as `options` ({ value, label, group? }) rather than <option> children.
+  - WCAG 2.2 AA: the field is marked aria-invalid when it has an error, and
+    aria-describedby points at the error text (or the hint when there's no
+    error), each of which has an id, so screen readers announce it with the
+    field.
 -->
 <template>
   <div class="w-full">
     <UiLabel v-if="label" :for="inputId" :class="[errorMessage && 'text-destructive', 'mb-2']">
       <span>{{ label }} <span v-if="required" class="text-destructive">*</span></span>
     </UiLabel>
-    <div class="relative">
-      <slot name="icon">
-        <span v-if="hasIcon" lass="absolute inset-y-0 left-3 flex items-center justify-center">
-          <Icon v-if="icon" :name="icon" class="text-muted-foreground size-4" />
-        </span>
-      </slot>
-      <UiNativeSelect
-        :id="inputId"
-        :aria-describedby="describedBy"
-        v-model="value"
-        :required="required"
-        :trailing-icon="trailingIcon"
-        :aria-invalid="!!errorMessage"
-        :name="name"
-        v-bind="$attrs"
-        :class="[hasIcon && 'pl-9']"
-        @blur="handleBlur"
-      >
-        <slot />
-      </UiNativeSelect>
-    </div>
+    <SelectInput
+      :id="inputId"
+      v-model="value"
+      :options="options"
+      :placeholder="placeholder"
+      :disabled="disabled"
+      :invalid="!!errorMessage"
+      :describedby="describedBy"
+      :touch="touch"
+      @blur="handleBlur"
+    />
     <AnimatePresence multiple as="div" mode="wait">
       <slot name="hint" :error-message="errorMessage" :value>
         <motion.p
@@ -66,6 +60,7 @@
 
 <script lang="ts" setup>
   import { AnimatePresence, motion } from "motion-v";
+  import type { SelectOption } from "../../../utils/selectOption";
 
   const variants = {
     initial: { opacity: 0, y: -2 },
@@ -74,16 +69,18 @@
 
   const props = defineProps<{
     label?: string;
-    icon?: string;
     hint?: string;
-    modelValue?: string;
+    modelValue?: string | null;
     name?: string;
     id?: string;
     rules?: any;
     validateOnMount?: boolean;
-    type?: string;
-    trailingIcon?: string;
     required?: boolean;
+    disabled?: boolean;
+    options: SelectOption[];
+    placeholder?: string;
+    /** 44px tall, for touch targets on the website. */
+    touch?: boolean;
   }>();
 
   const inputId = props.id || useId();
@@ -92,9 +89,7 @@
     errorMessage.value ? `${inputId}-error` : props.hint ? `${inputId}-hint` : undefined,
   );
 
-  const hasIcon = computed(() => Boolean(props.icon) || Boolean(useSlots().icon));
-
-  const { errorMessage, value, handleBlur } = useField(() => props.name || inputId, props.rules, {
+  const { errorMessage, value, handleBlur } = useField<string | null | undefined>(() => props.name || inputId, props.rules, {
     initialValue: props.modelValue,
     label: props.label,
     validateOnMount: props.validateOnMount,

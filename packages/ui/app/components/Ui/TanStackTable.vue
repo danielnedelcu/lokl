@@ -1,3 +1,11 @@
+<!--
+  lokl change (docs/frontend.md, 2026-10-03): the footer's page controls use
+  ui-thing's Pagination (Reka Pagination) instead of four icon-only buttons
+  without names, and the rows-per-page select is named by its text (if a
+  table ever turns it on). Every table pages the same way: 25 rows a page,
+  with no rows-per-page choice shown (decided 2026-10-03). Keep these if the
+  component is re-added with the ui-thing CLI.
+-->
 <template>
   <div class="relative">
     <slot name="loading" :loading>
@@ -268,7 +276,7 @@
               rowsPerPageText
             }}</span>
             <UiSelect v-model="pageSize" class="w-[70px]">
-              <UiSelectTrigger>
+              <UiSelectTrigger :aria-label="rowsPerPageText">
                 <UiSelectValue />
               </UiSelectTrigger>
               <UiSelectContent>
@@ -293,40 +301,18 @@
             {{ table.getPageCount() }}
           </div>
 
-          <div v-if="showPagination" class="flex items-center gap-1">
-            <UiButton
-              variant="outline"
-              size="icon-sm"
-              :disabled="!table.getCanPreviousPage()"
-              @click="table.setPageIndex(0)"
-            >
-              <Icon name="lucide:chevrons-left" class="size-4" />
-            </UiButton>
-            <UiButton
-              variant="outline"
-              size="icon-sm"
-              :disabled="!table.getCanPreviousPage()"
-              @click="table.previousPage()"
-            >
-              <Icon name="lucide:chevron-left" class="size-4" />
-            </UiButton>
-            <UiButton
-              variant="outline"
-              size="icon-sm"
-              :disabled="!table.getCanNextPage()"
-              @click="table.nextPage()"
-            >
-              <Icon name="lucide:chevron-right" class="size-4" />
-            </UiButton>
-            <UiButton
-              variant="outline"
-              size="icon-sm"
-              :disabled="!table.getCanNextPage()"
-              @click="table.setPageIndex(table.getPageCount() - 1)"
-            >
-              <Icon name="lucide:chevrons-right" class="size-4" />
-            </UiButton>
-          </div>
+          <!-- lokl change: the page controls are ui-thing's Pagination (Reka),
+               with page numbers and spoken names, not four unlabelled icon buttons. -->
+          <UiPagination
+            v-if="showPagination"
+            aria-label="Table pages"
+            :page="table.atoms.pagination.get().pageIndex + 1"
+            :total="table.getFilteredRowModel().rows.length"
+            :items-per-page="table.atoms.pagination.get().pageSize"
+            :sibling-count="1"
+            show-edges
+            @update:page="(p: number) => table.setPageIndex(p - 1)"
+          />
         </slot>
       </div>
     </slot>
@@ -516,9 +502,10 @@
       showFooter: true,
       showPagination: true,
       showPageInfo: true,
-      showRowsPerPage: true,
-      pageSizeOptions: () => [10, 20, 30, 40, 50],
-      initialPageSize: 10,
+      // lokl change: no rows-per-page choice; every table shows 25 (see top of file).
+      showRowsPerPage: false,
+      pageSizeOptions: () => [10, 25, 50, 100],
+      initialPageSize: 25,
       loading: false,
       manualPagination: false,
       manualSorting: false,

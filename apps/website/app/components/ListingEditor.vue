@@ -425,11 +425,10 @@ const statusNote = computed(() => {
           <UiCard>
             <UiCardHeader><UiCardTitle as="h2">About your {{ kindWord }}</UiCardTitle></UiCardHeader>
             <UiCardContent class="space-y-5">
-              <UiVeeSelect name="category_id" label="Category" required :disabled="!editable || !categories.length"
-                :hint="categories.length ? undefined : noCategoriesText">
-                <option value="" disabled>{{ categories.length ? "Choose a category" : "No categories yet" }}</option>
-                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-              </UiVeeSelect>
+              <UiVeeSelect name="category_id" label="Category" required :disabled="!editable || !categories.length" touch
+                :hint="categories.length ? undefined : noCategoriesText"
+                :placeholder="categories.length ? 'Choose a category' : 'No categories yet'"
+                :options="categories.map((c) => ({ value: c.id, label: c.name }))" />
               <UiVeeInput name="title" label="Title" required :disabled="!editable" maxlength="100"
                 :placeholder="kind === 'service' ? 'e.g. Silk press and trim' : 'e.g. Sweet Auburn food walk'" />
               <UiVeeTextarea name="description" label="Description" required :rows="6" maxlength="5000"
@@ -465,7 +464,7 @@ const statusNote = computed(() => {
               <MoneyInput name="price_cents" :label="kind === 'experience' ? 'Price per person' : 'Price'" required
                 :disabled="!priceAndDescriptionEditable"
                 hint="The full price the customer pays." />
-              <UiVeeInput name="duration_minutes" type="number" inputmode="numeric" min="5" max="1440"
+              <UiVeeNumberField name="duration_minutes" :min="5" :max="1440" :step="5" touch
                 :label="kind === 'experience' ? 'How long it lasts, in minutes' : 'How long it takes, in minutes (optional)'"
                 :required="kind === 'experience'" :disabled="!editable" />
             </UiCardContent>
@@ -474,10 +473,9 @@ const statusNote = computed(() => {
           <UiCard>
             <UiCardHeader><UiCardTitle as="h2">Location</UiCardTitle></UiCardHeader>
             <UiCardContent class="space-y-5">
-              <UiVeeSelect v-if="cities.length > 1" name="city_id" label="Metro area" required :disabled="!editable"
-                hint="Atlanta covers the whole metro, including Decatur, Sandy Springs and Alpharetta.">
-                <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}, {{ c.state }}</option>
-              </UiVeeSelect>
+              <UiVeeSelect v-if="cities.length > 1" name="city_id" label="Metro area" required :disabled="!editable" touch
+                hint="Atlanta covers the whole metro, including Decatur, Sandy Springs and Alpharetta."
+                :options="cities.map((c) => ({ value: c.id, label: `${c.name}, ${c.state}` }))" />
 
               <UiVeeRadioGroup v-if="kind === 'service'" name="location_mode" label="Where does it happen?" required
                 :disabled="!editable">
@@ -493,11 +491,10 @@ const statusNote = computed(() => {
 
               <template v-if="showAddress">
                 <UiVeeSelect name="area_id" :label="kind === 'experience' ? 'Meeting area' : 'Area customers see'" required
-                  :disabled="!editable || !cityAreas.length"
-                  :hint="cityAreas.length ? 'Shown before booking, like the neighborhood.' : noAreasText">
-                  <option :value="null" disabled>{{ cityAreas.length ? "Choose an area" : "No areas yet" }}</option>
-                  <option v-for="a in cityAreas" :key="a.id" :value="a.id">{{ a.name }}</option>
-                </UiVeeSelect>
+                  :disabled="!editable || !cityAreas.length" touch
+                  :hint="cityAreas.length ? 'Shown before booking, like the neighborhood.' : noAreasText"
+                  :placeholder="cityAreas.length ? 'Choose an area' : 'No areas yet'"
+                  :options="cityAreas.map((a) => ({ value: a.id, label: a.name }))" />
 
                 <fieldset class="space-y-4" :disabled="!editable">
                   <legend class="text-sm font-medium">

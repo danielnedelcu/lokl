@@ -167,10 +167,11 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
       <p class="mt-1 text-xs text-muted-foreground">Times are {{ zone }}.</p>
       <fieldset class="mt-3">
         <legend class="sr-only">Times the customer offered</legend>
-        <ul class="space-y-2" :aria-describedby="chooseError ? 'choose-error' : undefined">
-          <li v-for="(t, i) in b.preferred_times" :key="t">
-            <label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-2 has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary/30">
-              <input v-model="chosen" type="radio" name="time" :value="t" class="mt-1 size-4">
+        <UiRadioGroup v-model="chosen" class="gap-2" :aria-describedby="chooseError ? 'choose-error' : undefined"
+          :aria-invalid="!!chooseError || undefined">
+          <template v-for="(t, i) in b.preferred_times" :key="t">
+            <label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-2 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-primary/30">
+              <UiRadioGroupItem :value="t" class="mt-1" />
               <span class="flex-1">
                 <span class="block text-sm font-medium">{{ at(t) }}</span>
                 <span class="block text-xs text-muted-foreground">{{ i === 0 ? "First choice" : i === 1 ? "Second choice" : "Third choice" }}</span>
@@ -180,8 +181,8 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
                 </span>
               </span>
             </label>
-          </li>
-        </ul>
+          </template>
+        </UiRadioGroup>
         <p v-if="chooseError" id="choose-error" class="mt-2 text-sm text-destructive">{{ chooseError }}</p>
       </fieldset>
       <div class="mt-4 flex flex-wrap gap-3">

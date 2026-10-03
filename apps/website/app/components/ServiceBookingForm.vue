@@ -90,7 +90,7 @@ const submit = handleSubmit((v) =>
           </UiButton>
         </div>
         <div class="grid gap-3">
-          <UiVeeInput :name="`times[${i}].date`" type="date" label="Date" required :min="earliest" :max="maxDate" />
+          <DateInput :name="`times[${i}].date`" label="Date" required :min="earliest" :max="maxDate" touch />
           <TimeInput :name="`times[${i}].time`" label="Time" required :minute-step="15" />
         </div>
       </div>
