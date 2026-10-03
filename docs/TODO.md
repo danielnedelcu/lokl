@@ -190,11 +190,16 @@ Each step depends on the ones before it.
        card 4000 0000 0000 0077): the provider gets "Payout sent".
      - [ ] 10. A booking on a `+provider2` listing: the provider email goes
        to `+provider2`, not `+provider1`.
-     - [ ] Decide: the provider's "Cancelled" subject is the same as the
-       customer's (Gmail groups them in one shared test inbox); maybe "A
-       customer cancelled: …".
-     - [ ] Decide: keep skipping "Request sent" / "New request" when they'd
-       go out after the request is answered, or always send them.
+     - [x] Decided 2026-10-03: the provider's cancellation email has its own
+       subject saying what it means for them (decisions.md).
+     - [x] Decided 2026-10-03: keep skipping "Request sent" / "New request"
+       when they'd go out after the request is answered (decisions.md).
+     - [ ] 11. The provider's cancellation subjects: as `+customer1`, cancel
+       a booking 3+ days out (provider gets "Booking cancelled: {title} on
+       {date}, no payout"), and one inside 48 hours after the grace hour
+       ("…, you'll still be paid"); as admin, refund and cancel one
+       ("Cancelled by lokl: …, no payout"). The customer's subject stays
+       "Cancelled: …", so the two no longer group together in Gmail.
    - [x] Part 8: the admin side. Bookings & payouts with "needs attention",
      a page per booking (release payouts, resolve no-show reports, refund
      and cancel, send emails again), Disputes & refunds, commission rates

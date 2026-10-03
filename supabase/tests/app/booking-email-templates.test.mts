@@ -72,6 +72,17 @@ check(back.includes("$104.00 we'd sent you for it has been taken back from your 
 check(owed.includes("couldn't take back the $104.00") && owed.includes("you owe it to lokl"), "6g. ...or, if that failed, that they owe it");
 check(!plainCancel.includes("taken back") && !plainCancel.includes("owe"), "6h. before a payout, neither is mentioned");
 
+// 6i. The provider's cancellation subject is its own, and says what it means for them.
+const pc = (v: string) => all.find((a) => a.kind === "provider_booking_cancelled" && a.variant === v)!.out.subject;
+const cc = (v: string) => all.find((a) => a.kind === "customer_booking_cancelled" && a.variant === v)!.out.subject;
+check(pc("customer cancelled in time") === "Booking cancelled: Sweet Auburn food walk on Sat, Oct 10, no payout", `6i. in time: "${pc("customer cancelled in time")}"`);
+check(pc("customer cancelled late") === "Booking cancelled: Sweet Auburn food walk on Wed, Oct 7, you'll still be paid", `6j. late: "${pc("customer cancelled late")}"`);
+check(pc("customer withdrew a request") === "Request withdrawn: Silk press and trim" && pc("lokl cancelled").endsWith(", no payout")
+  && pc("lokl cancelled after the payout (taken back)").endsWith(", payout taken back") && pc("lokl cancelled after the payout (owed)").endsWith(", payout owed back"),
+  "6k. a withdrawn request, and each lokl cancellation, say so in the subject");
+check(all.filter((a) => a.kind === "provider_booking_cancelled").every((a) => a.out.subject !== cc("you cancelled, refunded") && a.out.subject.length <= 80),
+  "6l. no provider cancellation shares the customer's subject, and all stay short");
+
 // 7. The provider account emails (paused, active again).
 const site = "http://localhost:3100";
 const paused = renderProviderAccountEmail("provider_account_paused", { siteUrl: site, businessName: "Fresh Cuts Studio", message: "Please call us about\nthe last two bookings." });

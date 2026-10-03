@@ -305,22 +305,25 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
         after: [`You'll receive ${money(b.provider_amount_cents)} after it happens.`],
         button: { label: "See the booking", url: providerUrl },
       });
+    // Its own subject, saying what it means for the provider, the same case
+    // as the first line (decided 2026-10-03; it had the customer's subject).
     case "provider_booking_cancelled": {
       const wasRequest = !b.confirmed_at;
-      const first = b.cancelled_by === "customer"
+      const on = date ? ` on ${date}` : "";
+      const [subject, first] = b.cancelled_by === "customer"
         ? wasRequest
-          ? `${name} withdrew their request for ${l.title}.`
+          ? [`Request withdrawn: ${l.title}`, `${name} withdrew their request for ${l.title}.`]
           : b.refunded_cents > 0
-            ? `${name} cancelled in time and was refunded, so there's no payout for this booking.`
-            : `${name} cancelled less than 48 hours before. You'll still receive ${money(b.provider_amount_cents)} at payout.`
+            ? [`Booking cancelled: ${l.title}${on}, no payout`, `${name} cancelled in time and was refunded, so there's no payout for this booking.`]
+            : [`Booking cancelled: ${l.title}${on}, you'll still be paid`, `${name} cancelled less than 48 hours before. You'll still receive ${money(b.provider_amount_cents)} at payout.`]
         : b.reversal_failed_at
-          ? `lokl cancelled this booking and refunded the customer. We couldn't take back the ${money(b.provider_amount_cents)} we'd sent you for it, so you owe it to lokl. We'll be in touch about it.`
+          ? [`Cancelled by lokl: ${l.title}${on}, payout owed back`, `lokl cancelled this booking and refunded the customer. We couldn't take back the ${money(b.provider_amount_cents)} we'd sent you for it, so you owe it to lokl. We'll be in touch about it.`]
           : b.stripe_transfer_reversal_id
-            ? `lokl cancelled this booking and refunded the customer. The ${money(b.provider_amount_cents)} we'd sent you for it has been taken back from your Stripe balance.`
-            : "lokl cancelled this booking and refunded the customer.";
+            ? [`Cancelled by lokl: ${l.title}${on}, payout taken back`, `lokl cancelled this booking and refunded the customer. The ${money(b.provider_amount_cents)} we'd sent you for it has been taken back from your Stripe balance.`]
+            : [`Cancelled by lokl: ${l.title}${on}, no payout`, "lokl cancelled this booking and refunded the customer."];
       return render({
         recipient: "provider",
-        subject: date ? `Cancelled: ${l.title} on ${date}` : `Cancelled: ${l.title}`,
+        subject,
         intro: [first],
         button: { label: "See the booking", url: providerUrl },
       });
