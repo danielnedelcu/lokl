@@ -60,7 +60,7 @@ guides, through the website's server.
 | `created_at`, `updated_at` | |
 
 Rules in the database (a trigger, with pgTAP tests each way):
-- **Publishing needs** a title, a teaser, a valid slug, a cover photo of at least 2,000 × 1,125, an area or a category, and `ai_draft_pending_review = false`. It refuses otherwise, with a plain sentence for each.
+- **Publishing needs** a title, a teaser, a valid slug, a landscape cover photo of at least 1,600 × 900, an area or a category, and `ai_draft_pending_review = false`. It refuses otherwise, with a plain sentence for each.
 - A guide's area has to belong to the guide's market.
 - `status` moves `draft → published → unpublished → published`, and only the server changes it: the admin app's publish and unpublish routes (settled: the admin rule that status changes go through a server route). Admins write everything else directly. A published guide's slug can't change (its address is in search results). Unpublishing takes it off the homepage too (below).
 
@@ -191,6 +191,25 @@ Following the blog's pattern, with its gaps closed:
 - **Preview:** "Preview" opens the guide as it will look on the site.
 - **Publish checks** are listed as they apply: cover photo missing or too
   small, teaser missing, not reviewed, no area or category.
+- **Body rules:** headings are level 2 or 3 only, since the guide's title is
+  the page's main heading (h1). Lists aren't nested. Photo blocks store only
+  the photo's id. The body is checked against `guideBodySchema` before every
+  save.
+- **Links** in the body are kept only when they start with `https://` or `/`.
+  Links to other sites are drawn with `rel="noopener noreferrer"`.
+- **Accessibility:** Editor.js is weaker for keyboard and screen-reader use
+  than a plain form (its block menus and inline toolbar are mouse-first).
+  That's acceptable because only the admin edits guides, and the public page
+  is drawn by lokl's own renderer (`GuideBody`), not by Editor.js.
+- **Photos on the published page:** a photo the published version uses (its
+  cover, or its body while it's live) can't be deleted until a version
+  without it is published. The database enforces this for the cover; for
+  photos in the body only the editor checks, and the page skips a missing
+  photo rather than breaking (settled 2026-10-03).
+- **Versions:** "Copy into draft" asks first: "This replaces your current
+  draft. Your published guide isn't affected."
+- **Two tabs:** each save goes through only if the guide hasn't changed since
+  the tab last saw it; otherwise saving stops and the editor asks to reload.
 
 ## Photos and credits
 
@@ -198,9 +217,11 @@ Following the blog's pattern, with its gaps closed:
   is at most 2,400px, re-encoded as WebP (JPEG where the browser can't),
   metadata (including location) removed, and a ~600px card copy made. Stored in
   the public `guide-photos` bucket; 8 MB limit.
-- **The cover's minimum size: 2,000 × 1,125 pixels, landscape** (settled; sharp
-  as the homepage hero on large screens). The editor refuses a smaller cover
-  with a plain message, and so does the database at publish.
+- **The cover's minimum size: 1,600 × 900 pixels, landscape** (lowered from
+  2,000 × 1,125 on 2026-10-03; see `docs/decisions.md`). The editor offers
+  "Use as cover" only on photos that meet it and says why otherwise, and the
+  database refuses a smaller cover at publish. Photos in the body have no
+  minimum.
 - **Credits.** Each photo records its source:
   - *Own photo:* no credit needed (optional "Photo: …").
   - *Unsplash:* "Photo by {name} on Unsplash", linking to the photographer's
@@ -323,7 +344,7 @@ Answered by the owner, 2026-10-03.
 5. **Areas and categories:** at most one of each per guide, and at least one.
 6. **Byline:** "lokl Atlanta".
 7. **Model:** Opus (`claude-opus-5-5`).
-8. **Cover minimum:** 2,000 × 1,125.
+8. **Cover minimum:** 2,000 × 1,125, later lowered to 1,600 × 900 (2026-10-03).
 9. **Flags:** no Unsplash API (photos are downloaded from unsplash.com and
    uploaded with their credit); publishing and unpublishing go through admin
    server routes; notes going to Anthropic are fine, with private information

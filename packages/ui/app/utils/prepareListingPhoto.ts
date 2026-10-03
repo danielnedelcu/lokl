@@ -11,6 +11,9 @@
 //   the browser can't encode WebP. iPhone browsers all run Apple's engine,
 //   which may not, so the JPEG fallback matters for most phone uploads.
 // The bucket's 5 MB limit stays as the fallback check.
+//
+// Guide photos use the same steps with their own limits (2,400px, 8 MB):
+// pass them as options.
 
 export const LISTING_PHOTO_MAX_SIDE = 2000;
 export const LISTING_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
@@ -29,7 +32,16 @@ export interface PreparedPhoto {
 
 export class PhotoError extends Error {}
 
-export async function prepareListingPhoto(file: File): Promise<PreparedPhoto> {
+export interface PhotoLimits {
+  /** Longest side, in pixels. */
+  maxSide: number;
+  maxBytes: number;
+}
+
+export async function prepareListingPhoto(
+  file: File,
+  limits: PhotoLimits = { maxSide: LISTING_PHOTO_MAX_SIDE, maxBytes: LISTING_PHOTO_MAX_BYTES },
+): Promise<PreparedPhoto> {
   if (!ACCEPTED.includes(file.type)) {
     throw new PhotoError("Choose a JPEG, PNG or WebP photo.");
   }
@@ -41,7 +53,7 @@ export async function prepareListingPhoto(file: File): Promise<PreparedPhoto> {
     throw new PhotoError("That photo couldn't be opened. Try a different one.");
   }
 
-  const scale = Math.min(1, LISTING_PHOTO_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, limits.maxSide / Math.max(bitmap.width, bitmap.height));
   const width = Math.round(bitmap.width * scale);
   const height = Math.round(bitmap.height * scale);
 
@@ -69,8 +81,9 @@ export async function prepareListingPhoto(file: File): Promise<PreparedPhoto> {
   }
   if (!blob) throw new PhotoError("That photo couldn't be processed. Try a different one.");
 
-  if (blob.size > LISTING_PHOTO_MAX_BYTES) {
-    throw new PhotoError("This photo is still larger than 5 MB after resizing. Choose a smaller photo.");
+  if (blob.size > limits.maxBytes) {
+    const mb = Math.round(limits.maxBytes / 1024 / 1024);
+    throw new PhotoError(`This photo is still larger than ${mb} MB after resizing. Choose a smaller photo.`);
   }
   // Same check as the full photo: a browser that can't encode WebP returns PNG.
   let card = await encode("image/webp", 0.8, cardCanvas);

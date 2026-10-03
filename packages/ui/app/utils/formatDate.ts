@@ -24,3 +24,8 @@ export function formatDuration(minutes: number): string {
   const mins = m ? `${m} ${m === 1 ? "minute" : "minutes"}` : "";
   return [hours, mins].filter(Boolean).join(" ") || "0 minutes";
 }
+
+// A date and time of day: "Oct 3, 2026, 4:03 PM". Same time zone rule as formatDate.
+export function formatDateTime(value: string | Date, timeZone?: string): string {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone }).format(new Date(value));
+}

@@ -7,3 +7,4 @@ export * from "./roles";
 export * from "./notifications";
 export * from "./public";
 export * from "./bookings";
+export * from "./guides";

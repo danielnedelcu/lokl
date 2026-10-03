@@ -14,6 +14,8 @@
       rejected: "Needs changes",
       unpublished: "Taken down",
     },
+    // Destination guides (guideState() in @repo/types).
+    guide: { draft: "Draft", published: "Published", changes: "Changes not published", unpublished: "Unpublished" },
     // Experience sessions.
     session: { scheduled: "Scheduled", cancelled: "Cancelled" },
     // Bookings, as the customer sees them.
@@ -67,6 +69,10 @@
     "listing:live": "default",
     "listing:rejected": "destructive",
     "listing:unpublished": "secondary",
+    "guide:draft": "outline",
+    "guide:published": "default",
+    "guide:changes": "secondary",
+    "guide:unpublished": "secondary",
     "session:scheduled": "outline",
     "session:cancelled": "secondary",
     "booking:pending_payment": "outline",

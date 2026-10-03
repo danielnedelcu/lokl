@@ -11,6 +11,10 @@
     "check-types": "nuxt typecheck"
   },
   "dependencies": {
+    "@editorjs/editorjs": "^2.31.7",
+    "@editorjs/header": "^2.8.9",
+    "@editorjs/list": "^2.0.9",
+    "@editorjs/quote": "^2.7.6",
     "@nuxt/eslint": "^1.17.0",
     "@nuxtjs/supabase": "^2.0.10",
     "@repo/types": "*",

@@ -3,7 +3,7 @@
 -- homepage shows only published guides, and visitors read nothing directly.
 begin;
 \ir _helpers/users.psql
-select plan(51);
+select plan(52);
 
 select tests.create_user('admin@test.local') as admin \gset
 select tests.create_user('provider@test.local') as owner \gset
@@ -44,12 +44,14 @@ select throws_ok(format($$ insert into guide_photos (guide_id, storage_path, wid
   values (%L, %L, 2400, 1350, 'Murals', 'other', 'A. Photographer', 'CC BY 4.0', 'https://example.com/photo') $$, :'g', :'g' || '/' || gen_random_uuid() || '.webp'),
   '23514', NULL, '2b. another licence needs commercial use confirmed');
 insert into guide_photos (guide_id, storage_path, width, height, alt_text, source, credit_name, credit_url, source_url)
-values (:'g', :'g' || '/' || gen_random_uuid() || '.webp', 2400, 1350, 'Murals along the Eastside Trail', 'unsplash',
+values (:'g', :'g' || '/' || gen_random_uuid() || '.webp', 1600, 900, 'Murals along the Eastside Trail', 'unsplash',
         'Jordan Example', 'https://unsplash.com/@example', 'https://unsplash.com/photos/abc')
 returning id as cover \gset
 select ok(:'cover' is not null, '2c. an Unsplash photo with its credit is kept');
 insert into guide_photos (guide_id, storage_path, width, height, alt_text, source)
-values (:'g', :'g' || '/' || gen_random_uuid() || '.jpg', 1600, 900, 'A small photo', 'own') returning id as small \gset
+values (:'g', :'g' || '/' || gen_random_uuid() || '.jpg', 1599, 900, 'A small photo', 'own') returning id as small \gset
+insert into guide_photos (guide_id, storage_path, width, height, alt_text, source)
+values (:'g', :'g' || '/' || gen_random_uuid() || '.jpg', 1600, 899, 'A short photo', 'own') returning id as short \gset
 insert into guide_photos (guide_id, storage_path, width, height, alt_text, source)
 values (:'g', :'g' || '/' || gen_random_uuid() || '.jpg', 1400, 2200, 'A tall photo', 'own') returning id as tall \gset
 select ok(:'small' is not null, '2d. an own photo needs no credit');
@@ -87,11 +89,14 @@ select tests.authenticate_as_service_role();
 select throws_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'admin'), '23514', 'Add a cover photo.', '3g. a cover is needed');
 update guides set draft_cover_photo_id = :'small' where id = :'g';
 select throws_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'admin'),
-  '23514', 'The cover photo needs to be landscape and at least 2,000 by 1,125 pixels (this one is 1600 by 900).', '3h. a cover smaller than 2,000 x 1,125 is refused');
+  '23514', 'The cover photo needs to be landscape and at least 1,600 by 900 pixels (this one is 1599 by 900).', '3h. a cover one pixel narrower than 1,600 is refused');
+update guides set draft_cover_photo_id = :'short' where id = :'g';
+select throws_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'admin'),
+  '23514', 'The cover photo needs to be landscape and at least 1,600 by 900 pixels (this one is 1600 by 899).', '3h. a cover one pixel shorter than 900 is refused');
 update guides set draft_cover_photo_id = :'tall' where id = :'g';
 select throws_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'admin'), '23514', NULL, '3i. a portrait cover is refused');
 update guides set draft_cover_photo_id = :'cover' where id = :'g';
-select lives_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'admin'), '3j. with everything in place, it''s published');
+select lives_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'admin'), '3j. with everything in place (a cover of exactly 1,600 x 900), it''s published');
 select is((select status || '|' || title || '|' || (cover_photo_id = :'cover')::text || '|' || (published_at is not null)::text from guides where id = :'g'),
   'published|Things to do in Old Fourth Ward|true|true', '3k. ...the draft is copied to the live copy');
 select is((select count(*)::int from guide_versions where guide_id = :'g' and published_by = :'admin'), 1, '3l. ...and a version is kept');

@@ -86,8 +86,13 @@ Each step depends on the ones before it.
      the listings block), photos, versions, AI draft log, homepage
      features, `publish_guide()` and `unpublish_guide()`, the
      `guide-photos` bucket. Pushed 2026-10-03.
-   - [ ] Part 2: admin editor (no AI). Next.
-   - [ ] Part 3: AI draft. Part 4: public pages. Part 5: homepage.
+   - [x] Part 2: admin editor (no AI). Guides list and "New guide", the
+     editor (Editor.js, autosave, web address check, listings block
+     preview), photos with credits, publish and unpublish routes,
+     versions with "Copy into draft", draft preview, shared `GuideBody`
+     renderer. Built 2026-10-03.
+   - [ ] Part 3: AI draft. Next.
+   - [ ] Part 4: public pages. Part 5: homepage.
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
 ## Staging site
