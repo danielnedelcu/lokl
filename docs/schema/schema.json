@@ -2488,6 +2488,10 @@
       ],
       "triggers": [
         {
+          "name": "bookings_clear_hold_when_refunded",
+          "def": "CREATE TRIGGER bookings_clear_hold_when_refunded AFTER UPDATE OF status, refunded_cents ON public.bookings FOR EACH ROW WHEN (((new.status = 'cancelled'::text) AND (new.refunded_cents \u003e= new.total_cents))) EXECUTE FUNCTION bookings_clear_hold_when_refunded()"
+        },
+        {
           "name": "bookings_guard",
           "def": "CREATE TRIGGER bookings_guard BEFORE INSERT OR UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_guard()"
         },
@@ -4887,6 +4891,12 @@
     },
     {
       "name": "private.booking_records_update",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.bookings_clear_hold_when_refunded",
       "return_type": "trigger",
       "arguments": "",
       "type": "FUNCTION"
