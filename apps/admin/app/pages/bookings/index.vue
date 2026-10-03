@@ -48,6 +48,9 @@ const attentionCount = computed(() =>
 // ---------------------------------------------------------------------------
 
 const STATUSES = ["requested", "confirmed", "completed", "paid_out", "cancelled", "declined", "expired"];
+// The money across every match (admin_booking_totals), from the same request as the page.
+interface Totals { charged_count: number; charged_cents: number; refunded_cents: number; commission_cents: number }
+const totals = ref<Totals | null>(null);
 const table = useServerTable({
   filters: {
     status: oneOf(...STATUSES),
@@ -73,7 +76,9 @@ const table = useServerTable({
         p_page: page,
       })
       .abortSignal(signal);
-    return asServerPage<AdminBookingRow>(data, error);
+    const result = asServerPage<AdminBookingRow>(data, error);
+    totals.value = (data as { totals?: Totals } | null)?.totals ?? null;
+    return result;
   },
 });
 const f = computed(() => table.query.value.filters);
@@ -190,7 +195,9 @@ const columns = [
       <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <p class="text-muted-foreground" aria-live="polite">
           {{ table.totalExact.value ? "" : "About " }}{{ table.total.value.toLocaleString("en-US") }}
-          {{ table.total.value === 1 ? "booking" : "bookings" }}
+          {{ table.total.value === 1 ? "booking" : "bookings" }}<template v-if="totals">
+            · {{ money(totals.charged_cents) }} charged · {{ money(totals.refunded_cents) }} refunded ·
+            {{ money(totals.commission_cents) }} commission kept</template>
         </p>
         <p v-if="attentionLabel" class="flex items-center gap-1">
           <span>Showing only: {{ attentionLabel }}</span>

@@ -106,10 +106,11 @@ Each step depends on the ones before it.
   `scripts/bench-admin-search.mjs` (local only).
 - [x] Signed-in check of the four pages (keyboard, screen reader, phone),
   2026-10-03.
-- [ ] Signed-in check of the form-controls pages from the earlier commit:
+- [x] Signed-in check of the form-controls pages from the earlier commit:
   provider (listing editor, sessions, settings, a booking request) and
-  customer (both booking forms).
-- [ ] Optional: money totals for the filtered bookings, from the database.
+  customer (both booking forms). Checked by the owner, 2026-10-03.
+- [x] Money totals for the filtered bookings, summed in the database
+  (migration `admin_booking_totals`, pushed 2026-10-03).
 
 ## Staging site
 

@@ -5,7 +5,7 @@
 -- function; the payout-setup rule matches the app's.
 begin;
 \ir _helpers/users.psql
-select plan(45);
+select plan(49);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -124,6 +124,31 @@ select is((admin_bookings_page(p_page := 9) -> 'rows'), '[]'::jsonb, '2w. a page
 select is((admin_bookings_page(p_page := 9) ->> 'total')::int, 6, '2x. ...and still says the total');
 select is((admin_bookings_page(p_q := 'rivera') -> 'rows' -> 0 ->> 'commission_cents') is not null, true,
   '2y. rows carry the money split, as the table shows it');
+
+-- 2z. Money totals across every match (20261003161858_admin_booking_totals).
+select tests.clear_authentication();
+-- A booking refunded in full keeps no commission (test-only, with the guard off).
+alter table public.bookings disable trigger bookings_guard;
+update public.bookings set refunded_cents = total_cents, refunded_at = now() where id = :'b_ghost';
+alter table public.bookings enable trigger bookings_guard;
+create temp table expect as
+select count(*) filter (where b.confirmed_at is not null) as n,
+  coalesce(sum(b.total_cents) filter (where b.confirmed_at is not null), 0) as charged,
+  coalesce(sum(b.refunded_cents) filter (where b.confirmed_at is not null), 0) as refunded,
+  coalesce(sum(case when b.refunded_cents >= b.total_cents then 0 else f.commission_cents end) filter (where b.confirmed_at is not null), 0) as commission
+from public.bookings b join public.booking_finances f on f.booking_id = b.id where b.id in (select id from bk);
+grant select on expect to authenticated;
+select tests.authenticate_as_admin(:'admin');
+select is(admin_bookings_page() -> 'totals',
+  (select jsonb_build_object('charged_count', n, 'charged_cents', charged, 'refunded_cents', refunded, 'commission_cents', commission) from expect),
+  '2z1. the totals are the sums across every booking, a fully refunded one keeping no commission');
+select is((admin_bookings_page(p_page_size := 1) -> 'totals' ->> 'charged_cents')::bigint, (select charged from expect),
+  '2z2. ...whatever the page size: every match, not just the page');
+select is((admin_bookings_page(p_provider_id := :'p2') -> 'totals' ->> 'charged_cents')::int, 6000,
+  '2z3. the totals follow the filters (two $30 Ghost walks)');
+select is(admin_bookings_page(p_q := 'nobody') -> 'totals',
+  '{"charged_count": 0, "charged_cents": 0, "refunded_cents": 0, "commission_cents": 0}'::jsonb,
+  '2z4. no matches: zeros, not nulls');
 
 -- ---------------------------------------------------------------------------
 -- 3. LISTINGS
