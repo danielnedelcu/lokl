@@ -15,9 +15,10 @@ import { customerCancelOutcome } from "@repo/types";
 
 export const EMAIL_KINDS = [
   "customer_request_sent", "customer_request_accepted", "customer_request_declined", "customer_request_expired",
-  "customer_booking_confirmed", "customer_booking_cancelled", "customer_problem_received",
+  "customer_booking_confirmed", "customer_booking_cancelled", "customer_problem_received", "customer_problem_refunded",
   "provider_new_request", "provider_new_booking", "provider_booking_cancelled", "provider_request_unanswered",
   "provider_payout_sent", "provider_problem_reported", "provider_payout_problem",
+  "provider_problem_paid", "provider_problem_refunded",
 ] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 
@@ -38,6 +39,9 @@ export interface EmailContext {
     cancelled_by: string | null;
     status_changed_by: string;
     customer_name: string;
+    /** lokl cancelled after the payout: the provider's share was taken back, or couldn't be. */
+    stripe_transfer_reversal_id?: string | null;
+    reversal_failed_at?: string | null;
   };
   listing: { title: string; kind: "service" | "experience"; categorySlug: string | null; marketSlug: string; marketName: string; timezone: string };
   provider: { name: string };
@@ -71,23 +75,30 @@ const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").rep
 interface Parts {
   subject: string;
   intro: string[];
+  bullets?: string[];
   facts?: [string, string][];
   after?: string[];
+  /** lokl's own words to the person (provider account emails), shown as written. */
+  message?: string | null;
   button: { label: string; url: string };
   link?: { label: string; url: string };
-  recipient: "customer" | "provider";
+  recipient: "customer" | "provider" | "account";
 }
 
 function render(p: Parts): RenderedEmail {
   const why = p.recipient === "customer"
     ? "You're getting this because of a booking on lokl."
-    : "You're getting this because of a booking on your lokl listing.";
+    : p.recipient === "provider"
+      ? "You're getting this because of a booking on your lokl listing."
+      : "You're getting this because you have a provider account on lokl.";
   const footer = ["Questions? Reply to this email.", "lokl · Services and Experiences from local people in Atlanta.", why];
 
   const text = [
     ...p.intro,
+    ...(p.bullets?.length ? [p.bullets.map((b) => `- ${b}`).join("\n")] : []),
     ...(p.facts?.length ? [p.facts.map(([k, v]) => `${k}: ${v}`).join("\n")] : []),
     ...(p.after ?? []),
+    ...(p.message ? [`A message from lokl:\n${p.message}`] : []),
     `${p.button.label}: ${p.button.url}`,
     ...(p.link ? [`${p.link.label}: ${p.link.url}`] : []),
     "--",
@@ -101,8 +112,10 @@ function render(p: Parts): RenderedEmail {
 <div style="max-width:560px;margin:0 auto;padding:24px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:#111111">
 <p style="margin:0 0 24px;font-size:20px;font-weight:600">lokl</p>
 ${p.intro.map(para).join("\n")}
+${p.bullets?.length ? `<ul style="margin:0 0 16px;padding-left:20px">${p.bullets.map((b) => `<li style="margin:0 0 6px">${escape(b)}</li>`).join("")}</ul>` : ""}
 ${p.facts?.length ? `<table role="presentation" style="margin:0 0 16px;border-collapse:collapse">${p.facts.map(([k, v]) => `<tr><td style="padding:2px 16px 2px 0;color:#555555;vertical-align:top">${escape(k)}</td><td style="padding:2px 0">${escape(v)}</td></tr>`).join("")}</table>` : ""}
 ${(p.after ?? []).map(para).join("\n")}
+${p.message ? `<div style="margin:0 0 16px;padding:12px 16px;background:#f4f4f5;border-radius:6px"><p style="margin:0 0 4px;font-weight:600">A message from lokl</p><p style="margin:0;white-space:pre-line">${escape(p.message)}</p></div>` : ""}
 <p style="margin:24px 0 8px"><a href="${escape(p.button.url)}" style="display:inline-block;min-height:44px;line-height:44px;padding:0 20px;background:#111111;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">${escape(p.button.label)}</a></p>
 <p style="margin:0 0 16px;font-size:14px;color:#555555">Or open: <a href="${escape(p.button.url)}" style="color:#111111">${escape(p.button.url)}</a></p>
 ${p.link ? `<p style="margin:0 0 16px"><a href="${escape(p.link.url)}" style="color:#111111">${escape(p.link.label)}</a></p>` : ""}
@@ -240,7 +253,38 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
         button: { label: "See your booking", url: customerUrl },
       });
 
+    // A no-show report resolved with a refund (decided 2026-10-03: the
+    // customer hears only about a refund; the provider hears either way).
+    case "customer_problem_refunded":
+      return render({
+        recipient: "customer",
+        subject: `Refunded: your report about ${l.title}`,
+        intro: [
+          `We looked into the problem you reported with ${l.title}${date ? ` on ${date}` : ""}, and we've refunded ${money(b.refunded_cents || b.total_cents)} to your card in full. Refunds can take a few business days to appear.`,
+          "Thanks for telling us.",
+        ],
+        button: { label: "See your booking", url: customerUrl },
+      });
+
     // ----------------------------------------------------------- provider
+    case "provider_problem_paid":
+      return render({
+        recipient: "provider",
+        subject: `You'll be paid for ${l.title}`,
+        intro: [
+          `We looked into the problem ${name} reported with their booking for ${l.title}${date ? ` on ${date}` : ""}. You'll be paid ${money(b.provider_amount_cents)} as usual. We'll email you when it's sent.`,
+        ],
+        button: { label: "See the booking", url: providerUrl },
+      });
+    case "provider_problem_refunded":
+      return render({
+        recipient: "provider",
+        subject: `Refunded after a reported problem: ${l.title}`,
+        intro: [
+          `We looked into the problem ${name} reported with their booking for ${l.title}${date ? ` on ${date}` : ""}, and refunded them in full. You won't be paid for this booking.`,
+        ],
+        button: { label: "See the booking", url: providerUrl },
+      });
     case "provider_new_request":
       return render({
         recipient: "provider",
@@ -269,7 +313,11 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
           : b.refunded_cents > 0
             ? `${name} cancelled in time and was refunded, so there's no payout for this booking.`
             : `${name} cancelled less than 48 hours before. You'll still receive ${money(b.provider_amount_cents)} at payout.`
-        : "lokl cancelled this booking and refunded the customer.";
+        : b.reversal_failed_at
+          ? `lokl cancelled this booking and refunded the customer. We couldn't take back the ${money(b.provider_amount_cents)} we'd sent you for it, so you owe it to lokl. We'll be in touch about it.`
+          : b.stripe_transfer_reversal_id
+            ? `lokl cancelled this booking and refunded the customer. The ${money(b.provider_amount_cents)} we'd sent you for it has been taken back from your Stripe balance.`
+            : "lokl cancelled this booking and refunded the customer.";
       return render({
         recipient: "provider",
         subject: date ? `Cancelled: ${l.title} on ${date}` : `Cancelled: ${l.title}`,
@@ -312,4 +360,46 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
         button: { label: "Check payout settings", url: `${c.siteUrl}/dashboard/payouts` },
       });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Provider account emails (provider_emails; decided 2026-10-03): paused when
+// lokl suspends a provider, active again when it reinstates them. lokl's
+// optional message is included only if written; the internal reason never
+// is (it isn't even passed here).
+// ---------------------------------------------------------------------------
+
+export type ProviderAccountEmailKind = "provider_account_paused" | "provider_account_active";
+
+export function renderProviderAccountEmail(
+  kind: ProviderAccountEmailKind,
+  c: { siteUrl: string; businessName: string; message: string | null },
+): RenderedEmail {
+  const message = c.message?.trim() || null;
+  const button = { label: "Go to your dashboard", url: `${c.siteUrl}/dashboard` };
+  if (kind === "provider_account_paused") {
+    return render({
+      recipient: "account",
+      subject: "Your lokl account is paused",
+      intro: [`We've paused the lokl account for ${c.businessName}.`, "While it's paused:"],
+      bullets: [
+        "Your listings are hidden, so customers can't find or book them.",
+        "Requests you hadn't answered, and bookings still in checkout, have been withdrawn. Those customers weren't charged.",
+        "Your payouts are on hold.",
+      ],
+      after: [
+        "Bookings that were already confirmed still go ahead, unless we tell you otherwise. If you can't do one, cancel it from your dashboard, and the customer gets a full refund.",
+      ],
+      message,
+      button,
+    });
+  }
+  return render({
+    recipient: "account",
+    subject: "Your lokl account is active again",
+    intro: [`The lokl account for ${c.businessName} is active again. Your listings are back on lokl, and customers can book them.`],
+    after: ["Payouts that were held while your account was paused stay on hold while we review them. We'll email you when each one is sent."],
+    message,
+    button,
+  });
 }

@@ -288,6 +288,9 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
         disputed_at: (booking.disputed_at as string | null) ?? new Date(dispute.created * 1000).toISOString(),
         dispute_closed_at: closed ? ((booking.dispute_closed_at as string | null) ?? now) : null,
         dispute_outcome: closed ? dispute.status : null,
+        dispute_reason: dispute.reason?.slice(0, 100) ?? null,
+        dispute_amount_cents: dispute.amount,
+        dispute_evidence_due_by: dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000).toISOString() : null,
       };
       // Not paid out yet: hold it. (Already paid out: the admin sees the
       // dispute and decides whether to reverse the transfer, part 8.)
@@ -299,8 +302,19 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
       return closed ? `dispute recorded as ${dispute.status}` : "dispute recorded, payout held";
     }
 
+    // A transfer reversed (by lokl cancelling after a payout, or in Stripe's
+    // dashboard): recorded on its booking, if it isn't already.
+    case "transfer.reversed": {
+      const transfer = await stripe.transfers.retrieve((event.data.object as Stripe.Transfer).id);
+      const reversal = (await stripe.transfers.listReversals(transfer.id, { limit: 1 })).data[0];
+      if (!reversal) return "ignored: no reversal found";
+      const { data, error } = await db.from("bookings").update({ stripe_transfer_reversal_id: reversal.id })
+        .eq("stripe_transfer_id", transfer.id).is("stripe_transfer_reversal_id", null).select("id");
+      if (error) throw new Error(error.message);
+      return data?.length ? "reversal recorded" : "ignored: already recorded, or no booking for this transfer";
+    }
+
     default:
-      // Transfer reversals come with the admin part.
-      return `ignored: ${event.type} isn't handled yet`;
+      return `ignored: ${event.type} isn't handled`;
   }
 }

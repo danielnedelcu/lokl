@@ -15,7 +15,7 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { renderEmail, type EmailContext, type EmailKind, type RenderedEmail } from "./bookingEmailTemplates";
+import { renderEmail, renderProviderAccountEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail } from "./bookingEmailTemplates";
 
 export interface OutgoingEmail extends RenderedEmail {
   to: string;
@@ -129,6 +129,7 @@ export async function loadEmailContext(db: SupabaseClient, bookingId: string, si
     .select(
       "id, kind, status, starts_at, confirmed_at, respond_by, preferred_times, party_size, total_cents, provider_amount_cents, " +
       "refunded_cents, cancelled_by, status_changed_by, customer_name, customer_id, provider_id, " +
+      "stripe_transfer_reversal_id, reversal_failed_at, " +
       "contact:booking_contacts(email), " +
       "listing:listings(title, kind, category:categories(slug), city:cities(name, slug, timezone)), " +
       "provider:providers(display_name, owner_id)",
@@ -161,24 +162,39 @@ async function providerEmail(db: SupabaseClient, ownerId: string | undefined) {
   return data.user?.email ?? null;
 }
 
-async function finish(db: SupabaseClient, id: string, update: Record<string, unknown>) {
-  const { error } = await db.from("booking_emails").update({ ...update, locked_at: null }).eq("id", id);
+type OutboxTable = "booking_emails" | "provider_emails";
+
+async function finish(db: SupabaseClient, table: OutboxTable, id: string, update: Record<string, unknown>) {
+  const { error } = await db.from(table).update({ ...update, locked_at: null }).eq("id", id);
   if (error) console.error("[emails] couldn't record the outcome", id, error.message);
 }
 
+interface OutboxRow { id: string; kind: string; status: string; attempts: number; locked_at: string | null; created_at: string }
+
 /**
- * Sends what's due (optionally for one booking). Never throws; returns what
- * it did, one "<email id> <kind>: <outcome>" line each.
+ * The one outbox runner, for booking_emails and provider_emails: picks what's
+ * due, claims each row, asks `prepare` for the email (or a reason to skip),
+ * sends it with the row id as the idempotency key, and records the outcome,
+ * with the retries and Resend-limit handling described at the top. Never
+ * throws.
  */
-export async function sendBookingEmails(
+async function runOutbox<R extends OutboxRow>(
   db: SupabaseClient,
   mailer: Mailer | null,
   settings: EmailSettings,
-  opts: { bookingId?: string; now?: Date; limit?: number } = {},
+  o: {
+    table: OutboxTable;
+    columns: string;
+    keyPrefix: string;
+    narrow?: (q: any) => any;
+    now?: Date;
+    limit?: number;
+    prepare: (row: R) => Promise<{ skip: string; to?: string | null } | { to: string | null; email: RenderedEmail }>;
+  },
 ): Promise<SendResult> {
   const out: SendResult = { sent: [], skipped: [], retrying: [], failed: [] };
   try {
-    const now = opts.now ?? new Date();
+    const now = o.now ?? new Date();
     const staleBefore = new Date(now.getTime() - STALE_CLAIM_MS).toISOString();
     // Due: a new email (never failed) at once; a retry once its time has
     // come; a send stuck part-way after 10 minutes. A new row's
@@ -188,28 +204,28 @@ export async function sendBookingEmails(
     // change, so it waited for the next job (found 2026-10-02). Only times
     // this server wrote itself (retry times, claims) are compared here.
     let q = db
-      .from("booking_emails")
-      .select("id, booking_id, kind, recipient, status, attempts, locked_at, created_at")
+      .from(o.table)
+      .select(o.columns)
       .or(`and(status.eq.pending,last_error.is.null),and(status.eq.pending,next_attempt_at.lte.${now.toISOString()}),and(status.eq.sending,locked_at.lt.${staleBefore})`)
       .order("created_at")
-      .limit(opts.limit ?? 50);
-    if (opts.bookingId) q = q.eq("booking_id", opts.bookingId);
+      .limit(o.limit ?? 50);
+    if (o.narrow) q = o.narrow(q);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
 
-    for (const row of (data ?? []) as Row[]) {
+    for (const row of (data ?? []) as unknown as R[]) {
       // Over the quota: the rest would be refused too, so leave them for later.
       if (out.limited) break;
       const label = `${row.id} ${row.kind}`;
       try {
         // A send that keeps crashing mid-way doesn't get retried forever.
         if (row.status === "sending" && row.attempts >= MAX_ATTEMPTS) {
-          await finish(db, row.id, { status: "failed", last_error: "Stopped part-way too many times." });
+          await finish(db, o.table, row.id, { status: "failed", last_error: "Stopped part-way too many times." });
           out.failed.push(`${label}: stopped part-way too many times`);
           continue;
         }
         // Claim it: only from the state read, so two senders can't both win.
-        let claim = db.from("booking_emails")
+        let claim = db.from(o.table)
           .update({ status: "sending", locked_at: now.toISOString(), attempts: row.attempts + 1 })
           .eq("id", row.id).eq("status", row.status).eq("attempts", row.attempts);
         claim = row.locked_at ? claim.eq("locked_at", row.locked_at) : claim.is("locked_at", null);
@@ -217,14 +233,13 @@ export async function sendBookingEmails(
         if (claimError) throw new Error(claimError.message);
         if (!claimed?.length) continue;
 
-        const { ctx, customerEmail, providerOwnerId, status } = await loadEmailContext(db, row.booking_id, settings.siteUrl);
-        // Out of date: the request was answered before this went out.
-        if ((row.kind === "customer_request_sent" || row.kind === "provider_new_request") && status !== "requested") {
-          await finish(db, row.id, { status: "skipped", skip_reason: "The request was already answered." });
-          out.skipped.push(`${label}: already answered`);
+        const prepared = await o.prepare(row);
+        if ("skip" in prepared) {
+          await finish(db, o.table, row.id, { status: "skipped", skip_reason: prepared.skip, to_address: prepared.to ?? null });
+          out.skipped.push(`${label}: ${prepared.skip}`);
           continue;
         }
-        const to = row.recipient === "customer" ? customerEmail : await providerEmail(db, providerOwnerId);
+        const to = prepared.to;
         const skip = !to ? "No address for the recipient."
           : settings.mode === "off" ? "Email sending is off."
           : !settings.replyTo ? "NUXT_EMAIL_REPLY_TO isn't set."
@@ -232,42 +247,41 @@ export async function sendBookingEmails(
           : !mailer ? "No mailer configured."
           : null;
         if (skip) {
-          await finish(db, row.id, { status: "skipped", skip_reason: skip, to_address: to });
+          await finish(db, o.table, row.id, { status: "skipped", skip_reason: skip, to_address: to });
           out.skipped.push(`${label}: ${skip}`);
           continue;
         }
 
-        const email = renderEmail(row.kind, ctx);
         try {
-          const { id } = await mailer!.send({ ...email, to: to!, from: settings.from, replyTo: settings.replyTo, idempotencyKey: `booking-email-${row.id}` });
-          await finish(db, row.id, { status: "sent", sent_at: new Date().toISOString(), resend_id: id, to_address: to, last_error: null });
+          const { id } = await mailer!.send({ ...prepared.email, to: to!, from: settings.from, replyTo: settings.replyTo, idempotencyKey: `${o.keyPrefix}-${row.id}` });
+          await finish(db, o.table, row.id, { status: "sent", sent_at: new Date().toISOString(), resend_id: id, to_address: to, last_error: null });
           out.sent.push(`${label}: sent`);
         } catch (e) {
           const attempts = row.attempts + 1;
           const message = (e as Error).message.slice(0, 500);
           if (e instanceof MailerLimitError) {
             // Not the email's fault: the attempt doesn't count. A quota stops
-            // this run; an email waiting 48 hours on a quota is given up on.
-            const waited = Date.now() - Date.parse(row.created_at);
+            // this run; an email waiting 48 hours on a limit is given up on.
             // (Either limit: if Resend names a quota error differently, it's
             // still retried as a rate limit and still given up on in time.)
+            const waited = Date.now() - Date.parse(row.created_at);
             if (waited >= QUOTA_GIVE_UP_MS) {
-              await finish(db, row.id, { status: "failed", attempts: row.attempts, last_error: `Waited 48 hours for Resend's limits. ${message}`.slice(0, 500), to_address: to });
+              await finish(db, o.table, row.id, { status: "failed", attempts: row.attempts, last_error: `Waited 48 hours for Resend's limits. ${message}`.slice(0, 500), to_address: to });
               out.failed.push(`${label}: waited 48 hours for Resend's limits`);
             } else {
               const next = new Date(Date.now() + (e.limit === "quota" ? QUOTA_RETRY_MS : RATE_RETRY_MS)).toISOString();
-              await finish(db, row.id, { status: "pending", attempts: row.attempts, next_attempt_at: next, last_error: message, to_address: to });
+              await finish(db, o.table, row.id, { status: "pending", attempts: row.attempts, next_attempt_at: next, last_error: message, to_address: to });
               out.retrying.push(`${label}: ${message}`);
             }
             if (e.limit === "quota") out.limited = true;
             continue;
           }
           if (attempts >= MAX_ATTEMPTS) {
-            await finish(db, row.id, { status: "failed", last_error: message, to_address: to });
+            await finish(db, o.table, row.id, { status: "failed", last_error: message, to_address: to });
             out.failed.push(`${label}: ${message}`);
           } else {
             const next = new Date(Date.now() + RETRY_MINUTES[attempts - 1]! * 60_000).toISOString();
-            await finish(db, row.id, { status: "pending", next_attempt_at: next, last_error: message, to_address: to });
+            await finish(db, o.table, row.id, { status: "pending", next_attempt_at: next, last_error: message, to_address: to });
             out.retrying.push(`${label}: ${message}`);
           }
         }
@@ -281,4 +295,57 @@ export async function sendBookingEmails(
     console.error("[emails] send run failed", e);
   }
   return out;
+}
+
+/**
+ * Sends the booking emails that are due (optionally for one booking). Never
+ * throws; returns what it did, one "<email id> <kind>: <outcome>" line each.
+ */
+export async function sendBookingEmails(
+  db: SupabaseClient,
+  mailer: Mailer | null,
+  settings: EmailSettings,
+  opts: { bookingId?: string; now?: Date; limit?: number } = {},
+): Promise<SendResult> {
+  return runOutbox<Row>(db, mailer, settings, {
+    table: "booking_emails",
+    columns: "id, booking_id, kind, recipient, status, attempts, locked_at, created_at",
+    keyPrefix: "booking-email",
+    narrow: opts.bookingId ? (q) => q.eq("booking_id", opts.bookingId) : undefined,
+    now: opts.now,
+    limit: opts.limit,
+    prepare: async (row) => {
+      const { ctx, customerEmail, providerOwnerId, status } = await loadEmailContext(db, row.booking_id, settings.siteUrl);
+      // Out of date: the request was answered before this went out.
+      if ((row.kind === "customer_request_sent" || row.kind === "provider_new_request") && status !== "requested") {
+        return { skip: "The request was already answered." };
+      }
+      const to = row.recipient === "customer" ? customerEmail : await providerEmail(db, providerOwnerId);
+      return { to, email: renderEmail(row.kind, ctx) };
+    },
+  });
+}
+
+/** Sends the provider account emails that are due (paused, active again). Never throws. */
+export async function sendProviderEmails(
+  db: SupabaseClient,
+  mailer: Mailer | null,
+  settings: EmailSettings,
+  opts: { providerId?: string; now?: Date; limit?: number } = {},
+): Promise<SendResult> {
+  type ProviderRow = OutboxRow & { provider_id: string; kind: ProviderAccountEmailKind; message: string | null };
+  return runOutbox<ProviderRow>(db, mailer, settings, {
+    table: "provider_emails",
+    columns: "id, provider_id, kind, message, status, attempts, locked_at, created_at",
+    keyPrefix: "provider-email",
+    narrow: opts.providerId ? (q) => q.eq("provider_id", opts.providerId) : undefined,
+    now: opts.now,
+    limit: opts.limit,
+    prepare: async (row) => {
+      const { data: p, error } = await db.from("providers").select("display_name, owner_id").eq("id", row.provider_id).single();
+      if (error) throw new Error(error.message);
+      const to = await providerEmail(db, p.owner_id);
+      return { to, email: renderProviderAccountEmail(row.kind, { siteUrl: settings.siteUrl, businessName: p.display_name, message: row.message }) };
+    },
+  });
 }

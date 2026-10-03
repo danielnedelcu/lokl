@@ -5,7 +5,7 @@
 //
 //   npm run email:previews
 import fs from "node:fs";
-import { renderEmail } from "../apps/website/server/utils/bookingEmailTemplates";
+import { renderEmail, renderProviderAccountEmail } from "../apps/website/server/utils/bookingEmailTemplates";
 import { emailSamples } from "../supabase/tests/app/_emailSamples";
 
 const dir = new URL("../apps/website/.email-previews/", import.meta.url);
@@ -13,8 +13,18 @@ fs.rmSync(dir, { recursive: true, force: true });
 fs.mkdirSync(dir, { recursive: true });
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const items = emailSamples().map((s, i) => {
-  const e = renderEmail(s.kind, s.ctx);
+// Booking emails, then the provider account emails (with and without a message).
+const account = [
+  { kind: "provider_account_paused", variant: "with a message", message: "Please call us about the last two bookings." },
+  { kind: "provider_account_paused", variant: "no message", message: null },
+  { kind: "provider_account_active", variant: "no message", message: null },
+] as const;
+const samples = [
+  ...emailSamples().map((s) => ({ kind: s.kind as string, variant: s.variant, render: () => renderEmail(s.kind, s.ctx) })),
+  ...account.map((a) => ({ kind: a.kind as string, variant: a.variant, render: () => renderProviderAccountEmail(a.kind, { siteUrl: "http://localhost:3100", businessName: "Fresh Cuts Studio", message: a.message }) })),
+];
+const items = samples.map((s, i) => {
+  const e = s.render();
   const file = `${String(i + 1).padStart(2, "0")}-${s.kind}${s.variant ? `--${s.variant.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}` : ""}.html`;
   fs.writeFileSync(new URL(file, dir), e.html);
   return { ...s, e, file, n: i + 1 };

@@ -1930,6 +1930,10 @@
       ],
       "triggers": [
         {
+          "name": "commission_rates_log_change",
+          "def": "CREATE TRIGGER commission_rates_log_change AFTER UPDATE OF rate_bps ON public.commission_rates FOR EACH ROW WHEN ((old.rate_bps IS DISTINCT FROM new.rate_bps)) EXECUTE FUNCTION commission_rates_log_change()"
+        },
+        {
           "name": "commission_rates_stamp",
           "def": "CREATE TRIGGER commission_rates_stamp BEFORE UPDATE ON public.commission_rates FOR EACH ROW EXECUTE FUNCTION commission_rates_stamp()"
         }
@@ -2200,6 +2204,50 @@
           "name": "dispute_outcome",
           "type": "text",
           "nullable": true
+        },
+        {
+          "name": "problem_resolved_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "problem_resolution",
+          "type": "text",
+          "nullable": true,
+          "comment": "How lokl resolved a no-show report: paid_provider (the payout goes ahead) or refunded (the booking was cancelled with a full refund)."
+        },
+        {
+          "name": "stripe_transfer_reversal_id",
+          "type": "text",
+          "nullable": true,
+          "comment": "When lokl cancelled after the payout: the reversal that took the provider's share back."
+        },
+        {
+          "name": "reversal_failed_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When lokl cancelled after the payout but the reversal failed (the provider's balance was empty): the share is owed to lokl. Details in reversal_failure."
+        },
+        {
+          "name": "reversal_failure",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "dispute_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "dispute_amount_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "dispute_evidence_due_by",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "From Stripe: when evidence for the dispute is due."
         }
       ],
       "indexes": [
@@ -2421,6 +2469,16 @@
           ]
         },
         {
+          "name": "bookings_dispute_amount_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((dispute_amount_cents \u003e= 0))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "dispute_amount_cents"
+          ]
+        },
+        {
           "name": "bookings_dispute_order",
           "type": "CHECK",
           "def": "CHECK (((dispute_closed_at IS NULL) OR (disputed_at IS NOT NULL)))",
@@ -2439,6 +2497,16 @@
           "referenced_table": "",
           "columns": [
             "dispute_outcome"
+          ]
+        },
+        {
+          "name": "bookings_dispute_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(dispute_reason) \u003c= 100))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "dispute_reason"
           ]
         },
         {
@@ -2515,6 +2583,27 @@
           ]
         },
         {
+          "name": "bookings_problem_resolution_check",
+          "type": "CHECK",
+          "def": "CHECK ((problem_resolution = ANY (ARRAY['paid_provider'::text, 'refunded'::text])))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "problem_resolution"
+          ]
+        },
+        {
+          "name": "bookings_problem_resolution_dated",
+          "type": "CHECK",
+          "def": "CHECK (((problem_resolution IS NULL) = (problem_resolved_at IS NULL)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "problem_resolution",
+            "problem_resolved_at"
+          ]
+        },
+        {
           "name": "bookings_provider_amount_cents_check",
           "type": "CHECK",
           "def": "CHECK ((provider_amount_cents \u003e= 0))",
@@ -2533,6 +2622,16 @@
           "columns": [
             "refunded_cents",
             "total_cents"
+          ]
+        },
+        {
+          "name": "bookings_reversal_failure_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(reversal_failure) \u003c= 500))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "reversal_failure"
           ]
         },
         {
@@ -2714,7 +2813,7 @@
         },
         {
           "name": "bookings_queue_emails",
-          "def": "CREATE TRIGGER bookings_queue_emails AFTER UPDATE OF status, problem_reported_at, payout_hold ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_queue_emails()"
+          "def": "CREATE TRIGGER bookings_queue_emails AFTER UPDATE OF status, problem_reported_at, payout_hold, problem_resolution ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_queue_emails()"
         },
         {
           "name": "bookings_set_updated_at",
@@ -3146,7 +3245,7 @@
         {
           "name": "booking_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['customer_request_sent'::text, 'customer_request_accepted'::text, 'customer_request_declined'::text, 'customer_request_expired'::text, 'customer_booking_confirmed'::text, 'customer_booking_cancelled'::text, 'customer_problem_received'::text, 'provider_new_request'::text, 'provider_new_booking'::text, 'provider_booking_cancelled'::text, 'provider_request_unanswered'::text, 'provider_payout_sent'::text, 'provider_problem_reported'::text, 'provider_payout_problem'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['customer_request_sent'::text, 'customer_request_accepted'::text, 'customer_request_declined'::text, 'customer_request_expired'::text, 'customer_booking_confirmed'::text, 'customer_booking_cancelled'::text, 'customer_problem_received'::text, 'customer_problem_refunded'::text, 'provider_new_request'::text, 'provider_new_booking'::text, 'provider_booking_cancelled'::text, 'provider_request_unanswered'::text, 'provider_payout_sent'::text, 'provider_problem_reported'::text, 'provider_payout_problem'::text, 'provider_problem_paid'::text, 'provider_problem_refunded'::text])))",
           "table": "public.booking_emails",
           "referenced_table": "",
           "columns": [
@@ -3236,6 +3335,587 @@
           "columns": [
             "booking_id",
             "kind"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.admin_actions",
+      "type": "BASE TABLE",
+      "comment": "Every admin action on bookings, emails and providers: who, what, when and why. Written by the website's admin routes with the service role; read by admins. Never deleted.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "admin_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "target",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "target_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": true,
+          "comment": "For suspending or reinstating a provider: the optional message lokl added to the provider's email. (The reason is internal and never sent.)"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_actions_pkey",
+          "def": "CREATE UNIQUE INDEX admin_actions_pkey ON public.admin_actions USING btree (id)",
+          "table": "public.admin_actions",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_actions_target_idx",
+          "def": "CREATE INDEX admin_actions_target_idx ON public.admin_actions USING btree (target, target_id, created_at)",
+          "table": "public.admin_actions",
+          "columns": [
+            "target",
+            "target_id",
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "admin_actions_action_check",
+          "type": "CHECK",
+          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text])))",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "action"
+          ]
+        },
+        {
+          "name": "admin_actions_message_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(message) \u003c= 1000))",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "message"
+          ]
+        },
+        {
+          "name": "admin_actions_reason",
+          "type": "CHECK",
+          "def": "CHECK (((action = 'retry_email'::text) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "action",
+            "reason"
+          ]
+        },
+        {
+          "name": "admin_actions_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(reason) \u003c= 1000))",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "reason"
+          ]
+        },
+        {
+          "name": "admin_actions_target_check",
+          "type": "CHECK",
+          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text])))",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "target"
+          ]
+        },
+        {
+          "name": "admin_actions_admin_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (admin_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.admin_actions",
+          "referenced_table": "auth.users",
+          "columns": [
+            "admin_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_actions_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.commission_rate_changes",
+      "type": "BASE TABLE",
+      "comment": "Each change to a commission rate: from, to, who and when. Filled by a trigger on commission_rates; read by admins. Never deleted.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "old_rate_bps",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "new_rate_bps",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "changed_by",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "changed_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "commission_rate_changes_pkey",
+          "def": "CREATE UNIQUE INDEX commission_rate_changes_pkey ON public.commission_rate_changes USING btree (id)",
+          "table": "public.commission_rate_changes",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "commission_rate_changes_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['service'::text, 'experience'::text])))",
+          "table": "public.commission_rate_changes",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "commission_rate_changes_changed_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (changed_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.commission_rate_changes",
+          "referenced_table": "auth.users",
+          "columns": [
+            "changed_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "commission_rate_changes_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.commission_rate_changes",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.job_runs",
+      "type": "BASE TABLE",
+      "comment": "Each timed job run (website /api/jobs/*): how many bookings it looked at, changed and couldn't handle, with the failures. Written by the website's server; read by admins.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "job",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        },
+        {
+          "name": "checked",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "changed",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "failed",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "failures",
+          "type": "text[]",
+          "nullable": false,
+          "default": "'{}'::text[]"
+        },
+        {
+          "name": "error",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "job_runs_pkey",
+          "def": "CREATE UNIQUE INDEX job_runs_pkey ON public.job_runs USING btree (id)",
+          "table": "public.job_runs",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "job_runs_recent_idx",
+          "def": "CREATE INDEX job_runs_recent_idx ON public.job_runs USING btree (finished_at DESC)",
+          "table": "public.job_runs",
+          "columns": [
+            "finished_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "job_runs_error_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(error) \u003c= 1000))",
+          "table": "public.job_runs",
+          "referenced_table": "",
+          "columns": [
+            "error"
+          ]
+        },
+        {
+          "name": "job_runs_job_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(job) \u003c= 60))",
+          "table": "public.job_runs",
+          "referenced_table": "",
+          "columns": [
+            "job"
+          ]
+        },
+        {
+          "name": "job_runs_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.job_runs",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.provider_emails",
+      "type": "BASE TABLE",
+      "comment": "Emails about a provider's account (paused, active again) to send, and what happened to each. One per admin action. Queued by admin_set_provider_status(); sent by the website's server. Server only; admins can read. Never deleted.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "admin_action_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": true,
+          "comment": "lokl's optional message, included in the email only if written."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending'::text"
+        },
+        {
+          "name": "attempts",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "locked_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "to_address",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "resend_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "skip_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "provider_emails_pkey",
+          "def": "CREATE UNIQUE INDEX provider_emails_pkey ON public.provider_emails USING btree (id)",
+          "table": "public.provider_emails",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_emails_admin_action_id_key",
+          "def": "CREATE UNIQUE INDEX provider_emails_admin_action_id_key ON public.provider_emails USING btree (admin_action_id)",
+          "table": "public.provider_emails",
+          "columns": [
+            "admin_action_id"
+          ]
+        },
+        {
+          "name": "provider_emails_due_idx",
+          "def": "CREATE INDEX provider_emails_due_idx ON public.provider_emails USING btree (next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'sending'::text]))",
+          "table": "public.provider_emails",
+          "columns": [
+            "next_attempt_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "provider_emails_attempts_check",
+          "type": "CHECK",
+          "def": "CHECK ((attempts \u003e= 0))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "attempts"
+          ]
+        },
+        {
+          "name": "provider_emails_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['provider_account_paused'::text, 'provider_account_active'::text])))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "provider_emails_last_error_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(last_error) \u003c= 500))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "last_error"
+          ]
+        },
+        {
+          "name": "provider_emails_message_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(message) \u003c= 1000))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "message"
+          ]
+        },
+        {
+          "name": "provider_emails_sent_has_time",
+          "type": "CHECK",
+          "def": "CHECK (((status \u003c\u003e 'sent'::text) OR (sent_at IS NOT NULL)))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "sent_at"
+          ]
+        },
+        {
+          "name": "provider_emails_skip_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(skip_reason) \u003c= 200))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "skip_reason"
+          ]
+        },
+        {
+          "name": "provider_emails_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'skipped'::text, 'failed'::text])))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "provider_emails_to_address_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(to_address) \u003c= 320))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "to_address"
+          ]
+        },
+        {
+          "name": "provider_emails_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.provider_emails",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_emails_admin_action_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT",
+          "table": "public.provider_emails",
+          "referenced_table": "public.admin_actions",
+          "columns": [
+            "admin_action_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_emails_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_emails_admin_action_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (admin_action_id)",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "admin_action_id"
           ]
         }
       ]
@@ -3516,6 +4196,32 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.provider_emails",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.provider_emails",
+      "columns": [
+        "admin_action_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.admin_actions",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -3715,6 +4421,18 @@
       "name": "public.bookings_queue_emails",
       "return_type": "trigger",
       "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.commission_rates_log_change",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_set_provider_status",
+      "return_type": "bool",
+      "arguments": "p_provider_id uuid, p_status text, p_admin_id uuid, p_reason text, p_message text",
       "type": "FUNCTION"
     }
   ],

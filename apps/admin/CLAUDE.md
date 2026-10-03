@@ -14,12 +14,20 @@ Owner-only dashboard. Port 3101 (fixed). Root `CLAUDE.md` applies too.
   - *Admin-only reference lists* (cities, service areas, categories) are
     written from the page with `useSupabaseClient()`, under admin-only
     database rules (`public.is_admin()`).
-  - *Status changes, anything that crosses users, and anything touching
-    Stripe* (provider suspension, listing approval, refunds) go through a
-    server route in `server/api/` that calls `requireAdmin(event)` first,
-    then uses the service role.
+  - *Status changes and anything that crosses users* (listing approval)
+    go through a server route in `server/api/` that calls
+    `requireAdmin(event)` first, then uses the service role. Anything that
+    needs Stripe, or has money consequences (refunds, payouts, provider
+    suspension), goes through the website's admin routes instead (below).
 - **No Stripe keys in this app.** Anything that needs Stripe gets a website
   server route. The admin app never calls Stripe directly.
+- **Calling the website's admin routes** (`/api/admin/*`: refunds,
+  cancellations, payouts, provider suspension): use `useWebsiteAdmin()`,
+  which sends the admin's own sign-in token as `Authorization: Bearer`. The
+  website checks the token, the admin role and that the call comes from this
+  app's exact address (`NUXT_ADMIN_ORIGIN` there, `NUXT_PUBLIC_WEBSITE_URL`
+  here; decision 14). Each action takes a reason (`ReasonDialog`) and is
+  logged in `admin_actions`.
 - **The login page never creates accounts** (`shouldCreateUser: false`). Admins
   are added by hand in Supabase.
 - **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;

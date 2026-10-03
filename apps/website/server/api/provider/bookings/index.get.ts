@@ -13,7 +13,7 @@ const FIELDS =
   "contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions)";
 
 export default defineEventHandler(async (event) => {
-  const provider = await requireProvider(event);
+  const provider = await requireProvider(event, "view_bookings");
   const { data, error } = await (await serverSupabaseClient(event))
     .from("bookings")
     .select(FIELDS)

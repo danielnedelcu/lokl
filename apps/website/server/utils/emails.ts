@@ -12,7 +12,15 @@ export function bookingEmailDeps() {
 
 export function kickBookingEmails(event: ServerEvent, bookingId?: string) {
   const { settings, mailer } = bookingEmailDeps();
-  const run = sendBookingEmails(serverSupabaseServiceRole(event), mailer, settings, { bookingId, limit: 20 })
+  const db = serverSupabaseServiceRole(event);
+  // Booking emails, then any provider account emails waiting (paused,
+  // active again), which are few.
+  const run = sendBookingEmails(db, mailer, settings, { bookingId, limit: 20 })
+    .then(async (r) => {
+      const p = await sendProviderEmails(db, mailer, settings, { limit: 10 });
+      for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k]);
+      return r;
+    })
     .then((r) => {
       if (r.sent.length || r.failed.length || r.retrying.length) {
         console.info(`[emails] sent ${r.sent.length}, retrying ${r.retrying.length}, failed ${r.failed.length}, skipped ${r.skipped.length}`);

@@ -43,6 +43,9 @@ export default defineNuxtConfig({
     // sign-in emails), NUXT_EMAIL_MODE (off | allowlist | send),
     // NUXT_EMAIL_ALLOWLIST (comma-separated, for allowlist mode),
     // NUXT_EMAIL_REPLY_TO (required to send), NUXT_EMAIL_FROM.
+    // NUXT_ADMIN_ORIGIN: the admin app's exact address, the only origin
+    // allowed to call /api/admin/* (decision 14). Empty refuses every call.
+    adminOrigin: "",
     resendApiKey: "",
     emailMode: "off",
     emailAllowlist: "",
@@ -52,6 +55,9 @@ export default defineNuxtConfig({
       // NUXT_PUBLIC_STRIPE_KEY / NUXT_PUBLIC_SITE_URL
       stripeKey: "",
       siteUrl: "http://localhost:3100",
+      // NUXT_PUBLIC_SUPPORT_EMAIL: where providers and customers can write
+      // to lokl (the same address booking emails reply to, for now).
+      supportEmail: "",
     },
   },
 

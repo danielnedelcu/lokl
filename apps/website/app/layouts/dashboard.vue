@@ -11,6 +11,7 @@ const sections = [{ items: [
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 const { data: provider } = await useProvider();
+const supportEmail = useRuntimeConfig().public.supportEmail;
 
 async function signOut() {
   await supabase.auth.signOut();
@@ -41,6 +42,17 @@ async function signOut() {
         </ClientOnly>
       </header>
       <main class="min-w-0 flex-1 p-4 md:p-8">
+        <!-- While lokl has paused the account (decided 2026-10-03). They can
+             still see and cancel bookings; the rest is refused. -->
+        <UiAlert v-if="provider?.status === 'suspended'" variant="destructive" icon="lucide:pause-circle" class="mb-6 max-w-3xl">
+          <UiAlertTitle as="h2">Your account is paused</UiAlertTitle>
+          <UiAlertDescription>
+            Your listings are hidden, so customers can't find or book them. Requests you hadn't answered have been
+            withdrawn, and your payouts are on hold. Bookings that were already confirmed still go ahead.
+            <template v-if="supportEmail">Questions? Email <a :href="`mailto:${supportEmail}`" class="underline underline-offset-4">{{ supportEmail }}</a>.</template>
+            <template v-else>Questions? Reply to the email we sent you.</template>
+          </UiAlertDescription>
+        </UiAlert>
         <slot />
       </main>
     </div>

@@ -7,7 +7,7 @@ import type { ServerEvent } from "./provider";
 // (A customer reading their own booking would pass RLS, hence the
 // provider_id check.)
 export async function loadProviderBooking(event: ServerEvent, id: string) {
-  const provider = await requireProvider(event);
+  const provider = await requireProvider(event, "answer_requests");
   const { data } = await (await serverSupabaseClient(event))
     .from("bookings").select("id, provider_id").eq("id", id).maybeSingle();
   if (!data || data.provider_id !== provider.id) {

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string
+          id: string
+          message: string | null
+          reason: string | null
+          target: string
+          target_id: string
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          reason?: string | null
+          target: string
+          target_id: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          reason?: string | null
+          target?: string
+          target_id?: string
+        }
+        Relationships: []
+      }
       booking_addresses: {
         Row: {
           booking_id: string
@@ -187,8 +220,11 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
+          dispute_amount_cents: number | null
           dispute_closed_at: string | null
+          dispute_evidence_due_by: string | null
           dispute_outcome: string | null
+          dispute_reason: string | null
           disputed_at: string | null
           ends_at: string | null
           id: string
@@ -203,12 +239,16 @@ export type Database = {
           preferred_times: string[] | null
           problem_note: string | null
           problem_reported_at: string | null
+          problem_resolution: string | null
+          problem_resolved_at: string | null
           provider_amount_cents: number
           provider_id: string
           refunded_at: string | null
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
+          reversal_failed_at: string | null
+          reversal_failure: string | null
           session_id: string | null
           starts_at: string | null
           status: string
@@ -218,6 +258,7 @@ export type Database = {
           stripe_dispute_id: string | null
           stripe_payment_intent_id: string | null
           stripe_transfer_id: string | null
+          stripe_transfer_reversal_id: string | null
           total_cents: number
           unit_price_cents: number
           updated_at: string
@@ -236,8 +277,11 @@ export type Database = {
           customer_name: string
           customer_notes?: string | null
           customer_postal_code?: string | null
+          dispute_amount_cents?: number | null
           dispute_closed_at?: string | null
+          dispute_evidence_due_by?: string | null
           dispute_outcome?: string | null
+          dispute_reason?: string | null
           disputed_at?: string | null
           ends_at?: string | null
           id?: string
@@ -252,12 +296,16 @@ export type Database = {
           preferred_times?: string[] | null
           problem_note?: string | null
           problem_reported_at?: string | null
+          problem_resolution?: string | null
+          problem_resolved_at?: string | null
           provider_amount_cents: number
           provider_id: string
           refunded_at?: string | null
           refunded_cents?: number
           reserved_until?: string | null
           respond_by?: string | null
+          reversal_failed_at?: string | null
+          reversal_failure?: string | null
           session_id?: string | null
           starts_at?: string | null
           status?: string
@@ -267,6 +315,7 @@ export type Database = {
           stripe_dispute_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_transfer_id?: string | null
+          stripe_transfer_reversal_id?: string | null
           total_cents: number
           unit_price_cents: number
           updated_at?: string
@@ -285,8 +334,11 @@ export type Database = {
           customer_name?: string
           customer_notes?: string | null
           customer_postal_code?: string | null
+          dispute_amount_cents?: number | null
           dispute_closed_at?: string | null
+          dispute_evidence_due_by?: string | null
           dispute_outcome?: string | null
+          dispute_reason?: string | null
           disputed_at?: string | null
           ends_at?: string | null
           id?: string
@@ -301,12 +353,16 @@ export type Database = {
           preferred_times?: string[] | null
           problem_note?: string | null
           problem_reported_at?: string | null
+          problem_resolution?: string | null
+          problem_resolved_at?: string | null
           provider_amount_cents?: number
           provider_id?: string
           refunded_at?: string | null
           refunded_cents?: number
           reserved_until?: string | null
           respond_by?: string | null
+          reversal_failed_at?: string | null
+          reversal_failure?: string | null
           session_id?: string | null
           starts_at?: string | null
           status?: string
@@ -316,6 +372,7 @@ export type Database = {
           stripe_dispute_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_transfer_id?: string | null
+          stripe_transfer_reversal_id?: string | null
           total_cents?: number
           unit_price_cents?: number
           updated_at?: string
@@ -416,6 +473,33 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_rate_changes: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          kind: string
+          new_rate_bps: number
+          old_rate_bps: number
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          kind: string
+          new_rate_bps: number
+          old_rate_bps: number
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          kind?: string
+          new_rate_bps?: number
+          old_rate_bps?: number
+        }
+        Relationships: []
+      }
       commission_rates: {
         Row: {
           kind: string
@@ -474,6 +558,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      job_runs: {
+        Row: {
+          changed: number
+          checked: number
+          error: string | null
+          failed: number
+          failures: string[]
+          finished_at: string
+          id: string
+          job: string
+          started_at: string
+        }
+        Insert: {
+          changed?: number
+          checked?: number
+          error?: string | null
+          failed?: number
+          failures?: string[]
+          finished_at?: string
+          id?: string
+          job: string
+          started_at: string
+        }
+        Update: {
+          changed?: number
+          checked?: number
+          error?: string | null
+          failed?: number
+          failures?: string[]
+          finished_at?: string
+          id?: string
+          job?: string
+          started_at?: string
+        }
+        Relationships: []
       }
       listing_addresses: {
         Row: {
@@ -746,6 +866,75 @@ export type Database = {
           },
         ]
       }
+      provider_emails: {
+        Row: {
+          admin_action_id: string
+          attempts: number
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          locked_at: string | null
+          message: string | null
+          next_attempt_at: string
+          provider_id: string
+          resend_id: string | null
+          sent_at: string | null
+          skip_reason: string | null
+          status: string
+          to_address: string | null
+        }
+        Insert: {
+          admin_action_id: string
+          attempts?: number
+          created_at?: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          locked_at?: string | null
+          message?: string | null
+          next_attempt_at?: string
+          provider_id: string
+          resend_id?: string | null
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          to_address?: string | null
+        }
+        Update: {
+          admin_action_id?: string
+          attempts?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          locked_at?: string | null
+          message?: string | null
+          next_attempt_at?: string
+          provider_id?: string
+          resend_id?: string | null
+          sent_at?: string | null
+          skip_reason?: string | null
+          status?: string
+          to_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_emails_admin_action_id_fkey"
+            columns: ["admin_action_id"]
+            isOneToOne: true
+            referencedRelation: "admin_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_emails_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       providers: {
         Row: {
           city_id: string
@@ -842,6 +1031,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_provider_status: {
+        Args: {
+          p_admin_id: string
+          p_message: string
+          p_provider_id: string
+          p_reason: string
+          p_status: string
+        }
+        Returns: boolean
+      }
       booking_emails_queue: {
         Args: { p_booking_id: string; p_kinds: string[] }
         Returns: undefined
@@ -876,8 +1075,11 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
+          dispute_amount_cents: number | null
           dispute_closed_at: string | null
+          dispute_evidence_due_by: string | null
           dispute_outcome: string | null
+          dispute_reason: string | null
           disputed_at: string | null
           ends_at: string | null
           id: string
@@ -892,12 +1094,16 @@ export type Database = {
           preferred_times: string[] | null
           problem_note: string | null
           problem_reported_at: string | null
+          problem_resolution: string | null
+          problem_resolved_at: string | null
           provider_amount_cents: number
           provider_id: string
           refunded_at: string | null
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
+          reversal_failed_at: string | null
+          reversal_failure: string | null
           session_id: string | null
           starts_at: string | null
           status: string
@@ -907,6 +1113,7 @@ export type Database = {
           stripe_dispute_id: string | null
           stripe_payment_intent_id: string | null
           stripe_transfer_id: string | null
+          stripe_transfer_reversal_id: string | null
           total_cents: number
           unit_price_cents: number
           updated_at: string
@@ -957,8 +1164,11 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
+          dispute_amount_cents: number | null
           dispute_closed_at: string | null
+          dispute_evidence_due_by: string | null
           dispute_outcome: string | null
+          dispute_reason: string | null
           disputed_at: string | null
           ends_at: string | null
           id: string
@@ -973,12 +1183,16 @@ export type Database = {
           preferred_times: string[] | null
           problem_note: string | null
           problem_reported_at: string | null
+          problem_resolution: string | null
+          problem_resolved_at: string | null
           provider_amount_cents: number
           provider_id: string
           refunded_at: string | null
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
+          reversal_failed_at: string | null
+          reversal_failure: string | null
           session_id: string | null
           starts_at: string | null
           status: string
@@ -988,6 +1202,7 @@ export type Database = {
           stripe_dispute_id: string | null
           stripe_payment_intent_id: string | null
           stripe_transfer_id: string | null
+          stripe_transfer_reversal_id: string | null
           total_cents: number
           unit_price_cents: number
           updated_at: string

@@ -1,4 +1,5 @@
 import type { Provider } from "@repo/types";
+import type { ProviderAction } from "./providerAccess";
 import { serverSupabaseClient, serverSupabaseUser } from "#supabase/server";
 
 // Nitro's request event, taken from the Supabase helpers so it's always the
@@ -26,13 +27,15 @@ export async function getOwnProvider(event: ServerEvent): Promise<Provider | nul
 }
 
 // Call at the top of every provider-only server route before touching data.
-export async function requireProvider(event: ServerEvent) {
+// A suspended provider is refused, except for what providerMay() allows them
+// (seeing and cancelling their bookings): pass that action.
+export async function requireProvider(event: ServerEvent, action: ProviderAction = "other") {
   const provider = await getOwnProvider(event);
   if (!provider) {
     throw createError({ statusCode: 403, statusMessage: "Set up your business profile first" });
   }
-  if (provider.status === "suspended") {
-    throw createError({ statusCode: 403, statusMessage: "This account is suspended" });
+  if (!providerMay(provider.status, action)) {
+    throw createError({ statusCode: 403, statusMessage: "Your account is paused, so this isn't available. Questions? Reply to our email." });
   }
   return provider;
 }

@@ -42,20 +42,46 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const started = Date.now();
-  // send-emails: retry what's due. Every other job then sends the emails
-  // its changes queued, so they don't wait for the next send-emails run.
-  if (name === "send-emails") {
-    const { settings, mailer } = bookingEmailDeps();
-    const r = await sendBookingEmails(serverSupabaseServiceRole(event), mailer, settings, { bookingId: opts.bookingId, limit: 200 });
-    console.info(`[jobs] send-emails: sent ${r.sent.length}, retrying ${r.retrying.length}, failed ${r.failed.length}, skipped ${r.skipped.length}`);
-    return {
-      job: name, checked: r.sent.length + r.retrying.length + r.failed.length + r.skipped.length,
-      done: [...r.sent, ...r.skipped.map((l) => `skipped ${l}`)], failed: [...r.failed, ...r.retrying.map((l) => `retrying ${l}`)],
-    };
+  const db = serverSupabaseServiceRole(event);
+  const started = new Date();
+  // Every run is logged in job_runs, for the admin's "needs attention" list,
+  // including one that crashes.
+  const log = async (r: { checked: number; done: string[]; failed: string[] } | null, error?: string) => {
+    const { error: logError } = await db.from("job_runs").insert({
+      job: opts.now ? `${name} (as of ${opts.now.toISOString()})` : name,
+      started_at: started.toISOString(),
+      checked: r?.checked ?? 0, changed: r?.done.length ?? 0, failed: r?.failed.length ?? 0,
+      failures: (r?.failed ?? []).slice(0, 50).map((l) => l.slice(0, 300)),
+      error: error?.slice(0, 1000) ?? null,
+    });
+    if (logError) console.error("[jobs] couldn't log the run", logError.message);
+  };
+
+  try {
+    let result: { job: string; checked: number; done: string[]; failed: string[] };
+    // send-emails: retry what's due. Every other job then sends the emails
+    // its changes queued, so they don't wait for the next send-emails run.
+    if (name === "send-emails") {
+      const { settings, mailer } = bookingEmailDeps();
+      const r = await sendBookingEmails(db, mailer, settings, { bookingId: opts.bookingId, limit: 200 });
+      if (!opts.bookingId) {
+        const p = await sendProviderEmails(db, mailer, settings, { limit: 50 });
+        for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k]);
+      }
+      result = {
+        job: name, checked: r.sent.length + r.retrying.length + r.failed.length + r.skipped.length,
+        done: [...r.sent, ...r.skipped.map((l) => `skipped ${l}`)], failed: r.failed,
+      };
+      if (r.retrying.length) result.done.push(...r.retrying.map((l) => `retrying ${l}`));
+    } else {
+      result = await runJob(name, db, useStripe(), opts);
+      kickBookingEmails(event);
+    }
+    await log(result);
+    console.info(`[jobs] ${name}: checked ${result.checked}, done ${result.done.length}, failed ${result.failed.length} (${Date.now() - started.getTime()} ms)`);
+    return result;
+  } catch (e) {
+    await log(null, (e as Error).message);
+    throw e;
   }
-  const result = await runJob(name, serverSupabaseServiceRole(event), useStripe(), opts);
-  kickBookingEmails(event);
-  console.info(`[jobs] ${name}: checked ${result.checked}, done ${result.done.length}, failed ${result.failed.length} (${Date.now() - started} ms)`);
-  return result;
 });

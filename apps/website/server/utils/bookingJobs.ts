@@ -203,6 +203,7 @@ type PayoutBooking = {
   refunded_cents: number;
   provider_amount_cents: number;
   problem_reported_at: string | null;
+  problem_resolution: string | null;
   disputed_at: string | null;
   dispute_closed_at: string | null;
   payout_hold: string | null;
@@ -215,7 +216,7 @@ type PayoutBooking = {
 
 const PAYOUT_FIELDS =
   "id, status, ends_at, starts_at, payout_due_at, confirmed_at, cancelled_by, refunded_cents, provider_amount_cents, " +
-  "problem_reported_at, disputed_at, dispute_closed_at, payout_hold, stripe_charge_id, stripe_payment_intent_id, " +
+  "problem_reported_at, problem_resolution, disputed_at, dispute_closed_at, payout_hold, stripe_charge_id, stripe_payment_intent_id, " +
   "stripe_transfer_id, provider_id, provider:providers(stripe_account_id, status)";
 
 async function hold(db: SupabaseClient, b: PayoutBooking, reason: string, failure?: string) {
@@ -271,7 +272,8 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
 
 async function payOne(db: SupabaseClient, stripe: Stripe, b: PayoutBooking): Promise<string> {
   // Holds the database knows about.
-  if (b.problem_reported_at) return hold(db, b, "problem_reported");
+  // A report holds the payout until lokl resolves it in the provider's favour.
+  if (b.problem_reported_at && b.problem_resolution !== "paid_provider") return hold(db, b, "problem_reported");
   if (b.disputed_at && !b.dispute_closed_at) return hold(db, b, "dispute");
   if (b.refunded_cents > 0) return hold(db, b, "refunded");
   // A suspended provider's money waits for lokl's review (suspension can

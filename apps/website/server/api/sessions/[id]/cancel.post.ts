@@ -9,7 +9,7 @@ import { serverSupabaseClient, serverSupabaseServiceRole } from "#supabase/serve
 const body = z.object({ reason: z.string().trim().min(5, "Say why you're cancelling. Customers see it.").max(1000) });
 
 export default defineEventHandler(async (event) => {
-  const provider = await requireProvider(event);
+  const provider = await requireProvider(event, "cancel_bookings");
   const id = getRouterParam(event, "id")!;
   const { data: s } = await (await serverSupabaseClient(event))
     .from("experience_sessions").select("id, status, starts_at, listing:listings(provider_id)").eq("id", id).maybeSingle();

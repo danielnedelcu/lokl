@@ -24,7 +24,9 @@ export default defineEventHandler(async (event) => {
   }
   const provider = await getOwnProvider(event);
   if (provider && provider.id === b.provider_id) {
-    if (provider.status === "suspended") throw createError({ statusCode: 403, statusMessage: "This account is suspended" });
+    // A suspended provider can still cancel their confirmed bookings
+    // (providerMay): the customer gets the usual full refund.
+    if (!providerMay(provider.status, "cancel_bookings")) throw createError({ statusCode: 403, statusMessage: "This account can't cancel bookings." });
     if (!reason) throw createError({ statusCode: 400, statusMessage: "Say why you're cancelling. The customer sees it." });
     const result = await answering(() => providerCancel(db, useStripe(), id, reason));
     kickBookingEmails(event, id);

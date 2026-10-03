@@ -27,6 +27,17 @@
       completed: "Done",
       paid_out: "Done",
     },
+    // Bookings, as the admin sees them.
+    adminBooking: {
+      pending_payment: "In checkout",
+      requested: "Waiting for provider",
+      confirmed: "Confirmed",
+      declined: "Declined",
+      expired: "Ended",
+      cancelled: "Cancelled",
+      completed: "Happened",
+      paid_out: "Paid out",
+    },
     // Bookings, as the provider sees them.
     providerBooking: {
       requested: "Needs your answer",
@@ -66,6 +77,9 @@
     "booking:cancelled": "outline",
     "booking:completed": "outline",
     "booking:paid_out": "outline",
+    "adminBooking:requested": "secondary",
+    "adminBooking:confirmed": "default",
+    "adminBooking:declined": "destructive",
     "providerBooking:requested": "default",
     "providerBooking:confirmed": "secondary",
   };

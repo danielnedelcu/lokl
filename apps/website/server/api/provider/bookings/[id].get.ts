@@ -5,7 +5,7 @@ import { serverSupabaseClient } from "#supabase/server";
 // its history and, for a request, which offered times overlap the
 // provider's confirmed bookings (a warning only).
 export default defineEventHandler(async (event) => {
-  const provider = await requireProvider(event);
+  const provider = await requireProvider(event, "view_bookings");
   const db = await serverSupabaseClient(event);
   const { data: b, error } = await db
     .from("bookings")

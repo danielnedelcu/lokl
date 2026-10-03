@@ -4,7 +4,7 @@
 // dialog's rule. No network, no database.
 // Run: npx tsx supabase/tests/app/booking-email-templates.test.mts
 
-import { EMAIL_KINDS, renderEmail } from "../../../apps/website/server/utils/bookingEmailTemplates";
+import { EMAIL_KINDS, renderEmail, renderProviderAccountEmail } from "../../../apps/website/server/utils/bookingEmailTemplates";
 import { emailSamples } from "./_emailSamples";
 
 let failures = 0;
@@ -64,5 +64,31 @@ check(find("customer_booking_cancelled", "you cancelled, no refund").text.includ
   "6d. a late cancellation tells the customer there's no refund and the provider they'll still be paid");
 check(all.every((a) => a.out.text.includes("(Atlanta time)") || !/\d:\d\d [AP]M/.test(a.out.text)), "6e. every time shown says it's Atlanta time");
 
-console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} emails).`);
+// 6f. lokl cancelling after the payout tells the provider what happened to their share.
+const back = find("provider_booking_cancelled", "lokl cancelled after the payout (taken back)").text;
+const owed = find("provider_booking_cancelled", "lokl cancelled after the payout (owed)").text;
+const plainCancel = find("provider_booking_cancelled", "lokl cancelled").text;
+check(back.includes("$104.00 we'd sent you for it has been taken back from your Stripe balance"), "6f. after a payout, the provider is told their share was taken back");
+check(owed.includes("couldn't take back the $104.00") && owed.includes("you owe it to lokl"), "6g. ...or, if that failed, that they owe it");
+check(!plainCancel.includes("taken back") && !plainCancel.includes("owe"), "6h. before a payout, neither is mentioned");
+
+// 7. The provider account emails (paused, active again).
+const site = "http://localhost:3100";
+const paused = renderProviderAccountEmail("provider_account_paused", { siteUrl: site, businessName: "Fresh Cuts Studio", message: "Please call us about\nthe last two bookings." });
+const pausedPlain = renderProviderAccountEmail("provider_account_paused", { siteUrl: site, businessName: "Fresh Cuts Studio", message: null });
+const active = renderProviderAccountEmail("provider_account_active", { siteUrl: site, businessName: "Fresh Cuts Studio", message: "   " });
+check(paused.subject === "Your lokl account is paused" && active.subject === "Your lokl account is active again", "7a. the two subjects, as approved");
+check(["Your listings are hidden", "have been withdrawn", "payouts are on hold", "still go ahead, unless we tell you otherwise",
+  "If you can't do one, cancel it from your dashboard, and the customer gets a full refund."].every((t) => paused.text.includes(t)),
+  "7b. the paused email says what's hidden, withdrawn and held, and how to cancel a confirmed booking");
+check(paused.text.includes("A message from lokl:\nPlease call us about\nthe last two bookings.") && paused.html.includes("A message from lokl"),
+  "7c. lokl's message is included when written, line breaks and all");
+check(!pausedPlain.text.includes("A message from lokl") && !active.text.includes("A message from lokl"), "7d. with no message (or only spaces), there's no message section");
+const evilMsg = renderProviderAccountEmail("provider_account_paused", { siteUrl: site, businessName: "Fresh Cuts Studio", message: "<img src=x onerror=alert(1)>" });
+check(!evilMsg.html.includes("<img") && evilMsg.html.includes("&lt;img"), "7e. HTML in the message is shown as text, not run");
+check(active.text.includes("stay on hold while we review them") && active.text.includes("/dashboard"), "7f. the active email says held payouts stay held, and links to the dashboard");
+check([paused, active].every((e) => e.text.includes("Questions? Reply to this email.") && e.text.includes("you have a provider account on lokl")),
+  "7g. both invite replies and say why the provider is getting them");
+
+console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} booking emails, 2 account emails).`);
 process.exit(failures ? 1 : 0);

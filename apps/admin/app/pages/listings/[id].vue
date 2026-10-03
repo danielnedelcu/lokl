@@ -334,6 +334,8 @@ watch(error, (e) => e && reportProblem("Couldn't load this listing", e), { immed
               </ul>
             </UiCardContent>
           </UiCard>
+
+          <ListingBookings :listing-id="id" />
         </div>
       </div>
     </div>

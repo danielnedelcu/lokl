@@ -16,6 +16,15 @@ export default defineNuxtConfig({
   extends: ["@repo/ui"],
 
   compatibilityDate: "2025-07-15",
+
+  runtimeConfig: {
+    public: {
+      // NUXT_PUBLIC_WEBSITE_URL: where the website's /api/admin/* routes are.
+      // Refunds and anything else that needs Stripe go through them, with
+      // the admin's own sign-in token (decision 14).
+      websiteUrl: "http://localhost:3100",
+    },
+  },
   devtools: { enabled: true },
 
   // Admin is an authenticated tool, so SSR adds nothing but complexity.

@@ -317,6 +317,13 @@ Templates live in the website as small functions (subject, plain text, simple HT
 - **Settings:** commission rates per kind, with who changed them and when.
 - **Listing detail:** the listing's bookings.
 
+**As built (part 8, 2026-10-03).**
+- Website routes, all through `requireAdminRequest` (the admin app's exact origin, then the admin's token checked with Supabase, then the admin role; CORS for that origin only, no credentials): `POST /api/admin/bookings/:id/cancel`, `release-payout`, `resolve-problem` (`pay_provider` or `refund`), `/api/admin/emails/:id/retry`, `/api/admin/providers/:id/suspend` and `reinstate`. Every action needs a reason (except sending an email again) and is logged in `admin_actions`.
+- lokl's cancellations always refund in full and don't pay the provider. After a payout, the provider's transfer is reversed; a reversal that fails (an empty balance) is recorded as owed and listed under "needs attention".
+- A no-show report is resolved once: in the provider's favour (the payout goes ahead; the provider is emailed) or with a full refund (the booking is cancelled; both are emailed the outcome, instead of the usual cancellation emails).
+- Suspending a provider hides their listings, withdraws their open requests and checkouts at once, and holds their payouts; reinstating leaves held payouts held until released. Both email the provider (`provider_emails`, queued by `admin_set_provider_status` in the same transaction as the change), with lokl's optional message; the internal reason stays in `admin_actions`. While suspended, the provider's dashboard says so, and they can still see their bookings and cancel confirmed ones (`providerMay`).
+- Pages: Bookings & payouts (needs attention: reports, holds, owed reversals, open disputes, failed emails, failed job runs, confirmed bookings on listings that came down), a page per booking, Disputes & refunds (with Stripe links), Settings (commission rates and their history), the listing's bookings, and suspend or reinstate on Providers.
+
 ## Flags: where the decisions don't fit as written
 
 1. **"Spots are checked at payment"** (decision 3) can't stop two people who pay at the same moment from both getting the last spot; the second would have to be refunded after paying. The design reserves spots when checkout starts (for Checkout's 30-minute window), so the last spot is held while someone pays. Same intent, different moment.

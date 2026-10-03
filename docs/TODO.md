@@ -195,8 +195,32 @@ Each step depends on the ones before it.
        customer cancelled: …".
      - [ ] Decide: keep skipping "Request sent" / "New request" when they'd
        go out after the request is answered, or always send them.
-   - [ ] Part 8 admin (including clearing payout holds, acting on no-show
-     reports, and the failed-emails list).
+   - [x] Part 8: the admin side. Bookings & payouts with "needs attention",
+     a page per booking (release payouts, resolve no-show reports, refund
+     and cancel, send emails again), Disputes & refunds, commission rates
+     with history, the listing's bookings, suspending and reinstating
+     providers; all through the website's `/api/admin/*` with the admin's
+     token. Built 2026-10-03; migration `booking_admin` pushed. Then:
+     suspension emails ("paused" / "active again", optional message), a
+     paused notice on the dashboard, and suspended providers can still see
+     and cancel bookings; migration `provider_account_emails` pushed.
+     Walkthrough passed 2026-10-03.
+   - [ ] Booking emails are sent once per booking and kind
+     (`booking_emails_once`), so a booking cancelled twice gets one
+     "Cancelled" email. The case: a customer cancels late (no refund), then
+     lokl refunds them in full; they'd never be told about the refund. It
+     can't happen yet: lokl has no way to refund an already cancelled
+     booking (admin cancel refuses it). When that's added, give the refund
+     its own email (e.g. `customer_late_cancel_refunded`) rather than
+     reusing "Cancelled".
+   - [ ] Next, after part 8: booking finances only the provider and lokl
+     can read. Today a customer (or provider) can read every column of
+     their own booking from the database directly, including the
+     commission split, the payout state and failures, and Stripe ids.
+     Move those to a separate table read only by the booking's provider and
+     admins, the same pattern as listing addresses; customers keep only
+     what they paid and were refunded. Plan first, including what it
+     changes in existing pages and routes (decided 2026-10-03).
    - [ ] Launch prep: set `NUXT_EMAIL_MODE=send` in production, and turn on
      the `send-emails` job with the other jobs.
    - [ ] Launch prep: a separate Resend account for lokl, so its quota can't
@@ -211,7 +235,8 @@ Each step depends on the ones before it.
 6. **Admin actions.** Suspend or reinstate providers, approve or reject
    Experiences, handle disputes, all via `requireAdmin` server routes.
    - [ ] Audit log for admin actions (who approved, rejected, unpublished or
-     restored what).
+     restored what). Booking, email and provider actions are logged in
+     `admin_actions` since 2026-10-03; listing reviews aren't yet.
 7. **Destination guides.** AI draft (Anthropic API), editor with photo, slug and
    publish state, links into listings. Can start any time after step 3.
 8. **Launch prep.** Hosting and domains, live Stripe keys, production webhook,
@@ -324,6 +349,9 @@ tests, run through `db:test` before `db:push`.
 - Area pages such as `/atlanta/decatur`, once areas have enough listings to stand as pages (docs/design/browse-and-listing-pages.md).
 - Optional note to the customer when declining a request (stored on the booking, sent in the decline email).
 - Track provider cancellations and show patterns to the admin.
+- Partial refunds (for example half, for a partly missed booking). Needs its own payout maths.
+- Option to cancel and still pay the provider, when the cancellation isn't their fault.
+- Deduct money owed from a provider's future payouts (a reversal that failed after a payout).
 
 ## Loose ends
 

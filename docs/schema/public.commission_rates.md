@@ -30,9 +30,10 @@ lokl's commission per kind of listing, in basis points (1200 = 12%). Admin-edita
 
 ## Triggers
 
-| Name                   | Definition                                                                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| commission_rates_stamp | CREATE TRIGGER commission_rates_stamp BEFORE UPDATE ON public.commission_rates FOR EACH ROW EXECUTE FUNCTION commission_rates_stamp() |
+| Name                        | Definition                                                                                                                                                                                                     |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| commission_rates_log_change | CREATE TRIGGER commission_rates_log_change AFTER UPDATE OF rate_bps ON public.commission_rates FOR EACH ROW WHEN ((old.rate_bps IS DISTINCT FROM new.rate_bps)) EXECUTE FUNCTION commission_rates_log_change() |
+| commission_rates_stamp      | CREATE TRIGGER commission_rates_stamp BEFORE UPDATE ON public.commission_rates FOR EACH ROW EXECUTE FUNCTION commission_rates_stamp()                                                                          |
 
 ## Relations
 
