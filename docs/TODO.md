@@ -123,17 +123,24 @@ Each step depends on the ones before it.
 
 ## Automated checks
 
-- [ ] **GitHub Actions on every push:** the database tests (`npm run
-  db:test`, on a local Supabase stack started in the job, never the hosted
-  one), the app tests (`npm run db:test:app`), the type check (`npm run
-  typecheck`) and the build check (`npm run build:check`).
-  - The app tests that use Stripe need the Lokl sandbox's test key as a
-    repository secret (test mode only; the tests already refuse anything
-    else). Never a live key.
-  - Some app tests call the running apps (ports 3100 and 3101): the job
-    starts both against the local stack first.
-  - Email: keep `NUXT_EMAIL_MODE` off (or allowlist) in the job, so no real
-    email is sent.
+- [x] **GitHub Actions** (`.github/workflows/ci.yml`, built 2026-10-03), on
+  every push to `main` and every pull request to `main`:
+  - `checks`: type check, UI tests, email templates.
+  - `database`: a local Supabase stack in the job (never the hosted one);
+    `db:test`, the build check, both apps started from the build against
+    that stack (`scripts/ci-start-apps.mjs`), `db:test:app:core` (the app
+    tests without Stripe) and `db:test:realtime`. Email is off. No secrets.
+  - `stripe`: `db:test:app:stripe`, only when the `stripe-sandbox`
+    environment has `STRIPE_SANDBOX_SECRET_KEY`, a restricted test key for
+    the Lokl sandbox (permissions in `docs/decisions.md`). Skipped without
+    it; fails on anything but a test key. One run at a time.
+  - Not in CI: `db:test:checkout` (waits for a person to pay on Stripe's
+    page) and the five-minute token-refresh Realtime test (needs a short
+    `jwt_expiry`).
+- [ ] **Create the restricted Stripe key** (owner) with the permissions in
+  `docs/decisions.md`, run `NUXT_STRIPE_SECRET_KEY=<key> npm run
+  db:test:app:stripe` locally once to confirm, then add it to the
+  `stripe-sandbox` environment as `STRIPE_SANDBOX_SECRET_KEY`.
 - [ ] **Playwright end-to-end tests for the key journeys**, against the
   local stack and the Lokl sandbox:
   - booking an Experience, through to payment (Stripe's test cards);
@@ -152,6 +159,7 @@ A real address before the live one: `staging.hilokl.com` (website) and
 `admin-staging.hilokl.com` (admin), on the testing Supabase project and the
 Lokl Stripe sandbox. Test there first what needs a real address:
 
+- [ ] Switch to branches and pull requests, with `checks` and `database` required to merge.
 - [ ] Hosting for both apps on those addresses, over HTTPS.
 - [ ] Supabase auth URLs for staging: Site URL and the `/confirm` redirects
   on both addresses.

@@ -8,10 +8,10 @@
 // Run: npx tsx supabase/tests/app/provider-bookings.test.mts
 
 import { execFileSync } from "node:child_process";
-import fs from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { stripeTestKey } from "./_stripeKey";
 import {
   acceptRequest,
   ALREADY_ANSWERED,
@@ -27,10 +27,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(local.API_URL ?? "")) {
   process.exit(1);
 }
 const db = createClient(local.API_URL!, local.SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-const webEnv = Object.fromEntries(fs.readFileSync(new URL("../../../apps/website/.env", import.meta.url), "utf8")
-  .split("\n").filter((l) => l.includes("=") && !l.startsWith("#"))
-  .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^["']|["']$/g, "")]));
-const key = webEnv.NUXT_STRIPE_SECRET_KEY ?? "";
+const key = stripeTestKey();
 if (!/^(sk|rk)_test_/.test(key)) { console.error("Refusing to run: not a test-mode key."); process.exit(1); }
 const stripe = new Stripe(key);
 if ((await stripe.accounts.retrieve()).id !== "acct_1UKIdIEfG7OyQ6pv") { console.error("Refusing to run: not the Lokl sandbox."); process.exit(1); }

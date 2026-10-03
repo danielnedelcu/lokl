@@ -1,0 +1,139 @@
+# Checks on every push to main and every pull request to main
+# (docs/TODO.md, Automated checks; planned and approved 2026-10-03).
+#
+# - checks:   type check, UI tests, email templates. No services, no secrets.
+# - database: a local Supabase stack in the runner; pgTAP, then both apps
+#             built and started against that stack for the app tests that
+#             don't need Stripe, then the Realtime tests. No secrets: the
+#             local stack's keys are the CLI's fixed local ones, read at run
+#             time and never stored.
+# - stripe:   the Stripe tests, only when the `stripe-sandbox` environment has
+#             STRIPE_SANDBOX_SECRET_KEY: a restricted test key for the Lokl
+#             sandbox (acct_1UKIdIEfG7OyQ6pv). Never a live key; the tests also
+#             refuse any key that isn't test-mode for that account.
+#
+# No real keys live in this repository. Nothing here talks to the hosted
+# Supabase project, Resend or Anthropic.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A newer run for the same branch or pull request replaces an older one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_CLI_VERSION: 2.118.0
+  # Services the tests don't use, left out to start faster.
+  SUPABASE_EXCLUDE: studio,imgproxy,edge-runtime,logflare,vector,supavisor
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: UI tests
+        run: npm run test:ui
+      - name: Email templates
+        run: npm run test:emails
+
+  database:
+    name: database
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Start the local Supabase stack
+        run: supabase start -x "$SUPABASE_EXCLUDE"
+      - name: Database tests (pgTAP)
+        run: npm run db:test
+      - name: Build check
+        run: npm run build:check
+      - name: Start both apps against the local stack
+        run: node scripts/ci-start-apps.mjs
+      - name: App tests (no Stripe)
+        run: npm run db:test:app:core
+      - name: Realtime tests
+        run: npm run db:test:realtime
+      - name: App server logs
+        if: failure()
+        run: |
+          for app in website admin; do
+            echo "::group::$app server log"
+            tail -n 200 "apps/$app/.output-check/server.log" 2>/dev/null || echo "No log."
+            echo "::endgroup::"
+          done
+
+  stripe:
+    name: stripe
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Forks never get secrets; only pushes and this repo's own pull requests.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    environment: stripe-sandbox
+    # One Stripe run at a time across branches: they share the sandbox.
+    concurrency:
+      group: stripe-sandbox
+      cancel-in-progress: false
+    steps:
+      - name: Check the Stripe sandbox key
+        id: key
+        env:
+          KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::notice::No STRIPE_SANDBOX_SECRET_KEY in the stripe-sandbox environment: the Stripe tests are skipped."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$KEY" in
+            rk_test_*|sk_test_*) echo "run=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::STRIPE_SANDBOX_SECRET_KEY isn't a test-mode key. Only a Lokl sandbox test key belongs here."; exit 1 ;;
+          esac
+      - if: steps.key.outputs.run == 'true'
+        uses: actions/checkout@v4
+      - if: steps.key.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - if: steps.key.outputs.run == 'true'
+        run: npm ci
+      - if: steps.key.outputs.run == 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Start the local Supabase stack
+        if: steps.key.outputs.run == 'true'
+        run: supabase start -x "$SUPABASE_EXCLUDE"
+      - name: Stripe tests (Lokl sandbox)
+        if: steps.key.outputs.run == 'true'
+        env:
+          NUXT_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+        run: npm run db:test:app:stripe
