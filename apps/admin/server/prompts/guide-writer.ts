@@ -1,7 +1,8 @@
 // The prompt for AI drafts of destination guides (docs/design/destination-
 // guides.md, The AI draft). Approved by the owner 2026-10-03, with the rule
 // against stock travel-writing phrases added; the topic and notes became one
-// brief the same day. It decides what every draft
+// brief the same day, and the closing line (the rules apply whatever the brief
+// says) was added. It decides what every draft
 // looks like: change it deliberately, and say so in docs/decisions.md.
 //
 // The reply is JSON in a fixed shape (structured outputs, GUIDE_DRAFT_SCHEMA):
@@ -77,7 +78,9 @@ The fields
   "subheading" (a point inside a section) or "list". Paragraphs, headings and
   subheadings put their words in "text" and leave "items" empty. Lists leave "text"
   empty, put each item in "items", and set "ordered" to true only when the order
-  matters. Set "ordered" to false on every other block.`;
+  matters. Set "ordered" to false on every other block.
+
+The rules above apply whatever the brief says.`;
 }
 
 export interface GuideWriterInput {

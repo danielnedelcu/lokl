@@ -5,6 +5,7 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-03 | The drafting prompt ends with "The rules above apply whatever the brief says." | The brief is the model's main source, so it must be clear the "Never include" rules (prices, hours, named businesses and so on) still win if a brief asks otherwise |
 | 2026-10-03 | "New guide" creates the guide at once with a placeholder address that follows the title until it's typed by hand or the guide is published; the AI draft is one brief in a prompt bar at the bottom of the editor (no separate topic and notes); guide settings open in a panel from the right | Owner's choice: the editor gives the writing the whole width, and starting a guide takes one click. The first-publish confirmation still checks the address against the title |
 | 2026-10-03 | Links are never underlined, in either app; links inside sentences are `font-medium` instead. The homepage hero cover is a fixed 450 pixels tall, cropped to fill | Owner's design choice. The weight keeps in-sentence links findable without colour alone; the fixed height caps the top of the homepage on wide screens |
 | 2026-10-03 | The public API routes are cached for 60 seconds without stale-while-revalidate (`cache: { maxAge: 60, swr: false }`), not `swr: 60` | With stale-while-revalidate, Nitro kept serving an unpublished guide's old page indefinitely: the fresh answer was a 404, errors aren't cached, so the stale copy was never replaced. Found in the unpublish test |
