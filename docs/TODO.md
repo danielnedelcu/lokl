@@ -216,7 +216,10 @@ Each step depends on the ones before it.
    - [x] Booking finances only the provider and lokl can read: migration
      `booking_finances` (pushed 2026-10-03, rehearsed first on a copy of the
      hosted data); `private` exposed on the hosted API; checked by the
-     provider, customer and admin. Today a customer (or provider) can read every column of
+     provider, customer and admin.
+   - [ ] `db:push` migration `cancelled_bookings_hold_nothing` (committed
+     2026-10-03): a booking cancelled with a full refund keeps no payout
+     hold; clears the one leftover hold on the hosted database. Today a customer (or provider) can read every column of
      their own booking from the database directly, including the
      commission split, the payout state and failures, and Stripe ids.
      Move those to a separate table read only by the booking's provider and

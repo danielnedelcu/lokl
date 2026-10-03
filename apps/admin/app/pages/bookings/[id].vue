@@ -167,7 +167,9 @@ const actionLabels: Record<string, string> = {
           <dd v-if="b.address" class="text-sm">{{ b.address.line1 }}, {{ b.address.city }}, {{ b.address.state }} {{ b.address.postal_code }}</dd>
         </div>
         <div><dt class="text-sm text-muted-foreground">Money</dt>
-          <dd>Paid {{ money(b.total_cents) }} · commission {{ money(b.commission_cents) }} ({{ (b.commission_rate_bps / 100).toFixed(1) }}%) · provider {{ money(b.provider_amount_cents) }}</dd>
+          <dd v-if="b.confirmed_at">Charged {{ money(b.total_cents) }} · commission {{ money(b.commission_cents) }} ({{ (b.commission_rate_bps / 100).toFixed(1) }}%) · provider {{ money(b.provider_amount_cents) }}</dd>
+          <dd v-else-if="b.status === 'requested'">{{ money(b.total_cents) }} on hold on the customer's card, not charged</dd>
+          <dd v-else>Not charged ({{ money(b.total_cents) }} was held, then released)</dd>
           <dd v-if="b.refunded_cents" class="text-sm">Refunded {{ money(b.refunded_cents) }}</dd>
         </div>
         <div><dt class="text-sm text-muted-foreground">Payout</dt>

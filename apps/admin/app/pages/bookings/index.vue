@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ADMIN_BOOKING_FIELDS, payoutState, whenOf, withFinances, type AdminBookingRow } from "~/utils/bookingAdmin";
+import { ADMIN_BOOKING_FIELDS, payoutState, wasCharged, whenOf, withFinances, type AdminBookingRow } from "~/utils/bookingAdmin";
 
 // Bookings & payouts (docs/design/booking-and-checkout.md, Admin): what
 // needs attention first, then every booking with its money split and payout.
@@ -32,7 +32,7 @@ const attention = computed(() => {
   const b = all.value;
   return [
     { key: "reports", label: "Reported no-shows to resolve", rows: b.filter((x) => x.problem_reported_at && !x.problem_resolution && x.status !== "cancelled") },
-    { key: "holds", label: "Payouts held", rows: b.filter((x) => x.payout_hold && x.payout_hold !== "problem_reported" && x.status !== "paid_out") },
+    { key: "holds", label: "Payouts held", rows: b.filter((x) => x.payout_hold && x.payout_hold !== "problem_reported" && !["paid_out", "cancelled"].includes(x.status)) },
     { key: "owed", label: "Reversals that failed (money owed)", rows: b.filter((x) => x.reversal_failed_at) },
     { key: "disputes", label: "Open disputes", rows: b.filter((x) => x.disputed_at && !x.dispute_closed_at) },
     {
@@ -57,8 +57,14 @@ const shown = computed(() => all.value.filter((b) =>
   && (!filters.from || (b.starts_at ?? b.created_at) >= filters.from)
   && (!filters.to || (b.starts_at ?? b.created_at).slice(0, 10) <= filters.to)));
 const money = (cents: number) => formatMoney(cents, "usd");
-const totals = computed(() => shown.value.reduce(
-  (t, b) => ({ total: t.total + b.total_cents, commission: t.commission + b.commission_cents, refunded: t.refunded + b.refunded_cents }),
+// Only what was actually charged: requests that were never accepted only
+// held the card. Commission is what lokl keeps after refunds.
+const totals = computed(() => shown.value.filter(wasCharged).reduce(
+  (t, b) => ({
+    total: t.total + b.total_cents,
+    commission: t.commission + (b.refunded_cents >= b.total_cents ? 0 : b.commission_cents),
+    refunded: t.refunded + b.refunded_cents,
+  }),
   { total: 0, commission: 0, refunded: 0 },
 ));
 const selectClass = "border-input bg-background h-9 rounded-md border px-2 text-sm";
@@ -137,8 +143,8 @@ const selectClass = "border-input bg-background h-9 rounded-md border px-2 text-
           <label class="flex flex-col gap-1">To <input v-model="filters.to" type="date" :class="selectClass"></label>
         </form>
         <p class="mt-3 text-sm text-muted-foreground">
-          {{ shown.length }} {{ shown.length === 1 ? "booking" : "bookings" }} · {{ money(totals.total) }} paid ·
-          {{ money(totals.commission) }} commission · {{ money(totals.refunded) }} refunded
+          {{ shown.length }} {{ shown.length === 1 ? "booking" : "bookings" }} · {{ money(totals.total) }} charged ·
+          {{ money(totals.refunded) }} refunded · {{ money(totals.commission) }} commission kept
         </p>
         <EmptyState v-if="!shown.length" class="mt-4" icon="lucide:receipt" title="No bookings" description="Nothing matches these filters." />
         <div v-else class="mt-3 overflow-x-auto rounded-lg border border-border bg-card">
@@ -146,7 +152,7 @@ const selectClass = "border-input bg-background h-9 rounded-md border px-2 text-
             <thead class="border-b border-border text-left text-muted-foreground">
               <tr>
                 <th class="p-3 font-medium">Booking</th><th class="p-3 font-medium">When</th><th class="p-3 font-medium">Status</th>
-                <th class="p-3 text-right font-medium">Paid</th><th class="p-3 text-right font-medium">Commission</th>
+                <th class="p-3 text-right font-medium">Charged</th><th class="p-3 text-right font-medium">Commission</th>
                 <th class="p-3 text-right font-medium">Provider</th><th class="p-3 font-medium">Payout</th>
               </tr>
             </thead>
@@ -158,9 +164,19 @@ const selectClass = "border-input bg-background h-9 rounded-md border px-2 text-
                 </td>
                 <td class="p-3 whitespace-nowrap">{{ whenOf(b) }}</td>
                 <td class="p-3"><StatusBadge kind="adminBooking" :status="b.status" /></td>
-                <td class="p-3 text-right">{{ money(b.total_cents) }}<span v-if="b.refunded_cents" class="block text-xs text-muted-foreground">−{{ money(b.refunded_cents) }}</span></td>
-                <td class="p-3 text-right">{{ money(b.commission_cents) }}</td>
-                <td class="p-3 text-right">{{ money(b.provider_amount_cents) }}</td>
+                <template v-if="wasCharged(b)">
+                  <td class="p-3 text-right">{{ money(b.total_cents) }}<span v-if="b.refunded_cents" class="block text-xs text-muted-foreground">−{{ money(b.refunded_cents) }} refunded</span></td>
+                  <td class="p-3 text-right">{{ money(b.commission_cents) }}</td>
+                  <td class="p-3 text-right">{{ money(b.provider_amount_cents) }}</td>
+                </template>
+                <template v-else>
+                  <td class="p-3 text-right text-muted-foreground">
+                    {{ b.status === "requested" ? "On hold" : "Not charged" }}
+                    <span class="block text-xs">{{ money(b.total_cents) }} {{ b.status === "requested" ? "held" : "was held" }}</span>
+                  </td>
+                  <td class="p-3 text-right text-muted-foreground">—</td>
+                  <td class="p-3 text-right text-muted-foreground">—</td>
+                </template>
                 <td class="p-3">{{ payoutState(b) }}</td>
               </tr>
             </tbody>

@@ -3,7 +3,7 @@
 -- that private.booking_records is the server's alone.
 begin;
 \ir _helpers/users.psql
-select plan(22);
+select plan(25);
 
 select tests.create_user('provider@test.local') as owner \gset
 select tests.create_user('other-provider@test.local') as owner2 \gset
@@ -50,6 +50,14 @@ insert into booking_finances (booking_id, commission_rate_bps, commission_cents,
 select throws_ok(format($$ update booking_reports set note = 'Changed my mind about it.' where booking_id = %L $$, :'b'),
   '23514', 'A problem has already been reported on this booking.', '3. a no-show report can''t be changed');
 
+-- 3b. A booking cancelled with a full refund keeps no payout hold (whoever cancels it).
+select tests.authenticate_as_service_role();
+update private.booking_records set payout_hold = 'account_cannot_receive', payout_held_at = now() where id = :'b';
+select is((select payout_hold from booking_finances where booking_id = :'b'), 'account_cannot_receive', '3b. (set-up) the payout is held');
+update private.booking_records set status = 'cancelled', cancelled_by = 'admin', refunded_cents = total_cents, status_changed_by = 'admin' where id = :'b';
+select is((select payout_hold from booking_finances where booking_id = :'b'), null, '3c. cancelling it with a full refund clears the hold');
+select is((select payout_held_at from booking_finances where booking_id = :'b'), null, '3d. ...and when it was set');
+
 -- 4. Who reads the money: the booking's provider and admins, never the customer.
 select tests.authenticate_as(:'owner');
 select is((select provider_amount_cents from booking_finances where booking_id = :'b'), 10400, '4a. the provider reads their share');
@@ -57,7 +65,7 @@ select tests.authenticate_as(:'owner2');
 select is((select count(*)::int from booking_finances), 0, '4b. another provider reads nothing');
 select tests.authenticate_as(:'cust');
 select is((select count(*)::int from booking_finances), 0, '4c. the customer can''t read the commission, payouts or Stripe ids');
-select is((select total_cents || '/' || refunded_cents from bookings where id = :'b'), '13000/0', '4d. ...but still reads what they paid and were refunded');
+select is((select total_cents || '/' || refunded_cents from bookings where id = :'b'), '13000/13000', '4d. ...but still reads what they paid and were refunded');
 select throws_ok($$ select commission_cents from bookings $$, '42703', NULL, '4e. the commission isn''t on bookings any more');
 select tests.authenticate_as_admin(:'admin');
 select is((select count(*)::int from booking_finances), 2, '4f. the admin reads every booking''s money');

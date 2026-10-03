@@ -4,7 +4,7 @@
 
 export const ADMIN_BOOKING_FIELDS =
   "id, kind, status, listing_id, provider_id, starts_at, ends_at, created_at, party_size, total_cents, " +
-  "refunded_cents, cancelled_by, payout_due_at, problem_reported_at, problem_resolution, customer_name, " +
+  "refunded_cents, cancelled_by, confirmed_at, payout_due_at, problem_reported_at, problem_resolution, customer_name, " +
   "listing:listings(title, kind, status, city:cities(name, timezone)), provider:providers(display_name, status), " +
   // The money side, from booking_finances (admins read all): flatten with withFinances().
   "finances:booking_finances(commission_cents, provider_amount_cents, payout_hold, payout_failure, stripe_transfer_id, " +
@@ -31,6 +31,7 @@ export interface AdminBookingRow {
   provider_amount_cents: number;
   refunded_cents: number;
   cancelled_by: string | null;
+  confirmed_at: string | null;
   payout_due_at: string | null;
   payout_hold: string | null;
   payout_failure: string | null;
@@ -57,12 +58,22 @@ export const HOLD_LABELS: Record<string, string> = {
 
 const money = (cents: number) => formatMoney(cents, "usd");
 
+/**
+ * Whether the customer was ever charged. A booking is charged when it's
+ * confirmed (an Experience paid, or a Service request accepted); requests
+ * that were declined, ran out or were withdrawn only ever held the card
+ * (found 2026-10-03: a declined request showed $250 paid).
+ */
+export const wasCharged = (b: Pick<AdminBookingRow, "confirmed_at">) => !!b.confirmed_at;
+
 /** The payout, in a few words: "Paid $40.00", "Held: an open dispute", "Due Oct 9"… */
 export function payoutState(b: AdminBookingRow): string {
   if (b.reversal_failed_at) return `Owed back: ${money(b.provider_amount_cents)}`;
   if (b.status === "paid_out") return `Paid ${money(b.provider_amount_cents)}`;
+  if (!wasCharged(b)) return "None (not charged)";
+  // Cancelled before any hold: a full refund leaves nothing to pay or hold.
+  if (b.status === "cancelled") return b.refunded_cents > 0 ? (b.stripe_transfer_id ? "Reversed (refunded)" : "None (refunded)") : "Due (late cancellation)";
   if (b.payout_hold) return `Held: ${HOLD_LABELS[b.payout_hold] ?? b.payout_hold}`;
-  if (b.status === "cancelled") return b.refunded_cents > 0 ? "None (refunded)" : b.stripe_transfer_id ? "Reversed" : "Due (late cancellation)";
   if (b.status === "completed" || b.status === "confirmed") return b.payout_due_at ? `Due ${formatDate(b.payout_due_at)}` : "After it happens";
   return "None";
 }
