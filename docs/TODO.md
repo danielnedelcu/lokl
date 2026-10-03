@@ -104,7 +104,11 @@ Each step depends on the ones before it.
   Services and Providers (migration `admin_search_pages`, pushed
   2026-10-03); seed and timings in `scripts/seed-admin-load.mjs` and
   `scripts/bench-admin-search.mjs` (local only).
-- [ ] Signed-in check of the four pages (keyboard, screen reader, phone).
+- [x] Signed-in check of the four pages (keyboard, screen reader, phone),
+  2026-10-03.
+- [ ] Signed-in check of the form-controls pages from the earlier commit:
+  provider (listing editor, sessions, settings, a booking request) and
+  customer (both booking forms).
 - [ ] Optional: money totals for the filtered bookings, from the database.
 
 ## Staging site
