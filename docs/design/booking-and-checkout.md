@@ -126,6 +126,16 @@ Seeded with 1200 and 2000. Admin-editable from the admin app (an admin-only refe
 | `cancelled_by`, `cancelled_at`, `cancel_reason` | `customer`, `provider`, `admin` or `system` |
 | `created_at`, `updated_at` | |
 
+### booking_finances and booking_reports (added 2026-10-03)
+
+The money side of a booking moved off `bookings` (migration `booking_finances`), the same pattern as listing addresses, because the row rules on `bookings` let a customer read every column of their own booking:
+
+- **`booking_finances`** (one row per booking): the commission rate and split, payout holds and failures, Stripe ids (checkout, payment, charge, transfer, reversal, dispute), dispute and reversal details. Read by the booking's provider and admins; never the customer.
+- **`booking_reports`**: the customer's no-show note. Read by that customer and admins; never the provider. Final once written.
+- `bookings` keeps what the customer paid and was refunded, the status and times, and `payout_due_at` (the customer's no-show window ends at it).
+- The website's server reads and writes the three together through `private.booking_records`, an updatable view in the `private` schema, which the API exposes but only the service role may use. Reads that join a booking's listing or provider use `bookings` with the finances embedded.
+- **A possible later refinement:** providers can read the Stripe ids on their bookings' `booking_finances` rows, though no page shows them. They're not secrets (nothing can be done with them without lokl's Stripe key), but a narrower provider view (their share, payout date and hold only) would tidy it.
+
 ### booking_contacts
 
 The customer's email and optional phone. Separate from `bookings` because access is per row: the provider reads them only once the booking is accepted or confirmed (answer 4); the name stays on `bookings`, visible on the request.

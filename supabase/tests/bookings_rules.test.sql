@@ -53,7 +53,7 @@ select is((select rate_bps from commission_rates where kind = 'experience'), 200
 -- 2. A reservation is priced and split in the database.
 select (reserve_experience_booking(:'s1', :'cust', 2::smallint, 'Sam Customer', 'sam@test.local', null, 'Vegetarian', now() + interval '30 minutes')).id as b1 \gset
 select is((select status from bookings where id = :'b1'), 'pending_payment', '2a. a reservation starts as pending payment');
-select is((select array[total_cents, commission_rate_bps, commission_cents, provider_amount_cents] from bookings where id = :'b1'),
+select is((select array[total_cents, commission_rate_bps, commission_cents, provider_amount_cents] from private.booking_records where id = :'b1'),
   array[13000, 2000, 2600, 10400], '2b. 2 x $65 = $130: 20% commission $26, provider $104');
 select is((select starts_at from bookings where id = :'b1'), (select starts_at from experience_sessions where id = :'s1'),
   '2c. the booking copies the session''s start');
@@ -88,7 +88,7 @@ select throws_ok(
 
 -- 6. A request: up to three different times, each 24 hours or more ahead.
 select (create_service_request(:'ls', :'cust', array[:'t1'::timestamptz, :'t2'::timestamptz], 'Sam Customer', 'sam@test.local', '404-555-0100', 'Short on top', null, now() + interval '30 minutes')).id as b2 \gset
-select is((select array[total_cents, commission_cents, provider_amount_cents] from bookings where id = :'b2'),
+select is((select array[total_cents, commission_cents, provider_amount_cents] from private.booking_records where id = :'b2'),
   array[4500, 540, 3960], '6a. $45: 12% commission $5.40, provider $39.60');
 select throws_ok(
   format($$ select create_service_request(%L, %L, array[now() + interval '2 days', now() + interval '3 days', now() + interval '4 days', now() + interval '5 days'], 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'cust'),
@@ -142,10 +142,10 @@ select throws_ok(format($$ update bookings set status = 'confirmed', starts_at =
 
 -- 9f. A time that has already passed can't be accepted. (Requests are made
 -- 24 hours ahead, so this one is written directly, as only the server could.)
-insert into bookings (kind, listing_id, provider_id, customer_id, preferred_times, customer_name, unit_price_cents, total_cents,
-  commission_rate_bps, commission_cents, provider_amount_cents, status_changed_by)
-values ('service', :'ls', :'p', :'cust', array[now() - interval '1 hour'], 'Sam Customer', 4500, 4500, 1200, 540, 3960, 'customer')
+insert into bookings (kind, listing_id, provider_id, customer_id, preferred_times, customer_name, unit_price_cents, total_cents, status_changed_by)
+values ('service', :'ls', :'p', :'cust', array[now() - interval '1 hour'], 'Sam Customer', 4500, 4500, 'customer')
 returning id as b6 \gset
+insert into booking_finances (booking_id, commission_rate_bps, commission_cents, provider_amount_cents) values (:'b6', 1200, 540, 3960);
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id = :'b6';
 select throws_ok(format($$ update bookings set status = 'confirmed', starts_at = preferred_times[1], status_changed_by = 'provider' where id = %L $$, :'b6'),
   '23514', 'That time has already passed.', '9f. a time that has passed can''t be accepted');
@@ -181,7 +181,7 @@ update bookings set starts_at = now() + interval '30 hours', ends_at = now() + i
 alter table bookings enable trigger bookings_guard;
 select tests.authenticate_as_service_role();
 update bookings set status = 'cancelled', cancelled_by = 'customer', status_changed_by = 'customer' where id = :'b1';
-select lives_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_13a', status_changed_by = 'system' where id = %L $$, :'b1'),
+select lives_ok(format($$ update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_13a', status_changed_by = 'system' where id = %L $$, :'b1'),
   '13a. a late customer cancellation with no refund can still be paid out');
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id = :'b3';
 update bookings set status = 'confirmed', starts_at = :'t1', status_changed_by = 'provider' where id = :'b3';
@@ -200,7 +200,7 @@ update bookings set starts_at = now() - interval '26 hours', ends_at = now() - i
 alter table bookings enable trigger bookings_guard;
 select tests.authenticate_as_service_role();
 update bookings set status = 'completed', status_changed_by = 'system' where id = :'b2';
-update bookings set problem_reported_at = now(), problem_note = 'Nobody was there.' where id = :'b2';
+update private.booking_records set problem_reported_at = now(), problem_note = 'Nobody was there.' where id = :'b2';
 select throws_ok(format($$ update bookings set status = 'paid_out', status_changed_by = 'system' where id = %L $$, :'b2'),
   '23514', 'A reported problem holds the payout.', '14. a reported no-show holds the payout');
 
@@ -219,25 +219,25 @@ select throws_ok(format($$ update bookings set status = 'paid_out', status_chang
   '23514', 'A booking is paid out only with its transfer recorded.', '18a. no transfer recorded, no payout');
 
 -- 19. A hold stops the payout, and must say when it was set.
-select throws_ok(format($$ update bookings set payout_hold = 'account_cannot_receive' where id = %L $$, :'b7'),
+select throws_ok(format($$ update private.booking_records set payout_hold = 'account_cannot_receive' where id = %L $$, :'b7'),
   '23514', NULL, '19a. a hold without a time is refused');
-update bookings set payout_hold = 'account_cannot_receive', payout_held_at = now() where id = :'b7';
-select throws_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_19', status_changed_by = 'system' where id = %L $$, :'b7'),
+update private.booking_records set payout_hold = 'account_cannot_receive', payout_held_at = now() where id = :'b7';
+select throws_ok(format($$ update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_19', status_changed_by = 'system' where id = %L $$, :'b7'),
   '23514', 'This payout is on hold for lokl to review.', '19b. a held payout can''t be marked paid');
-select throws_ok(format($$ update bookings set payout_hold = 'not_a_reason', payout_held_at = now() where id = %L $$, :'b7'),
+select throws_ok(format($$ update private.booking_records set payout_hold = 'not_a_reason', payout_held_at = now() where id = %L $$, :'b7'),
   '23514', NULL, '19c. only the listed hold reasons are allowed');
 
 -- 20. An open dispute stops the payout; a closed one doesn't.
-update bookings set payout_hold = null, payout_held_at = null, disputed_at = now(), stripe_dispute_id = 'dp_test' where id = :'b7';
-select throws_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_20', status_changed_by = 'system' where id = %L $$, :'b7'),
+update private.booking_records set payout_hold = null, payout_held_at = null, disputed_at = now(), stripe_dispute_id = 'dp_test' where id = :'b7';
+select throws_ok(format($$ update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_20', status_changed_by = 'system' where id = %L $$, :'b7'),
   '23514', 'An open dispute holds the payout.', '20a. an open dispute holds the payout');
-update bookings set dispute_closed_at = now(), dispute_outcome = 'won' where id = :'b7';
-select lives_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_20', status_changed_by = 'system' where id = %L $$, :'b7'),
+update private.booking_records set dispute_closed_at = now(), dispute_outcome = 'won' where id = :'b7';
+select lives_ok(format($$ update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_20', status_changed_by = 'system' where id = %L $$, :'b7'),
   '20b. once the dispute closes in lokl''s favour, with a transfer, it can be paid out');
 
 -- 21. Signed-in users can't set or clear a hold (the server does).
 select tests.authenticate_as(:'owner');
-select throws_ok(format($$ update bookings set payout_hold = null, payout_held_at = null where id = %L $$, :'b2'),
+select throws_ok(format($$ update private.booking_records set payout_hold = null, payout_held_at = null where id = %L $$, :'b2'),
   '42501', NULL, '21. a provider can''t clear a payout hold');
 select tests.authenticate_as_service_role();
 
@@ -320,17 +320,17 @@ select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_b
 -- ---------------------------------------------------------------------------
 
 -- 27. From the start until the payout, once, with a note.
-select throws_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_early'),
+select throws_ok(format($$ update private.booking_records set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_early'),
   '23514', 'A problem can be reported from the start of a booking until its payout.', '27a. a problem can''t be reported before the booking starts');
-select throws_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Nope' where id = %L $$, :'c_report'),
+select throws_ok(format($$ update private.booking_records set problem_reported_at = now(), problem_note = 'Nope' where id = %L $$, :'c_report'),
   '23514', 'Say what happened, in a sentence or two.', '27b. the report needs a note');
-select lives_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_report'),
+select lives_ok(format($$ update private.booking_records set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_report'),
   '27c. after the start, the customer''s report is recorded');
 select is((select count(*)::int from notifications where booking_id = :'c_report' and kind = 'booking_problem_reported'), 1,
   '27d. the provider is told a problem was reported');
-select throws_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Still nobody there, again.' where id = %L $$, :'c_report'),
+select throws_ok(format($$ update private.booking_records set problem_reported_at = now(), problem_note = 'Still nobody there, again.' where id = %L $$, :'c_report'),
   '23514', 'A problem has already been reported on this booking.', '27e. a problem is reported once');
-select throws_ok(format($$ update bookings set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_late'),
+select throws_ok(format($$ update private.booking_records set problem_reported_at = now(), problem_note = 'Nobody was there at all.' where id = %L $$, :'c_late'),
   '23514', 'A problem can be reported from the start of a booking until its payout.', '27f. not after the payout time');
 
 -- ---------------------------------------------------------------------------

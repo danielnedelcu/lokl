@@ -44,7 +44,7 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
   return data;
 }
 const refused = async (f: () => Promise<unknown>) => { try { await f(); return ""; } catch (e) { return (e as Error).message; } };
-const statusOf = async (id: string) => (await must(db.from("bookings").select("status").eq("id", id).single())).status as string;
+const statusOf = async (id: string) => (await must(db.schema("private").from("booking_records").select("status").eq("id", id).single())).status as string;
 const created = { users: [] as string[], providers: [] as string[], listings: [] as string[], categories: [] as string[], area: "" };
 
 try {
@@ -100,7 +100,7 @@ try {
       amount: 4500, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true,
       payment_method_types: ["card"], metadata: { booking_id: b.id, test: "provider-bookings" },
     });
-    await must(db.from("bookings").update({
+    await must(db.schema("private").from("booking_records").update({
       status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: pi.id,
       respond_by: new Date(Date.now() + 2 * day).toISOString(),
     }).eq("id", b.id));
@@ -124,7 +124,7 @@ try {
   check((await acceptRequest(db, stripe, a.id, t2)) === "accepted", "3a. the provider accepts the second time offered");
   const pa = await stripe.paymentIntents.retrieve(a.pi);
   check(pa.status === "succeeded" && pa.amount_received === 4500, `3b. the card is charged $45.00 (${pa.status}, ${pa.amount_received})`);
-  const ab = await must(db.from("bookings").select("status, starts_at, stripe_charge_id, payout_due_at").eq("id", a.id).single());
+  const ab = await must(db.schema("private").from("booking_records").select("status, starts_at, stripe_charge_id, payout_due_at").eq("id", a.id).single());
   check(ab.status === "confirmed" && Date.parse(ab.starts_at) === Date.parse(t2) && !!ab.stripe_charge_id, "3c. the booking is confirmed for that time, with its charge recorded");
   check((await acceptRequest(db, stripe, a.id, t2)) === "already accepted", "3d. accepting again (a double click) changes nothing");
   check((await stripe.charges.list({ payment_intent: a.pi })).data.length === 1, "3e. ...and there's still only one charge");
@@ -137,7 +137,7 @@ try {
 
   // 4. A late answer is refused; the hold isn't touched.
   const late = await request();
-  await must(db.from("bookings").update({ respond_by: new Date(Date.now() - 60_000).toISOString() }).eq("id", late.id));
+  await must(db.schema("private").from("booking_records").update({ respond_by: new Date(Date.now() - 60_000).toISOString() }).eq("id", late.id));
   check((await refused(() => acceptRequest(db, stripe, late.id, t1))) === "The time to answer this request has passed.", "4a. accepting after the answer-by time is refused");
   check((await stripe.paymentIntents.retrieve(late.pi)).status === "requires_capture", "4b. ...and nothing is charged");
   await stripe.paymentIntents.cancel(late.pi);
@@ -177,6 +177,8 @@ try {
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `
       set session_replication_role = replica;
       delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_addresses where booking_id in (select id from bookings where listing_id in (${ids}));

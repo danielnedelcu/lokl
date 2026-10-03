@@ -14,6 +14,7 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { customerCancelOutcome } from "@repo/types";
 import { abandonCheckout, BookingError } from "./bookings";
+import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 interface CancelRow {
   id: string;
@@ -30,13 +31,13 @@ interface CancelRow {
 const key = (bookingId: string, action: string) => `booking:${bookingId}:${action}:${Math.floor(Date.now() / 600_000)}`;
 
 async function read(db: SupabaseClient, id: string) {
-  const { data, error } = await db.from("bookings").select("*").eq("id", id).single();
+  const { data, error } = await bookingRecords(db).select("*").eq("id", id).single();
   if (error) throw new Error(error.message);
   return data as CancelRow & Record<string, unknown>;
 }
 
 async function move(db: SupabaseClient, id: string, from: string, update: Record<string, unknown>) {
-  const { data, error } = await db.from("bookings").update(update).eq("id", id).eq("status", from).select("id");
+  const { data, error } = await bookingRecords(db).update(update).eq("id", id).eq("status", from).select("id");
   if (error) {
     if (error.code === "23514") throw new BookingError(error.message, 409);
     throw new Error(error.message);
@@ -121,7 +122,7 @@ export async function providerCancel(db: SupabaseClient, stripe: Stripe, booking
 export async function cancelSession(db: SupabaseClient, stripe: Stripe, sessionId: string, reason: string, by: "provider" | "system" = "provider") {
   const { error } = await db.from("experience_sessions").update({ status: "cancelled" }).eq("id", sessionId).eq("status", "scheduled");
   if (error) throw new BookingError(error.message, 409);
-  const { data, error: listError } = await db.from("bookings").select("id, status").eq("session_id", sessionId).in("status", ["pending_payment", "confirmed"]);
+  const { data, error: listError } = await bookingRecords(db).select("id, status").eq("session_id", sessionId).in("status", ["pending_payment", "confirmed"]);
   if (listError) throw new Error(listError.message);
   const done: string[] = [];
   for (const row of data ?? []) {
@@ -148,8 +149,7 @@ export async function cancelSession(db: SupabaseClient, stripe: Stripe, sessionI
 /** "The provider didn't show up": recorded once, and the payout held at once. */
 export async function reportProblem(db: SupabaseClient, bookingId: string, note: string) {
   const now = new Date().toISOString();
-  const { data, error } = await db
-    .from("bookings")
+  const { data, error } = await bookingRecords(db)
     .update({ problem_reported_at: now, problem_note: note, payout_hold: "problem_reported", payout_held_at: now })
     .eq("id", bookingId)
     .is("problem_reported_at", null)
@@ -161,8 +161,7 @@ export async function reportProblem(db: SupabaseClient, bookingId: string, note:
   }
   if ((data ?? []).length) return "reported";
   // Already held for another reason: still record the report (the hold stays).
-  const { data: again, error: againError } = await db
-    .from("bookings")
+  const { data: again, error: againError } = await bookingRecords(db)
     .update({ problem_reported_at: now, problem_note: note })
     .eq("id", bookingId)
     .is("problem_reported_at", null)

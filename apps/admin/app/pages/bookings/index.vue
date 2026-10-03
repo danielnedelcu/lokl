@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ADMIN_BOOKING_FIELDS, payoutState, whenOf, type AdminBookingRow } from "~/utils/bookingAdmin";
+import { ADMIN_BOOKING_FIELDS, payoutState, whenOf, withFinances, type AdminBookingRow } from "~/utils/bookingAdmin";
 
 // Bookings & payouts (docs/design/booking-and-checkout.md, Admin): what
 // needs attention first, then every booking with its money split and payout.
@@ -16,7 +16,7 @@ const { data, error, pending, refresh } = await useAsyncData("admin-bookings", a
   ]);
   for (const r of [bookings, failedEmails, failedRuns]) if (r.error) throw r.error;
   return {
-    bookings: (bookings.data ?? []) as unknown as AdminBookingRow[],
+    bookings: ((bookings.data ?? []) as any[]).map((b) => withFinances(b)) as AdminBookingRow[],
     failedEmails: failedEmails.data ?? [],
     failedRuns: failedRuns.data ?? [],
   };

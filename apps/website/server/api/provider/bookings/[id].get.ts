@@ -11,8 +11,9 @@ export default defineEventHandler(async (event) => {
     .from("bookings")
     .select(
       "id, kind, status, listing_id, session_id, starts_at, ends_at, preferred_times, party_size, unit_price_cents, total_cents, " +
-      "commission_cents, provider_amount_cents, refunded_cents, respond_by, customer_name, customer_notes, customer_city, " +
-      "customer_postal_code, cancelled_by, cancel_reason, confirmed_at, payout_due_at, payout_hold, problem_reported_at, created_at, " +
+      "refunded_cents, respond_by, customer_name, customer_notes, customer_city, " +
+      "customer_postal_code, cancelled_by, cancel_reason, confirmed_at, payout_due_at, problem_reported_at, created_at, " +
+      "finances:booking_finances(commission_cents, provider_amount_cents, payout_hold), " +
       "listing:listings(title, kind, location_mode, duration_minutes, city:cities(name, timezone)), " +
       "contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), " +
       "events:booking_events(to_status, actor, created_at)",
@@ -26,7 +27,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: "This booking didn't load. Please try again." });
   }
   if (!b) throw createError({ statusCode: 404, statusMessage: "We couldn't find that booking." });
-  const booking = b as any;
+  // Flatten the money from booking_finances (RLS: their bookings only).
+  const booking = { ...(b as any), ...((b as any).finances ?? {}), finances: undefined };
 
   let clashes: { id: string; starts_at: string; ends_at: string | null; title: string }[][] = [];
   if (booking.status === "requested" && booking.preferred_times?.length) {

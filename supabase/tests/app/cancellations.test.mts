@@ -41,7 +41,7 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
   return data;
 }
 const refused = async (f: () => Promise<unknown>) => { try { await f(); return ""; } catch (e) { return (e as Error).message; } };
-const row = async (id: string) => must(db.from("bookings").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
+const row = async (id: string) => must(db.schema("private").from("booking_records").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
 const refundedInStripe = async (pi: string) => (await stripe.charges.list({ payment_intent: pi })).data[0]?.amount_refunded ?? -1;
 const refundCount = async (pi: string) => (await stripe.refunds.list({ payment_intent: pi })).data.length;
 // Test-only: move a booking's times with the guard off (local database).
@@ -95,7 +95,7 @@ try {
       amount: 5000, currency: "usd", payment_method: "pm_card_bypassPending", confirm: true, payment_method_types: ["card"],
       metadata: { booking_id: b.id, test: "cancellations" },
     });
-    await must(db.from("bookings").update({ status: "confirmed", status_changed_by: "stripe", stripe_payment_intent_id: pi.id, stripe_charge_id: pi.latest_charge as string }).eq("id", b.id));
+    await must(db.schema("private").from("booking_records").update({ status: "confirmed", status_changed_by: "stripe", stripe_payment_intent_id: pi.id, stripe_charge_id: pi.latest_charge as string }).eq("id", b.id));
     return { id: b.id, pi: pi.id };
   };
 
@@ -123,7 +123,7 @@ try {
     p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
   })) as { id: string }).id;
   const hold = await stripe.paymentIntents.create({ amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true, payment_method_types: ["card"] });
-  await must(db.from("bookings").update({ status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: hold.id, respond_by: new Date(Date.now() + 2 * day).toISOString() }).eq("id", reqId));
+  await must(db.schema("private").from("booking_records").update({ status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: hold.id, respond_by: new Date(Date.now() + 2 * day).toISOString() }).eq("id", reqId));
   check((await customerCancel(db, stripe, reqId)) === "cancelled, hold released", "1a. cancelling a request releases the hold");
   check((await stripe.paymentIntents.retrieve(hold.id)).status === "canceled" && (await row(reqId)).status === "cancelled", "1b. ...nothing is charged, and it's cancelled");
 
@@ -205,6 +205,8 @@ try {
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `
       set session_replication_role = replica;
       delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from notifications where listing_id in (${ids});

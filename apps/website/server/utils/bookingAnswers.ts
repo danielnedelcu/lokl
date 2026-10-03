@@ -12,6 +12,7 @@
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BookingError } from "./bookings";
+import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface RequestRow {
   id: string;
@@ -37,7 +38,7 @@ const answerKey = (bookingId: string, action: string) =>
   `booking:${bookingId}:${action}:${Math.floor(Date.now() / 600_000)}`;
 
 async function read(db: SupabaseClient, id: string) {
-  const { data, error } = await db.from("bookings").select("*").eq("id", id).single();
+  const { data, error } = await bookingRecords(db).select("*").eq("id", id).single();
   if (error) throw new Error(error.message);
   return data as RequestRow & Record<string, unknown>;
 }
@@ -45,7 +46,7 @@ async function read(db: SupabaseClient, id: string) {
 // Moves a booking only from the status we read. Database rule errors come
 // back as BookingErrors with the database's sentence.
 async function move(db: SupabaseClient, id: string, from: string, update: Record<string, unknown>) {
-  const { data, error } = await db.from("bookings").update(update).eq("id", id).eq("status", from).select("id");
+  const { data, error } = await bookingRecords(db).update(update).eq("id", id).eq("status", from).select("id");
   if (error) {
     if (error.code === "23514") throw new BookingError(error.message, 409);
     throw new Error(error.message);
@@ -126,7 +127,7 @@ export async function acceptRequest(db: SupabaseClient, stripe: Stripe, bookingI
       status: "expired", status_changed_by: "system", refunded_cents: now.total_cents, refunded_at: new Date().toISOString(),
     });
   } else {
-    await db.from("bookings").update({ refunded_cents: now.total_cents, refunded_at: new Date().toISOString() }).eq("id", b.id);
+    await bookingRecords(db).update({ refunded_cents: now.total_cents, refunded_at: new Date().toISOString() }).eq("id", b.id);
   }
   throw refusal ?? new BookingError(ALREADY_ANSWERED, 409);
 }

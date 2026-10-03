@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HOLD_LABELS, payoutState, whenOf } from "~/utils/bookingAdmin";
+import { HOLD_LABELS, payoutState, whenOf, withFinances } from "~/utils/bookingAdmin";
 
 // One booking, everything about it: the customer's details and no-show note
 // (admins only), its history, its emails, and lokl's actions, each with a
@@ -12,13 +12,13 @@ const call = useWebsiteAdmin();
 
 const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async () => {
   const [b, events, emails, actions] = await Promise.all([
-    supabase.from("bookings").select("*, listing:listings(id, title, kind, status, city:cities(name, timezone)), provider:providers(id, display_name, status), contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions)").eq("id", id).maybeSingle(),
+    supabase.from("bookings").select("*, listing:listings(id, title, kind, status, city:cities(name, timezone)), provider:providers(id, display_name, status), contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), finances:booking_finances(*), report:booking_reports(note)").eq("id", id).maybeSingle(),
     supabase.from("booking_events").select("from_status, to_status, actor, created_at").eq("booking_id", id).order("created_at"),
     supabase.from("booking_emails").select("id, kind, status, attempts, sent_at, created_at, skip_reason, last_error").eq("booking_id", id).order("created_at"),
     supabase.from("admin_actions").select("action, reason, created_at").eq("target", "booking").eq("target_id", id).order("created_at"),
   ]);
   for (const r of [b, events, emails, actions]) if (r.error) throw r.error;
-  return { b: b.data as Record<string, any> | null, events: events.data ?? [], emails: emails.data ?? [], actions: actions.data ?? [] };
+  return { b: b.data ? withFinances<Record<string, any>>(b.data) : null, events: events.data ?? [], emails: emails.data ?? [], actions: actions.data ?? [] };
 });
 watch(error, (e) => e && reportProblem("Couldn't load the booking", e), { immediate: true });
 const b = computed(() => data.value?.b ?? null);

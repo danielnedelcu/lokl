@@ -3,10 +3,18 @@
 // (bookings_read_admin); changes go through the website (useWebsiteAdmin).
 
 export const ADMIN_BOOKING_FIELDS =
-  "id, kind, status, listing_id, provider_id, starts_at, ends_at, created_at, party_size, total_cents, commission_cents, " +
-  "provider_amount_cents, refunded_cents, cancelled_by, payout_due_at, payout_hold, payout_failure, stripe_transfer_id, " +
-  "problem_reported_at, problem_resolution, disputed_at, dispute_closed_at, dispute_outcome, reversal_failed_at, customer_name, " +
-  "listing:listings(title, kind, status, city:cities(name, timezone)), provider:providers(display_name, status)";
+  "id, kind, status, listing_id, provider_id, starts_at, ends_at, created_at, party_size, total_cents, " +
+  "refunded_cents, cancelled_by, payout_due_at, problem_reported_at, problem_resolution, customer_name, " +
+  "listing:listings(title, kind, status, city:cities(name, timezone)), provider:providers(display_name, status), " +
+  // The money side, from booking_finances (admins read all): flatten with withFinances().
+  "finances:booking_finances(commission_cents, provider_amount_cents, payout_hold, payout_failure, stripe_transfer_id, " +
+  "disputed_at, dispute_closed_at, dispute_outcome, reversal_failed_at)";
+
+/** Flattens a row's embedded `finances` (and no-show `report`) into it. */
+export function withFinances<T = AdminBookingRow>(row: any): T {
+  const { finances, report, ...rest } = row ?? {};
+  return { ...rest, ...(finances ?? {}), ...(report !== undefined ? { problem_note: report?.note ?? null } : {}) } as T;
+}
 
 export interface AdminBookingRow {
   id: string;

@@ -213,8 +213,10 @@ Each step depends on the ones before it.
      booking (admin cancel refuses it). When that's added, give the refund
      its own email (e.g. `customer_late_cancel_refunded`) rather than
      reusing "Cancelled".
-   - [ ] Next, after part 8: booking finances only the provider and lokl
-     can read. Today a customer (or provider) can read every column of
+   - [x] Booking finances only the provider and lokl can read: migration
+     `booking_finances` (pushed 2026-10-03, rehearsed first on a copy of the
+     hosted data); `private` exposed on the hosted API; checked by the
+     provider, customer and admin. Today a customer (or provider) can read every column of
      their own booking from the database directly, including the
      commission split, the payout state and failures, and Stripe ids.
      Move those to a separate table read only by the booking's provider and
@@ -227,6 +229,9 @@ Each step depends on the ones before it.
      block The Reserve's emails (they share a Resend team today, whose daily
      quota ran out during the part 7 walkthrough on 2026-10-02).
    - [ ] Launch prep: a paid Resend plan before launch.
+   - [ ] Launch prep: expose the `private` schema in the production
+     project's API settings too (service role only: the migration revokes
+     it from everyone else).
    - [ ] Launch prep: switch the reply-to to an address on lokl's own domain
      (booking emails reply to hilokl.help@gmail.com for now:
      `NUXT_EMAIL_REPLY_TO`).

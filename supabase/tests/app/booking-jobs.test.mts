@@ -42,7 +42,7 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
   if (error) throw new Error(error.message);
   return data;
 }
-const row = async (id: string) => must(db.from("bookings").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
+const row = async (id: string) => must(db.schema("private").from("booking_records").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
 const mentions = (r: { done: string[]; failed: string[] }, id: string) => [...r.done, ...r.failed].some((l) => l.startsWith(id));
 // Test-only: move a booking's times with the guard off (local database), for
 // "booked hours ago" and "already started" cases.
@@ -108,7 +108,7 @@ try {
       amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true,
       payment_method_types: ["card"], metadata: { booking_id: b.id, test: "booking-jobs" },
     });
-    await must(db.from("bookings").update({
+    await must(db.schema("private").from("booking_records").update({
       status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: pi.id, respond_by: new Date(Date.now() + 2 * day).toISOString(),
     }).eq("id", b.id));
     return { id: b.id, pi: pi.id };
@@ -126,7 +126,7 @@ try {
       amount: 5000, currency: "usd", payment_method: card, confirm: true, payment_method_types: ["card"],
       metadata: { booking_id: b.id, test: "booking-jobs" },
     });
-    await must(db.from("bookings").update({
+    await must(db.schema("private").from("booking_records").update({
       status: "confirmed", status_changed_by: "stripe", stripe_payment_intent_id: pi.id, stripe_charge_id: pi.latest_charge as string,
     }).eq("id", b.id));
     const r = await row(b.id);
@@ -137,7 +137,7 @@ try {
   // ---------------------------------------------------------------- expire-requests
   const late = await request(svc);
   const onTime = await request(svc);
-  await must(db.from("bookings").update({ respond_by: new Date(Date.now() - 60_000).toISOString() }).eq("id", late.id));
+  await must(db.schema("private").from("booking_records").update({ respond_by: new Date(Date.now() - 60_000).toISOString() }).eq("id", late.id));
   const e1 = await expireRequests(db, stripe);
   check((await row(late.id)).status === "expired" && (await row(late.id)).status_changed_by === "system", "1a. an unanswered request past its answer-by time expires");
   check((await stripe.paymentIntents.retrieve(late.pi)).status === "canceled", "1b. ...and its card hold is released");
@@ -151,7 +151,7 @@ try {
   check((await must(db.rpc("session_spots_left", { p_session_id: sessionId }))) === 0, "2a. an open checkout holds the session's only spot");
   const r1 = await releaseReservations(db, stripe);
   check((await row(open.bookingId)).status === "pending_payment", "2b. a checkout still within its time isn't touched");
-  await must(db.from("bookings").update({ reserved_until: new Date(Date.now() - 60_000).toISOString() }).eq("id", open.bookingId));
+  await must(db.schema("private").from("booking_records").update({ reserved_until: new Date(Date.now() - 60_000).toISOString() }).eq("id", open.bookingId));
   const r2 = await releaseReservations(db, stripe);
   check((await row(open.bookingId)).status === "expired" && mentions(r2, open.bookingId), "2c. a checkout past its time is released");
   const sessionOfOpen = (await row(open.bookingId)).stripe_checkout_session_id;
@@ -199,7 +199,7 @@ try {
   // A customer who cancelled late, with no refund: the provider still gets their share.
   const lateCancel = await paidBooking(exp);
   shift(lateCancel.id, 30, 2); // inside 48 hours, booked 2 hours ago: no refund
-  await must(db.from("bookings").update({ status: "cancelled", cancelled_by: "customer", status_changed_by: "customer" }).eq("id", lateCancel.id));
+  await must(db.schema("private").from("booking_records").update({ status: "cancelled", cancelled_by: "customer", status_changed_by: "customer" }).eq("id", lateCancel.id));
   await payOut(db, stripe, { bookingId: lateCancel.id, now: after(lateCancel.dueAt) });
   check((await row(lateCancel.id)).status === "paid_out", "4g. a late cancellation with no refund is still paid out");
 
@@ -212,7 +212,7 @@ try {
   };
   const noShow = await paidBooking(exp);
   shift(noShow.id, -2, 48); // started 2 hours ago, so a problem can be reported
-  await must(db.from("bookings").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there." }).eq("id", noShow.id));
+  await must(db.schema("private").from("booking_records").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there." }).eq("id", noShow.id));
   const h1 = await heldFor(noShow);
   check(h1.hold === "problem_reported" && h1.status === "completed" && h1.transfers === 0, "5a. a reported no-show holds the payout");
   const h1again = await heldFor(noShow);
@@ -258,6 +258,8 @@ try {
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `
       set session_replication_role = replica;
       delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_addresses where booking_id in (select id from bookings where listing_id in (${ids}));

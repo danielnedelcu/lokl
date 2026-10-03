@@ -87,7 +87,7 @@ try {
       p_customer_name: "Sam Customer", p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null,
       p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
     })) as { id: string };
-    await must(db.from("bookings").update({ status: "requested", status_changed_by: "stripe", respond_by: new Date(Date.now() + 2 * 864e5).toISOString() }).eq("id", b.id));
+    await must(db.schema("private").from("booking_records").update({ status: "requested", status_changed_by: "stripe", respond_by: new Date(Date.now() + 2 * 864e5).toISOString() }).eq("id", b.id));
     return b.id;
   };
   const settings = (over: Partial<EmailSettings> = {}): EmailSettings => ({
@@ -109,8 +109,8 @@ try {
   check(m1.sent.length === 2, "1e. running the sender again sends nothing more");
 
   // 2. A failed send: recorded, retried later with the same key, the booking untouched.
-  await must(db.from("bookings").update({ status: "confirmed", starts_at: (await must(db.from("bookings").select("preferred_times").eq("id", a).single())).preferred_times[0], status_changed_by: "provider" }).eq("id", a));
-  check((await must(db.from("bookings").select("status").eq("id", a).single())).status === "confirmed", "2a. accepting works whatever happens to its email");
+  await must(db.schema("private").from("booking_records").update({ status: "confirmed", starts_at: (await must(db.schema("private").from("booking_records").select("preferred_times").eq("id", a).single())).preferred_times[0], status_changed_by: "provider" }).eq("id", a));
+  check((await must(db.schema("private").from("booking_records").select("status").eq("id", a).single())).status === "confirmed", "2a. accepting works whatever happens to its email");
   const m2 = fakeMailer();
   m2.failTimes(1);
   const r2 = await sendBookingEmails(db, m2, settings(), { bookingId: a });
@@ -152,7 +152,7 @@ try {
   await sendBookingEmails(db, fakeMailer(), settings({ replyTo: "" }), { bookingId: f });
   check((await emailsFor(f)).every((r) => r.skip_reason === "NUXT_EMAIL_REPLY_TO isn't set."), "5c. without a reply-to address, nothing is sent");
   const g = await request();
-  await must(db.from("bookings").update({ status: "declined", status_changed_by: "provider" }).eq("id", g));
+  await must(db.schema("private").from("booking_records").update({ status: "declined", status_changed_by: "provider" }).eq("id", g));
   const m6 = fakeMailer();
   await sendBookingEmails(db, m6, settings(), { bookingId: g });
   const gRows = await emailsFor(g);
@@ -219,6 +219,8 @@ try {
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `
       set session_replication_role = replica;
       delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from notifications where listing_id in (${ids});

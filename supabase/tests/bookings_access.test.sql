@@ -5,7 +5,7 @@
 -- and the provider's notifications.
 begin;
 \ir _helpers/users.psql
-select plan(36);
+select plan(37);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -129,11 +129,13 @@ select is((select count(*)::int from listing_addresses where listing_id = :'ls')
 select tests.authenticate_as(:'cust');
 select throws_ok(format($$ update bookings set status = 'confirmed' where id = %L $$, :'bh'),
   '42501', 'permission denied for table bookings', '9a. a customer cannot change a booking');
-select throws_ok(format($$ insert into bookings (kind, listing_id, provider_id, customer_id, preferred_times, customer_name, unit_price_cents, total_cents, commission_rate_bps, commission_cents, provider_amount_cents) values ('service', %L, %L, %L, array[now() + interval '3 days'], 'X', 1, 1, 0, 0, 1) $$, :'ls', :'p', :'cust'),
+select throws_ok(format($$ insert into bookings (kind, listing_id, provider_id, customer_id, preferred_times, customer_name, unit_price_cents, total_cents) values ('service', %L, %L, %L, array[now() + interval '3 days'], 'X', 1, 1) $$, :'ls', :'p', :'cust'),
   '42501', 'permission denied for table bookings', '9b. a customer cannot create a booking directly');
 select tests.authenticate_as(:'owner');
-select throws_ok(format($$ update bookings set provider_amount_cents = 8000 where id = %L $$, :'bh'),
+select throws_ok(format($$ update bookings set status = 'confirmed' where id = %L $$, :'bh'),
   '42501', 'permission denied for table bookings', '9c. a provider cannot change a booking');
+select throws_ok(format($$ update booking_finances set provider_amount_cents = 8000 where booking_id = %L $$, :'bh'),
+  '42501', 'permission denied for table booking_finances', '9c2. ...or its money');
 select throws_ok(format($$ delete from bookings where id = %L $$, :'bh'),
   '42501', 'permission denied for table bookings', '9d. a provider cannot delete a booking');
 select tests.authenticate_as_admin(:'admin');

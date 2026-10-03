@@ -14,6 +14,7 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { abandonCheckout } from "./bookings";
 import { refundInFull } from "./bookingCancellations";
+import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export const JOB_NAMES = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out"] as const;
 export type JobName = (typeof JOB_NAMES)[number];
@@ -40,7 +41,7 @@ export interface JobOptions {
 const jobKey = (bookingId: string, action: string) => `booking:${bookingId}:${action}:${Math.floor(Date.now() / 600_000)}`;
 
 async function move(db: SupabaseClient, id: string, from: string, update: Record<string, unknown>) {
-  const { data, error } = await db.from("bookings").update(update).eq("id", id).eq("status", from).select("id");
+  const { data, error } = await bookingRecords(db).update(update).eq("id", id).eq("status", from).select("id");
   if (error) throw new Error(error.message);
   return (data ?? []).length > 0;
 }
@@ -83,7 +84,7 @@ async function releaseHold(stripe: Stripe, bookingId: string, paymentIntentId: s
 
 export async function expireRequests(db: SupabaseClient, stripe: Stripe, opts: JobOptions = {}): Promise<JobResult> {
   const now = (opts.now ?? new Date()).toISOString();
-  let q = db.from("bookings").select("id, status, stripe_payment_intent_id").eq("status", "requested").lt("respond_by", now);
+  let q = bookingRecords(db).select("id, status, stripe_payment_intent_id").eq("status", "requested").lt("respond_by", now);
   if (opts.bookingId) q = q.eq("id", opts.bookingId);
   const { data, error } = await q.limit(200);
   if (error) throw new Error(error.message);
@@ -101,7 +102,7 @@ export async function expireRequests(db: SupabaseClient, stripe: Stripe, opts: J
 
 export async function releaseReservations(db: SupabaseClient, stripe: Stripe, opts: JobOptions = {}): Promise<JobResult> {
   const now = (opts.now ?? new Date()).toISOString();
-  let q = db.from("bookings").select("id, stripe_checkout_session_id").eq("status", "pending_payment").lt("reserved_until", now);
+  let q = bookingRecords(db).select("id, stripe_checkout_session_id").eq("status", "pending_payment").lt("reserved_until", now);
   if (opts.bookingId) q = q.eq("id", opts.bookingId);
   const { data, error } = await q.limit(200);
   if (error) throw new Error(error.message);
@@ -141,12 +142,12 @@ export function unavailableBecause(b: Pick<OpenBooking, "listing" | "provider">)
 export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, opts: JobOptions = {}): Promise<JobResult> {
   let q = db
     .from("bookings")
-    .select("id, status, stripe_payment_intent_id, stripe_checkout_session_id, listing:listings(status, category:categories(active), city:cities(active)), provider:providers(status)")
+    .select(`id, status, listing:listings(status, category:categories(active), city:cities(active)), provider:providers(status), ${FINANCES}`)
     .in("status", ["requested", "pending_payment"]);
   if (opts.bookingId) q = q.eq("id", opts.bookingId);
   const { data, error } = await q.limit(500);
   if (error) throw new Error(error.message);
-  const rows = ((data ?? []) as unknown as OpenBooking[]).filter((b) => unavailableBecause(b));
+  const rows = ((data ?? []) as any[]).map(withFinances).filter((b) => unavailableBecause(b)) as OpenBooking[];
   const r = await each(result("withdraw-unavailable"), rows, async (b) => {
     const why = unavailableBecause(b)!;
     if (b.status === "pending_payment") {
@@ -168,14 +169,14 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
   // cancellation stopped partway): refund and cancel them now.
   let left = db
     .from("bookings")
-    .select("id, kind, status, session_id, starts_at, confirmed_at, total_cents, refunded_cents, stripe_payment_intent_id, session:experience_sessions!inner(status)")
+    .select(`id, kind, status, session_id, starts_at, confirmed_at, total_cents, refunded_cents, session:experience_sessions!inner(status), ${FINANCES}`)
     .eq("status", "confirmed")
     .eq("session.status", "cancelled");
   if (opts.bookingId) left = left.eq("id", opts.bookingId);
   const { data: leftRows, error: leftError } = await left.limit(200);
   if (leftError) throw new Error(leftError.message);
   const extra = result("withdraw-unavailable");
-  await each(extra, (leftRows ?? []) as any[], async (b) => {
+  await each(extra, ((leftRows ?? []) as any[]).map(withFinances), async (b) => {
     const refunded = await refundInFull(stripe, b);
     return (await move(db, b.id, "confirmed", {
       status: "cancelled", cancelled_by: "system", cancel_reason: "The session was cancelled.", status_changed_by: "system",
@@ -214,16 +215,17 @@ type PayoutBooking = {
   provider: { stripe_account_id: string | null; status: string } | null;
 };
 
+// From bookings, with its finances embedded (a provider join can't go
+// through the private view).
 const PAYOUT_FIELDS =
-  "id, status, ends_at, starts_at, payout_due_at, confirmed_at, cancelled_by, refunded_cents, provider_amount_cents, " +
-  "problem_reported_at, problem_resolution, disputed_at, dispute_closed_at, payout_hold, stripe_charge_id, stripe_payment_intent_id, " +
-  "stripe_transfer_id, provider_id, provider:providers(stripe_account_id, status)";
+  "id, status, ends_at, starts_at, payout_due_at, confirmed_at, cancelled_by, refunded_cents, " +
+  `problem_reported_at, problem_resolution, provider_id, provider:providers(stripe_account_id, status), ${FINANCES}`;
 
 async function hold(db: SupabaseClient, b: PayoutBooking, reason: string, failure?: string) {
   const at = new Date().toISOString();
   const update: Record<string, unknown> = { payout_hold: reason, payout_held_at: at };
   if (failure) Object.assign(update, { payout_failed_at: at, payout_failure: failure.slice(0, 500) });
-  const { error } = await db.from("bookings").update(update).eq("id", b.id).is("payout_hold", null);
+  const { error } = await bookingRecords(db).update(update).eq("id", b.id).is("payout_hold", null);
   if (error) throw new Error(error.message);
   return `held for lokl to review: ${reason}${failure ? ` (${failure.slice(0, 120)})` : ""}`;
 }
@@ -240,7 +242,7 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
   const r = result("pay-out");
 
   // 1. Ended bookings read as done.
-  let ended = db.from("bookings").select("id").eq("status", "confirmed").lt("ends_at", now);
+  let ended = bookingRecords(db).select("id").eq("status", "confirmed").lt("ends_at", now);
   if (opts.bookingId) ended = ended.eq("id", opts.bookingId);
   const { data: endedRows, error: endedError } = await ended.limit(500);
   if (endedError) throw new Error(endedError.message);
@@ -255,12 +257,12 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
     .select(PAYOUT_FIELDS)
     .in("status", ["completed", "cancelled"])
     .lte("payout_due_at", now)
-    .is("stripe_transfer_id", null)
-    .is("payout_hold", null);
+    .is("finances.stripe_transfer_id", null)
+    .is("finances.payout_hold", null);
   if (opts.bookingId) due = due.eq("id", opts.bookingId);
   const { data: dueRows, error: dueError } = await due.limit(200);
   if (dueError) throw new Error(dueError.message);
-  const rows = ((dueRows ?? []) as unknown as PayoutBooking[]).filter(
+  const rows = ((dueRows ?? []) as any[]).map(withFinances).filter(
     (b) => b.status === "completed" || (b.cancelled_by === "customer" && b.refunded_cents === 0 && b.confirmed_at),
   );
 
@@ -332,8 +334,7 @@ async function payOne(db: SupabaseClient, stripe: Stripe, b: PayoutBooking): Pro
     }
   }
 
-  const { data, error } = await db
-    .from("bookings")
+  const { data, error } = await bookingRecords(db)
     .update({ status: "paid_out", stripe_transfer_id: transfer.id, status_changed_by: "system" })
     .eq("id", b.id)
     .eq("status", b.status)

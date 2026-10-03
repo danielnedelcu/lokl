@@ -16,6 +16,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { renderEmail, renderProviderAccountEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail } from "./bookingEmailTemplates";
+import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
   to: string;
@@ -124,12 +125,14 @@ export interface SendResult {
 
 /** Everything one email needs, read with the server key. */
 export async function loadEmailContext(db: SupabaseClient, bookingId: string, siteUrl: string) {
+  // From bookings, with the finances embedded (it joins the listing and
+  // provider, which can't go through the private view).
   const { data: b, error } = await db
     .from("bookings")
     .select(
-      "id, kind, status, starts_at, confirmed_at, respond_by, preferred_times, party_size, total_cents, provider_amount_cents, " +
+      "id, kind, status, starts_at, confirmed_at, respond_by, preferred_times, party_size, total_cents, " +
       "refunded_cents, cancelled_by, status_changed_by, customer_name, customer_id, provider_id, " +
-      "stripe_transfer_reversal_id, reversal_failed_at, " +
+      `${FINANCES}, ` +
       "contact:booking_contacts(email), " +
       "listing:listings(title, kind, category:categories(slug), city:cities(name, slug, timezone)), " +
       "provider:providers(display_name, owner_id)",
@@ -137,7 +140,7 @@ export async function loadEmailContext(db: SupabaseClient, bookingId: string, si
     .eq("id", bookingId)
     .single();
   if (error) throw new Error(error.message);
-  const r = b as any;
+  const r = withFinances(b as any);
   const ctx: EmailContext = {
     siteUrl,
     booking: r,

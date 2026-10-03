@@ -52,7 +52,7 @@ select tests.clear_authentication();
 select pg_temp.happened(id) from bk;
 select tests.authenticate_as_service_role();
 update bookings set status = 'completed', status_changed_by = 'system' where id in (select id from bk);
-update bookings set problem_reported_at = now(), problem_note = 'Nobody was there at all.', payout_hold = 'problem_reported', payout_held_at = now()
+update private.booking_records set problem_reported_at = now(), problem_note = 'Nobody was there at all.', payout_hold = 'problem_reported', payout_held_at = now()
  where id in (:'b_paid', :'b_refund');
 
 -- ---------------------------------------------------------------------------
@@ -68,11 +68,11 @@ select throws_ok(format($$ update bookings set problem_resolution = 'paid_provid
   '23514', NULL, '1c. a resolution needs its time');
 
 -- 2. In the provider's favour: the payout can go ahead, and they're told.
-select throws_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_a', payout_hold = null, payout_held_at = null, status_changed_by = 'system' where id = %L $$, :'b_paid'),
+select throws_ok(format($$ update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_a', payout_hold = null, payout_held_at = null, status_changed_by = 'system' where id = %L $$, :'b_paid'),
   '23514', 'A reported problem holds the payout.', '2a. an unresolved report still holds the payout');
-update bookings set problem_resolution = 'paid_provider', problem_resolved_at = now(), payout_hold = null, payout_held_at = null where id = :'b_paid';
+update private.booking_records set problem_resolution = 'paid_provider', problem_resolved_at = now(), payout_hold = null, payout_held_at = null where id = :'b_paid';
 select ok(pg_temp.kinds(:'b_paid') @> array['provider_problem_paid'], '2b. resolving in the provider''s favour emails the provider');
-select lives_ok(format($$ update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_a', status_changed_by = 'system' where id = %L $$, :'b_paid'),
+select lives_ok(format($$ update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_a', status_changed_by = 'system' where id = %L $$, :'b_paid'),
   '2c. ...and the payout can then go ahead');
 select throws_ok(format($$ update bookings set problem_resolution = 'refunded', problem_resolved_at = now() where id = %L $$, :'b_paid'),
   '23514', 'This report has already been resolved.', '2d. a report is resolved once');
@@ -89,20 +89,20 @@ select ok(not pg_temp.kinds(:'b_refund') @> array['customer_booking_cancelled'] 
 -- CANCELLING AFTER THE PAYOUT
 -- ---------------------------------------------------------------------------
 
-update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_b', status_changed_by = 'system' where id = :'b_paidout';
-update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_c', status_changed_by = 'system' where id = :'b_owed';
+update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_b', status_changed_by = 'system' where id = :'b_paidout';
+update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_c', status_changed_by = 'system' where id = :'b_owed';
 
 -- 4. Only lokl, refunded in full, with the transfer reversed or its failure recorded.
 select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'customer', refunded_cents = total_cents, status_changed_by = 'customer' where id = %L $$, :'b_paidout'),
   '23514', 'Only lokl can cancel a booking that has been paid out.', '4a. a customer can''t cancel a paid-out booking');
 select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'admin', refunded_cents = total_cents, status_changed_by = 'admin' where id = %L $$, :'b_paidout'),
   '23514', 'Reverse the provider''s transfer (or record why it failed) before cancelling a paid-out booking.', '4b. lokl must reverse the transfer first');
-select throws_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'admin', stripe_transfer_reversal_id = 'trr_test', status_changed_by = 'admin' where id = %L $$, :'b_paidout'),
+select throws_ok(format($$ update private.booking_records set status = 'cancelled', cancelled_by = 'admin', stripe_transfer_reversal_id = 'trr_test', status_changed_by = 'admin' where id = %L $$, :'b_paidout'),
   '23514', 'This cancellation gets a full refund. Refund it before cancelling.', '4c. ...and refund the customer in full');
-select lives_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'admin', stripe_transfer_reversal_id = 'trr_test', refunded_cents = total_cents, status_changed_by = 'admin' where id = %L $$, :'b_paidout'),
+select lives_ok(format($$ update private.booking_records set status = 'cancelled', cancelled_by = 'admin', stripe_transfer_reversal_id = 'trr_test', refunded_cents = total_cents, status_changed_by = 'admin' where id = %L $$, :'b_paidout'),
   '4d. with the reversal and the refund, lokl cancels a paid-out booking');
 select ok(pg_temp.kinds(:'b_paidout') @> array['customer_booking_cancelled', 'provider_booking_cancelled'], '4e. both are told lokl cancelled it');
-select lives_ok(format($$ update bookings set status = 'cancelled', cancelled_by = 'admin', reversal_failed_at = now(), reversal_failure = 'Insufficient funds', refunded_cents = total_cents, status_changed_by = 'admin' where id = %L $$, :'b_owed'),
+select lives_ok(format($$ update private.booking_records set status = 'cancelled', cancelled_by = 'admin', reversal_failed_at = now(), reversal_failure = 'Insufficient funds', refunded_cents = total_cents, status_changed_by = 'admin' where id = %L $$, :'b_owed'),
   '4f. a reversal that failed is recorded as owed, and the cancellation goes ahead');
 
 -- ---------------------------------------------------------------------------

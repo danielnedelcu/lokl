@@ -11,6 +11,7 @@
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExperienceBookingRequest, ServiceBookingRequest } from "@repo/types";
+import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 /** Checkout's shortest allowed expiry, and how long spots or a request are held. */
 export const CHECKOUT_WINDOW_MS = 30 * 60 * 1000 + 60 * 1000; // 31 minutes, safely over Stripe's 30
@@ -91,13 +92,13 @@ async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: 
     );
   } catch (e) {
     // Don't leave spots or a request held for a checkout that doesn't exist.
-    await ctx.db.from("bookings")
+    await bookingRecords(ctx.db)
       .update({ status: "cancelled", cancelled_by: "system", cancel_reason: "Checkout couldn't be started.", status_changed_by: "system" })
       .eq("id", booking.id).eq("status", "pending_payment");
     console.error("[bookings] checkout", e);
     throw new BookingError("Checkout couldn't be started. Please try again.", 502);
   }
-  const { error } = await ctx.db.from("bookings").update({ stripe_checkout_session_id: session.id }).eq("id", booking.id);
+  const { error } = await bookingRecords(ctx.db).update({ stripe_checkout_session_id: session.id }).eq("id", booking.id);
   if (error) throw fromDatabase(error);
   return { bookingId: booking.id, url: session.url! };
 }
@@ -153,7 +154,7 @@ export function verifyPaymentsEvent(stripe: Stripe, payload: string, signature: 
 }
 
 async function bookingBy(db: SupabaseClient, column: "stripe_checkout_session_id" | "stripe_payment_intent_id", value: string) {
-  const { data, error } = await db.from("bookings").select("*").eq(column, value).maybeSingle();
+  const { data, error } = await bookingRecords(db).select("*").eq(column, value).maybeSingle();
   if (error) throw new Error(error.message);
   return data as (BookingRow & Record<string, unknown>) | null;
 }
@@ -161,7 +162,7 @@ async function bookingBy(db: SupabaseClient, column: "stripe_checkout_session_id
 // Moves a booking only if it's still in the status we read, so a duplicate or
 // a slower parallel delivery changes nothing.
 async function move(db: SupabaseClient, booking: BookingRow, update: Record<string, unknown>) {
-  const { data, error } = await db.from("bookings").update(update).eq("id", booking.id).eq("status", booking.status).select("id");
+  const { data, error } = await bookingRecords(db).update(update).eq("id", booking.id).eq("status", booking.status).select("id");
   if (error) throw new Error(error.message);
   return (data ?? []).length > 0;
 }
@@ -190,7 +191,7 @@ export async function syncCheckoutSession(db: SupabaseClient, stripe: Stripe, se
     // expires with the reservation). Give the money back.
     if (["expired", "cancelled"].includes(booking.status) && pi.status === "succeeded" && !booking["refunded_at"]) {
       await stripe.refunds.create({ payment_intent: pi.id }, { idempotencyKey: idempotencyKey(booking.id, "late-refund") });
-      await db.from("bookings").update({ stripe_payment_intent_id: pi.id, refunded_cents: booking.total_cents, refunded_at: new Date().toISOString() }).eq("id", booking.id);
+      await bookingRecords(db).update({ stripe_payment_intent_id: pi.id, refunded_cents: booking.total_cents, refunded_at: new Date().toISOString() }).eq("id", booking.id);
       return "refunded: paid after the booking had lapsed";
     }
     return `ignored: already ${booking.status}`;
@@ -264,7 +265,7 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
       const booking = piId ? await bookingBy(db, "stripe_payment_intent_id", piId) : null;
       if (!booking) return "ignored: no booking for this charge";
       const refunded = Math.min(fresh.amount_refunded, booking.total_cents);
-      const { error } = await db.from("bookings")
+      const { error } = await bookingRecords(db)
         .update({ refunded_cents: refunded, refunded_at: new Date().toISOString() })
         .eq("id", booking.id).lt("refunded_cents", refunded);
       if (error) throw new Error(error.message);
@@ -297,7 +298,7 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
       if (!closed && booking.status !== "paid_out" && !booking.payout_hold) {
         Object.assign(update, { payout_hold: "dispute", payout_held_at: now });
       }
-      const { error } = await db.from("bookings").update(update).eq("id", booking.id);
+      const { error } = await bookingRecords(db).update(update).eq("id", booking.id);
       if (error) throw new Error(error.message);
       return closed ? `dispute recorded as ${dispute.status}` : "dispute recorded, payout held";
     }
@@ -308,7 +309,7 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
       const transfer = await stripe.transfers.retrieve((event.data.object as Stripe.Transfer).id);
       const reversal = (await stripe.transfers.listReversals(transfer.id, { limit: 1 })).data[0];
       if (!reversal) return "ignored: no reversal found";
-      const { data, error } = await db.from("bookings").update({ stripe_transfer_reversal_id: reversal.id })
+      const { data, error } = await bookingRecords(db).update({ stripe_transfer_reversal_id: reversal.id })
         .eq("stripe_transfer_id", transfer.id).is("stripe_transfer_reversal_id", null).select("id");
       if (error) throw new Error(error.message);
       return data?.length ? "reversal recorded" : "ignored: already recorded, or no booking for this transfer";

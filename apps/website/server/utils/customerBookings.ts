@@ -6,9 +6,16 @@ import type { ServerEvent } from "./provider";
 export async function loadCustomerBooking(event: ServerEvent, id: string) {
   await requireUser(event);
   const { data } = await (await serverSupabaseClient(event))
-    .from("bookings").select("id, customer_id, status, stripe_checkout_session_id").eq("id", id).maybeSingle();
+    .from("bookings").select("id, customer_id, status").eq("id", id).maybeSingle();
   if (!data) throw createError({ statusCode: 404, statusMessage: "We couldn't find that booking." });
-  return data as { id: string; customer_id: string; status: string; stripe_checkout_session_id: string | null };
+  // The checkout id is on booking_finances, which customers can't read:
+  // fetched with the server key, now that RLS has shown the booking is
+  // visible to this user.
+  const { data: f } = await serverSupabaseServiceRole(event)
+    .from("booking_finances").select("stripe_checkout_session_id").eq("booking_id", data.id).maybeSingle();
+  return { ...data, stripe_checkout_session_id: f?.stripe_checkout_session_id ?? null } as {
+    id: string; customer_id: string; status: string; stripe_checkout_session_id: string | null;
+  };
 }
 
 // What a booking page shows about its listing. Read with the server key

@@ -109,21 +109,21 @@ update bookings set status = 'confirmed', status_changed_by = 'stripe' where id 
 select tests.clear_authentication();
 select pg_temp.shift(:'e4', interval '-2 hours');
 select tests.authenticate_as_service_role();
-update bookings set problem_reported_at = now(), problem_note = 'Nobody was there at all.', payout_hold = 'problem_reported', payout_held_at = now() where id = :'e4';
+update private.booking_records set problem_reported_at = now(), problem_note = 'Nobody was there at all.', payout_hold = 'problem_reported', payout_held_at = now() where id = :'e4';
 select ok(pg_temp.kinds(:'e4') @> array['customer_problem_received', 'provider_problem_reported'], '4a. a no-show report emails the customer (received) and the provider (reported)');
 select ok(not pg_temp.kinds(:'e4') @> array['provider_payout_problem'], '4b. a hold for a report isn''t a "payout problem" email');
 select pg_temp.reserve(:'s1', :'cust') as e5 \gset
 update bookings set status = 'confirmed', status_changed_by = 'stripe' where id = :'e5';
 update bookings set status = 'completed', status_changed_by = 'system' where id = :'e5';
-update bookings set payout_hold = 'account_cannot_receive', payout_held_at = now() where id = :'e5';
+update private.booking_records set payout_hold = 'account_cannot_receive', payout_held_at = now() where id = :'e5';
 select ok(pg_temp.kinds(:'e5') @> array['provider_payout_problem'], '4c. a payout the provider''s account can''t take emails the provider');
-update bookings set payout_hold = null, payout_held_at = null where id = :'e5';
-update bookings set status = 'paid_out', stripe_transfer_id = 'tr_test_emails', status_changed_by = 'system' where id = :'e5';
+update private.booking_records set payout_hold = null, payout_held_at = null where id = :'e5';
+update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_emails', status_changed_by = 'system' where id = :'e5';
 select ok(pg_temp.kinds(:'e5') @> array['provider_payout_sent'], '4d. a payout emails the provider');
 select pg_temp.reserve(:'s1', :'cust') as e6 \gset
 update bookings set status = 'confirmed', status_changed_by = 'stripe' where id = :'e6';
 update bookings set status = 'completed', status_changed_by = 'system' where id = :'e6';
-update bookings set payout_hold = 'dispute', payout_held_at = now() where id = :'e6';
+update private.booking_records set payout_hold = 'dispute', payout_held_at = now() where id = :'e6';
 select ok(not pg_temp.kinds(:'e6') @> array['provider_payout_problem'], '4e. holds lokl handles alone (a dispute) email nobody');
 
 -- 5. Once each: repeating a change, or queueing again, adds nothing.

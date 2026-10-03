@@ -2035,23 +2035,6 @@
           "default": "'usd'::text"
         },
         {
-          "name": "commission_rate_bps",
-          "type": "integer",
-          "nullable": false,
-          "comment": "The commission rate in force when the booking was made (commission_rates), kept so later changes never affect it."
-        },
-        {
-          "name": "commission_cents",
-          "type": "integer",
-          "nullable": false
-        },
-        {
-          "name": "provider_amount_cents",
-          "type": "integer",
-          "nullable": false,
-          "comment": "What the provider receives: total minus commission. lokl pays Stripe's fee from its commission."
-        },
-        {
           "name": "refunded_cents",
           "type": "integer",
           "nullable": false,
@@ -2084,26 +2067,10 @@
           "comment": "When the provider's share may be transferred: 24 hours after ends_at. Set by the database on confirmation."
         },
         {
-          "name": "payout_failed_at",
-          "type": "timestamp with time zone",
-          "nullable": true,
-          "comment": "When the provider's Stripe account couldn't receive the transfer; the payout is held until it's fixed, and the admin sees it under \"needs attention\"."
-        },
-        {
-          "name": "payout_failure",
-          "type": "text",
-          "nullable": true
-        },
-        {
           "name": "problem_reported_at",
           "type": "timestamp with time zone",
           "nullable": true,
           "comment": "Set when the customer reports the provider didn't show; holds the payout until the admin acts."
-        },
-        {
-          "name": "problem_note",
-          "type": "text",
-          "nullable": true
         },
         {
           "name": "cancelled_by",
@@ -2126,26 +2093,6 @@
           "nullable": false,
           "default": "'system'::text",
           "comment": "Who made the latest status change; copied into booking_events."
-        },
-        {
-          "name": "stripe_checkout_session_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_payment_intent_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_charge_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_transfer_id",
-          "type": "text",
-          "nullable": true
         },
         {
           "name": "created_at",
@@ -2172,40 +2119,6 @@
           "comment": "\"I come to you\" Services: the customer's zip code, copied like customer_city. The street address stays in booking_addresses until the provider accepts."
         },
         {
-          "name": "payout_hold",
-          "type": "text",
-          "nullable": true,
-          "comment": "Why this booking's payout is held for lokl to review: a reported no-show, an open dispute, a refund on record, a suspended provider, a provider account that can't receive transfers, or a refused transfer (details in payout_failure). Set by the pay-out job; cleared only by the admin."
-        },
-        {
-          "name": "payout_held_at",
-          "type": "timestamp with time zone",
-          "nullable": true,
-          "comment": "When the payout was held."
-        },
-        {
-          "name": "stripe_dispute_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "disputed_at",
-          "type": "timestamp with time zone",
-          "nullable": true,
-          "comment": "When the customer's bank opened a dispute (chargeback) on this booking's charge, from Stripe's webhook. Holds the payout while open."
-        },
-        {
-          "name": "dispute_closed_at",
-          "type": "timestamp with time zone",
-          "nullable": true,
-          "comment": "When the dispute closed; dispute_outcome says how."
-        },
-        {
-          "name": "dispute_outcome",
-          "type": "text",
-          "nullable": true
-        },
-        {
           "name": "problem_resolved_at",
           "type": "timestamp with time zone",
           "nullable": true
@@ -2215,39 +2128,6 @@
           "type": "text",
           "nullable": true,
           "comment": "How lokl resolved a no-show report: paid_provider (the payout goes ahead) or refunded (the booking was cancelled with a full refund)."
-        },
-        {
-          "name": "stripe_transfer_reversal_id",
-          "type": "text",
-          "nullable": true,
-          "comment": "When lokl cancelled after the payout: the reversal that took the provider's share back."
-        },
-        {
-          "name": "reversal_failed_at",
-          "type": "timestamp with time zone",
-          "nullable": true,
-          "comment": "When lokl cancelled after the payout but the reversal failed (the provider's balance was empty): the share is owed to lokl. Details in reversal_failure."
-        },
-        {
-          "name": "reversal_failure",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "dispute_reason",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "dispute_amount_cents",
-          "type": "integer",
-          "nullable": true
-        },
-        {
-          "name": "dispute_evidence_due_by",
-          "type": "timestamp with time zone",
-          "nullable": true,
-          "comment": "From Stripe: when evidence for the dispute is due."
         }
       ],
       "indexes": [
@@ -2257,30 +2137,6 @@
           "table": "public.bookings",
           "columns": [
             "id"
-          ]
-        },
-        {
-          "name": "bookings_stripe_checkout_session_id_key",
-          "def": "CREATE UNIQUE INDEX bookings_stripe_checkout_session_id_key ON public.bookings USING btree (stripe_checkout_session_id)",
-          "table": "public.bookings",
-          "columns": [
-            "stripe_checkout_session_id"
-          ]
-        },
-        {
-          "name": "bookings_stripe_payment_intent_id_key",
-          "def": "CREATE UNIQUE INDEX bookings_stripe_payment_intent_id_key ON public.bookings USING btree (stripe_payment_intent_id)",
-          "table": "public.bookings",
-          "columns": [
-            "stripe_payment_intent_id"
-          ]
-        },
-        {
-          "name": "bookings_stripe_transfer_id_key",
-          "def": "CREATE UNIQUE INDEX bookings_stripe_transfer_id_key ON public.bookings USING btree (stripe_transfer_id)",
-          "table": "public.bookings",
-          "columns": [
-            "stripe_transfer_id"
           ]
         },
         {
@@ -2375,26 +2231,6 @@
           ]
         },
         {
-          "name": "bookings_commission_cents_check",
-          "type": "CHECK",
-          "def": "CHECK ((commission_cents \u003e= 0))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "commission_cents"
-          ]
-        },
-        {
-          "name": "bookings_commission_rate_bps_check",
-          "type": "CHECK",
-          "def": "CHECK (((commission_rate_bps \u003e= 0) AND (commission_rate_bps \u003c= 5000)))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "commission_rate_bps"
-          ]
-        },
-        {
           "name": "bookings_confirmed_has_time",
           "type": "CHECK",
           "def": "CHECK (((confirmed_at IS NULL) OR ((starts_at IS NOT NULL) AND (payout_due_at IS NOT NULL))))",
@@ -2469,47 +2305,6 @@
           ]
         },
         {
-          "name": "bookings_dispute_amount_cents_check",
-          "type": "CHECK",
-          "def": "CHECK ((dispute_amount_cents \u003e= 0))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "dispute_amount_cents"
-          ]
-        },
-        {
-          "name": "bookings_dispute_order",
-          "type": "CHECK",
-          "def": "CHECK (((dispute_closed_at IS NULL) OR (disputed_at IS NOT NULL)))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "dispute_closed_at",
-            "disputed_at"
-          ]
-        },
-        {
-          "name": "bookings_dispute_outcome_check",
-          "type": "CHECK",
-          "def": "CHECK ((dispute_outcome = ANY (ARRAY['won'::text, 'lost'::text, 'warning_closed'::text])))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "dispute_outcome"
-          ]
-        },
-        {
-          "name": "bookings_dispute_reason_check",
-          "type": "CHECK",
-          "def": "CHECK ((char_length(dispute_reason) \u003c= 100))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "dispute_reason"
-          ]
-        },
-        {
           "name": "bookings_experience_shape",
           "type": "CHECK",
           "def": "CHECK (((kind \u003c\u003e 'experience'::text) OR ((session_id IS NOT NULL) AND (preferred_times IS NULL))))",
@@ -2542,47 +2337,6 @@
           ]
         },
         {
-          "name": "bookings_payout_failure_check",
-          "type": "CHECK",
-          "def": "CHECK ((char_length(payout_failure) \u003c= 500))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "payout_failure"
-          ]
-        },
-        {
-          "name": "bookings_payout_hold_check",
-          "type": "CHECK",
-          "def": "CHECK ((payout_hold = ANY (ARRAY['problem_reported'::text, 'dispute'::text, 'refunded'::text, 'provider_suspended'::text, 'account_cannot_receive'::text, 'transfer_failed'::text])))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "payout_hold"
-          ]
-        },
-        {
-          "name": "bookings_payout_hold_dated",
-          "type": "CHECK",
-          "def": "CHECK (((payout_hold IS NULL) = (payout_held_at IS NULL)))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "payout_hold",
-            "payout_held_at"
-          ]
-        },
-        {
-          "name": "bookings_problem_note_check",
-          "type": "CHECK",
-          "def": "CHECK ((char_length(problem_note) \u003c= 1000))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "problem_note"
-          ]
-        },
-        {
           "name": "bookings_problem_resolution_check",
           "type": "CHECK",
           "def": "CHECK ((problem_resolution = ANY (ARRAY['paid_provider'::text, 'refunded'::text])))",
@@ -2604,16 +2358,6 @@
           ]
         },
         {
-          "name": "bookings_provider_amount_cents_check",
-          "type": "CHECK",
-          "def": "CHECK ((provider_amount_cents \u003e= 0))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "provider_amount_cents"
-          ]
-        },
-        {
           "name": "bookings_refund",
           "type": "CHECK",
           "def": "CHECK (((refunded_cents \u003e= 0) AND (refunded_cents \u003c= total_cents)))",
@@ -2622,16 +2366,6 @@
           "columns": [
             "refunded_cents",
             "total_cents"
-          ]
-        },
-        {
-          "name": "bookings_reversal_failure_check",
-          "type": "CHECK",
-          "def": "CHECK ((char_length(reversal_failure) \u003c= 500))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "reversal_failure"
           ]
         },
         {
@@ -2645,18 +2379,6 @@
             "session_id",
             "party_size",
             "preferred_times"
-          ]
-        },
-        {
-          "name": "bookings_split",
-          "type": "CHECK",
-          "def": "CHECK (((commission_cents + provider_amount_cents) = total_cents))",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "commission_cents",
-            "provider_amount_cents",
-            "total_cents"
           ]
         },
         {
@@ -2762,36 +2484,6 @@
           "columns": [
             "id"
           ]
-        },
-        {
-          "name": "bookings_stripe_checkout_session_id_key",
-          "type": "UNIQUE",
-          "def": "UNIQUE (stripe_checkout_session_id)",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "stripe_checkout_session_id"
-          ]
-        },
-        {
-          "name": "bookings_stripe_payment_intent_id_key",
-          "type": "UNIQUE",
-          "def": "UNIQUE (stripe_payment_intent_id)",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "stripe_payment_intent_id"
-          ]
-        },
-        {
-          "name": "bookings_stripe_transfer_id_key",
-          "type": "UNIQUE",
-          "def": "UNIQUE (stripe_transfer_id)",
-          "table": "public.bookings",
-          "referenced_table": "",
-          "columns": [
-            "stripe_transfer_id"
-          ]
         }
       ],
       "triggers": [
@@ -2813,7 +2505,7 @@
         },
         {
           "name": "bookings_queue_emails",
-          "def": "CREATE TRIGGER bookings_queue_emails AFTER UPDATE OF status, problem_reported_at, payout_hold, problem_resolution ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_queue_emails()"
+          "def": "CREATE TRIGGER bookings_queue_emails AFTER UPDATE OF status, problem_reported_at, problem_resolution ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_queue_emails()"
         },
         {
           "name": "bookings_set_updated_at",
@@ -3919,6 +3611,720 @@
           ]
         }
       ]
+    },
+    {
+      "name": "public.booking_finances",
+      "type": "BASE TABLE",
+      "comment": "A booking's money side: the commission split (copied at booking), payout holds and failures, Stripe ids, dispute and reversal details. Read by the booking's provider and admins, never the customer; written by the server. Never deleted.",
+      "columns": [
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "commission_rate_bps",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "commission_cents",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "provider_amount_cents",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "payout_hold",
+          "type": "text",
+          "nullable": true,
+          "comment": "Why this booking's payout is held for lokl to review (see the pay-out job). Set by the job; cleared only by the admin."
+        },
+        {
+          "name": "payout_held_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_failed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_failure",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_checkout_session_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_payment_intent_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_charge_id",
+          "type": "text",
+          "nullable": true,
+          "comment": "Stripe ids are readable by the booking's provider, though no page shows them (a possible later refinement: docs/design/booking-and-checkout.md)."
+        },
+        {
+          "name": "stripe_transfer_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_transfer_reversal_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "reversal_failed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "reversal_failure",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_dispute_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "disputed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "dispute_closed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "dispute_outcome",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "dispute_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "dispute_amount_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "dispute_evidence_due_by",
+          "type": "timestamp with time zone",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "booking_finances_pkey",
+          "def": "CREATE UNIQUE INDEX booking_finances_pkey ON public.booking_finances USING btree (booking_id)",
+          "table": "public.booking_finances",
+          "columns": [
+            "booking_id"
+          ]
+        },
+        {
+          "name": "booking_finances_stripe_checkout_session_id_key",
+          "def": "CREATE UNIQUE INDEX booking_finances_stripe_checkout_session_id_key ON public.booking_finances USING btree (stripe_checkout_session_id)",
+          "table": "public.booking_finances",
+          "columns": [
+            "stripe_checkout_session_id"
+          ]
+        },
+        {
+          "name": "booking_finances_stripe_payment_intent_id_key",
+          "def": "CREATE UNIQUE INDEX booking_finances_stripe_payment_intent_id_key ON public.booking_finances USING btree (stripe_payment_intent_id)",
+          "table": "public.booking_finances",
+          "columns": [
+            "stripe_payment_intent_id"
+          ]
+        },
+        {
+          "name": "booking_finances_stripe_transfer_id_key",
+          "def": "CREATE UNIQUE INDEX booking_finances_stripe_transfer_id_key ON public.booking_finances USING btree (stripe_transfer_id)",
+          "table": "public.booking_finances",
+          "columns": [
+            "stripe_transfer_id"
+          ]
+        },
+        {
+          "name": "booking_finances_charge_idx",
+          "def": "CREATE INDEX booking_finances_charge_idx ON public.booking_finances USING btree (stripe_charge_id) WHERE (stripe_charge_id IS NOT NULL)",
+          "table": "public.booking_finances",
+          "columns": [
+            "stripe_charge_id"
+          ]
+        },
+        {
+          "name": "booking_finances_dispute_idx",
+          "def": "CREATE INDEX booking_finances_dispute_idx ON public.booking_finances USING btree (stripe_dispute_id) WHERE (stripe_dispute_id IS NOT NULL)",
+          "table": "public.booking_finances",
+          "columns": [
+            "stripe_dispute_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "booking_finances_commission_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((commission_cents \u003e= 0))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "commission_cents"
+          ]
+        },
+        {
+          "name": "booking_finances_commission_rate_bps_check",
+          "type": "CHECK",
+          "def": "CHECK (((commission_rate_bps \u003e= 0) AND (commission_rate_bps \u003c= 5000)))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "commission_rate_bps"
+          ]
+        },
+        {
+          "name": "booking_finances_dispute_amount_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((dispute_amount_cents \u003e= 0))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "dispute_amount_cents"
+          ]
+        },
+        {
+          "name": "booking_finances_dispute_order",
+          "type": "CHECK",
+          "def": "CHECK (((dispute_closed_at IS NULL) OR (disputed_at IS NOT NULL)))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "dispute_closed_at",
+            "disputed_at"
+          ]
+        },
+        {
+          "name": "booking_finances_dispute_outcome_check",
+          "type": "CHECK",
+          "def": "CHECK ((dispute_outcome = ANY (ARRAY['won'::text, 'lost'::text, 'warning_closed'::text])))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "dispute_outcome"
+          ]
+        },
+        {
+          "name": "booking_finances_dispute_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(dispute_reason) \u003c= 100))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "dispute_reason"
+          ]
+        },
+        {
+          "name": "booking_finances_hold_dated",
+          "type": "CHECK",
+          "def": "CHECK (((payout_hold IS NULL) = (payout_held_at IS NULL)))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "payout_hold",
+            "payout_held_at"
+          ]
+        },
+        {
+          "name": "booking_finances_payout_failure_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(payout_failure) \u003c= 500))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "payout_failure"
+          ]
+        },
+        {
+          "name": "booking_finances_payout_hold_check",
+          "type": "CHECK",
+          "def": "CHECK ((payout_hold = ANY (ARRAY['problem_reported'::text, 'dispute'::text, 'refunded'::text, 'provider_suspended'::text, 'account_cannot_receive'::text, 'transfer_failed'::text])))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "payout_hold"
+          ]
+        },
+        {
+          "name": "booking_finances_provider_amount_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((provider_amount_cents \u003e= 0))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "provider_amount_cents"
+          ]
+        },
+        {
+          "name": "booking_finances_reversal_failure_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(reversal_failure) \u003c= 500))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "reversal_failure"
+          ]
+        },
+        {
+          "name": "booking_finances_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.booking_finances",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_finances_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (booking_id)",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "booking_id"
+          ]
+        },
+        {
+          "name": "booking_finances_stripe_checkout_session_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (stripe_checkout_session_id)",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "stripe_checkout_session_id"
+          ]
+        },
+        {
+          "name": "booking_finances_stripe_payment_intent_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (stripe_payment_intent_id)",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "stripe_payment_intent_id"
+          ]
+        },
+        {
+          "name": "booking_finances_stripe_transfer_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (stripe_transfer_id)",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "stripe_transfer_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "booking_finances_guard",
+          "def": "CREATE TRIGGER booking_finances_guard BEFORE INSERT OR UPDATE ON public.booking_finances FOR EACH ROW EXECUTE FUNCTION booking_finances_guard()"
+        },
+        {
+          "name": "booking_finances_queue_emails",
+          "def": "CREATE TRIGGER booking_finances_queue_emails AFTER UPDATE OF payout_hold ON public.booking_finances FOR EACH ROW WHEN (((old.payout_hold IS NULL) AND (new.payout_hold = ANY (ARRAY['account_cannot_receive'::text, 'transfer_failed'::text])))) EXECUTE FUNCTION booking_finances_queue_emails()"
+        }
+      ]
+    },
+    {
+      "name": "public.booking_reports",
+      "type": "BASE TABLE",
+      "comment": "The customer's \"the provider didn't show up\" note. Read by that customer and admins, never the provider; written by the server; final once written. Never deleted.",
+      "columns": [
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "booking_reports_pkey",
+          "def": "CREATE UNIQUE INDEX booking_reports_pkey ON public.booking_reports USING btree (booking_id)",
+          "table": "public.booking_reports",
+          "columns": [
+            "booking_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "booking_reports_note_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(note) \u003c= 1000))",
+          "table": "public.booking_reports",
+          "referenced_table": "",
+          "columns": [
+            "note"
+          ]
+        },
+        {
+          "name": "booking_reports_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.booking_reports",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "booking_reports_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (booking_id)",
+          "table": "public.booking_reports",
+          "referenced_table": "",
+          "columns": [
+            "booking_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "booking_reports_final",
+          "def": "CREATE TRIGGER booking_reports_final BEFORE UPDATE ON public.booking_reports FOR EACH ROW EXECUTE FUNCTION booking_reports_final()"
+        }
+      ]
+    },
+    {
+      "name": "private.booking_records",
+      "type": "VIEW",
+      "comment": "A booking with its finances and no-show note, for the website's server only (service role). Updatable: one statement writes booking_finances, booking_reports and bookings, in that order, so the booking's rules see the money.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "preferred_times",
+          "type": "timestamp with time zone[]",
+          "nullable": true
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "ends_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "party_size",
+          "type": "smallint",
+          "nullable": true
+        },
+        {
+          "name": "customer_name",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "customer_notes",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "unit_price_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "total_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "refunded_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "refunded_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "reserved_until",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "respond_by",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_due_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "problem_reported_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "cancelled_by",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "cancel_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "status_changed_by",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "customer_city",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "customer_postal_code",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "problem_resolved_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "problem_resolution",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "commission_rate_bps",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "commission_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "provider_amount_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "payout_hold",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "payout_held_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_failed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_failure",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_checkout_session_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_payment_intent_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_charge_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_transfer_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_transfer_reversal_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "reversal_failed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "reversal_failure",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_dispute_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "disputed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "dispute_closed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "dispute_outcome",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "dispute_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "dispute_amount_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "dispute_evidence_due_by",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "problem_note",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "triggers": [
+        {
+          "name": "booking_records_update",
+          "def": "CREATE TRIGGER booking_records_update INSTEAD OF UPDATE ON private.booking_records FOR EACH ROW EXECUTE FUNCTION private.booking_records_update()"
+        }
+      ],
+      "def": "CREATE VIEW booking_records AS (\n SELECT b.id,\n    b.kind,\n    b.listing_id,\n    b.provider_id,\n    b.customer_id,\n    b.session_id,\n    b.status,\n    b.preferred_times,\n    b.starts_at,\n    b.ends_at,\n    b.party_size,\n    b.customer_name,\n    b.customer_notes,\n    b.unit_price_cents,\n    b.total_cents,\n    b.currency,\n    b.refunded_cents,\n    b.refunded_at,\n    b.reserved_until,\n    b.respond_by,\n    b.confirmed_at,\n    b.payout_due_at,\n    b.problem_reported_at,\n    b.cancelled_by,\n    b.cancelled_at,\n    b.cancel_reason,\n    b.status_changed_by,\n    b.created_at,\n    b.updated_at,\n    b.customer_city,\n    b.customer_postal_code,\n    b.problem_resolved_at,\n    b.problem_resolution,\n    f.commission_rate_bps,\n    f.commission_cents,\n    f.provider_amount_cents,\n    f.payout_hold,\n    f.payout_held_at,\n    f.payout_failed_at,\n    f.payout_failure,\n    f.stripe_checkout_session_id,\n    f.stripe_payment_intent_id,\n    f.stripe_charge_id,\n    f.stripe_transfer_id,\n    f.stripe_transfer_reversal_id,\n    f.reversal_failed_at,\n    f.reversal_failure,\n    f.stripe_dispute_id,\n    f.disputed_at,\n    f.dispute_closed_at,\n    f.dispute_outcome,\n    f.dispute_reason,\n    f.dispute_amount_cents,\n    f.dispute_evidence_due_by,\n    r.note AS problem_note\n   FROM ((bookings b\n     JOIN booking_finances f ON ((f.booking_id = b.id)))\n     LEFT JOIN booking_reports r ON ((r.booking_id = b.id)))\n)",
+      "referenced_tables": [
+        "public.bookings",
+        "public.booking_finances",
+        "public.booking_reports"
+      ]
     }
   ],
   "relations": [
@@ -4222,6 +4628,32 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.booking_finances",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.booking_reports",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -4433,6 +4865,30 @@
       "name": "public.admin_set_provider_status",
       "return_type": "bool",
       "arguments": "p_provider_id uuid, p_status text, p_admin_id uuid, p_reason text, p_message text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.booking_finances_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.booking_reports_final",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.booking_finances_queue_emails",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "private.booking_records_update",
+      "return_type": "trigger",
+      "arguments": "",
       "type": "FUNCTION"
     }
   ],

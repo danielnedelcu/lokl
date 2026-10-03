@@ -91,6 +91,12 @@ for usability and defence in depth, never as the only protection.
   anything copied from Stripe) is left out of the `authenticated` grants.
 - Server-only columns are written with the service role
   (`serverSupabaseServiceRole`), and only in server routes.
+- A booking's money (commission split, payouts, Stripe ids, disputes) is in
+  `booking_finances`, readable by its provider and admins only; the no-show
+  note is in `booking_reports`. Server code reads and writes a booking with
+  its money through `private.booking_records` (`bookingRecords(db)`); the
+  `private` schema is exposed to the API but only the service role may use
+  it. Never grant anything in `private` to `anon` or `authenticated`.
 - Everything else goes through the user-scoped client
   (`serverSupabaseClient` or `useSupabaseClient`), so RLS applies.
 - `anon` (signed-out visitors) gets no access unless a table is meant to be public.

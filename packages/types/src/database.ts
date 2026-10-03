@@ -12,6 +12,82 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  private: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      booking_records: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          commission_cents: number | null
+          commission_rate_bps: number | null
+          confirmed_at: string | null
+          created_at: string | null
+          currency: string | null
+          customer_city: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_notes: string | null
+          customer_postal_code: string | null
+          dispute_amount_cents: number | null
+          dispute_closed_at: string | null
+          dispute_evidence_due_by: string | null
+          dispute_outcome: string | null
+          dispute_reason: string | null
+          disputed_at: string | null
+          ends_at: string | null
+          id: string | null
+          kind: string | null
+          listing_id: string | null
+          party_size: number | null
+          payout_due_at: string | null
+          payout_failed_at: string | null
+          payout_failure: string | null
+          payout_held_at: string | null
+          payout_hold: string | null
+          preferred_times: string[] | null
+          problem_note: string | null
+          problem_reported_at: string | null
+          problem_resolution: string | null
+          problem_resolved_at: string | null
+          provider_amount_cents: number | null
+          provider_id: string | null
+          refunded_at: string | null
+          refunded_cents: number | null
+          reserved_until: string | null
+          respond_by: string | null
+          reversal_failed_at: string | null
+          reversal_failure: string | null
+          session_id: string | null
+          starts_at: string | null
+          status: string | null
+          status_changed_by: string | null
+          stripe_charge_id: string | null
+          stripe_checkout_session_id: string | null
+          stripe_dispute_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_transfer_id: string | null
+          stripe_transfer_reversal_id: string | null
+          total_cents: number | null
+          unit_price_cents: number | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_actions: {
@@ -205,13 +281,120 @@ export type Database = {
           },
         ]
       }
+      booking_finances: {
+        Row: {
+          booking_id: string
+          commission_cents: number
+          commission_rate_bps: number
+          dispute_amount_cents: number | null
+          dispute_closed_at: string | null
+          dispute_evidence_due_by: string | null
+          dispute_outcome: string | null
+          dispute_reason: string | null
+          disputed_at: string | null
+          payout_failed_at: string | null
+          payout_failure: string | null
+          payout_held_at: string | null
+          payout_hold: string | null
+          provider_amount_cents: number
+          reversal_failed_at: string | null
+          reversal_failure: string | null
+          stripe_charge_id: string | null
+          stripe_checkout_session_id: string | null
+          stripe_dispute_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_transfer_id: string | null
+          stripe_transfer_reversal_id: string | null
+        }
+        Insert: {
+          booking_id: string
+          commission_cents: number
+          commission_rate_bps: number
+          dispute_amount_cents?: number | null
+          dispute_closed_at?: string | null
+          dispute_evidence_due_by?: string | null
+          dispute_outcome?: string | null
+          dispute_reason?: string | null
+          disputed_at?: string | null
+          payout_failed_at?: string | null
+          payout_failure?: string | null
+          payout_held_at?: string | null
+          payout_hold?: string | null
+          provider_amount_cents: number
+          reversal_failed_at?: string | null
+          reversal_failure?: string | null
+          stripe_charge_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_dispute_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+          stripe_transfer_reversal_id?: string | null
+        }
+        Update: {
+          booking_id?: string
+          commission_cents?: number
+          commission_rate_bps?: number
+          dispute_amount_cents?: number | null
+          dispute_closed_at?: string | null
+          dispute_evidence_due_by?: string | null
+          dispute_outcome?: string | null
+          dispute_reason?: string | null
+          disputed_at?: string | null
+          payout_failed_at?: string | null
+          payout_failure?: string | null
+          payout_held_at?: string | null
+          payout_hold?: string | null
+          provider_amount_cents?: number
+          reversal_failed_at?: string | null
+          reversal_failure?: string | null
+          stripe_charge_id?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_dispute_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+          stripe_transfer_reversal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_finances_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_reports: {
+        Row: {
+          booking_id: string
+          created_at: string
+          note: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          note: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_reports_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
-          commission_cents: number
-          commission_rate_bps: number
           confirmed_at: string | null
           created_at: string
           currency: string
@@ -220,45 +403,25 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
-          dispute_amount_cents: number | null
-          dispute_closed_at: string | null
-          dispute_evidence_due_by: string | null
-          dispute_outcome: string | null
-          dispute_reason: string | null
-          disputed_at: string | null
           ends_at: string | null
           id: string
           kind: string
           listing_id: string
           party_size: number
           payout_due_at: string | null
-          payout_failed_at: string | null
-          payout_failure: string | null
-          payout_held_at: string | null
-          payout_hold: string | null
           preferred_times: string[] | null
-          problem_note: string | null
           problem_reported_at: string | null
           problem_resolution: string | null
           problem_resolved_at: string | null
-          provider_amount_cents: number
           provider_id: string
           refunded_at: string | null
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
-          reversal_failed_at: string | null
-          reversal_failure: string | null
           session_id: string | null
           starts_at: string | null
           status: string
           status_changed_by: string
-          stripe_charge_id: string | null
-          stripe_checkout_session_id: string | null
-          stripe_dispute_id: string | null
-          stripe_payment_intent_id: string | null
-          stripe_transfer_id: string | null
-          stripe_transfer_reversal_id: string | null
           total_cents: number
           unit_price_cents: number
           updated_at: string
@@ -267,8 +430,6 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
-          commission_cents: number
-          commission_rate_bps: number
           confirmed_at?: string | null
           created_at?: string
           currency?: string
@@ -277,45 +438,25 @@ export type Database = {
           customer_name: string
           customer_notes?: string | null
           customer_postal_code?: string | null
-          dispute_amount_cents?: number | null
-          dispute_closed_at?: string | null
-          dispute_evidence_due_by?: string | null
-          dispute_outcome?: string | null
-          dispute_reason?: string | null
-          disputed_at?: string | null
           ends_at?: string | null
           id?: string
           kind: string
           listing_id: string
           party_size?: number
           payout_due_at?: string | null
-          payout_failed_at?: string | null
-          payout_failure?: string | null
-          payout_held_at?: string | null
-          payout_hold?: string | null
           preferred_times?: string[] | null
-          problem_note?: string | null
           problem_reported_at?: string | null
           problem_resolution?: string | null
           problem_resolved_at?: string | null
-          provider_amount_cents: number
           provider_id: string
           refunded_at?: string | null
           refunded_cents?: number
           reserved_until?: string | null
           respond_by?: string | null
-          reversal_failed_at?: string | null
-          reversal_failure?: string | null
           session_id?: string | null
           starts_at?: string | null
           status?: string
           status_changed_by?: string
-          stripe_charge_id?: string | null
-          stripe_checkout_session_id?: string | null
-          stripe_dispute_id?: string | null
-          stripe_payment_intent_id?: string | null
-          stripe_transfer_id?: string | null
-          stripe_transfer_reversal_id?: string | null
           total_cents: number
           unit_price_cents: number
           updated_at?: string
@@ -324,8 +465,6 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
-          commission_cents?: number
-          commission_rate_bps?: number
           confirmed_at?: string | null
           created_at?: string
           currency?: string
@@ -334,45 +473,25 @@ export type Database = {
           customer_name?: string
           customer_notes?: string | null
           customer_postal_code?: string | null
-          dispute_amount_cents?: number | null
-          dispute_closed_at?: string | null
-          dispute_evidence_due_by?: string | null
-          dispute_outcome?: string | null
-          dispute_reason?: string | null
-          disputed_at?: string | null
           ends_at?: string | null
           id?: string
           kind?: string
           listing_id?: string
           party_size?: number
           payout_due_at?: string | null
-          payout_failed_at?: string | null
-          payout_failure?: string | null
-          payout_held_at?: string | null
-          payout_hold?: string | null
           preferred_times?: string[] | null
-          problem_note?: string | null
           problem_reported_at?: string | null
           problem_resolution?: string | null
           problem_resolved_at?: string | null
-          provider_amount_cents?: number
           provider_id?: string
           refunded_at?: string | null
           refunded_cents?: number
           reserved_until?: string | null
           respond_by?: string | null
-          reversal_failed_at?: string | null
-          reversal_failure?: string | null
           session_id?: string | null
           starts_at?: string | null
           status?: string
           status_changed_by?: string
-          stripe_charge_id?: string | null
-          stripe_checkout_session_id?: string | null
-          stripe_dispute_id?: string | null
-          stripe_payment_intent_id?: string | null
-          stripe_transfer_id?: string | null
-          stripe_transfer_reversal_id?: string | null
           total_cents?: number
           unit_price_cents?: number
           updated_at?: string
@@ -1065,8 +1184,6 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
-          commission_cents: number
-          commission_rate_bps: number
           confirmed_at: string | null
           created_at: string
           currency: string
@@ -1075,45 +1192,25 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
-          dispute_amount_cents: number | null
-          dispute_closed_at: string | null
-          dispute_evidence_due_by: string | null
-          dispute_outcome: string | null
-          dispute_reason: string | null
-          disputed_at: string | null
           ends_at: string | null
           id: string
           kind: string
           listing_id: string
           party_size: number
           payout_due_at: string | null
-          payout_failed_at: string | null
-          payout_failure: string | null
-          payout_held_at: string | null
-          payout_hold: string | null
           preferred_times: string[] | null
-          problem_note: string | null
           problem_reported_at: string | null
           problem_resolution: string | null
           problem_resolved_at: string | null
-          provider_amount_cents: number
           provider_id: string
           refunded_at: string | null
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
-          reversal_failed_at: string | null
-          reversal_failure: string | null
           session_id: string | null
           starts_at: string | null
           status: string
           status_changed_by: string
-          stripe_charge_id: string | null
-          stripe_checkout_session_id: string | null
-          stripe_dispute_id: string | null
-          stripe_payment_intent_id: string | null
-          stripe_transfer_id: string | null
-          stripe_transfer_reversal_id: string | null
           total_cents: number
           unit_price_cents: number
           updated_at: string
@@ -1154,8 +1251,6 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
-          commission_cents: number
-          commission_rate_bps: number
           confirmed_at: string | null
           created_at: string
           currency: string
@@ -1164,45 +1259,25 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_postal_code: string | null
-          dispute_amount_cents: number | null
-          dispute_closed_at: string | null
-          dispute_evidence_due_by: string | null
-          dispute_outcome: string | null
-          dispute_reason: string | null
-          disputed_at: string | null
           ends_at: string | null
           id: string
           kind: string
           listing_id: string
           party_size: number
           payout_due_at: string | null
-          payout_failed_at: string | null
-          payout_failure: string | null
-          payout_held_at: string | null
-          payout_hold: string | null
           preferred_times: string[] | null
-          problem_note: string | null
           problem_reported_at: string | null
           problem_resolution: string | null
           problem_resolved_at: string | null
-          provider_amount_cents: number
           provider_id: string
           refunded_at: string | null
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
-          reversal_failed_at: string | null
-          reversal_failure: string | null
           session_id: string | null
           starts_at: string | null
           status: string
           status_changed_by: string
-          stripe_charge_id: string | null
-          stripe_checkout_session_id: string | null
-          stripe_dispute_id: string | null
-          stripe_payment_intent_id: string | null
-          stripe_transfer_id: string | null
-          stripe_transfer_reversal_id: string | null
           total_cents: number
           unit_price_cents: number
           updated_at: string
@@ -1344,6 +1419,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  private: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

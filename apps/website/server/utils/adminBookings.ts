@@ -15,6 +15,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { BookingError } from "./bookings";
 import { refundInFull } from "./bookingCancellations";
 import { payOut, withdrawUnavailable } from "./bookingJobs";
+import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export type AdminAction =
   | "cancel_booking" | "release_payout" | "resolve_problem_paid" | "resolve_problem_refunded"
@@ -39,14 +40,14 @@ export async function logAdminAction(
 }
 
 async function read(db: SupabaseClient, id: string) {
-  const { data, error } = await db.from("bookings").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await bookingRecords(db).select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new BookingError("We couldn't find that booking.", 404);
   return data as Record<string, any>;
 }
 
 async function move(db: SupabaseClient, id: string, from: string, update: Record<string, unknown>) {
-  const { data, error } = await db.from("bookings").update(update).eq("id", id).eq("status", from).select("id");
+  const { data, error } = await bookingRecords(db).update(update).eq("id", id).eq("status", from).select("id");
   if (error) {
     if (error.code === "23514") throw new BookingError(error.message, 409);
     throw new Error(error.message);
@@ -138,7 +139,7 @@ export async function releasePayout(db: SupabaseClient, stripe: Stripe, bookingI
   if (!b.payout_hold) return "nothing held";
   if (b.payout_hold === "problem_reported") throw new BookingError("A customer reported a problem: resolve the report instead.", 409);
   if (b.disputed_at && !b.dispute_closed_at) throw new BookingError("The dispute is still open, so the payout stays held.", 409);
-  const { error } = await db.from("bookings").update({ payout_hold: null, payout_held_at: null }).eq("id", b.id).eq("payout_hold", b.payout_hold);
+  const { error } = await bookingRecords(db).update({ payout_hold: null, payout_held_at: null }).eq("id", b.id).eq("payout_hold", b.payout_hold);
   if (error) throw new Error(error.message);
   await logAdminAction(db, { adminId, target: "booking", targetId: b.id, action: "release_payout", reason });
   const run = await payOut(db, stripe, { bookingId: b.id });
@@ -152,7 +153,7 @@ export async function resolveProblemPaid(db: SupabaseClient, stripe: Stripe, boo
   if (!b.problem_reported_at || b.problem_resolution) throw new BookingError("There's no open report on this booking.", 409);
   const update: Record<string, unknown> = { problem_resolution: "paid_provider", problem_resolved_at: new Date().toISOString() };
   if (b.payout_hold === "problem_reported") Object.assign(update, { payout_hold: null, payout_held_at: null });
-  const { data, error } = await db.from("bookings").update(update).eq("id", b.id).is("problem_resolution", null).select("id");
+  const { data, error } = await bookingRecords(db).update(update).eq("id", b.id).is("problem_resolution", null).select("id");
   if (error) {
     if (error.code === "23514") throw new BookingError(error.message, 409);
     throw new Error(error.message);

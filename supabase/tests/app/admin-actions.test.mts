@@ -45,7 +45,7 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
   return data;
 }
 const refused = async (f: () => Promise<unknown>) => { try { await f(); return ""; } catch (e) { return (e as Error).message; } };
-const row = async (id: string) => must(db.from("bookings").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
+const row = async (id: string) => must(db.schema("private").from("booking_records").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
 const actions = async (targetId: string) => must(db.from("admin_actions").select("action, reason, admin_id").eq("target_id", targetId));
 const emails = async (id: string) => ((await must(db.from("booking_emails").select("kind").eq("booking_id", id))) as { kind: string }[]).map((e) => e.kind);
 const refundedInStripe = async (pi: string) => (await stripe.charges.list({ payment_intent: pi })).data[0]?.amount_refunded ?? -1;
@@ -96,7 +96,7 @@ try {
       p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
     })) as { id: string };
     const pi = await stripe.paymentIntents.create({ amount: 5000, currency: "usd", payment_method: "pm_card_bypassPending", confirm: true, payment_method_types: ["card"], metadata: { booking_id: b.id, test: "admin-actions" } });
-    await must(db.from("bookings").update({ status: "confirmed", status_changed_by: "stripe", stripe_payment_intent_id: pi.id, stripe_charge_id: pi.latest_charge as string }).eq("id", b.id));
+    await must(db.schema("private").from("booking_records").update({ status: "confirmed", status_changed_by: "stripe", stripe_payment_intent_id: pi.id, stripe_charge_id: pi.latest_charge as string }).eq("id", b.id));
     return { id: b.id, pi: pi.id };
   };
   const dueAfter = async (id: string) => new Date(Date.parse((await row(id)).payout_due_at) + 60_000);
@@ -107,7 +107,7 @@ try {
     p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null, p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
   })) as { id: string }).id;
   const hold = await stripe.paymentIntents.create({ amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true, payment_method_types: ["card"] });
-  await must(db.from("bookings").update({ status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: hold.id, respond_by: new Date(Date.now() + 2 * day).toISOString() }).eq("id", reqId));
+  await must(db.schema("private").from("booking_records").update({ status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: hold.id, respond_by: new Date(Date.now() + 2 * day).toISOString() }).eq("id", reqId));
   check((await refused(() => adminCancelBooking(db, stripe, reqId, admin.id, "no"))).includes("Say why"), "1a. an admin action needs a reason");
   check((await adminCancelBooking(db, stripe, reqId, admin.id, "Duplicate request.")) === "cancelled and refunded", "1b. lokl cancels a request");
   check((await stripe.paymentIntents.retrieve(hold.id)).status === "canceled" && (await row(reqId)).cancelled_by === "admin", "1c. ...the hold is released, cancelled by lokl");
@@ -140,7 +140,7 @@ try {
   // 4. A no-show report resolved in the provider's favour: the payout goes ahead.
   const ns = await paid();
   happened(ns.id);
-  await must(db.from("bookings").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there at all.", payout_hold: "problem_reported", payout_held_at: new Date().toISOString() }).eq("id", ns.id));
+  await must(db.schema("private").from("booking_records").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there at all.", payout_hold: "problem_reported", payout_held_at: new Date().toISOString() }).eq("id", ns.id));
   check((await refused(() => releasePayout(db, stripe, ns.id, admin.id, "Looks fine to me."))).includes("resolve the report"), "4a. a reported no-show isn't simply released; it's resolved");
   check((await resolveProblemPaid(db, stripe, ns.id, admin.id, "The provider sent photos from the meeting point.")) === "resolved: the provider will be paid", "4b. resolved in the provider's favour");
   const ns1 = await row(ns.id);
@@ -152,7 +152,7 @@ try {
   // 5. A no-show report resolved with a refund: cancelled, refunded, the report's own emails.
   const nr = await paid();
   happened(nr.id);
-  await must(db.from("bookings").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there at all.", payout_hold: "problem_reported", payout_held_at: new Date().toISOString() }).eq("id", nr.id));
+  await must(db.schema("private").from("booking_records").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there at all.", payout_hold: "problem_reported", payout_held_at: new Date().toISOString() }).eq("id", nr.id));
   await adminCancelBooking(db, stripe, nr.id, admin.id, "The provider confirmed they missed it.", { resolveProblem: true });
   const nr1 = await row(nr.id);
   const nrEmails = await emails(nr.id);
@@ -164,13 +164,13 @@ try {
   // 6. Releasing a held payout: paid when due; not while a dispute is open.
   const held = await paid();
   happened(held.id);
-  await must(db.from("bookings").update({ status: "completed", status_changed_by: "system" }).eq("id", held.id));
-  await must(db.from("bookings").update({ payout_hold: "account_cannot_receive", payout_held_at: new Date().toISOString() }).eq("id", held.id));
+  await must(db.schema("private").from("booking_records").update({ status: "completed", status_changed_by: "system" }).eq("id", held.id));
+  await must(db.schema("private").from("booking_records").update({ payout_hold: "account_cannot_receive", payout_held_at: new Date().toISOString() }).eq("id", held.id));
   check((await releasePayout(db, stripe, held.id, admin.id, "Their account is fixed now.")).length > 0 && !(await row(held.id)).payout_hold, "6a. a hold is released");
   await payOut(db, stripe, { bookingId: held.id, now: await dueAfter(held.id) });
   check((await row(held.id)).status === "paid_out", "6b. ...and the payout goes out when due");
   const disputed = await paid();
-  await must(db.from("bookings").update({ payout_hold: "dispute", payout_held_at: new Date().toISOString(), disputed_at: new Date().toISOString(), stripe_dispute_id: "dp_test" }).eq("id", disputed.id));
+  await must(db.schema("private").from("booking_records").update({ payout_hold: "dispute", payout_held_at: new Date().toISOString(), disputed_at: new Date().toISOString(), stripe_dispute_id: "dp_test" }).eq("id", disputed.id));
   check((await refused(() => releasePayout(db, stripe, disputed.id, admin.id, "Trying to release it."))).includes("dispute is still open"), "6c. a payout held by an open dispute can't be released");
 
   // 7. Sending an email again.
@@ -187,7 +187,7 @@ try {
     p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null, p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
   })) as { id: string }).id;
   const hold2 = await stripe.paymentIntents.create({ amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true, payment_method_types: ["card"] });
-  await must(db.from("bookings").update({ status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: hold2.id, respond_by: new Date(Date.now() + 2 * day).toISOString() }).eq("id", openReq));
+  await must(db.schema("private").from("booking_records").update({ status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: hold2.id, respond_by: new Date(Date.now() + 2 * day).toISOString() }).eq("id", openReq));
   check((await refused(() => setProviderStatus(db, stripe, provider, "suspended", admin.id, "x"))).includes("Say why"), "8a. suspending needs a reason");
   // A confirmed booking that should survive the suspension.
   const keep = await paid();
@@ -247,6 +247,8 @@ try {
       delete from provider_emails where provider_id in (${created.providers.map((p) => `'${p}'`).join(",") || "null"});
       delete from admin_actions where target_id in (${created.providers.map((p) => `'${p}'`).join(",") || "null"});
       delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from notifications where listing_id in (${ids});

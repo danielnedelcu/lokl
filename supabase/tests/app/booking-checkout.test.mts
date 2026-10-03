@@ -65,7 +65,7 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
   if (error) throw new Error(error.message);
   return data;
 }
-const booking = async (id: string) => must(db.from("bookings").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
+const booking = async (id: string) => must(db.schema("private").from("booking_records").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
 
 // Every event Stripe has for a Checkout Session and its payment, oldest first.
 async function eventsFor(sessionId: string, paymentIntentId?: string) {
@@ -227,6 +227,8 @@ try {
     execFileSync("psql", [L, "-q", "-c", `
       set session_replication_role = replica;
       delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_addresses where booking_id in (select id from bookings where listing_id in (${ids}));

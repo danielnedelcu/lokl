@@ -41,7 +41,7 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
   if (error) throw new Error(error.message);
   return data;
 }
-const countBookings = async (listingId: string) => (await must(db.from("bookings").select("id").eq("listing_id", listingId))).length;
+const countBookings = async (listingId: string) => (await must(db.schema("private").from("booking_records").select("id").eq("listing_id", listingId))).length;
 const created = { users: [] as string[], provider: "", listings: [] as string[], categories: [] as string[], area: "" };
 
 try {
@@ -88,12 +88,12 @@ try {
   const svc = await service();
   const exp = await experience();
   check(!!svc.url && !!exp.url, "2. with payouts ready, both kinds open a checkout");
-  const svcSession = (await must(db.from("bookings").select("stripe_checkout_session_id").eq("id", svc.bookingId).single())).stripe_checkout_session_id as string;
-  const expSession = (await must(db.from("bookings").select("stripe_checkout_session_id").eq("id", exp.bookingId).single())).stripe_checkout_session_id as string;
+  const svcSession = (await must(db.schema("private").from("booking_records").select("stripe_checkout_session_id").eq("id", svc.bookingId).single())).stripe_checkout_session_id as string;
+  const expSession = (await must(db.schema("private").from("booking_records").select("stripe_checkout_session_id").eq("id", exp.bookingId).single())).stripe_checkout_session_id as string;
 
   // 3. Syncing a checkout that's still open changes nothing.
   check((await syncCheckoutSession(db, stripe, svcSession)) === "ignored: checkout not complete", "3a. syncing an open checkout changes nothing");
-  check((await must(db.from("bookings").select("status").eq("id", svc.bookingId).single())).status === "pending_payment", "3b. ...the request is still pending payment");
+  check((await must(db.schema("private").from("booking_records").select("status").eq("id", svc.bookingId).single())).status === "pending_payment", "3b. ...the request is still pending payment");
 
   // 4. Abandoning an open checkout expires it in Stripe and frees the booking at once.
   check((await must(db.rpc("session_spots_left", { p_session_id: s1 }))) === 1, "4a. the open Experience checkout holds a spot");
@@ -111,6 +111,8 @@ try {
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `
       set session_replication_role = replica;
       delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
+      delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_events where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_contacts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from notifications where listing_id in (${ids});

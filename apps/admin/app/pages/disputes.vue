@@ -7,17 +7,19 @@ import { whenOf } from "~/utils/bookingAdmin";
 useHead({ title: "Disputes & refunds · Admin" });
 const supabase = useSupabaseClient();
 
-const FIELDS = "id, status, starts_at, total_cents, refunded_cents, refunded_at, cancelled_by, cancel_reason, stripe_dispute_id, disputed_at, " +
-  "dispute_closed_at, dispute_outcome, dispute_reason, dispute_amount_cents, dispute_evidence_due_by, problem_resolution, " +
+// Disputes start from booking_finances (where the dispute is recorded);
+// refunds from bookings (where the refund is). Admins read both.
+const BOOKING = "id, status, starts_at, total_cents, refunded_cents, refunded_at, cancelled_by, cancel_reason, problem_resolution, " +
   "listing:listings(title, city:cities(timezone)), provider:providers(display_name)";
+const DISPUTE = "stripe_dispute_id, disputed_at, dispute_closed_at, dispute_outcome, dispute_reason, dispute_amount_cents, dispute_evidence_due_by";
 const { data, error, pending } = await useAsyncData("admin-disputes", async () => {
   const [d, r] = await Promise.all([
-    supabase.from("bookings").select(FIELDS).not("disputed_at", "is", null).order("disputed_at", { ascending: false }).limit(200),
-    supabase.from("bookings").select(FIELDS).gt("refunded_cents", 0).order("refunded_at", { ascending: false }).limit(100),
+    supabase.from("booking_finances").select(`${DISPUTE}, booking:bookings(${BOOKING})`).not("disputed_at", "is", null).order("disputed_at", { ascending: false }).limit(200),
+    supabase.from("bookings").select(BOOKING).gt("refunded_cents", 0).order("refunded_at", { ascending: false }).limit(100),
   ]);
   if (d.error) throw d.error;
   if (r.error) throw r.error;
-  const disputes = (d.data ?? []) as any[];
+  const disputes = ((d.data ?? []) as any[]).map(({ booking, ...f }) => ({ ...booking, ...f }));
   return { open: disputes.filter((x) => !x.dispute_closed_at), closed: disputes.filter((x) => x.dispute_closed_at), refunds: (r.data ?? []) as any[] };
 });
 watch(error, (e) => e && reportProblem("Couldn't load disputes", e), { immediate: true });
