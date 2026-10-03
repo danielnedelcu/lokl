@@ -143,10 +143,10 @@ try {
     created.guides.push(g.id);
     return g;
   };
-  const draft = (guide: { id: string; updated_at: string }, extra: Partial<{ areaId: string | null; notes: string; expectedUpdatedAt: string }> = {}) =>
+  const draft = (guide: { id: string; updated_at: string }, extra: Partial<{ areaId: string | null; brief: string; expectedUpdatedAt: string }> = {}) =>
     writeGuideDraft(db, fake, {
       guideId: guide.id, adminId: admin.id, modelName: "claude-opus-5-5",
-      request: { topic: "A day in Old Fourth Ward", areaId: area.id, categoryId: null, notes: "Start on Auburn Avenue.", expectedUpdatedAt: guide.updated_at, ...extra },
+      request: { brief: "A day in Old Fourth Ward\nStart on Auburn Avenue.", areaId: area.id, categoryId: null, expectedUpdatedAt: guide.updated_at, ...extra },
     });
   const logsFor = async (guideId: string) =>
     must(db.from("guide_ai_drafts").select("*").eq("guide_id", guideId).order("created_at"));
@@ -175,11 +175,12 @@ try {
   const [log] = await logsFor(g.id);
   check(log?.input_tokens === 2000 && log.output_tokens === 3000 && Number(log.cost_usd) === 0.068,
     `2g. logged with tokens and cost at $4/$20 per million (got $${log?.cost_usd})`);
-  check((log?.previous_draft as { title?: string } | null)?.title === "My own words" && log?.error === null && log.notes === "Start on Auburn Avenue.",
-    "2h. the log keeps what was sent and the draft from before");
+  check((log?.previous_draft as { title?: string } | null)?.title === "My own words" && log?.error === null
+    && log.notes === "A day in Old Fourth Ward\nStart on Auburn Avenue." && log.topic === "A day in Old Fourth Ward",
+    "2h. the log keeps the whole brief, its first line as the label, and the draft from before");
   const sent = JSON.stringify(lastRequest);
-  check(sent.includes("Start on Auburn Avenue.") && sent.includes(`Drafts ${run}`) && sent.includes("Atlanta") && sent.includes("json_schema"),
-    "2i. the request carries the notes, area and city, and asks for the fixed JSON shape");
+  check(sent.includes("<brief>\\nA day in Old Fourth Ward\\nStart on Auburn Avenue.\\n</brief>") && sent.includes(`Drafts ${run}`) && sent.includes("Atlanta") && sent.includes("json_schema"),
+    "2i. the request carries the brief, area and city, and asks for the fixed JSON shape");
 
   // -------------------------------------------------------------------------
   // 3. Undo: the draft from before comes back, once

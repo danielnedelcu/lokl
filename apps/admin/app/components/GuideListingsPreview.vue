@@ -65,14 +65,14 @@ watch(() => [props.areaId, props.categoryId, props.kind], () => void load(), { i
         No live listings match yet. The block will be hidden.
       </p>
       <template v-else>
-        <button type="button" class="flex min-h-9 items-center gap-1 font-medium underline-offset-4 hover:underline"
+        <button type="button" class="flex min-h-9 items-center gap-1 font-medium"
           :aria-expanded="open" @click="open = !open">
           <Icon :name="open ? 'lucide:chevron-down' : 'lucide:chevron-right'" aria-hidden="true" />
           {{ result.total }} live {{ result.total === 1 ? "listing matches" : "listings match" }}
         </button>
         <ul v-if="open" class="mt-1 space-y-1 pl-5">
           <li v-for="l in result.items" :key="l.id">
-            <NuxtLink :to="`/listings/${l.id}`" class="underline-offset-4 hover:underline">{{ l.title }}</NuxtLink>
+            <NuxtLink :to="`/listings/${l.id}`">{{ l.title }}</NuxtLink>
             <span class="text-muted-foreground"> · {{ l.category.name }}</span>
           </li>
           <li v-if="result.total > result.items.length" class="text-muted-foreground">

@@ -116,7 +116,7 @@ const actionLabels: Record<string, string> = {
 
 <template>
   <div class="max-w-3xl">
-    <NuxtLink to="/bookings" class="text-sm text-muted-foreground underline-offset-4 hover:underline">← Bookings & payouts</NuxtLink>
+    <NuxtLink to="/bookings" class="text-sm text-muted-foreground">← Bookings & payouts</NuxtLink>
 
     <UiAlert v-if="error" variant="destructive" class="mt-4">
       <UiAlertTitle>Couldn't load the booking</UiAlertTitle>

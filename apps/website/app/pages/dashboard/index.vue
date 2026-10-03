@@ -75,8 +75,8 @@ const steps = computed(() => [
       </p>
       <p class="text-sm">
         Here to book something?
-        <NuxtLink to="/account/bookings" class="font-medium underline underline-offset-4">See my bookings</NuxtLink>
-        or <NuxtLink to="/experiences" class="font-medium underline underline-offset-4">browse Experiences</NuxtLink>.
+        <NuxtLink to="/account/bookings" class="font-medium">See my bookings</NuxtLink>
+        or <NuxtLink to="/experiences" class="font-medium">browse Experiences</NuxtLink>.
       </p>
     </div>
     <UiAlert v-if="needsAttention?.length" variant="destructive" class="mt-6 max-w-lg" icon="lucide:alert-circle">
@@ -84,7 +84,7 @@ const steps = computed(() => [
       <UiAlertDescription>
         <ul class="mt-1 space-y-1">
           <li v-for="l in needsAttention" :key="l.id">
-            <NuxtLink :to="`/dashboard/listings/${l.id}`" class="font-medium underline underline-offset-4">{{ l.title }}</NuxtLink>:
+            <NuxtLink :to="`/dashboard/listings/${l.id}`" class="font-medium">{{ l.title }}</NuxtLink>:
             {{ l.status === "rejected" ? "lokl asked for changes" : "lokl took it down" }}
           </li>
         </ul>

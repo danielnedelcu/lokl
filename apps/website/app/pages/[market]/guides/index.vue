@@ -46,7 +46,7 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
     <nav aria-label="Breadcrumb" class="text-muted-foreground mb-4 text-sm">
       <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         <li v-for="(c, i) in crumbs" :key="c.to" class="flex items-center gap-1.5">
-          <NuxtLink v-if="i < crumbs.length - 1" :to="c.to" class="hover:text-foreground underline-offset-4 hover:underline">{{ c.name }}</NuxtLink>
+          <NuxtLink v-if="i < crumbs.length - 1" :to="c.to" class="hover:text-foreground">{{ c.name }}</NuxtLink>
           <span v-else aria-current="page" class="text-foreground">{{ c.name }}</span>
           <Icon v-if="i < crumbs.length - 1" name="lucide:chevron-right" class="size-3.5" aria-hidden="true" />
         </li>
@@ -62,7 +62,7 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
       <UiAlertDescription>Please try again in a moment.</UiAlertDescription>
     </UiAlert>
     <p v-else-if="!guides.length" class="border-border mt-8 rounded-lg border border-dashed p-6 text-center text-sm">
-      Guides are on their way. In the meantime, <NuxtLink :to="`/${marketSlug}`" class="underline underline-offset-4">see what's on in {{ market.name }}</NuxtLink>.
+      Guides are on their way. In the meantime, <NuxtLink :to="`/${marketSlug}`" class="font-medium">see what's on in {{ market.name }}</NuxtLink>.
     </p>
     <ul v-else class="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
       <li v-for="(g, i) in guides" :key="g.slug">

@@ -55,7 +55,7 @@ const copy = {
 
     <div v-if="!provider" class="mt-6 rounded-lg border border-border bg-card p-5 text-sm">
       <p>Create your business profile first.</p>
-      <NuxtLink to="/dashboard/settings" class="mt-3 inline-block font-medium underline">Go to business profile</NuxtLink>
+      <NuxtLink to="/dashboard/settings" class="mt-3 inline-block font-medium">Go to business profile</NuxtLink>
     </div>
 
     <div v-else class="mt-6 rounded-lg border border-border bg-card p-5">

@@ -46,7 +46,7 @@ const MESSAGES = {
   changedBefore: "This guide has changed since you opened it. Reload, then try again.",
   running: "A draft for this guide is already being written. Wait for it to finish.",
   cap: `That's ${AI_DRAFTS_PER_HOUR} AI drafts in the last hour. Try again later.`,
-  incomplete: "The draft came back incomplete, so nothing was changed. Try again, perhaps with a narrower topic.",
+  incomplete: "The draft came back incomplete, so nothing was changed. Try again, perhaps with a narrower subject.",
   key: "The AI service refused lokl's key. Check it in the Anthropic console.",
   limit: "lokl's AI spending or rate limit has been reached. Try again later, or check the limit in the Anthropic console.",
   slow: "The AI service didn't answer in time. Try again in a minute.",
@@ -94,7 +94,7 @@ export function replyToBody(reply: DraftReply) {
     if (b.type === "list") {
       const items = b.items.map((i) => i.trim()).filter(Boolean);
       return items.length
-        ? [{ id: blockId(), type: "list", data: { style: b.ordered ? "ordered" : "unordered", meta: {}, items: items.map((i) => ({ content: escape(i), meta: {}, items: [] })) } }]
+        ? [{ id: blockId(), type: "list", data: { style: b.ordered ? "ordered" : "unordered", meta: b.ordered ? { counterType: "numeric" } : {}, items: items.map((i) => ({ content: escape(i), meta: {}, items: [] })) } }]
         : [];
     }
     if (!text) return [];
@@ -178,16 +178,19 @@ export async function writeGuideDraft(
   if (running.length) throw new GuideDraftError(409, MESSAGES.running);
 
   // Logged before the call, so a second request sees this one running.
-  const notes = req.notes?.trim() ?? "";
+  // The log keeps the brief whole in `notes`, and its first line (up to 200
+  // characters) in `topic`, as the label for the draft.
+  const brief = req.brief.trim();
+  const label = brief.split("\n")[0]!.trim().slice(0, 200);
   const { data: log, error: lErr } = await db
     .from("guide_ai_drafts")
     .insert({
       guide_id: guideId,
       requested_by: adminId,
-      topic: req.topic,
+      topic: label,
       area_id: req.areaId ?? null,
       category_id: req.categoryId ?? null,
-      notes: notes || null,
+      notes: brief,
       model: modelName,
     })
     .select("id")
@@ -220,12 +223,11 @@ export async function writeGuideDraft(
         {
           role: "user",
           content: guideWriterUserMessage({
-            topic: req.topic,
             market,
             area: area?.data ? { name: area.data.name, kind: area.data.kind } : null,
             category: category?.data ? { name: category.data.name, kind: category.data.kind as "service" | "experience" } : null,
             kind: req.categoryId ? null : (guide.draft_listing_kind as "service" | "experience" | null),
-            notes,
+            brief,
           }),
         },
       ],

@@ -45,13 +45,13 @@ const why = (b: any) => b.problem_resolution === "refunded" ? "a reported no-sho
         <ul v-else class="mt-3 space-y-3">
           <li v-for="d in data.open" :key="d.id" class="rounded-lg border border-border bg-card p-4 text-sm">
             <div class="flex flex-wrap items-start justify-between gap-2">
-              <NuxtLink :to="`/bookings/${d.id}`" class="font-medium underline-offset-4 hover:underline">{{ d.listing?.title }}</NuxtLink>
+              <NuxtLink :to="`/bookings/${d.id}`" class="font-medium">{{ d.listing?.title }}</NuxtLink>
               <span class="font-medium">{{ money(d.dispute_amount_cents ?? d.total_cents) }}</span>
             </div>
             <p class="text-muted-foreground">{{ d.provider?.display_name }} · {{ whenOf(d) }} · reason: {{ d.dispute_reason ?? "not given" }}</p>
             <p class="mt-1">
               <template v-if="d.dispute_evidence_due_by">Evidence due <strong>{{ formatDate(d.dispute_evidence_due_by) }}</strong> · </template>
-              <a :href="stripeLink(d.stripe_dispute_id)" target="_blank" rel="noopener" class="underline underline-offset-4">Open in Stripe</a>
+              <a :href="stripeLink(d.stripe_dispute_id)" target="_blank" rel="noopener" class="font-medium">Open in Stripe</a>
             </p>
           </li>
         </ul>
@@ -61,7 +61,7 @@ const why = (b: any) => b.problem_resolution === "refunded" ? "a reported no-sho
         <h2 id="closed-heading" class="font-medium">Closed disputes</h2>
         <ul class="mt-2 space-y-1 text-sm">
           <li v-for="d in data.closed" :key="d.id">
-            <NuxtLink :to="`/bookings/${d.id}`" class="underline underline-offset-4">{{ d.listing?.title }}</NuxtLink>
+            <NuxtLink :to="`/bookings/${d.id}`" class="font-medium">{{ d.listing?.title }}</NuxtLink>
             · {{ formatDate(d.dispute_closed_at) }} · {{ d.dispute_outcome }} · {{ money(d.dispute_amount_cents ?? d.total_cents) }}
           </li>
         </ul>
@@ -72,7 +72,7 @@ const why = (b: any) => b.problem_resolution === "refunded" ? "a reported no-sho
         <p v-if="!data.refunds.length" class="mt-2 text-sm text-muted-foreground">No refunds yet.</p>
         <ul v-else class="mt-2 space-y-1 text-sm">
           <li v-for="r in data.refunds" :key="r.id">
-            <NuxtLink :to="`/bookings/${r.id}`" class="underline underline-offset-4">{{ r.listing?.title }}</NuxtLink>
+            <NuxtLink :to="`/bookings/${r.id}`" class="font-medium">{{ r.listing?.title }}</NuxtLink>
             · {{ money(r.refunded_cents) }} · {{ r.refunded_at ? formatDate(r.refunded_at) : "" }} · {{ why(r) }}
           </li>
         </ul>

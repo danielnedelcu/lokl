@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { serverSupabaseServiceRole } from "#supabase/server";
 import { aiDraftRequestSchema, type Database } from "@repo/types";
 
-// POST /api/guides/:id/draft { topic, areaId?, categoryId?, notes?, expectedUpdatedAt }:
+// POST /api/guides/:id/draft { brief, areaId?, categoryId?, expectedUpdatedAt }:
 // asks Claude for a draft and lands it in the guide's draft, marked unreviewed
 // (docs/design/destination-guides.md, The AI draft). Admins only. The key is
 // server-only runtime config (NUXT_ANTHROPIC_API_KEY), never sent to the page.

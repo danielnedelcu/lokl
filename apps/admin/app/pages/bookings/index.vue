@@ -131,7 +131,7 @@ const columns = [
           <h3 class="text-sm font-medium">{{ g.label }} ({{ g.count }})</h3>
           <ul class="mt-1 space-y-1 text-sm">
             <li v-for="b in g.rows" :key="b.id">
-              <NuxtLink :to="`/bookings/${b.id}`" class="underline underline-offset-4">{{ b.listing?.title ?? "Booking" }}</NuxtLink>
+              <NuxtLink :to="`/bookings/${b.id}`" class="font-medium">{{ b.listing?.title ?? "Booking" }}</NuxtLink>
               · {{ b.provider?.display_name }} · {{ whenOf(b) }} · {{ payoutState(b) }}
             </li>
           </ul>
@@ -143,7 +143,7 @@ const columns = [
           <h3 class="text-sm font-medium">Emails that failed ({{ attention.failedEmails.length }})</h3>
           <ul class="mt-1 space-y-1 text-sm">
             <li v-for="e in attention.failedEmails" :key="e.id">
-              <NuxtLink :to="`/bookings/${e.booking_id}`" class="underline underline-offset-4"><code>{{ e.kind }}</code></NuxtLink>
+              <NuxtLink :to="`/bookings/${e.booking_id}`" class="font-medium"><code>{{ e.kind }}</code></NuxtLink>
               · {{ formatDate(e.created_at) }} · {{ e.last_error }}
             </li>
           </ul>
@@ -163,31 +163,37 @@ const columns = [
     <!-- Every booking -->
     <section aria-labelledby="all-heading">
       <h2 id="all-heading" class="font-medium" tabindex="-1">All bookings</h2>
-      <form class="mt-3 flex flex-wrap items-end gap-3 text-sm" role="search" aria-label="Filter bookings" @submit.prevent>
-        <div class="w-44">
+      <!-- Below xl (1280px): two columns (status and kind, then provider and
+           dates), then the search full width. From xl: one row. All five fields
+           need about 980px, which the space beside the sidebar only has from xl;
+           below that the row wrapped and left the search on a line of its own. -->
+      <form class="mt-3 grid grid-cols-2 items-end gap-3 text-sm xl:flex xl:flex-wrap" role="search" aria-label="Filter bookings"
+        @submit.prevent>
+        <div class="min-w-0 xl:w-44">
           <UiLabel for="filter-status" class="mb-1">Status</UiLabel>
           <SelectInput id="filter-status" :model-value="f.status ?? ''" :options="[
             { value: '', label: 'Any' },
             ...STATUSES.map((s) => ({ value: s, label: statusLabel('adminBooking', s) })),
           ]" @update:model-value="(v) => table.setFilter('status', v)" />
         </div>
-        <div class="w-40">
+        <div class="min-w-0 xl:w-40">
           <UiLabel for="filter-kind" class="mb-1">Kind</UiLabel>
           <SelectInput id="filter-kind" :model-value="f.kind ?? ''"
             :options="[{ value: '', label: 'Any' }, { value: 'service', label: 'Service' }, { value: 'experience', label: 'Experience' }]"
             @update:model-value="(v) => table.setFilter('kind', v)" />
         </div>
-        <div class="w-56">
+        <div class="min-w-0 xl:w-56">
           <UiLabel for="filter-provider" class="mb-1">Provider</UiLabel>
           <SearchSelect id="filter-provider" :model-value="f.provider ?? ''" placeholder="Any provider" empty-text="No provider matches."
             :options="[{ value: '', label: 'Any provider' }]" :search="picker.search" :selected-label="picker.selectedLabel.value"
             @update:model-value="(v) => table.setFilter('provider', v)" />
         </div>
-        <div>
-          <p class="mb-1 text-sm font-medium" aria-hidden="true">Dates</p>
-          <DateRangePicker v-model="dateRange" label="Bookings between" empty-text="Any dates" />
+        <div class="min-w-0">
+          <!-- leading-none, like UiLabel beside it, so the labels line up. -->
+          <p class="mb-1 text-sm leading-none font-medium" aria-hidden="true">Dates</p>
+          <DateRangePicker v-model="dateRange" label="Bookings between" empty-text="Any dates" full-width />
         </div>
-        <TableSearch id="filter-search" :value="table.query.value.q" placeholder="Customer, email, listing, amount…"
+        <TableSearch id="filter-search" class="col-span-2" full-until="xl" :value="table.query.value.q" placeholder="Customer, email, listing, amount…"
           hint="Matches a customer's name or email, the listing, the provider or an amount. Results update as you type."
           @search="table.setSearch" />
       </form>
@@ -217,7 +223,7 @@ const columns = [
           :sort="table.query.value.sort" :desc="table.query.value.desc" :pending="table.pending.value"
           @page="table.setPage" @sort="table.setSort">
           <template #booking-cell="{ row }">
-            <NuxtLink :to="`/bookings/${row.original.id}`" class="font-medium underline-offset-4 hover:underline">
+            <NuxtLink :to="`/bookings/${row.original.id}`" class="font-medium">
               {{ row.original.listing?.title ?? "Booking" }}
             </NuxtLink>
             <span class="text-muted-foreground block text-xs">{{ row.original.provider?.display_name }} · {{ row.original.customer_name }}</span>

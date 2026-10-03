@@ -66,7 +66,7 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
     <section aria-labelledby="featured-heading" class="mx-auto max-w-6xl px-4 py-12">
       <div class="flex flex-wrap items-end justify-between gap-2">
         <h2 id="featured-heading" class="text-xl font-semibold">On lokl now</h2>
-        <NuxtLink :to="`/${MARKET}`" class="text-sm underline underline-offset-4">Everything in Atlanta</NuxtLink>
+        <NuxtLink :to="`/${MARKET}`" class="font-medium text-sm">Everything in Atlanta</NuxtLink>
       </div>
       <p v-if="!featured.length" class="border-border mt-6 rounded-lg border border-dashed p-6 text-center text-sm">
         The first listings are on their way. Check back soon.

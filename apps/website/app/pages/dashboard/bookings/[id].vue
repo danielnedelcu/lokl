@@ -144,7 +144,7 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
 
 <template>
   <div v-if="b" class="max-w-2xl">
-    <NuxtLink to="/dashboard/bookings" class="inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:underline">
+    <NuxtLink to="/dashboard/bookings" class="inline-flex min-h-11 items-center text-sm text-muted-foreground">
       ← Bookings
     </NuxtLink>
     <div class="mt-2 flex flex-wrap items-start justify-between gap-3">
@@ -203,8 +203,8 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
           {{ b.customer_name }}<template v-if="b.kind === 'experience'"> · {{ b.party_size }} {{ b.party_size === 1 ? "person" : "people" }}</template>
         </dd>
         <template v-if="b.contact">
-          <dd><a :href="`mailto:${b.contact.email}`" class="underline underline-offset-4">{{ b.contact.email }}</a></dd>
-          <dd v-if="b.contact.phone"><a :href="`tel:${b.contact.phone}`" class="underline underline-offset-4">{{ b.contact.phone }}</a></dd>
+          <dd><a :href="`mailto:${b.contact.email}`" class="font-medium">{{ b.contact.email }}</a></dd>
+          <dd v-if="b.contact.phone"><a :href="`tel:${b.contact.phone}`" class="font-medium">{{ b.contact.phone }}</a></dd>
         </template>
         <dd v-else class="text-xs text-muted-foreground">Their email and phone are shown here once you accept.</dd>
       </div>

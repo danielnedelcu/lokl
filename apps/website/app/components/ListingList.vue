@@ -60,7 +60,7 @@ useLiveData({ refresh, listings: "any" });
       <UiAlertTitle>Set up your business profile first</UiAlertTitle>
       <UiAlertDescription>
         Listings belong to your business.
-        <NuxtLink to="/dashboard/settings" class="font-medium underline">Go to your business profile</NuxtLink>
+        <NuxtLink to="/dashboard/settings" class="font-medium">Go to your business profile</NuxtLink>
       </UiAlertDescription>
     </UiAlert>
 

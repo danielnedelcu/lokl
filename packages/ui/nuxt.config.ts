@@ -57,6 +57,25 @@ export default defineNuxtConfig({
     provider: "none",
   },
 
+  // Roboto, served from our own site: @nuxt/fonts downloads the files from
+  // Google when the app builds (or the dev server starts) and serves them
+  // under /_fonts, so visitors' browsers never contact Google. Only the
+  // weights the apps use; italic faces are declared too, because guide text
+  // can be italic, but a browser downloads a face only when a page uses it.
+  // Latin subsets only. font-display is swap (the module's default), and
+  // it adds "Roboto Fallback", a local Arial resized to Roboto's measurements,
+  // so text doesn't jump when Roboto arrives. Used through --font-sans in
+  // app/assets/css/tailwind.css (docs/frontend.md, Theme).
+  fonts: {
+    provider: "google",
+    families: [{
+      name: "Roboto",
+      weights: [400, 500, 700],
+      styles: ["normal", "italic"],
+      subsets: ["latin", "latin-ext"],
+    }],
+  },
+
   colorMode: {
     preference: "light",
     fallback: "light",

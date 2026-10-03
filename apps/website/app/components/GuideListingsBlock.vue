@@ -35,7 +35,7 @@ const seeAll = computed(() => {
     <div class="flex flex-wrap items-end justify-between gap-2">
       <h2 id="guide-listings-heading" class="text-xl font-semibold">{{ heading }}</h2>
       <p class="flex flex-wrap gap-x-4 text-sm">
-        <NuxtLink v-for="l in seeAll" :key="l.to" :to="l.to" class="underline underline-offset-4">{{ l.label }}</NuxtLink>
+        <NuxtLink v-for="l in seeAll" :key="l.to" :to="l.to" class="font-medium">{{ l.label }}</NuxtLink>
       </p>
     </div>
     <ul class="mt-6 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">

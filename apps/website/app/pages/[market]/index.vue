@@ -47,7 +47,7 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/${marketSlug}` }] });
     <section v-if="guides.length" aria-labelledby="guides-heading" class="mt-12">
       <div class="flex flex-wrap items-end justify-between gap-2">
         <h2 id="guides-heading" class="text-xl font-semibold">Guides to {{ market.name }}</h2>
-        <NuxtLink :to="`/${marketSlug}/guides`" class="text-sm underline underline-offset-4">See all guides ({{ guides.length }})</NuxtLink>
+        <NuxtLink :to="`/${marketSlug}/guides`" class="font-medium text-sm">See all guides ({{ guides.length }})</NuxtLink>
       </div>
       <ul class="mt-6 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
         <li v-for="g in guides.slice(0, 3)" :key="g.slug">
@@ -60,7 +60,7 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/${marketSlug}` }] });
     <section v-for="s in sections" :key="s.kind" :aria-labelledby="`${s.kind}-heading`" class="mt-12">
       <div class="flex flex-wrap items-end justify-between gap-2">
         <h2 :id="`${s.kind}-heading`" class="text-xl font-semibold">{{ s.title }}</h2>
-        <NuxtLink v-if="s.result?.total" :to="s.path" class="text-sm underline underline-offset-4">
+        <NuxtLink v-if="s.result?.total" :to="s.path" class="font-medium text-sm">
           See all {{ s.title }} ({{ s.result.total }})
         </NuxtLink>
       </div>

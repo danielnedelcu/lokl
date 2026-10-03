@@ -1,6 +1,7 @@
 // The prompt for AI drafts of destination guides (docs/design/destination-
 // guides.md, The AI draft). Approved by the owner 2026-10-03, with the rule
-// against stock travel-writing phrases added. It decides what every draft
+// against stock travel-writing phrases added; the topic and notes became one
+// brief the same day. It decides what every draft
 // looks like: change it deliberately, and say so in docs/decisions.md.
 //
 // The reply is JSON in a fixed shape (structured outputs, GUIDE_DRAFT_SCHEMA):
@@ -24,8 +25,8 @@ What to write about
   landmark looks like, what people do there, what you hear or notice, how the light or
   the trees change through the year. Specific enough that a reader could check it with
   their own eyes.
-- Use the admin's notes as your main source. Where the notes and your own knowledge
-  disagree, follow the notes. If the notes are thin, stay general rather than filling
+- Use the admin's brief as your main source. Where the brief and your own knowledge
+  disagree, follow the brief. If the brief is thin, stay general rather than filling
   gaps with specifics.
 - Only say what you're confident is true and will still be true in a few years. When
   unsure, leave it out or describe it more generally. Never invent facts, places,
@@ -80,12 +81,11 @@ The fields
 }
 
 export interface GuideWriterInput {
-  topic: string;
   market: string;
   area: { name: string; kind: string } | null;
   category: { name: string; kind: "service" | "experience" } | null;
   kind: "service" | "experience" | null;
-  notes: string;
+  brief: string;
 }
 
 const AREA_KIND: Record<string, string> = { neighborhood: "a neighborhood", city: "a city", zip: "a ZIP code" };
@@ -100,16 +100,16 @@ export function guideWriterUserMessage(i: GuideWriterInput): string {
   ].filter(Boolean).join(" ");
   return `Write a guide draft.
 
-Topic: ${i.topic}
 City: ${i.market}
 Area: ${i.area ? `${i.area.name}, ${AREA_KIND[i.area.kind] ?? "an area"}` : "Not set"}
 Category: ${i.category ? `${i.category.name}, which is ${KIND[i.category.kind]}` : "Not set"}
 The listings below the guide will show: ${shows}
 
-The admin's notes, which are their own knowledge and your main source:
-<notes>
-${i.notes.trim() || "None. Stay general."}
-</notes>`;
+The admin's brief: what the guide is about, in their own words, and anything they know.
+It's your main source:
+<brief>
+${i.brief.trim()}
+</brief>`;
 }
 
 /** The reply's shape (JSON Schema for structured outputs: no length limits there, so zod checks those). */

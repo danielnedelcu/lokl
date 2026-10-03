@@ -120,7 +120,7 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
     <nav aria-label="Breadcrumb" class="text-muted-foreground mb-4 text-sm">
       <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         <li v-for="(c, i) in crumbs" :key="c.to" class="flex items-center gap-1.5">
-          <NuxtLink v-if="i < crumbs.length - 1" :to="c.to" class="hover:text-foreground underline-offset-4 hover:underline">{{ c.name }}</NuxtLink>
+          <NuxtLink v-if="i < crumbs.length - 1" :to="c.to" class="hover:text-foreground">{{ c.name }}</NuxtLink>
           <span v-else aria-current="page" class="text-foreground">{{ c.name }}</span>
           <Icon v-if="i < crumbs.length - 1" name="lucide:chevron-right" class="size-3.5" aria-hidden="true" />
         </li>
@@ -173,8 +173,8 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
     </form>
     <p v-if="kind === 'experience'" class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
       <span class="text-muted-foreground">Quick dates:</span>
-      <NuxtLink :to="withQuery(weekend)" class="underline underline-offset-4">This weekend</NuxtLink>
-      <NuxtLink :to="withQuery(next7)" class="underline underline-offset-4">Next 7 days</NuxtLink>
+      <NuxtLink :to="withQuery(weekend)" class="font-medium">This weekend</NuxtLink>
+      <NuxtLink :to="withQuery(next7)" class="font-medium">Next 7 days</NuxtLink>
     </p>
 
     <section aria-labelledby="results-heading" class="mt-8">

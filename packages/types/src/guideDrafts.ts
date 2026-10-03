@@ -10,11 +10,17 @@ export const AI_DRAFTS_PER_HOUR = 10;
 /** A request without a result this recent counts as still being written. */
 export const AI_DRAFT_RUNNING_MS = 3 * 60 * 1000;
 
+export const AI_BRIEF_MAX = 4000;
+/**
+ * An AI draft request. The brief is the admin's one description: what the
+ * guide is about, the angle, and anything they know (decided 2026-10-03; it
+ * replaced separate topic and notes fields). The area and category are the
+ * guide's own, from Guide settings.
+ */
 export const aiDraftRequestSchema = z.object({
-  topic: z.string().trim().min(3, "Enter a topic of at least 3 characters.").max(200, "Keep the topic under 200 characters."),
+  brief: z.string().trim().min(3, "Describe the guide in at least 3 characters.").max(AI_BRIEF_MAX, "Keep it under 4,000 characters."),
   areaId: z.uuid().nullish(),
   categoryId: z.uuid().nullish(),
-  notes: z.string().trim().max(4000, "Keep the notes under 4,000 characters.").optional().or(z.literal("")),
   /** The guide's updated_at as the editor last saw it: the draft lands only if it hasn't changed since. */
   expectedUpdatedAt: z.string().min(1),
 });

@@ -25,6 +25,6 @@
   const forwarded = reactiveOmit(props, "class", "description");
 
   const styles = tv({
-    base: "text-muted-foreground *:[a]:hover:text-foreground text-sm text-balance md:text-pretty *:[a]:underline *:[a]:underline-offset-3",
+    base: "text-muted-foreground *:[a]:hover:text-foreground text-sm text-balance md:text-pretty",
   });
 </script>

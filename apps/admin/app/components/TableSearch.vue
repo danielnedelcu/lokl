@@ -3,7 +3,15 @@
 // 300ms after typing stops before searching (useServerTable cancels any
 // search still running), and follows the URL when it changes another way
 // (Back, a cleared filter) unless you're typing in it.
-const props = withDefaults(defineProps<{ value: string; id?: string; placeholder?: string; hint?: string }>(), {
+const props = withDefaults(defineProps<{
+  value: string;
+  id?: string;
+  placeholder?: string;
+  hint?: string;
+  /** Full width until this breakpoint, then a 16rem box on the right ("xl" where it sits under a two-column form). */
+  fullUntil?: "sm" | "xl";
+}>(), {
+  fullUntil: "sm",
   id: "table-search",
   placeholder: "Search",
   hint: "Results update as you type.",
@@ -24,7 +32,7 @@ onBeforeUnmount(() => clearTimeout(timer));
 </script>
 
 <template>
-  <div class="w-full sm:ml-auto sm:w-64">
+  <div :class="fullUntil === 'xl' ? 'w-full xl:ml-auto xl:w-64' : 'w-full sm:ml-auto sm:w-64'">
     <UiLabel :for="id" class="mb-1">Search</UiLabel>
     <UiInput :id="id" v-model="text" type="search" :placeholder="placeholder" :aria-describedby="`${id}-hint`"
       @input="onInput" @focus="focused = true" @blur="focused = false" />

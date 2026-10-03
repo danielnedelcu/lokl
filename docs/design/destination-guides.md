@@ -14,7 +14,7 @@ From the owner, 2026-10-03.
 
 1. **What a guide is:** an article about a place or theme in Atlanta, written to be found through search, recommending real lokl listings.
 2. **Who writes them:** only the admin, in the admin app. Providers don't.
-3. **AI drafts:** the admin gives a topic, area, category and their own notes; the admin app asks Claude for a draft through Anthropic's API. The key lives only on the admin app's server.
+3. **AI drafts:** the admin describes the guide in one brief (the topic, angle and what they know), with the guide's area and category; the admin app asks Claude for a draft through Anthropic's API. The key lives only on the admin app's server.
 4. **Accuracy:** drafts stick to general, lasting description and avoid specifics that go stale (prices, opening hours). A draft can never be published without the admin's review: the editor marks it as an unreviewed AI draft until it's been edited.
 5. **Listings:** each guide shows a live block of matching listings, by area or category, not links pasted into the text, so taken-down listings disappear on their own.
 6. **Photos:** the admin's own, or properly licensed free photos (for example Unsplash), with credits shown as their licence asks. Every guide needs a cover photo, large and high quality enough for the homepage hero, with a minimum size.
@@ -121,10 +121,13 @@ The route calls the Messages API with the official SDK (`@anthropic-ai/sdk`),
 model `claude-opus-5-5` (settled; `NUXT_ANTHROPIC_MODEL` to change it). The key
 is in its own Anthropic workspace for lokl, with a spend limit.
 
-**What the admin gives:** a topic ("Things to do in Old Fourth Ward"), the
-area and/or category (from lokl's lists), and their own notes (what to
-mention, the angle, places they know). The notes are sent to Anthropic, so the
-editor says not to put personal details in them.
+**What the admin gives (changed 2026-10-03):** one brief, in their own words:
+what the guide is about ("Things to do in Old Fourth Ward"), the angle, places
+they know, what to mention or leave out. The area and category are the
+guide's own, from Guide settings. The brief is sent to Anthropic, so the bar
+says not to put personal details in it. The log keeps the whole brief, and
+its first line as the draft's label. (It replaced separate topic and notes
+fields.)
 
 **What comes back:** JSON in a fixed shape, enforced by the API's structured
 outputs (`output_config.format`, `GUIDE_DRAFT_SCHEMA`) and checked again with
@@ -198,17 +201,31 @@ new AI draft on the same guide sets it again.
 
 Following the blog's pattern, with its gaps closed:
 
-- **Layout:** a writing column with the title and the body (Editor.js: headings,
-  paragraphs, lists, quotes, and images from the guide's own photos), and a
-  side panel with the slug (checked live), teaser (with a character count),
-  area, category and listing kind, cover photo, status and actions.
+- **Layout (changed 2026-10-03):** the title and the body (Editor.js: headings,
+  paragraphs, lists, quotes, and images from the guide's own photos) take the
+  whole width. "Guide settings" (top right) opens a panel from the right with
+  the status and actions, slug (checked live), teaser (with a character count),
+  area, category and listing kind, and photos.
+- **Guides list (changed 2026-10-03):** a list, not a table, with tabs for All,
+  Published (live, with or without changes waiting) and Draft (not live:
+  never published or unpublished). Each row shows the title, status, city and
+  last edit, and icon buttons with tooltips: Edit post, View post (a live guide
+  opens on the website; any other, the draft preview) and Delete post (asks
+  first; only for guides never published, which the database enforces).
+- **New guide (changed 2026-10-03):** creates an empty guide straight away and
+  opens it (with several cities, it asks which first). Its address is a
+  placeholder (`new-guide-…`) that follows the title, typed or from an AI draft,
+  until the admin types an address by hand or the guide is first published.
 - **Saving:** autosave about 1.5 seconds after typing stops, with "Saved" or
   "Couldn't save, retrying" shown; errors are handled, not lost.
 - **Draft and live:** the editor always edits the draft columns. On a published
   guide the panel says "Changes not published yet" with "Publish changes"; on a
   draft, "Publish". Publishing snapshots a version.
-- **AI draft panel:** topic, area, category, notes, then "Write a draft". On a
-  guide that already has text: "This replaces the current draft. Continue?"
+- **AI draft (changed 2026-10-03):** a "Write with AI" button floats at the
+  bottom of the editor and opens a prompt bar: one box for the brief (Enter
+  sends, Shift+Enter is a new line, Escape closes), with this guide's AI drafts
+  and "Put back the draft from before" under it. On a guide that already has
+  text: "This replaces the current draft. Continue?"
 - **Listings block preview:** the editor shows the listings the block would
   show right now (live, matching listings), and says plainly when there are
   none ("No live listings match yet: the block will be hidden").
@@ -372,7 +389,7 @@ Kept for the reasoning; each is settled under "Settled questions".
    rules, like categories and cities, with the publish rules enforced in the
    database. If you'd rather keep the server-route rule, publishing becomes a
    small admin route.
-5. **Notes go to Anthropic.** The admin's notes and the topic are sent to
+5. **The brief goes to Anthropic.** The admin's brief is sent to
    Anthropic's API. Nothing about customers or providers is sent, and the editor
    says not to include personal details.
 6. **The homepage's current headline moves down** when guides are featured

@@ -60,9 +60,9 @@ try {
   // -------------------------------------------------------------------------
   check((await html("Tom &amp; Jerry <b>bold</b> <i>it</i>")) === "<p>Tom &amp; Jerry <strong>bold</strong> <em>it</em></p>",
     "1a. bold and italic are kept, text is escaped once");
-  check((await html('<a href="https://example.com/x">site</a>')) === '<p><a href="https://example.com/x" class="underline underline-offset-4" rel="noopener noreferrer">site</a></p>',
+  check((await html('<a href="https://example.com/x">site</a>')) === '<p><a href="https://example.com/x" class="font-medium" rel="noopener noreferrer">site</a></p>',
     "1b. a link to another site gets rel=\"noopener noreferrer\"");
-  check((await html('<a href="/atlanta/experiences">ours</a>')) === '<p><a href="/atlanta/experiences" class="underline underline-offset-4">ours</a></p>',
+  check((await html('<a href="/atlanta/experiences">ours</a>')) === '<p><a href="/atlanta/experiences" class="font-medium">ours</a></p>',
     "1c. a link on this site is kept, without rel");
   for (const [label, href] of [
     ["javascript:", "javascript:alert(1)"],

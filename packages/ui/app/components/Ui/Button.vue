@@ -109,7 +109,7 @@
           "bg-background hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50 border shadow-xs",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-xs",
         ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "text-primary",
         gradient:
           "text-primary-foreground bg-[linear-gradient(314deg,color-mix(in_oklch,var(--primary),white_33%),var(--primary))] shadow-xs transition-[filter] hover:brightness-110",
       },

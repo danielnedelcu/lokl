@@ -11,11 +11,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
+  /* Roboto, self-hosted by @nuxt/fonts (nuxt.config.ts: weights 400, 500,
+     700); system fonts until it loads or if it can't. */
+  --font-sans: "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
-  --font-display--font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 
   --animate-shine: shine 3s ease-out infinite;
   --animate-gradient-flow: gradientFlow 10s ease 0s infinite normal none running;
@@ -254,4 +255,14 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Links are never underlined, anywhere in either app (decided 2026-10-03).
+   Outside any layer on purpose, so it wins over Tailwind's utilities too
+   (an `underline` or `group-hover:underline` class, on a link or on
+   anything inside one). Links inside sentences are font-medium instead, so
+   they're not told apart by colour alone. */
+a,
+a * {
+  text-decoration-line: none;
 }

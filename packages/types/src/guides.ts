@@ -80,11 +80,6 @@ export const guideSlugSchema = z
   .max(GUIDE_SLUG_MAX, `Keep the web address under ${GUIDE_SLUG_MAX} characters.`)
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Use lowercase letters, numbers and single hyphens, like old-fourth-ward-food.");
 
-export const newGuideSchema = z.object({
-  title: z.string().trim().min(3, "Enter a title of at least 3 characters.").max(GUIDE_TITLE_MAX, `Keep the title under ${GUIDE_TITLE_MAX} characters.`),
-  slug: guideSlugSchema,
-});
-
 // ---------------------------------------------------------------------------
 // Publishing: the same checks, in the same order and words, as publish_guide()
 // ---------------------------------------------------------------------------

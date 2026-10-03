@@ -152,7 +152,7 @@ const address = computed(() => b.value?.listing?.locationMode === "customer_loca
 
 <template>
   <div v-if="b" class="mx-auto max-w-2xl px-4 py-8 md:py-12">
-    <NuxtLink to="/account/bookings" class="text-muted-foreground text-sm underline-offset-4 hover:underline">← My bookings</NuxtLink>
+    <NuxtLink to="/account/bookings" class="text-muted-foreground text-sm">← My bookings</NuxtLink>
     <div class="mt-4 flex flex-wrap items-start justify-between gap-3">
       <h1 class="text-2xl font-semibold tracking-tight">{{ b.listing?.title ?? "Your booking" }}</h1>
       <StatusBadge kind="booking" :status="b.status" />
@@ -250,7 +250,7 @@ const address = computed(() => b.value?.listing?.locationMode === "customer_loca
       </UiDialogContent>
     </UiDialog>
     <p v-if="listingPath && b.listing?.isLive" class="mt-6 text-sm">
-      <NuxtLink :to="listingPath" class="underline underline-offset-4">See the listing</NuxtLink>
+      <NuxtLink :to="listingPath" class="font-medium">See the listing</NuxtLink>
     </p>
   </div>
 </template>

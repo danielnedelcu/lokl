@@ -9,6 +9,6 @@ defineProps<{ credit: CreditPart[] | null }>();
 
 <template>
   <span v-if="credit"><template v-for="(part, i) in credit" :key="i"><a
-    v-if="part.href" :href="part.href" rel="noopener noreferrer" class="underline underline-offset-4">{{ part.text }}</a><template
+    v-if="part.href" :href="part.href" rel="noopener noreferrer" class="font-medium">{{ part.text }}</a><template
     v-else>{{ part.text }}</template></template></span>
 </template>

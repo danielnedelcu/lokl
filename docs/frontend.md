@@ -43,6 +43,7 @@ Never hand-copy a component from the ui-thing website or another project.
 - Neutral greys until lokl's brand is set. The brand should then be a change to the token file only.
 - Light mode only at launch. The tokens are structured so dark mode can be added later without touching components.
 - Typography and spacing use Tailwind's scale; no arbitrary pixel values without a reason.
+- The font is Roboto, served from our own site by `@nuxt/fonts` (configured in `packages/ui/nuxt.config.ts`, used through `--font-sans` in `tailwind.css`), so visitors' browsers never contact Google. No `<link>` to Google Fonts or other font CDNs. Only weights 400, 500 and 700 are loaded: use `font-normal`, `font-medium` and `font-bold`. Any other weight is drawn with the nearest loaded one (`font-semibold` draws as 700). `font-display: swap`, with system fonts (and a size-matched Arial fallback) until Roboto loads. To add a weight, add it in both places it's named: the config and this line.
 
 ## Forms
 
@@ -100,6 +101,7 @@ Every form control in both apps is one of ui-thing's own components, never a nat
 Target WCAG 2.2 AA in both apps.
 
 - Never use colour alone to carry meaning. Every status badge has text; every error has words.
+- Links are never underlined (a global rule in `packages/ui/app/assets/css/tailwind.css` enforces it). A link inside a sentence is `font-medium` so it stands out by weight, not colour alone; a standalone link reads as one from its wording ("See all guides", "← My bookings").
 - Icon-only buttons have an `aria-label`. Decorative icons are hidden from screen readers.
 - Everything works with a keyboard, and focus is always visible. Dialogs and sheets trap and return focus (ui-thing's Reka components do this; don't break it with custom wrappers).
 - Photos need alt text; the listing editor requires it.

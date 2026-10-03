@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { aiDraftRequestSchema, type Category, type Guide, type ServiceArea } from "@repo/types";
+import { AI_BRIEF_MAX, aiDraftRequestSchema, type Guide } from "@repo/types";
 
-// The editor's "AI draft" panel (docs/design/destination-guides.md, The AI
-// draft): topic, area, category and notes go to the admin app's server,
-// which asks Claude for a draft and lands it in the guide's draft, marked
-// unreviewed. Also lists this guide's AI drafts with their cost, and puts
-// back the draft from before the latest one.
+// The editor's AI draft (docs/design/destination-guides.md, The AI draft): a
+// "Write with AI" button floating at the bottom of the page opens a prompt
+// bar there. The admin describes the guide in one box (the brief); the
+// admin app's server asks Claude for a draft, using the area and category
+// from Guide settings, and lands it in the guide's draft, marked
+// unreviewed. The bar also lists this guide's AI drafts with their cost,
+// and puts back the draft from before the latest one.
+//
+// This component stays mounted while the bar is closed, so a draft being
+// written still lands if the bar is closed meanwhile.
 const props = defineProps<{
   guide: Guide;
-  /** The draft's current choices, used as the form's starting values. */
-  draftTitle: string;
-  draftAreaId: string | null;
-  draftCategoryId: string | null;
+  /** The guide's area and category (Guide settings), sent with the brief. */
+  areaId: string | null;
+  categoryId: string | null;
+  /** How the area and category read, e.g. "Old Fourth Ward · Any category". */
+  scope: string;
   hasText: boolean;
-  areas: ServiceArea[];
-  categories: Category[];
   /** Saves waiting changes; returns the guide's updated_at, or null if it couldn't save. */
   prepare: () => Promise<string | null>;
 }>();
@@ -22,28 +26,38 @@ const emit = defineEmits<{
   running: [running: boolean];
   landed: [result: { guide: Guide; suggestedSlug: string | null; phrases: number; costUsd: number | null }];
   restored: [guide: Guide];
-  useSlug: [slug: string];
 }>();
 
 const supabase = useSupabaseClient();
 const open = ref(false);
-const topic = ref("");
-const areaId = ref<string | null>(null);
-const categoryId = ref<string | null>(null);
-const notes = ref("");
-const errors = ref<Record<string, string>>({});
+const brief = ref("");
+const error = ref("");
 const failure = ref("");
 const running = ref(false);
 const confirmReplace = ref(false);
-const suggestedSlug = ref<string | null>(null);
+const textarea = ref<{ $el?: HTMLElement } | HTMLElement | null>(null);
+const opener = ref<{ $el?: HTMLElement } | null>(null);
 
-watch(open, (o) => {
-  if (!o) return;
-  // Start from the draft's own choices each time the panel opens.
-  topic.value = topic.value || props.draftTitle;
-  areaId.value = props.draftAreaId;
-  categoryId.value = props.draftCategoryId;
-});
+const field = () => {
+  const el = (textarea.value as { $el?: HTMLElement })?.$el ?? (textarea.value as HTMLElement | null);
+  return (el?.tagName === "TEXTAREA" ? el : el?.querySelector("textarea")) as HTMLTextAreaElement | null;
+};
+// Focus moves into the bar when it opens, and back to the button when it's
+// closed by the admin (Escape or Close), once the swap animation is done.
+let returnFocus = false;
+function show() {
+  open.value = true;
+}
+function hide() {
+  returnFocus = true;
+  open.value = false;
+}
+function onSwapped() {
+  if (open.value) field()?.focus();
+  else if (returnFocus) opener.value?.$el?.focus();
+  returnFocus = false;
+}
+defineExpose({ show });
 
 // ---------------------------------------------------------------------------
 // This guide's AI drafts (the cost log)
@@ -61,13 +75,13 @@ interface LogRow {
 }
 const log = ref<LogRow[]>([]);
 async function loadLog() {
-  const { data, error } = await supabase
+  const { data, error: e } = await supabase
     .from("guide_ai_drafts")
     .select("id, created_at, topic, error, cost_usd, reply, previous_draft, previous_draft_restored_at")
     .eq("guide_id", props.guide.id)
     .order("created_at", { ascending: false })
     .limit(10);
-  if (error) return void reportProblem("Couldn't load this guide's AI drafts", error);
+  if (e) return void reportProblem("Couldn't load this guide's AI drafts", e);
   log.value = data as LogRow[];
 }
 onMounted(loadLog);
@@ -82,20 +96,23 @@ const outcome = (r: LogRow) => (r.error ? "Not used" : r.reply ? (r.previous_dra
 // ---------------------------------------------------------------------------
 
 function ask() {
-  const parsed = aiDraftRequestSchema.omit({ expectedUpdatedAt: true }).safeParse({
-    topic: topic.value,
-    areaId: areaId.value,
-    categoryId: categoryId.value,
-    notes: notes.value,
-  });
-  errors.value = {};
+  if (running.value) return;
+  const parsed = aiDraftRequestSchema.shape.brief.safeParse(brief.value);
+  error.value = parsed.success ? "" : (parsed.error.issues[0]?.message ?? "Check the description.");
   failure.value = "";
-  if (!parsed.success) {
-    for (const i of parsed.error.issues) errors.value[String(i.path[0])] = i.message;
-    return;
-  }
+  if (!parsed.success) return;
   if (props.hasText) confirmReplace.value = true;
   else void write();
+}
+function onKeydown(e: KeyboardEvent) {
+  // Enter sends; Shift+Enter is a new line. Escape closes the bar.
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    e.preventDefault();
+    ask();
+  } else if (e.key === "Escape" && !running.value) {
+    e.preventDefault();
+    hide();
+  }
 }
 
 async function write() {
@@ -112,13 +129,13 @@ async function write() {
       `/api/guides/${props.guide.id}/draft`,
       {
         method: "POST",
-        body: { topic: topic.value, areaId: areaId.value, categoryId: categoryId.value, notes: notes.value, expectedUpdatedAt },
+        body: { brief: brief.value, areaId: props.areaId, categoryId: props.categoryId, expectedUpdatedAt },
         timeout: 300_000,
       },
     );
-    suggestedSlug.value = result.suggestedSlug;
     emit("landed", result);
     useSonner.success("The AI draft is in. Review it before publishing.");
+    brief.value = "";
     open.value = false;
   } catch (e) {
     const err = e as { data?: { statusMessage?: string }; statusMessage?: string };
@@ -148,7 +165,6 @@ async function undo() {
       body: { logId: row.id, expectedUpdatedAt },
     });
     emit("restored", guide);
-    suggestedSlug.value = null;
     useSonner.success("The draft from before is back.");
     confirmUndo.value = false;
   } catch (e) {
@@ -160,82 +176,76 @@ async function undo() {
   }
 }
 
-const areaOptions = computed(() => guideAreaOptions(props.areas));
-const categoryOptions = computed(() => guideCategoryOptions(props.categories));
 const money = (n: number | null) => (n == null ? "" : formatMoney(Math.round(n * 100)));
 </script>
 
 <template>
-  <section aria-labelledby="ai-heading" class="border-border space-y-3 rounded-lg border p-4">
-    <div class="flex items-center justify-between gap-2">
-      <h2 id="ai-heading" class="flex items-center gap-1 font-medium">
-        <Icon name="lucide:sparkles" aria-hidden="true" />AI draft
-      </h2>
-      <UiButton v-if="!open" size="sm" variant="outline" :disabled="running" @click="open = true">Write a draft</UiButton>
-    </div>
+  <!-- A light veil over the page while the bar is open; clicks pass through. -->
+  <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0" leave-active-class="transition duration-150"
+    leave-to-class="opacity-0">
+    <div v-if="open" class="bg-background/60 pointer-events-none fixed inset-0 z-20" aria-hidden="true" />
+  </Transition>
 
-    <p v-if="suggestedSlug && !guide.published_at && suggestedSlug !== guide.slug" class="flex flex-wrap items-center gap-1 text-sm">
-      Suggested address: <code class="bg-muted rounded px-1">{{ suggestedSlug }}</code>
-      <UiButton size="sm" variant="link" @click="emit('useSlug', suggestedSlug!); suggestedSlug = null">Use it</UiButton>
-    </p>
-
-    <form v-if="open" class="space-y-3" novalidate @submit.prevent="ask">
-      <div>
-        <UiLabel for="ai-topic" class="mb-2">Topic</UiLabel>
-        <UiInput id="ai-topic" v-model="topic" :maxlength="200" :disabled="running" placeholder="A day in Old Fourth Ward"
-          :aria-invalid="!!errors.topic || undefined" :aria-describedby="errors.topic ? 'ai-topic-error' : undefined" />
-        <p v-if="errors.topic" id="ai-topic-error" class="text-destructive mt-1.5 text-sm">{{ errors.topic }}</p>
-      </div>
-      <div>
-        <UiLabel for="ai-area" class="mb-2">Area</UiLabel>
-        <SelectInput id="ai-area" v-model="areaId" :disabled="running" :options="areaOptions" />
-      </div>
-      <div>
-        <UiLabel for="ai-category" class="mb-2">Category</UiLabel>
-        <SelectInput id="ai-category" v-model="categoryId" :disabled="running" :options="categoryOptions" />
-      </div>
-      <div>
-        <UiLabel for="ai-notes" class="mb-2">Your notes (optional)</UiLabel>
-        <UiTextarea id="ai-notes" v-model="notes" :rows="5" :maxlength="4000" :disabled="running"
-          placeholder="The angle, places you know, what to mention or leave out." aria-describedby="ai-notes-hint" />
-        <p id="ai-notes-hint" class="text-muted-foreground mt-1.5 text-sm">
-          Sent to Anthropic to write the draft. Don't include anyone's personal details.
-          <template v-if="errors.notes"><br><span class="text-destructive">{{ errors.notes }}</span></template>
-        </p>
-      </div>
-      <p class="text-muted-foreground text-sm">
-        The draft replaces the draft's title, teaser and text, and uses the area and category above. It's marked unreviewed until you
-        check it.
-      </p>
-      <div class="flex flex-wrap gap-2">
-        <UiButton type="submit" :disabled="running">
-          <Icon v-if="running" name="lucide:loader-circle" class="animate-spin" aria-hidden="true" />
-          {{ running ? "Writing the draft…" : "Write a draft" }}
-        </UiButton>
-        <UiButton type="button" variant="ghost" :disabled="running" @click="open = false">Cancel</UiButton>
-      </div>
-      <p v-if="running" class="text-muted-foreground text-sm" role="status">
-        This usually takes under a minute. The editor is read-only until it's done.
-      </p>
-    </form>
-
-    <UiAlert v-if="failure" variant="destructive" icon="lucide:alert-circle">
-      <UiAlertTitle>{{ failure }}</UiAlertTitle>
-    </UiAlert>
-
-    <div v-if="log.length" class="border-border space-y-2 border-t pt-3 text-sm">
-      <p class="font-medium">AI drafts for this guide</p>
-      <ul class="space-y-1">
-        <li v-for="r in log" :key="r.id" class="flex flex-wrap justify-between gap-x-2">
-          <span>{{ formatDateTime(r.created_at) }} · {{ outcome(r) }}</span>
-          <span class="text-muted-foreground">{{ money(r.cost_usd) }}</span>
-        </li>
-      </ul>
-      <UiButton v-if="undoable" size="sm" variant="outline" :disabled="running || undoing" @click="confirmUndo = true">
-        <Icon name="lucide:undo-2" aria-hidden="true" />Put back the draft from before
+  <!-- Fixed to the bottom of the viewport, centred over the page (beside
+       the admin sidebar, w-60, from md up). The page leaves room below its
+       text (pb-28 on the editor) so the button never covers the last lines. -->
+  <div class="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4 md:left-60">
+    <Transition mode="out-in" @after-enter="onSwapped" enter-active-class="transition duration-200 ease-out" enter-from-class="translate-y-2 opacity-0"
+      leave-active-class="transition duration-150 ease-in" leave-to-class="translate-y-2 opacity-0">
+      <UiButton v-if="!open" ref="opener" variant="outline" class="pointer-events-auto rounded-full px-5 shadow-lg"
+        @click="show">
+        <Icon :name="running ? 'lucide:loader-circle' : 'lucide:sparkles'" :class="running && 'animate-spin'" aria-hidden="true" />
+        {{ running ? "Writing the draft…" : "Write with AI" }}
       </UiButton>
-    </div>
-  </section>
+
+      <section v-else aria-labelledby="ai-bar-heading"
+        class="bg-background border-border pointer-events-auto w-full max-w-2xl space-y-3 rounded-2xl border p-3 shadow-lg">
+        <h2 id="ai-bar-heading" class="sr-only">Write with AI</h2>
+        <div>
+          <UiLabel for="ai-brief" class="sr-only">What should the guide be about?</UiLabel>
+          <UiTextarea id="ai-brief" ref="textarea" v-model="brief" :rows="3" :maxlength="AI_BRIEF_MAX" :disabled="running"
+            class="resize-none border-0 shadow-none focus-visible:ring-0"
+            placeholder="What should the guide be about? Add the angle, places you know, and what to mention or leave out."
+            :aria-invalid="!!error || undefined" aria-describedby="ai-brief-hint" @keydown="onKeydown" />
+        </div>
+        <div class="flex flex-wrap items-end justify-between gap-2 px-1">
+          <p id="ai-brief-hint" class="text-muted-foreground min-w-0 flex-1 text-xs">
+            <span v-if="error" class="text-destructive block text-sm">{{ error }}</span>
+            Uses {{ scope }} from Guide settings. Sent to Anthropic to write the draft: don't include anyone's personal details.
+            Enter sends; Shift+Enter starts a new line.
+          </p>
+          <div class="flex items-center gap-2">
+            <span class="text-muted-foreground text-xs tabular-nums">{{ brief.length.toLocaleString() }} / {{ AI_BRIEF_MAX.toLocaleString() }}</span>
+            <UiButton size="icon-sm" variant="ghost" class="rounded-full" :disabled="running" aria-label="Close" @click="hide">
+              <Icon name="lucide:x" aria-hidden="true" />
+            </UiButton>
+            <UiButton size="icon-sm" class="rounded-full" :disabled="running || !brief.trim()" aria-label="Write the draft" @click="ask">
+              <Icon :name="running ? 'lucide:loader-circle' : 'lucide:arrow-up'" :class="running && 'animate-spin'" aria-hidden="true" />
+            </UiButton>
+          </div>
+        </div>
+        <p v-if="running" class="text-muted-foreground px-1 text-sm" role="status">
+          Writing the draft. This usually takes under a minute; the editor is read-only until it's done.
+        </p>
+        <UiAlert v-if="failure" variant="destructive" icon="lucide:alert-circle">
+          <UiAlertTitle>{{ failure }}</UiAlertTitle>
+        </UiAlert>
+
+        <details v-if="log.length" class="border-border border-t px-1 pt-2 text-sm">
+          <summary class="text-muted-foreground cursor-pointer">AI drafts for this guide ({{ log.length }})</summary>
+          <ul class="mt-2 space-y-1">
+            <li v-for="r in log" :key="r.id" class="flex flex-wrap justify-between gap-x-2">
+              <span class="min-w-0 truncate">{{ formatDateTime(r.created_at) }} · {{ outcome(r) }} · {{ r.topic }}</span>
+              <span class="text-muted-foreground">{{ money(r.cost_usd) }}</span>
+            </li>
+          </ul>
+          <UiButton v-if="undoable" size="sm" variant="outline" class="mt-2" :disabled="running || undoing" @click="confirmUndo = true">
+            <Icon name="lucide:undo-2" aria-hidden="true" />Put back the draft from before
+          </UiButton>
+        </details>
+      </section>
+    </Transition>
+  </div>
 
   <UiAlertDialog v-model:open="confirmReplace" title="Replace the current draft?"
     description="This replaces the draft's title, teaser and text. Your published guide isn't affected. You can put the current draft back afterwards.">

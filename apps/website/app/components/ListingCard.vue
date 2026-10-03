@@ -24,10 +24,10 @@ const next = computed(() =>
   <NuxtLink :to="href" class="group focus-visible:ring-ring/50 block rounded-xl outline-none focus-visible:ring-[3px]">
     <div class="bg-muted aspect-[4/3] overflow-hidden rounded-xl">
       <NuxtImg v-if="coverUrl" :src="coverUrl" :alt="listing.cover!.alt" width="600" height="450" loading="lazy"
-        class="h-full w-full object-cover transition-transform group-hover:scale-[1.02]" />
+        class="h-full w-full object-cover transition-transform duration-1000 ease-in-out group-hover:scale-[1.02] motion-reduce:transform-none" />
     </div>
     <div class="mt-3 space-y-0.5">
-      <h3 class="font-medium group-hover:underline">{{ listing.title }}</h3>
+      <h3 class="font-medium">{{ listing.title }}</h3>
       <p class="text-muted-foreground text-sm">{{ whereLabel(listing, market.name) }}</p>
       <p class="text-sm"><span class="font-medium">{{ price }}</span></p>
       <p v-if="next" class="text-muted-foreground text-sm">{{ next }}</p>

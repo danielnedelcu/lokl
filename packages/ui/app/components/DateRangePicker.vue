@@ -21,6 +21,8 @@ import {
 
 const props = withDefaults(
   defineProps<{
+    /** The button fills its container below xl (a form column); the text starts at the left. */
+    fullWidth?: boolean;
     /** What the range is for, in the button's name: "Dates", "Booked between". */
     label?: string;
     /** Shown on the button when no range is chosen. */
@@ -69,9 +71,10 @@ function clear() {
     <DateRangePickerTrigger as-child>
       <!-- The same height as SelectInput and SearchSelect beside it (h-9), or 44px with `touch`. -->
       <UiButton variant="outline" :size="touch ? 'touch' : 'default'" class="gap-2 font-normal"
+        :class="fullWidth && 'w-full min-w-0 justify-start xl:w-auto'"
         :aria-label="`${label}: ${text}`">
         <Icon name="lucide:calendar-range" class="text-muted-foreground size-4" aria-hidden="true" />
-        <span>{{ text }}</span>
+        <span class="truncate">{{ text }}</span>
       </UiButton>
     </DateRangePickerTrigger>
 

@@ -29,13 +29,14 @@ const check = (ok: boolean, name: string) => {
   if (!ok) failures++;
 };
 const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
+const holder = (id: string) => document.getElementById(id)!;
 
 const { default: EditorJS } = await import("@editorjs/editorjs");
 const { default: Header } = await import("@editorjs/header");
 const { default: List } = await import("@editorjs/list");
 const { default: Quote } = await import("@editorjs/quote");
 const { GuidePhotoTool } = await import("../app/utils/guidePhotoTool");
-const { createEditorControl, sameBlocks } = await import("../app/utils/guideEditorControl");
+const { createEditorControl, plainBlocks, sameBlocks } = await import("../app/utils/guideEditorControl");
 
 // An AI draft as it lands: every kind of block the guide editor has.
 const PHOTO = "0b1f6c1e-9a7e-4a3c-9a55-2c8f3d1e7a10";
@@ -166,6 +167,49 @@ async function makeEditor(holderId: string) {
   autosave.change({ draft_body: landed as never });
   await autosave.flush();
   check(shownOk && sent.length === before + 1 && "draft_body" in sent.at(-1)!, "C3. once the editor shows the saved body, an edit to it saves");
+}
+
+// ---------------------------------------------------------------------------
+// D. A draft as the database returns it: keys reordered, and a numbered list
+// without the setting Editor.js adds when it draws one (found 2026-10-03:
+// "the editor couldn't show it" for a draft it was showing).
+// ---------------------------------------------------------------------------
+{
+  const { editor } = await makeEditor("from-db");
+  const control = createEditorControl(() => editor as never);
+  // Postgres jsonb puts shorter keys first: this is the order the editor gets.
+  const fromDb = {
+    blocks: [
+      { id: "a1", data: { text: "Old Fourth Ward grew up east of downtown." }, type: "paragraph" },
+      { id: "a2", data: { text: "Seeing the history on foot", level: 2 }, type: "header" },
+      { id: "a3", data: { meta: {}, items: [{ meta: {}, items: [], content: "Start on Auburn Avenue." }, { meta: {}, items: [], content: "Walk east to Ebenezer." }], style: "ordered" }, type: "list" },
+    ],
+  };
+  await control.setReadOnly(true);
+  const ok = await control.replace(fromDb);
+  const shown = await editor.save();
+  check(ok === true, "D1. a draft read back from the database counts as shown (key order and list defaults don't matter)");
+  check(shown.blocks.length === 3 && holder("from-db").textContent!.includes("Walk east to Ebenezer."), "D2. ...and it is on the page");
+  check(!sameBlocks(fromDb, { blocks: fromDb.blocks.slice(0, 2) }) && !sameBlocks(fromDb, { blocks: [...fromDb.blocks.slice(0, 2),
+    { ...fromDb.blocks[2]!, data: { ...fromDb.blocks[2]!.data, style: "unordered" } }] }), "D3. a real difference (a missing block, a list's style) still counts");
+}
+
+// ---------------------------------------------------------------------------
+// E. The page's draft is Vue reactive (a Proxy). Editor.js's list tool copies
+// its data with structuredClone, which can't copy a Proxy (found 2026-10-03:
+// every list showed "The block can not be displayed correctly").
+// ---------------------------------------------------------------------------
+{
+  const { editor } = await makeEditor("reactive");
+  const control = createEditorControl(() => editor as never);
+  const draft = vue.reactive({ body: { blocks: [
+    { type: "paragraph", data: { text: "Before the list." } },
+    { type: "list", data: { style: "ordered", meta: {}, items: [{ content: "Start on Auburn Avenue.", meta: {}, items: [] }] } },
+  ] } });
+  const ok = await control.replace(draft.body);
+  check(ok === true && !holder("reactive").querySelector(".ce-stub") && holder("reactive").textContent!.includes("Start on Auburn Avenue."),
+    "E1. a list from the page's reactive draft is drawn as a list, not a \"can not be displayed\" stub");
+  check(plainBlocks(draft.body).length === 2 && !vue.isProxy(plainBlocks(draft.body)[1]!.data), "E2. the editor is given plain copies, not Proxies");
 }
 
 console.log(failures ? `${failures} failed` : "All guide editor order checks passed.");

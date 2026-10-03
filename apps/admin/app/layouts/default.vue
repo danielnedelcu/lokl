@@ -45,10 +45,13 @@ async function signOut() {
   await supabase.auth.signOut();
   await navigateTo("/login");
 }
+// A page can ask for a plain white background (the guide editor, so the
+// writing area is one white page): definePageMeta({ whiteBackground: true }).
+const route = useRoute();
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-muted">
+  <div class="flex min-h-screen" :class="route.meta.whiteBackground ? 'bg-background' : 'bg-muted'">
     <aside class="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
       <div class="px-5 py-5 text-sm font-semibold tracking-tight">lokl Admin</div>
       <div class="px-3 pb-6">
@@ -57,7 +60,7 @@ async function signOut() {
       </div>
       <div class="mt-auto border-t border-border px-5 py-4 text-sm">
         <p class="truncate text-muted-foreground">{{ user?.email }}</p>
-        <button type="button" class="mt-1 font-medium hover:underline" @click="signOut">Sign out</button>
+        <button type="button" class="mt-1 font-medium" @click="signOut">Sign out</button>
       </div>
     </aside>
 

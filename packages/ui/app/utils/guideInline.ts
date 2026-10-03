@@ -119,7 +119,7 @@ export function inlineVNodes(html: string): (VNode | string)[] {
         case "link":
           return h(
             "a",
-            { href: n.href, class: "underline underline-offset-4", ...(n.external ? { rel: "noopener noreferrer" } : {}) },
+            { href: n.href, class: "font-medium", ...(n.external ? { rel: "noopener noreferrer" } : {}) },
             draw(n.children),
           );
       }

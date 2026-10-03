@@ -116,7 +116,7 @@ const plural = props.kind === "experience" ? "Experiences" : "Services";
         :sort="table.query.value.sort" :desc="table.query.value.desc" :pending="table.pending.value"
         @page="table.setPage" @sort="table.setSort">
         <template #title-cell="{ row }">
-          <NuxtLink :to="`/listings/${row.original.id}`" class="font-medium underline-offset-4 hover:underline">
+          <NuxtLink :to="`/listings/${row.original.id}`" class="font-medium">
             {{ row.original.title }}
           </NuxtLink>
         </template>

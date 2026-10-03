@@ -37,7 +37,7 @@ async function signOut() {
       </div>
       <div class="mt-auto border-t border-border px-5 py-4 text-sm">
         <p class="truncate text-muted-foreground">{{ user?.email }}</p>
-        <button type="button" class="mt-1 font-medium hover:underline" @click="signOut">Sign out</button>
+        <button type="button" class="mt-1 font-medium" @click="signOut">Sign out</button>
       </div>
     </aside>
 
@@ -57,7 +57,7 @@ async function signOut() {
           <UiAlertDescription>
             Your listings are hidden, so customers can't find or book them. Requests you hadn't answered have been
             withdrawn, and your payouts are on hold. Bookings that were already confirmed still go ahead.
-            <template v-if="supportEmail">Questions? Email <a :href="`mailto:${supportEmail}`" class="underline underline-offset-4">{{ supportEmail }}</a>.</template>
+            <template v-if="supportEmail">Questions? Email <a :href="`mailto:${supportEmail}`" class="font-medium">{{ supportEmail }}</a>.</template>
             <template v-else>Questions? Reply to the email we sent you.</template>
           </UiAlertDescription>
         </UiAlert>

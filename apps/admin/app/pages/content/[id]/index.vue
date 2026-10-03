@@ -18,6 +18,9 @@ import {
 } from "@repo/types";
 import type { BodyPhrase } from "~/utils/guidePhrases";
 
+// The writing area is one white page: no grey around it.
+definePageMeta({ whiteBackground: true });
+
 // The guide editor (docs/design/destination-guides.md, The editor). It edits
 // the draft only; "Publish" copies the draft over the live copy through the
 // admin app's server route, and the database checks it first.
@@ -158,6 +161,25 @@ function onSlug() {
     autosave.change({ slug }, true);
   }, 400);
 }
+// Until the first publish, the address follows the title (a new guide
+// starts with a placeholder, guideSlug.ts), unless the admin types one by
+// hand. Decided on the first title change: it follows if the address is the
+// placeholder or matches the title it had.
+let slugFollows: boolean | null = null;
+const slugFollowing = computed(() => !everPublished.value && slugFollows !== false
+  && (draft.slug.startsWith(NEW_GUIDE_SLUG_PREFIX) || draft.slug === titleSlug(draft.title)));
+watch(() => draft.title, (title, before) => {
+  if (everPublished.value) return;
+  slugFollows ??= draft.slug.startsWith(NEW_GUIDE_SLUG_PREFIX) || draft.slug === titleSlug(before ?? "");
+  const next = titleSlug(title);
+  if (!slugFollows || next === draft.slug || !guideSlugSchema.safeParse(next).success) return;
+  draft.slug = next;
+  onSlug();
+});
+function onSlugTyped() {
+  slugFollows = false;
+  onSlug();
+}
 watch(() => autosave.message.value, (m) => {
   if (m.startsWith("That web address")) slugError.value = m;
 });
@@ -215,6 +237,12 @@ async function onAiRunning(running: boolean) {
   else if (!landing && !bodyNotShown.value) autosave.releaseBody();
   await bodyEditor.value?.setReadOnly(running);
 }
+/** The area and category an AI draft uses, as the prompt bar says it. */
+const aiScope = computed(() => {
+  const area = areas.value.find((a) => a.id === draft.areaId)?.name;
+  const category = categories.value.find((c) => c.id === draft.categoryId)?.name;
+  return `${area ?? "no area"} and ${category ?? "no category"}`;
+});
 /** Save what's waiting; the guide's updated_at for the server to check, or null. */
 async function prepare() {
   return (await autosave.flush()) ? autosave.current() : null;
@@ -245,10 +273,6 @@ async function takeGuide(row: Guide) {
     landing = false;
   }
 }
-function useSuggestedSlug(slug: string) {
-  draft.slug = slug;
-  onSlug();
-}
 
 // Phrases to check: the body's come from the editor; the title's and teaser's from here.
 const bodyPhrases = ref<BodyPhrase[]>([]);
@@ -261,7 +285,23 @@ const fieldPhrases = computed<BodyPhrase[]>(() =>
     : [],
 );
 const phrases = computed(() => [...fieldPhrases.value, ...bodyPhrases.value]);
+// The side panel (Guide settings) opens on request, so the text gets the
+// whole width. A field to focus once it opens (reveal() on the teaser).
+const settingsOpen = ref(false);
+let focusOnOpen: (() => void) | null = null;
+function onSettingsFocus(e: Event) {
+  if (!focusOnOpen) return;
+  e.preventDefault();
+  focusOnOpen();
+  focusOnOpen = null;
+}
+
 function reveal(p: BodyPhrase) {
+  if (p.blockId === "teaser" && !settingsOpen.value) {
+    focusOnOpen = () => reveal(p);
+    settingsOpen.value = true;
+    return;
+  }
   if (p.blockId === "title" || p.blockId === "teaser") {
     const el = document.getElementById(p.blockId === "title" ? "guide-title" : "guide-teaser") as HTMLInputElement | null;
     el?.focus();
@@ -313,12 +353,20 @@ const nothingToPublish = computed(() => state.value === "published");
 // suggests (such as a leftover from an earlier title), the confirmation says
 // so and offers to switch to it in one click.
 const firstPublishOpen = ref(false);
-const suggestedSlug = computed(() => slugify(draft.title).slice(0, 80).replace(/-+$/, ""));
+const suggestedSlug = computed(() => titleSlug(draft.title));
 const slugDiffers = computed(() => guideSlugSchema.safeParse(suggestedSlug.value).success && suggestedSlug.value !== draft.slug);
 const suggestedTaken = ref(false);
 const marketPath = computed(() => `/${data.value?.market.slug ?? ""}/guides/`);
 
+// Publish is always available (unless there's nothing new); anything
+// missing is listed in an error toast when it's pressed.
 async function askPublish() {
+  if (blockers.value.length) {
+    return void useSonner.error("Before you can publish:", {
+      description: blockers.value.map((b) => `• ${b}`).join("\n"),
+      classes: { description: "whitespace-pre-line" },
+    });
+  }
   if (everPublished.value) return void act("publish");
   suggestedTaken.value = false;
   if (slugDiffers.value) {
@@ -383,13 +431,11 @@ async function copyVersion(v: GuideVersion) {
 
 async function deleteGuide() {
   busy.value = true;
-  const files = photos.value.flatMap((p) => [p.storage_path, ...(p.card_path ? [p.card_path] : [])]);
-  const { error: e } = await supabase.from("guides").delete().eq("id", id.value);
+  const e = await deleteGuideWithPhotos(supabase, id.value);
   if (e) {
     busy.value = false;
     return void useSonner.error(reportProblem("The guide wasn't deleted. Try again.", e));
   }
-  if (files.length) await supabase.storage.from(GUIDE_PHOTO_BUCKET).remove(files);
   autosave.stop();
   useSonner.success("Guide deleted.");
   await navigateTo("/content");
@@ -433,15 +479,21 @@ const saveLabel = computed(() => {
 
     <template v-else>
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <NuxtLink to="/content" class="text-muted-foreground flex min-h-9 items-center gap-1 text-sm hover:underline">
+        <NuxtLink to="/content" class="text-muted-foreground flex min-h-9 items-center gap-1 text-sm">
           <Icon name="lucide:arrow-left" aria-hidden="true" />All guides
         </NuxtLink>
-        <p class="flex items-center gap-1 text-sm" role="status" aria-live="polite">
-          <Icon :name="saveLabel.icon" :class="saveLabel.text === 'Saving…' && 'animate-spin'" aria-hidden="true" />
-          {{ saveLabel.text }}
-          <UiButton v-if="autosave.state.value === 'failing' || autosave.state.value === 'refused'" size="sm" variant="link"
-            @click="autosave.flush()">Try now</UiButton>
-        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <p class="flex items-center gap-1 text-sm" role="status" aria-live="polite">
+            <Icon :name="saveLabel.icon" :class="saveLabel.text === 'Saving…' && 'animate-spin'" aria-hidden="true" />
+            {{ saveLabel.text }}
+            <UiButton v-if="autosave.state.value === 'failing' || autosave.state.value === 'refused'" size="sm" variant="link"
+              @click="autosave.flush()">Try now</UiButton>
+          </p>
+          <StatusBadge kind="guide" :status="state" />
+          <UiButton variant="outline" aria-haspopup="dialog" :aria-expanded="settingsOpen" @click="settingsOpen = true">
+            <Icon name="lucide:panel-right-open" aria-hidden="true" />Guide settings
+          </UiButton>
+        </div>
       </div>
 
       <UiAlert v-if="bodyNotShown" variant="destructive" icon="lucide:alert-triangle" class="mb-4">
@@ -458,44 +510,50 @@ const saveLabel = computed(() => {
           <UiButton size="sm" variant="outline" class="mt-2" @click="() => { autosave.stop(); reloadNuxtApp(); }">Reload</UiButton>
         </UiAlertDescription>
       </UiAlert>
-      <UiAlert v-else-if="autosave.state.value === 'refused' && !autosave.message.value.startsWith('That web address')"
+      <UiAlert v-else-if="autosave.state.value === 'refused' && (!settingsOpen || !autosave.message.value.startsWith('That web address'))"
         variant="destructive" icon="lucide:alert-triangle" class="mb-4">
         <UiAlertTitle>{{ autosave.message.value }}</UiAlertTitle>
       </UiAlert>
 
-      <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <!-- Writing column -->
-        <fieldset :disabled="locked" class="min-w-0 space-y-6">
+      <!-- Writing: the whole width. Everything else is in Guide settings.
+           pb-28 leaves room for the "Write with AI" button fixed below. -->
+      <fieldset :disabled="locked" class="min-w-0 space-y-6 pb-28">
           <legend class="sr-only">The guide's draft</legend>
           <GuideReview v-if="pendingReview" ref="review" :phrases="phrases" :busy="busy || locked" @reveal="reveal"
             @confirm="markReviewed" />
-          <div>
-            <UiLabel for="guide-title" class="mb-2">Title</UiLabel>
+          <div class="mx-auto max-w-[650px]">
+            <!-- The title reads as the page's headline: no box. The label is for screen readers. -->
+            <UiLabel for="guide-title" class="sr-only">Title</UiLabel>
             <UiInput id="guide-title" v-model="draft.title" :maxlength="GUIDE_TITLE_MAX" autocomplete="off"
-              class="h-auto py-2 text-2xl font-semibold tracking-tight md:text-2xl"
-              placeholder="Murals of the Eastside Trail" @input="autosave.change({ draft_title: draft.title })" />
+              class="placeholder:text-muted-foreground/50 h-auto rounded-none border-0 bg-transparent px-0 py-2 text-2xl font-semibold tracking-tight shadow-none focus-visible:ring-0 md:text-2xl"
+              placeholder="Enter headline" @input="autosave.change({ draft_title: draft.title })" />
           </div>
           <div>
-            <p id="body-label" class="mb-2 text-sm font-medium">Guide text</p>
-            <div class="border-input rounded-md border px-4 py-3 sm:px-12">
+            <!-- No visible label or box: the text is the page. The label is for screen readers. -->
+            <p id="body-label" class="sr-only">Guide text</p>
+            <div class="py-3">
               <GuideBodyEditor ref="bodyEditor" :body="draft.body" :photos="photoOptions" labelledby="body-label"
                 :highlight="pendingReview" @change="onBody" @invalid="(m) => (bodyNote = m)" @phrases="(p) => (bodyPhrases = p)" />
             </div>
             <p v-if="bodyNote" class="text-destructive mt-2 flex items-center gap-1 text-sm" role="alert">
               <Icon name="lucide:alert-circle" aria-hidden="true" />{{ bodyNote }}
             </p>
-            <p class="text-muted-foreground mt-2 text-sm">
-              Press Tab in an empty line for headings, lists, quotes and photos. Select text for bold, italic and links.
-            </p>
           </div>
-        </fieldset>
+      </fieldset>
 
-        <!-- Side panel -->
-        <aside class="space-y-6" aria-label="Guide settings">
-          <GuideAiDraft :guide="guide" :draft-title="draft.title" :draft-area-id="draft.areaId" :draft-category-id="draft.categoryId"
-            :has-text="!!(draft.title.trim() || draft.teaser.trim() || ((draft.body as { blocks?: unknown[] })?.blocks?.length ?? 0))"
-            :areas="areas" :categories="categories" :prepare="prepare" @running="onAiRunning"
-            @landed="(r) => takeGuide(r.guide)" @restored="takeGuide" @use-slug="useSuggestedSlug" />
+      <!-- Writing with AI: a button at the bottom of the page opens the prompt bar. -->
+      <GuideAiDraft :guide="guide" :area-id="draft.areaId" :category-id="draft.categoryId" :scope="aiScope"
+        :has-text="!!(draft.title.trim() || draft.teaser.trim() || ((draft.body as { blocks?: unknown[] })?.blocks?.length ?? 0))"
+        :prepare="prepare" @running="onAiRunning" @landed="(r) => takeGuide(r.guide)" @restored="takeGuide" />
+
+      <!-- Guide settings: status and publishing, address and teaser,
+           listings block, photos. -->
+      <UiSheet v-model:open="settingsOpen">
+        <!-- The settings scroll; Publish, Preview and Delete/Unpublish stay fixed at the bottom. -->
+        <UiSheetContent side="right" class="w-full gap-0 sm:max-w-md" title="Guide settings"
+          description="Status, publishing, the web address, teaser, listings block and photos." @open-auto-focus="onSettingsFocus">
+          <template #content>
+          <div class="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 pb-8">
           <fieldset :disabled="locked" class="space-y-6">
           <legend class="sr-only">Guide settings</legend>
           <section aria-labelledby="status-heading" class="border-border space-y-3 rounded-lg border p-4">
@@ -506,31 +564,10 @@ const saveLabel = computed(() => {
             <p v-if="guide.content_updated_at" class="text-muted-foreground text-sm">
               Live version last updated {{ formatDate(guide.content_updated_at) }}.
             </p>
-            <div class="flex flex-wrap gap-2">
-              <UiButton :disabled="busy || !!blockers.length || nothingToPublish"
-                :aria-describedby="blockers.length ? 'publish-blockers' : undefined" @click="askPublish">
-                {{ busy ? "Working…" : publishLabel }}
-              </UiButton>
-              <UiButton variant="outline" :disabled="busy" @click="preview">Preview</UiButton>
-            </div>
-            <div v-if="blockers.length" id="publish-blockers" class="text-sm">
-              <p class="font-medium">Before you can publish:</p>
-              <ul class="mt-1 space-y-1">
-                <li v-for="b in blockers" :key="b" class="flex items-start gap-1">
-                  <Icon name="lucide:circle-x" class="text-destructive mt-0.5 shrink-0" aria-hidden="true" />{{ b }}
-                </li>
-              </ul>
-            </div>
-            <p v-else-if="nothingToPublish" class="text-muted-foreground text-sm">The live guide matches the draft.</p>
-            <div class="border-border flex flex-wrap gap-2 border-t pt-3">
-              <UiButton v-if="everPublished" size="sm" variant="ghost" @click="versionsOpen = true">
-                <Icon name="lucide:history" aria-hidden="true" />Versions
-              </UiButton>
-              <UiButton v-if="guide.status === 'published'" size="sm" variant="ghost" class="text-destructive" :disabled="busy"
-                @click="unpublishOpen = true">Unpublish</UiButton>
-              <UiButton v-if="!everPublished" size="sm" variant="ghost" class="text-destructive" :disabled="busy"
-                @click="deleteOpen = true">Delete guide</UiButton>
-            </div>
+            <p v-if="nothingToPublish" class="text-muted-foreground text-sm">The live guide matches the draft.</p>
+            <UiButton v-if="everPublished" size="sm" variant="ghost" class="-ml-2" @click="versionsOpen = true">
+              <Icon name="lucide:history" aria-hidden="true" />Versions
+            </UiButton>
           </section>
 
           <section aria-labelledby="page-heading" class="space-y-4">
@@ -540,12 +577,13 @@ const saveLabel = computed(() => {
               <div class="flex items-center gap-1 text-sm">
                 <span class="text-muted-foreground shrink-0">/{{ data?.market.slug }}/guides/</span>
                 <UiInput id="guide-slug" v-model="draft.slug" :readonly="everPublished" :aria-invalid="!!slugError || undefined"
-                  aria-describedby="slug-note" autocomplete="off" @input="onSlug" />
+                  aria-describedby="slug-note" autocomplete="off" @input="onSlugTyped" />
               </div>
               <p id="slug-note" class="mt-1.5 text-sm" :class="slugError ? 'text-destructive' : 'text-muted-foreground'">
                 <template v-if="everPublished">Can't change once published (it's in search results).</template>
                 <template v-else-if="slugError">{{ slugError }}</template>
                 <template v-else-if="slugChecking">Checking…</template>
+                <template v-else-if="slugFollowing">Follows the title until you change it or publish.</template>
                 <template v-else>Lowercase letters, numbers and hyphens.</template>
               </p>
             </div>
@@ -590,8 +628,22 @@ const saveLabel = computed(() => {
           <GuidePhotos :guide-id="guide.id" :photos="photos" :cover-id="draft.coverId" :live-ids="liveIds"
             :remove="removePhoto" @changed="reloadPhotos" @cover="setCover" />
           </fieldset>
-        </aside>
-      </div>
+          </div>
+          </template>
+          <template #footer>
+            <div class="border-border bg-background flex flex-wrap items-center gap-2 border-t px-4 py-3">
+              <UiButton :disabled="busy || locked || nothingToPublish" @click="askPublish">
+                {{ busy ? "Working…" : publishLabel }}
+              </UiButton>
+              <UiButton variant="outline" :disabled="busy" @click="preview">Preview</UiButton>
+              <UiButton v-if="guide.status === 'published'" variant="ghost" class="text-destructive ml-auto" :disabled="busy || locked"
+                @click="unpublishOpen = true">Unpublish</UiButton>
+              <UiButton v-else-if="!everPublished" variant="ghost" class="text-destructive ml-auto" :disabled="busy || locked"
+                @click="deleteOpen = true">Delete guide</UiButton>
+            </div>
+          </template>
+        </UiSheetContent>
+      </UiSheet>
 
       <GuideVersions v-model:open="versionsOpen" :guide-id="guide.id" :photos="photoMap" @copy="copyVersion" />
 

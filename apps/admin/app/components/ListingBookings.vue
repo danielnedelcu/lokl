@@ -28,7 +28,7 @@ const upcoming = computed(() => (data.value ?? []).filter((b) => b.status === "c
       <p v-else-if="!data?.length" class="text-muted-foreground">No bookings yet.</p>
       <ul v-else class="space-y-1">
         <li v-for="b in data" :key="b.id" class="flex flex-wrap items-center gap-2">
-          <NuxtLink :to="`/bookings/${b.id}`" class="underline underline-offset-4">{{ whenOf(b) }}</NuxtLink>
+          <NuxtLink :to="`/bookings/${b.id}`" class="font-medium">{{ whenOf(b) }}</NuxtLink>
           <StatusBadge kind="adminBooking" :status="b.status" />
           <span class="text-muted-foreground">{{ b.customer_name }} · {{ payoutState(b) }}</span>
         </li>

@@ -30,9 +30,38 @@ const blocksOf = (body: unknown): EditorBlock[] => {
   return Array.isArray(blocks) ? (blocks as EditorBlock[]) : [];
 };
 
-/** The same content, ignoring block ids (Editor.js may give new ones). */
+/**
+ * A body's blocks as plain data, for Editor.js. The page's draft is a Vue
+ * reactive Proxy, and the list tool copies its data with structuredClone,
+ * which can't copy a Proxy: the list then shows as "can not be displayed".
+ */
+export function plainBlocks(body: unknown): EditorBlock[] {
+  return JSON.parse(JSON.stringify(blocksOf(body))) as EditorBlock[];
+}
+
+// Same content, written the same way: object keys in sorted order (the
+// database returns JSON with its keys reordered), and the default Editor.js
+// fills in when it draws a numbered list (counterType "numeric"). Without
+// these, an AI draft with a numbered list read as "not shown" though it was
+// (found 2026-10-03).
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value).sort().map((k) => [k, canonical((value as Record<string, unknown>)[k])]),
+    );
+  }
+  return value;
+}
+function withDefaults(block: EditorBlock) {
+  if (block.type !== "list" || block.data?.style !== "ordered") return block.data;
+  const meta = (block.data.meta ?? {}) as Record<string, unknown>;
+  return { ...block.data, meta: { counterType: "numeric", ...meta } };
+}
+
+/** The same content, ignoring block ids (Editor.js may give new ones) and key order. */
 export function sameBlocks(a: unknown, b: unknown): boolean {
-  const strip = (body: unknown) => JSON.stringify(blocksOf(body).map((x) => ({ type: x.type, data: x.data })));
+  const strip = (body: unknown) => JSON.stringify(canonical(blocksOf(body).map((x) => ({ type: x.type, data: withDefaults(x) }))));
   return strip(a) === strip(b);
 }
 
@@ -65,7 +94,7 @@ export function createEditorControl(getEditor: () => EditorLike | null) {
       if (!editor) return false;
       await editor.isReady;
       if (editor.readOnly.isEnabled) await editor.readOnly.toggle(false);
-      const blocks = blocksOf(body);
+      const blocks = plainBlocks(body);
       for (let attempt = 0; attempt < 2; attempt++) {
         await editor.render({ blocks });
         if (sameBlocks(await editor.save(), { blocks })) return true;

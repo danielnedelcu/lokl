@@ -32,9 +32,12 @@ let ready = false;
 // The photos, read by photo blocks when their list opens.
 const photos = () => props.photos;
 
+// A plain copy: the body usually comes from the page's reactive draft (a Vue
+// Proxy), and Editor.js's list tool copies its data with structuredClone,
+// which can't copy a Proxy, so every list showed "The block can not be
+// displayed correctly" (found 2026-10-03).
 function toEditorData(body: unknown): OutputData {
-  const blocks = (body as { blocks?: unknown } | null)?.blocks;
-  return { blocks: Array.isArray(blocks) ? (blocks as OutputData["blocks"]) : [] };
+  return { blocks: plainBlocks(body) as OutputData["blocks"] };
 }
 
 // ---------------------------------------------------------------------------
@@ -222,7 +225,7 @@ defineExpose({ replace, removePhoto, readBody, reveal, setReadOnly });
   line-height: 1.75;
 }
 .guide-body-editor :deep(a) {
-  text-decoration: underline;
+  font-weight: 500;
 }
 .guide-body-editor :deep(.guide-photo-block) {
   display: grid;
