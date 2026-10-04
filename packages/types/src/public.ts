@@ -43,6 +43,8 @@ export interface PublicListingCard {
   cover: PublicPhoto | null;
   /** Experiences: the next scheduled session, or null. */
   nextSessionAt: string | null;
+  /** Whose listing it is (the heart is hidden on a provider's own). */
+  providerId: string;
 }
 
 /** A provider's public profile: what signed-out visitors may read. */
@@ -120,4 +122,27 @@ export function whereLabel(listing: Pick<PublicListingCard, "area" | "travelArea
   if (!names.length) return `Comes to you in ${marketName}`;
   if (names.length === 1) return `Comes to you in ${names[0]}`;
   return `Comes to you in ${names[0]} and ${names.length - 1} more`;
+}
+
+/**
+ * The signed-in customer's Saved page (docs/design/favourites.md), newest
+ * saved first. An available item comes with what a visitor would see; an
+ * unavailable one with only its name, and not even that when lokl took it
+ * down or suspended its provider (null).
+ */
+export interface MySaved {
+  listings: {
+    id: string;
+    savedAt: string;
+    /** The listing card, with its market; null when no longer available. */
+    card: (PublicListingCard & { market: PublicMarket }) | null;
+    title: string | null;
+  }[];
+  providers: {
+    id: string;
+    savedAt: string;
+    /** The provider's profile; null when no longer available. */
+    provider: PublicProvider | null;
+    name: string | null;
+  }[];
 }

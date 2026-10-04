@@ -5823,6 +5823,182 @@
           "def": "CREATE TRIGGER homepage_features_published_only BEFORE INSERT OR UPDATE ON public.homepage_features FOR EACH ROW EXECUTE FUNCTION homepage_features_published_only()"
         }
       ]
+    },
+    {
+      "name": "public.saved_listings",
+      "type": "BASE TABLE",
+      "comment": "Listings a customer saved (their \"Saved\" list). Private to that customer: nobody else can read it, not even the listing's provider or admins. Deleted with the customer's login or the listing.",
+      "columns": [
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "auth.uid()"
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "saved_listings_pkey",
+          "def": "CREATE UNIQUE INDEX saved_listings_pkey ON public.saved_listings USING btree (customer_id, listing_id)",
+          "table": "public.saved_listings",
+          "columns": [
+            "customer_id",
+            "listing_id"
+          ]
+        },
+        {
+          "name": "saved_listings_listing_idx",
+          "def": "CREATE INDEX saved_listings_listing_idx ON public.saved_listings USING btree (listing_id)",
+          "table": "public.saved_listings",
+          "columns": [
+            "listing_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "saved_listings_customer_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (customer_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+          "table": "public.saved_listings",
+          "referenced_table": "auth.users",
+          "columns": [
+            "customer_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "saved_listings_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.saved_listings",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "saved_listings_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (customer_id, listing_id)",
+          "table": "public.saved_listings",
+          "referenced_table": "",
+          "columns": [
+            "customer_id",
+            "listing_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "saved_listings_limit",
+          "def": "CREATE TRIGGER saved_listings_limit BEFORE INSERT ON public.saved_listings FOR EACH ROW EXECUTE FUNCTION saved_items_limit()"
+        }
+      ]
+    },
+    {
+      "name": "public.saved_providers",
+      "type": "BASE TABLE",
+      "comment": "Providers a customer saved (their \"Saved\" list). Private to that customer: nobody else can read it, not even the provider or admins. Deleted with the customer's login; providers are never deleted.",
+      "columns": [
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "auth.uid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "saved_providers_pkey",
+          "def": "CREATE UNIQUE INDEX saved_providers_pkey ON public.saved_providers USING btree (customer_id, provider_id)",
+          "table": "public.saved_providers",
+          "columns": [
+            "customer_id",
+            "provider_id"
+          ]
+        },
+        {
+          "name": "saved_providers_provider_idx",
+          "def": "CREATE INDEX saved_providers_provider_idx ON public.saved_providers USING btree (provider_id)",
+          "table": "public.saved_providers",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "saved_providers_customer_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (customer_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+          "table": "public.saved_providers",
+          "referenced_table": "auth.users",
+          "columns": [
+            "customer_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "saved_providers_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.saved_providers",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "saved_providers_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (customer_id, provider_id)",
+          "table": "public.saved_providers",
+          "referenced_table": "",
+          "columns": [
+            "customer_id",
+            "provider_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "saved_providers_limit",
+          "def": "CREATE TRIGGER saved_providers_limit BEFORE INSERT ON public.saved_providers FOR EACH ROW EXECUTE FUNCTION saved_items_limit()"
+        }
+      ]
     }
   ],
   "relations": [
@@ -6360,6 +6536,32 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.saved_listings",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.saved_providers",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -6739,6 +6941,24 @@
       "name": "public.admin_remove_provider_profile_content",
       "return_type": "_text",
       "arguments": "p_provider_id uuid, p_admin_id uuid, p_parts text[], p_rule text, p_reason text, p_message text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.provider_is_public",
+      "return_type": "bool",
+      "arguments": "p_provider_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.saved_items_limit",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.my_saved",
+      "return_type": "jsonb",
+      "arguments": "",
       "type": "FUNCTION"
     }
   ],

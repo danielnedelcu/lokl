@@ -6,6 +6,8 @@
       <NuxtPage />
     </NuxtLayout>
     <UiSonner />
+    <!-- Hearts (favourites): the sign-in dialog and the announcements, for every page. -->
+    <ClientOnly><SaveSignInDialog /></ClientOnly>
   </div>
 </template>
 

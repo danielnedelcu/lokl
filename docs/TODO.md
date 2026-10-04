@@ -117,9 +117,13 @@ Each step depends on the ones before it.
    sitemap; the admin's profile view and "remove with a reason", with the
    written profile rules and an email to the provider. Later: a new
    address on a rename, with a permanent redirect.
-2. [ ] **Favourites:** a heart on listings (and possibly providers) that
-   signed-in customers can save and come back to. The listing page leaves
-   room for it (provider-profiles design, Room for later). Design to come.
+2. [x] **Favourites** (docs/design/favourites.md, built 2026-10-04;
+   migration `saved_items`): a heart on listing cards, listing pages and
+   provider profiles; private to each customer (not even admins can read
+   them), at most 500 of each; signed-out visitors sign in and come back
+   with it saved; a Saved page in the account menu, where unavailable items
+   stay, marked, and a removal can be undone. Later: named collections;
+   counts for providers, if ever, through an aggregate that names no one.
 3. [ ] **Reviews and star ratings**, on the principles in docs/decisions.md
    (2026-10-04): completed bookings only, one per booking, a review window
    prompted by email, stars and text, a public reply from the provider,

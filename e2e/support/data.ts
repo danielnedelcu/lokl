@@ -214,7 +214,7 @@ export class TestData {
         delete from listings where id in (${ids});`]);
     }
     if (this.providers.length) {
-      // Profile photos, and the account emails and admin log rows that point at the provider.
+      // Profile photos, and the account emails, admin log rows and saves that point at the provider.
       for (const id of this.providers) {
         const { data: files } = await this.env.db.storage.from("provider-photos").list(id);
         if (files?.length) await this.env.db.storage.from("provider-photos").remove(files.map((f) => `${id}/${f.name}`));
@@ -223,6 +223,7 @@ export class TestData {
       execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
         set session_replication_role = replica;
         delete from provider_emails where provider_id in (${ids});
+        delete from saved_providers where provider_id in (${ids});
         delete from admin_actions where target = 'provider' and target_id in (${ids});`]);
     }
     for (const id of this.providers) await this.env.db.from("providers").delete().eq("id", id);

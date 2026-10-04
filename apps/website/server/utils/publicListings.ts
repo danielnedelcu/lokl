@@ -108,6 +108,7 @@ function toCard(r: Row): PublicListingCard & { areaIds: string[]; sessionTimes: 
     travelAreas: travel.map(toArea),
     cover: photos[0] ? toPhoto(photos[0]) : null,
     nextSessionAt: sessionTimes[0] ? new Date(sessionTimes[0]).toISOString() : null,
+    providerId: r.hostedBy?.id ?? "",
     // For filtering and sorting only; not sent to pages.
     areaIds: [r.area?.id, ...travel.map((a) => a.id)].filter((id): id is string => !!id),
     sessionTimes,
@@ -189,6 +190,26 @@ export async function loadPublicProvider(db: SupabaseClient, slug: string): Prom
   if (lErr) throw new Error(lErr.message);
   const cards = ((rows ?? []) as unknown as Row[]).map((r) => stripInternal(toCard(r)));
   return { provider, market: row.market, experiences: cards.filter((c) => c.kind === "experience"), services: cards.filter((c) => c.kind === "service") };
+}
+
+/** Saved listings that are visible now, as visitors see them (the Saved page). */
+export async function loadSavedListingCards(db: SupabaseClient, ids: string[]) {
+  const found = new Map<string, PublicListingCard & { market: PublicMarket }>();
+  if (!ids.length) return found;
+  const { data, error } = await db.from("listings").select(LISTING_SELECT).in("id", ids).eq("status", "live");
+  if (error) throw new Error(error.message);
+  for (const r of (data ?? []) as unknown as Row[]) found.set(r.id, { ...stripInternal(toCard(r)), market: r.city });
+  return found;
+}
+
+/** Saved providers whose profiles are public now (the Saved page). */
+export async function loadSavedProviders(db: SupabaseClient, ids: string[]) {
+  const found = new Map<string, PublicProvider>();
+  if (!ids.length) return found;
+  const { data, error } = await db.from("providers").select(PROVIDER_PUBLIC).in("id", ids);
+  if (error) throw new Error(error.message);
+  for (const r of (data ?? []) as unknown as ProviderRow[]) found.set(r.id, toProvider(r));
+  return found;
 }
 
 export interface BrowseQuery {

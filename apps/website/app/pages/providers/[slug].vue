@@ -73,8 +73,11 @@ else {
         <ProviderAvatar :name="p.name" :path="p.avatarPath" :size="96" />
       </div>
       <div>
-        <!-- Room for later: the rating line, and a heart to save the provider. -->
-        <h1 class="text-2xl font-semibold tracking-tight md:text-3xl">{{ p.name }}</h1>
+        <!-- Room for later: the rating line, under the name. -->
+        <div class="flex items-start gap-3">
+          <h1 class="min-w-0 flex-1 text-2xl font-semibold tracking-tight md:text-3xl">{{ p.name }}</h1>
+          <SaveButton kind="provider" :id="p.id" :name="p.name" :provider-id="p.id" />
+        </div>
         <p v-if="p.headline" class="mt-1 text-lg">{{ p.headline }}</p>
         <p class="text-muted-foreground mt-1 text-sm">{{ facts }}</p>
       </div>

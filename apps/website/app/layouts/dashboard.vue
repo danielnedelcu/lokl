@@ -18,6 +18,7 @@ const sections = computed(() => [{ items: provider.value
       { to: "/dashboard", label: "Overview", icon: "lucide:layout-dashboard" },
       { to: "/dashboard/settings", label: "Set up your business", icon: "lucide:store" },
       { to: "/account/bookings", label: "My bookings", icon: "lucide:calendar" },
+      { to: "/account/saved", label: "Saved", icon: "lucide:heart" },
     ] }]);
 const supportEmail = useRuntimeConfig().public.supportEmail;
 

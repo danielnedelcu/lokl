@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { whereLabel, type PublicListingCard, type PublicMarket } from "@repo/types";
 
-// One listing in a browse list: a single link, named by its title.
+// One listing in a browse list: a single link, named by its title, with the
+// heart over the photo as a separate button beside the link (a button inside
+// a link is invalid).
 const props = defineProps<{ listing: PublicListingCard; market: PublicMarket }>();
 
 const supabase = useSupabaseClient();
@@ -21,6 +23,7 @@ const next = computed(() =>
 </script>
 
 <template>
+  <div class="relative">
   <NuxtLink :to="href" class="group focus-visible:ring-ring/50 block rounded-xl outline-none focus-visible:ring-[3px]">
     <div class="bg-muted aspect-[4/3] overflow-hidden rounded-xl">
       <NuxtImg v-if="coverUrl" :src="coverUrl" :alt="listing.cover!.alt" width="600" height="450" loading="lazy"
@@ -33,4 +36,8 @@ const next = computed(() =>
       <p v-if="next" class="text-muted-foreground text-sm">{{ next }}</p>
     </div>
   </NuxtLink>
+  <div class="absolute top-2 right-2">
+    <SaveButton kind="listing" :id="listing.id" :name="listing.title" :provider-id="listing.providerId" variant="overlay" />
+  </div>
+  </div>
 </template>

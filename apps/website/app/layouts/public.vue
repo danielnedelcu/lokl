@@ -2,7 +2,8 @@
 // Customer-facing pages: listing, browse, market. A plain header and footer;
 // the homepage keeps its own markup (app/pages/index.vue).
 const user = useSupabaseUser();
-// "Dashboard" only for providers; every signed-in visitor has "My bookings".
+// "Dashboard" only for providers; every signed-in visitor has "My bookings"
+// and "Saved".
 // Only when signed in: /api/provider is for signed-in users.
 const { data: provider } = user.value ? await useProvider() : { data: ref(null) };
 
@@ -41,6 +42,9 @@ async function signOut() {
               <UiDropdownMenuSeparator />
               <UiDropdownMenuItem as-child class="min-h-11">
                 <NuxtLink to="/account/bookings"><Icon name="lucide:calendar" class="size-4" aria-hidden="true" />My bookings</NuxtLink>
+              </UiDropdownMenuItem>
+              <UiDropdownMenuItem as-child class="min-h-11">
+                <NuxtLink to="/account/saved"><Icon name="lucide:heart" class="size-4" aria-hidden="true" />Saved</NuxtLink>
               </UiDropdownMenuItem>
               <UiDropdownMenuItem v-if="provider" as-child class="min-h-11">
                 <NuxtLink to="/dashboard"><Icon name="lucide:layout-dashboard" class="size-4" aria-hidden="true" />Dashboard</NuxtLink>

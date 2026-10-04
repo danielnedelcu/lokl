@@ -169,10 +169,9 @@ useSchemaOrg([
 
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <div class="min-w-0 space-y-8">
-        <!-- Room for later (docs/design/provider-profiles.md): the favourite
-             heart goes at the top right of this header (a 44px button the
-             title wraps short of), and the rating line directly under the
-             title. Neither shows anything until its feature exists. -->
+        <!-- The heart at the top right (docs/design/favourites.md). Room for
+             later (docs/design/provider-profiles.md): the rating line
+             directly under the title. -->
         <header class="flex items-start gap-3">
           <div class="min-w-0 flex-1">
             <p class="text-muted-foreground text-sm">{{ l.category.name }}</p>
@@ -183,6 +182,7 @@ useSchemaOrg([
             </p>
             <p v-if="!l.provider" class="text-muted-foreground mt-1 text-sm">{{ hostWord }} {{ l.hostedBy }}</p>
           </div>
+          <SaveButton kind="listing" :id="l.id" :name="l.title" :provider-id="l.providerId" />
         </header>
 
         <section aria-labelledby="about-heading">

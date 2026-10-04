@@ -1507,6 +1507,58 @@ export type Database = {
           },
         ]
       }
+      saved_listings: {
+        Row: {
+          created_at: string
+          customer_id: string
+          listing_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string
+          listing_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          listing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_listings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_providers: {
+        Row: {
+          created_at: string
+          customer_id: string
+          provider_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string
+          provider_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_providers_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_areas: {
         Row: {
           active: boolean
@@ -1700,6 +1752,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      my_saved: { Args: never; Returns: Json }
+      provider_is_public: { Args: { p_provider_id: string }; Returns: boolean }
       provider_payout_setup: {
         Args: { p_account_id: string; p_charges: boolean; p_payouts: boolean }
         Returns: string
