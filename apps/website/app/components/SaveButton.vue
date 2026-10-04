@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<{
 }>(), { variant: "plain" });
 
 const user = useSupabaseUser();
-const { load, loaded, isSaved, toggle, ownProviderId } = useSaved();
+const { load, loaded, isSaved, isSending, toggle, ownProviderId } = useSaved();
 onMounted(() => void load());
 const own = computed(() => !!ownProviderId.value && ownProviderId.value === props.providerId);
 const pressed = computed(() => isSaved(props.kind, props.id));
@@ -33,6 +33,7 @@ const ready = computed(() => !user.value || loaded.value);
     <UiTooltip v-if="!own">
       <UiTooltipTrigger as-child>
         <button type="button" :aria-label="`Save ${name}`" :aria-pressed="pressed" :aria-disabled="!ready || undefined"
+          :aria-busy="isSending(kind, id) || undefined"
           :class="[
             'focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-[3px]',
             variant === 'overlay' ? 'bg-background/90 shadow-sm backdrop-blur hover:bg-background' : 'hover:bg-accent',

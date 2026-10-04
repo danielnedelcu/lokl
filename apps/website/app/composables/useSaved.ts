@@ -18,6 +18,8 @@ const INTENT_COOKIE = "lokl_save_intent";
 const INTENT_MS = 30 * 60_000;
 // One load per page visit, however many hearts ask (browser only).
 let loading: Promise<void> | null = null;
+// The page-leaving flush is set up once per tab.
+let flushReady = false;
 
 interface SaveIntent {
   kind: SavedKind;
@@ -36,7 +38,32 @@ export function useSaved() {
   const loaded = useState("saved-loaded", () => false);
   const ownProviderId = useState<string | null>("saved-own-provider", () => null);
   const announcement = useState("saved-announcement", () => "");
-  const inFlight = new Set<string>();
+  // Items whose change is still being sent, shared by every heart: one
+  // sender per item, and the heart shows aria-busy until it's done (a page
+  // left before then may not have sent the last tap).
+  const sending = useState<Record<string, boolean>>("saved-sending", () => ({}));
+
+  // Leaving the page (closing the tab, following a link off the app,
+  // reloading): any heart still sending, or not yet sent, sends what the
+  // person last asked for in a keepalive request, which the browser
+  // finishes after the page has gone. Otherwise a quick save-unsave-save
+  // followed by leaving lost the last tap (found 2026-10-04). Moving between
+  // pages inside the site needs nothing: the page, and its sending, carry on.
+  if (import.meta.client && !flushReady) {
+    flushReady = true;
+    const { url: apiUrl, key: apiKey } = useRuntimeConfig().public.supabase;
+    let token: string | null = null;
+    void supabase.auth.getSession().then(({ data }) => (token = data.session?.access_token ?? null));
+    supabase.auth.onAuthStateChange((_event, session) => (token = session?.access_token ?? null));
+    window.addEventListener("pagehide", () => {
+      if (!token) return;
+      for (const k of Object.keys(wanted.value)) {
+        if (!sending.value[k] && !!wanted.value[k] === !!saved.value[k]) continue;
+        const [kind, id] = k.split(":") as [SavedKind, string];
+        sendOnLeaving(apiUrl, apiKey, token, kind, id, !!wanted.value[k]);
+      }
+    });
+  }
 
   function load() {
     if (!import.meta.client || !user.value || loaded.value) return Promise.resolve();
@@ -61,12 +88,14 @@ export function useSaved() {
   }
 
   const isSaved = (kind: SavedKind, id: string) => !!wanted.value[key(kind, id)];
+  /** True while this item's change is still being sent. */
+  const isSending = (kind: SavedKind, id: string) => !!sending.value[key(kind, id)];
 
   /** Sends what the person wants, until the database matches; returns the error, if any. */
   async function sync(kind: SavedKind, id: string): Promise<{ message: string; code?: string } | null> {
     const k = key(kind, id);
-    if (inFlight.has(k)) return null;
-    inFlight.add(k);
+    if (sending.value[k]) return null;
+    sending.value = { ...sending.value, [k]: true };
     try {
       while (!!wanted.value[k] !== !!saved.value[k]) {
         const on = !!wanted.value[k];
@@ -89,7 +118,7 @@ export function useSaved() {
       }
       return null;
     } finally {
-      inFlight.delete(k);
+      sending.value = { ...sending.value, [k]: false };
     }
   }
 
@@ -149,7 +178,25 @@ export function useSaved() {
     ownProviderId.value = null;
   }
 
-  return { load, reset, loaded, isSaved, toggle, ownProviderId, announcement };
+  return { load, reset, loaded, isSaved, isSending, toggle, ownProviderId, announcement };
+}
+
+/** One heart's wanted state, sent straight to the database as the page closes (keepalive). */
+function sendOnLeaving(apiUrl: string, apiKey: string, token: string, kind: SavedKind, id: string, on: boolean) {
+  const table = kind === "listing" ? "saved_listings" : "saved_providers";
+  const column = kind === "listing" ? "listing_id" : "provider_id";
+  const base = `${apiUrl.replace(/\/$/, "")}/rest/v1/${table}`;
+  void fetch(on ? `${base}?on_conflict=customer_id,${column}` : `${base}?${column}=eq.${encodeURIComponent(id)}`, {
+    method: on ? "POST" : "DELETE",
+    headers: {
+      apikey: apiKey,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=ignore-duplicates,return=minimal",
+    },
+    body: on ? JSON.stringify({ [column]: id }) : undefined,
+    keepalive: true,
+  }).catch(() => {});
 }
 
 // The intent cookie, read and written directly: the code sign-in reads it

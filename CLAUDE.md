@@ -201,6 +201,14 @@ user id is `user.sub`, not `user.id`.
 - Treat provider and customer personal details as sensitive. Keep them out of
   logs, test fixtures and docs.
 
+## CI results
+
+When reporting a CI result, read each job's actual conclusion from GitHub
+(`gh run view <id> --json conclusion,jobs`) and say which jobs passed or
+failed. Never take the exit code of a watcher (a background `gh run watch`,
+or the command wrapped around it) as the result: on 2026-10-04 a failed run
+was reported as passing that way.
+
 ## Commit messages
 
 - A short subject line (about 72 characters at most), then a **blank line**,

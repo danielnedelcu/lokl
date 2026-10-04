@@ -53,14 +53,31 @@ test("a customer saves a listing and a provider, finds them on the Saved page, a
   await expect(cardHeart).toBeFocused();
   await page.keyboard.press("Space");
   await expect(cardHeart).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(async () => savedRows(data, customer.id)).toEqual({ listings: [p.listing.id], providers: [p.id] });
+  await expect(cardHeart).not.toHaveAttribute("aria-busy", "true");
+  expect(await savedRows(data, customer.id)).toEqual({ listings: [p.listing.id], providers: [p.id] });
 
-  // Enter toggles too (and back).
+  // Enter toggles too, twice quickly: unsave, then save again before the
+  // unsave is done. The unsave is made slow to reach the database here (it
+  // still gets there, even if the page has gone), so that's certain. The
+  // heart is busy until the last tap is sent; only then is the database
+  // checked and the page reloaded. Found 2026-10-04 (CI run 37222934767):
+  // checking the database straight away passed on the old row, the reload
+  // then cut off the re-save, and the unsave landed after; the test failed
+  // whenever the unsave took over ~20 ms to arrive.
+  await page.route(/\/rest\/v1\/saved_listings/, async (route) => {
+    if (route.request().method() !== "DELETE") return route.continue();
+    await new Promise((r) => setTimeout(r, 750));
+    const response = await route.fetch();
+    await route.fulfill({ response }).catch(() => {}); // the page may have gone
+  });
   await page.keyboard.press("Enter");
   await expect(cardHeart).toHaveAttribute("aria-pressed", "false");
+  await expect(cardHeart).toHaveAttribute("aria-busy", "true");
   await page.keyboard.press("Enter");
   await expect(cardHeart).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(async () => (await savedRows(data, customer.id)).listings).toEqual([p.listing.id]);
+  await expect(cardHeart).not.toHaveAttribute("aria-busy", "true", { timeout: 15_000 });
+  await page.unroute(/\/rest\/v1\/saved_listings/);
+  expect((await savedRows(data, customer.id)).listings, "the last tap (saved) reached the database").toEqual([p.listing.id]);
 
   // Still saved after a reload, and on the listing's own page.
   await page.reload();
@@ -130,6 +147,37 @@ test("a listing its provider unlisted keeps its name; a provider sees no heart o
   await page.goto(`/providers/${p.slug}`);
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("button", { name: /^Save / })).toHaveCount(0);
+});
+
+test("tap twice and leave the page at once: the last tap is still saved", async ({ page, context, data }) => {
+  const p = await provider(data, "Leaving");
+  const customer = await data.user("leaver");
+  await signIn(context, customer.email, customer.password);
+  await page.goto(`/experiences/${p.listing.slug}`);
+  const button = await heart(page, p.listing.title);
+  await button.click();
+  await expect(button).not.toHaveAttribute("aria-busy", "true");
+  expect((await savedRows(data, customer.id)).listings).toEqual([p.listing.id]);
+
+  // Unsave, then save again while the unsave's answer is still on its way
+  // (held back here: the database has already done it), then leave at once.
+  // The re-save hasn't been sent yet; leaving sends it (keepalive).
+  await page.route(/\/rest\/v1\/saved_listings/, async (route) => {
+    if (route.request().method() !== "DELETE") return route.continue();
+    const response = await route.fetch();
+    await new Promise((r) => setTimeout(r, 5000));
+    await route.fulfill({ response }).catch(() => {}); // the page has gone
+  });
+  await button.click();
+  await expect.poll(async () => (await savedRows(data, customer.id)).listings, { message: "the unsave reached the database" }).toEqual([]);
+  await button.click();
+  await expect(button).toHaveAttribute("aria-pressed", "true");
+  await expect(button).toHaveAttribute("aria-busy", "true");
+  await page.unroute(/\/rest\/v1\/saved_listings/);
+  // Leave at once: a blank page replaces this one straight away (following a
+  // link within the site would keep this page alive until the next arrives).
+  await page.goto("about:blank");
+  await expect.poll(async () => (await savedRows(data, customer.id)).listings, { message: "the last tap (saved) was sent on leaving" }).toEqual([p.listing.id]);
 });
 
 test("a save that fails flips the heart back and says why", async ({ page, context, data }) => {

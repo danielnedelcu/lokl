@@ -258,6 +258,22 @@ navigation.
   their name (they weren't suspended).
 - Also linked as **Saved** from the dashboard's menu for someone with no
   business yet, beside "My bookings".
+- While a heart's change is still being sent, it carries `aria-busy="true"`
+  (one sender per item, shared by every heart on the page). Found from a
+  flaky CI run (37222934767, 2026-10-04): the test checked the database
+  while a quick unsave-then-save was still being sent, saw the old row, and
+  reloaded, which cut off the re-save. The test now waits for the heart to
+  stop being busy, against an unsave made deliberately slow to arrive.
+- **Leaving the page** with a heart still sending (tap, tap again, close the
+  tab or follow a link off the site at once): on `pagehide`, each heart
+  still sending or not yet sent sends what the person last asked for
+  straight to the database, with `fetch(..., { keepalive: true })`, which the
+  browser finishes after the page has gone (owner's request, 2026-10-04).
+  Tested by tapping twice with the unsave's answer held back and leaving at
+  once: the last tap is saved; without the flush it was lost. One case it
+  can't order: an earlier change that's still on its way to the database
+  when the page closes could arrive after the flush; the two requests leave
+  in that order, so it's rare.
 - End-to-end: `e2e/journeys/9-saved.spec.ts` (four tests). Deliberate
   breaks caught: no rollback on a failed save, the heart shown on a
   provider's own listing, the sign-in intent never cleared.
