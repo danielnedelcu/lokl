@@ -1373,7 +1373,9 @@ export type Database = {
           message: string | null
           next_attempt_at: string
           provider_id: string
+          removed: string[] | null
           resend_id: string | null
+          rule: string | null
           sent_at: string | null
           skip_reason: string | null
           status: string
@@ -1390,7 +1392,9 @@ export type Database = {
           message?: string | null
           next_attempt_at?: string
           provider_id: string
+          removed?: string[] | null
           resend_id?: string | null
+          rule?: string | null
           sent_at?: string | null
           skip_reason?: string | null
           status?: string
@@ -1407,7 +1411,9 @@ export type Database = {
           message?: string | null
           next_attempt_at?: string
           provider_id?: string
+          removed?: string[] | null
           resend_id?: string | null
+          rule?: string | null
           sent_at?: string | null
           skip_reason?: string | null
           status?: string
@@ -1432,11 +1438,18 @@ export type Database = {
       }
       providers: {
         Row: {
+          avatar_path: string | null
+          avatar_small_path: string | null
+          bio: string | null
           city_id: string
+          cover_card_path: string | null
+          cover_path: string | null
           created_at: string
           display_name: string
+          headline: string | null
           id: string
           owner_id: string
+          slug: string
           status: string
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
@@ -1445,11 +1458,18 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_path?: string | null
+          avatar_small_path?: string | null
+          bio?: string | null
           city_id: string
+          cover_card_path?: string | null
+          cover_path?: string | null
           created_at?: string
           display_name: string
+          headline?: string | null
           id?: string
           owner_id: string
+          slug: string
           status?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -1458,11 +1478,18 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_path?: string | null
+          avatar_small_path?: string | null
+          bio?: string | null
           city_id?: string
+          cover_card_path?: string | null
+          cover_path?: string | null
           created_at?: string
           display_name?: string
+          headline?: string | null
           id?: string
           owner_id?: string
+          slug?: string
           status?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -1574,6 +1601,17 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_remove_provider_profile_content: {
+        Args: {
+          p_admin_id: string
+          p_message: string
+          p_parts: string[]
+          p_provider_id: string
+          p_reason: string
+          p_rule: string
+        }
+        Returns: string[]
+      }
       admin_search_patterns: { Args: { p_q: string }; Returns: string[] }
       admin_set_homepage_features: {
         Args: { p_guide_ids: string[] }
@@ -1652,6 +1690,7 @@ export type Database = {
         }
       }
       current_provider_id: { Args: never; Returns: string }
+      has_contact_details: { Args: { p_text: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       listing_parents_active: {
         Args: {
@@ -1665,6 +1704,7 @@ export type Database = {
         Args: { p_account_id: string; p_charges: boolean; p_payouts: boolean }
         Returns: string
       }
+      provider_slug: { Args: { p_name: string }; Returns: string }
       public_guide: {
         Args: { p_market: string; p_slug: string }
         Returns: Json

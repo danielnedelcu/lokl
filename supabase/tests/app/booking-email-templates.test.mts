@@ -101,5 +101,17 @@ check(active.text.includes("stay on hold while we review them") && active.text.i
 check([paused, active].every((e) => e.text.includes("Questions? Reply to this email.") && e.text.includes("you have a provider account on lokl")),
   "7g. both invite replies and say why the provider is getting them");
 
-console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} booking emails, 2 account emails).`);
+// 8. Profile content removed (docs/design/provider-profiles.md).
+const edited = renderProviderAccountEmail("provider_profile_edited", {
+  siteUrl: site, businessName: "Fresh Cuts Studio", message: "Please add your photo again without the phone number.",
+  removed: ["avatar", "bio"], rule: "contact_details",
+});
+check(edited.subject === "We've removed part of your lokl profile", "8a. the subject says part of the profile was removed");
+check(edited.text.includes("Your profile photo") && edited.text.includes("The \"About you\" text") && !edited.text.includes("Your headline"),
+  "8b. it lists exactly what was removed");
+check(edited.text.includes("The rule it didn't follow: Phone numbers, email addresses or web addresses."), "8c. it names the rule, in its written words");
+check(edited.text.includes("A message from lokl:\nPlease add your photo again") && edited.text.includes("/dashboard/settings"),
+  "8d. lokl's message is included, and the button goes to the profile settings");
+
+console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} booking emails, 3 account emails).`);
 process.exit(failures ? 1 : 0);

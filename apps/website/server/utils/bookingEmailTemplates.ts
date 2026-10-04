@@ -11,7 +11,7 @@
 // Plain TypeScript with no Nuxt imports: the sender, the tests and
 // `npm run email:previews` all use these same functions.
 
-import { customerCancelOutcome } from "@repo/types";
+import { customerCancelOutcome, PROFILE_RULES, type ProfileRule } from "@repo/types";
 
 export const EMAIL_KINDS = [
   "customer_request_sent", "customer_request_accepted", "customer_request_declined", "customer_request_expired",
@@ -372,14 +372,38 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
 // is (it isn't even passed here).
 // ---------------------------------------------------------------------------
 
-export type ProviderAccountEmailKind = "provider_account_paused" | "provider_account_active";
+export type ProviderAccountEmailKind = "provider_account_paused" | "provider_account_active" | "provider_profile_edited";
+
+// What lokl removed from a profile, as the email lists it.
+const REMOVED_LABELS: Record<string, string> = {
+  avatar: "Your profile photo",
+  cover: "Your cover photo",
+  headline: "Your headline",
+  bio: "The \"About you\" text",
+};
 
 export function renderProviderAccountEmail(
   kind: ProviderAccountEmailKind,
-  c: { siteUrl: string; businessName: string; message: string | null },
+  c: { siteUrl: string; businessName: string; message: string | null; removed?: string[] | null; rule?: string | null },
 ): RenderedEmail {
   const message = c.message?.trim() || null;
   const button = { label: "Go to your dashboard", url: `${c.siteUrl}/dashboard` };
+  // Profile content that broke a profile rule (docs/design/provider-profiles.md).
+  if (kind === "provider_profile_edited") {
+    const rule = c.rule && c.rule in PROFILE_RULES ? PROFILE_RULES[c.rule as ProfileRule] : null;
+    return render({
+      recipient: "account",
+      subject: "We've removed part of your lokl profile",
+      intro: [`We've removed this from the public profile for ${c.businessName}, because it doesn't follow lokl's profile rules:`],
+      bullets: (c.removed ?? []).map((part) => REMOVED_LABELS[part] ?? part),
+      after: [
+        ...(rule ? [`The rule it didn't follow: ${rule}`] : []),
+        "Your listings and bookings aren't affected. You can add new ones on your Business profile page.",
+      ],
+      message,
+      button: { label: "Edit your profile", url: `${c.siteUrl}/dashboard/settings` },
+    });
+  }
   if (kind === "provider_account_paused") {
     return render({
       recipient: "account",

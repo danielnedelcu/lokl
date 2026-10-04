@@ -107,6 +107,27 @@ Each step depends on the ones before it.
      after the cache fix; back on republish, re-featured as the hero).
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
+## Next features (in this order)
+
+1. [x] **Provider profiles** (docs/design/provider-profiles.md, built
+   2026-10-04; migration `provider_profiles`): avatar, cover photo,
+   headline and bio, edited on the Business profile page (contact details
+   refused, with what they look like); a profile card and "More from" on
+   each listing page; the public profile at `/providers/<slug>`, in the
+   sitemap; the admin's profile view and "remove with a reason", with the
+   written profile rules and an email to the provider. Later: a new
+   address on a rename, with a permanent redirect.
+2. [ ] **Favourites:** a heart on listings (and possibly providers) that
+   signed-in customers can save and come back to. The listing page leaves
+   room for it (provider-profiles design, Room for later). Design to come.
+3. [ ] **Reviews and star ratings**, on the principles in docs/decisions.md
+   (2026-10-04): completed bookings only, one per booking, a review window
+   prompted by email, stars and text, a public reply from the provider,
+   written moderation rules (FTC 2024 rule: no fake reviews, never suppress
+   honest negative ones), "New on lokl" without reviews, average and count.
+   To decide in its design: category ratings, a minimum number of reviews
+   before showing the average, and the window's length. Design to come.
+
 ## Admin dashboard
 
 - [x] Real numbers (`admin_dashboard()`, migration `admin_dashboard`, built
@@ -267,7 +288,10 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     `apps/admin/public/favicon.ico`) with lokl's, once there's a logo.
   - [ ] Clear cached browse pages as soon as a listing is taken down or
     unpublished (depends on the host's cache or CDN). Until then they refresh
-    within 60 seconds; listing pages aren't cached.
+    within 60 seconds; listing pages aren't cached. The same for provider
+    profile pages (`/api/public/providers/**`, cached 60 seconds): a
+    suspended provider's profile, or one whose last listing comes down,
+    stays up for up to a minute. Clear it on suspension and on a takedown.
   - [ ] UX polish pass across the public pages: font sizes, spacing and
     visual design.
 - **Blockers for live payments** (sandbox testing can go ahead)
@@ -304,7 +328,6 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
 ## Later ideas
 
 - "Don't see your area? Tell us" link next to the area picker.
-- Provider profile pages ("More from this host").
 - Area pages such as `/atlanta/decatur`, once areas have enough listings to stand as pages (docs/design/browse-and-listing-pages.md).
 - Optional note to the customer when declining a request (stored on the booking, sent in the decline email).
 - Track provider cancellations and show patterns to the admin.

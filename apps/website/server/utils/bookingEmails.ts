@@ -329,17 +329,17 @@ export async function sendBookingEmails(
   });
 }
 
-/** Sends the provider account emails that are due (paused, active again). Never throws. */
+/** Sends the provider account emails that are due (paused, active again, profile content removed). Never throws. */
 export async function sendProviderEmails(
   db: SupabaseClient,
   mailer: Mailer | null,
   settings: EmailSettings,
   opts: { providerId?: string; now?: Date; limit?: number } = {},
 ): Promise<SendResult> {
-  type ProviderRow = OutboxRow & { provider_id: string; kind: ProviderAccountEmailKind; message: string | null };
+  type ProviderRow = OutboxRow & { provider_id: string; kind: ProviderAccountEmailKind; message: string | null; removed: string[] | null; rule: string | null };
   return runOutbox<ProviderRow>(db, mailer, settings, {
     table: "provider_emails",
-    columns: "id, provider_id, kind, message, status, attempts, locked_at, created_at",
+    columns: "id, provider_id, kind, message, removed, rule, status, attempts, locked_at, created_at",
     keyPrefix: "provider-email",
     narrow: opts.providerId ? (q) => q.eq("provider_id", opts.providerId) : undefined,
     now: opts.now,
@@ -348,7 +348,10 @@ export async function sendProviderEmails(
       const { data: p, error } = await db.from("providers").select("display_name, owner_id").eq("id", row.provider_id).single();
       if (error) throw new Error(error.message);
       const to = await providerEmail(db, p.owner_id);
-      return { to, email: renderProviderAccountEmail(row.kind, { siteUrl: settings.siteUrl, businessName: p.display_name, message: row.message }) };
+      return {
+        to,
+        email: renderProviderAccountEmail(row.kind, { siteUrl: settings.siteUrl, businessName: p.display_name, message: row.message, removed: row.removed, rule: row.rule }),
+      };
     },
   });
 }

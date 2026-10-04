@@ -55,60 +55,88 @@
 <!-- public.providers -->
 <g id="node2" class="node">
 <title>public.providers</title>
-<polygon fill="#efefef" stroke="none" points="43.2,-1064.6 43.2,-1110.6 1376.26,-1110.6 1376.26,-1064.6 43.2,-1064.6"/>
-<polygon fill="none" stroke="black" points="43.2,-1064.6 43.2,-1110.6 1376.26,-1110.6 1376.26,-1064.6 43.2,-1064.6"/>
-<text text-anchor="start" x="588.75" y="-1088.4" font-family="Arial Bold" font-size="18.00">public.providers</text>
-<text text-anchor="start" x="706.22" y="-1088.4" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="737.34" y="-1088.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="156.03" y="-1074" font-family="Arial" font-size="14.00" fill="#333333">A business or host that sells Services or Experiences. One per login (owner_id is unique). Never deleted: bookings and payouts will point here, so a provider is suspended instead.</text>
-<polygon fill="none" stroke="black" points="43.2,-1033.8 43.2,-1064.6 1376.26,-1064.6 1376.26,-1033.8 43.2,-1033.8"/>
-<text text-anchor="start" x="50.2" y="-1046" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="64.99" y="-1046" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="43.2,-1003 43.2,-1033.8 1376.26,-1033.8 1376.26,-1003 43.2,-1003"/>
-<text text-anchor="start" x="50.2" y="-1015.2" font-family="Arial" font-size="14.00">owner_id </text>
-<text text-anchor="start" x="110.9" y="-1015.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="145.15" y="-1015.2" font-family="Arial" font-size="14.00"> The login that owns and manages this provider. A user is a provider exactly when they own a row here. The login cannot be deleted while it owns a provider: suspend or anonymize the provider first.</text>
-<polygon fill="none" stroke="black" points="43.2,-972.2 43.2,-1003 1376.26,-1003 1376.26,-972.2 43.2,-972.2"/>
-<text text-anchor="start" x="50.2" y="-984.4" font-family="Arial" font-size="14.00">display_name </text>
-<text text-anchor="start" x="140.48" y="-984.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="170.82" y="-984.4" font-family="Arial" font-size="14.00"> The business name. Public: shown on the provider&#39;s visible listings (&quot;Hosted by ...&quot;).</text>
-<polygon fill="none" stroke="black" points="43.2,-941.4 43.2,-972.2 1376.26,-972.2 1376.26,-941.4 43.2,-941.4"/>
-<text text-anchor="start" x="50.2" y="-953.6" font-family="Arial" font-size="14.00">status </text>
-<text text-anchor="start" x="91.44" y="-953.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="121.79" y="-953.6" font-family="Arial" font-size="14.00"> active or suspended. Only admins change it (service role); a suspended provider cannot use provider routes.</text>
-<polygon fill="none" stroke="black" points="43.2,-910.6 43.2,-941.4 1376.26,-941.4 1376.26,-910.6 43.2,-910.6"/>
-<text text-anchor="start" x="50.2" y="-922.8" font-family="Arial" font-size="14.00">stripe_account_id </text>
-<text text-anchor="start" x="163.83" y="-922.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="194.17" y="-922.8" font-family="Arial" font-size="14.00"> The provider&#39;s Stripe Connect Express account. Created by the server on first payout setup.</text>
-<polygon fill="none" stroke="black" points="43.2,-879.8 43.2,-910.6 1376.26,-910.6 1376.26,-879.8 43.2,-879.8"/>
-<text text-anchor="start" x="50.2" y="-892" font-family="Arial" font-size="14.00">stripe_details_submitted </text>
-<text text-anchor="start" x="205.06" y="-892" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="262.67" y="-892" font-family="Arial" font-size="14.00"> Copied from Stripe: the provider finished the onboarding form. Server&#45;only.</text>
-<polygon fill="none" stroke="black" points="43.2,-849 43.2,-879.8 1376.26,-879.8 1376.26,-849 43.2,-849"/>
-<text text-anchor="start" x="50.2" y="-861.2" font-family="Arial" font-size="14.00">stripe_charges_enabled </text>
-<text text-anchor="start" x="203.53" y="-861.2" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="261.14" y="-861.2" font-family="Arial" font-size="14.00"> Copied from Stripe: payments can be made to this provider. Server&#45;only.</text>
-<polygon fill="none" stroke="black" points="43.2,-818.2 43.2,-849 1376.26,-849 1376.26,-818.2 43.2,-818.2"/>
-<text text-anchor="start" x="50.2" y="-830.4" font-family="Arial" font-size="14.00">stripe_payouts_enabled </text>
-<text text-anchor="start" x="202.76" y="-830.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="260.36" y="-830.4" font-family="Arial" font-size="14.00"> Copied from Stripe: Stripe can pay out to the provider&#39;s bank. Server&#45;only.</text>
-<polygon fill="none" stroke="black" points="43.2,-787.4 43.2,-818.2 1376.26,-818.2 1376.26,-787.4 43.2,-787.4"/>
-<text text-anchor="start" x="50.2" y="-799.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="120.25" y="-799.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="43.2,-756.6 43.2,-787.4 1376.26,-787.4 1376.26,-756.6 43.2,-756.6"/>
-<text text-anchor="start" x="50.2" y="-768.8" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="124.16" y="-768.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="43.2,-725.8 43.2,-756.6 1376.26,-756.6 1376.26,-725.8 43.2,-725.8"/>
-<text text-anchor="start" x="50.2" y="-738" font-family="Arial" font-size="14.00">city_id </text>
-<text text-anchor="start" x="93.77" y="-738" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="128.02" y="-738" font-family="Arial" font-size="14.00"> The city the provider operates in, picked from active cities. Replaces the old free&#45;text city.</text>
+<polygon fill="#efefef" stroke="none" points="43.2,-1172.4 43.2,-1218.4 1376.26,-1218.4 1376.26,-1172.4 43.2,-1172.4"/>
+<polygon fill="none" stroke="black" points="43.2,-1172.4 43.2,-1218.4 1376.26,-1218.4 1376.26,-1172.4 43.2,-1172.4"/>
+<text text-anchor="start" x="588.75" y="-1196.2" font-family="Arial Bold" font-size="18.00">public.providers</text>
+<text text-anchor="start" x="706.22" y="-1196.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="737.34" y="-1196.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="156.03" y="-1181.8" font-family="Arial" font-size="14.00" fill="#333333">A business or host that sells Services or Experiences. One per login (owner_id is unique). Never deleted: bookings and payouts will point here, so a provider is suspended instead.</text>
+<polygon fill="none" stroke="black" points="43.2,-1141.6 43.2,-1172.4 1376.26,-1172.4 1376.26,-1141.6 43.2,-1141.6"/>
+<text text-anchor="start" x="50.2" y="-1153.8" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="64.99" y="-1153.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="43.2,-1110.8 43.2,-1141.6 1376.26,-1141.6 1376.26,-1110.8 43.2,-1110.8"/>
+<text text-anchor="start" x="50.2" y="-1123" font-family="Arial" font-size="14.00">owner_id </text>
+<text text-anchor="start" x="110.9" y="-1123" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="145.15" y="-1123" font-family="Arial" font-size="14.00"> The login that owns and manages this provider. A user is a provider exactly when they own a row here. The login cannot be deleted while it owns a provider: suspend or anonymize the provider first.</text>
+<polygon fill="none" stroke="black" points="43.2,-1080 43.2,-1110.8 1376.26,-1110.8 1376.26,-1080 43.2,-1080"/>
+<text text-anchor="start" x="50.2" y="-1092.2" font-family="Arial" font-size="14.00">display_name </text>
+<text text-anchor="start" x="140.48" y="-1092.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="170.82" y="-1092.2" font-family="Arial" font-size="14.00"> The business name. Public: shown on the provider&#39;s visible listings (&quot;Hosted by ...&quot;).</text>
+<polygon fill="none" stroke="black" points="43.2,-1049.2 43.2,-1080 1376.26,-1080 1376.26,-1049.2 43.2,-1049.2"/>
+<text text-anchor="start" x="50.2" y="-1061.4" font-family="Arial" font-size="14.00">status </text>
+<text text-anchor="start" x="91.44" y="-1061.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="121.79" y="-1061.4" font-family="Arial" font-size="14.00"> active or suspended. Only admins change it (service role); a suspended provider cannot use provider routes.</text>
+<polygon fill="none" stroke="black" points="43.2,-1018.4 43.2,-1049.2 1376.26,-1049.2 1376.26,-1018.4 43.2,-1018.4"/>
+<text text-anchor="start" x="50.2" y="-1030.6" font-family="Arial" font-size="14.00">stripe_account_id </text>
+<text text-anchor="start" x="163.83" y="-1030.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="194.17" y="-1030.6" font-family="Arial" font-size="14.00"> The provider&#39;s Stripe Connect Express account. Created by the server on first payout setup.</text>
+<polygon fill="none" stroke="black" points="43.2,-987.6 43.2,-1018.4 1376.26,-1018.4 1376.26,-987.6 43.2,-987.6"/>
+<text text-anchor="start" x="50.2" y="-999.8" font-family="Arial" font-size="14.00">stripe_details_submitted </text>
+<text text-anchor="start" x="205.06" y="-999.8" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="262.67" y="-999.8" font-family="Arial" font-size="14.00"> Copied from Stripe: the provider finished the onboarding form. Server&#45;only.</text>
+<polygon fill="none" stroke="black" points="43.2,-956.8 43.2,-987.6 1376.26,-987.6 1376.26,-956.8 43.2,-956.8"/>
+<text text-anchor="start" x="50.2" y="-969" font-family="Arial" font-size="14.00">stripe_charges_enabled </text>
+<text text-anchor="start" x="203.53" y="-969" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="261.14" y="-969" font-family="Arial" font-size="14.00"> Copied from Stripe: payments can be made to this provider. Server&#45;only.</text>
+<polygon fill="none" stroke="black" points="43.2,-926 43.2,-956.8 1376.26,-956.8 1376.26,-926 43.2,-926"/>
+<text text-anchor="start" x="50.2" y="-938.2" font-family="Arial" font-size="14.00">stripe_payouts_enabled </text>
+<text text-anchor="start" x="202.76" y="-938.2" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="260.36" y="-938.2" font-family="Arial" font-size="14.00"> Copied from Stripe: Stripe can pay out to the provider&#39;s bank. Server&#45;only.</text>
+<polygon fill="none" stroke="black" points="43.2,-895.2 43.2,-926 1376.26,-926 1376.26,-895.2 43.2,-895.2"/>
+<text text-anchor="start" x="50.2" y="-907.4" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="120.25" y="-907.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="43.2,-864.4 43.2,-895.2 1376.26,-895.2 1376.26,-864.4 43.2,-864.4"/>
+<text text-anchor="start" x="50.2" y="-876.6" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="124.16" y="-876.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="43.2,-833.6 43.2,-864.4 1376.26,-864.4 1376.26,-833.6 43.2,-833.6"/>
+<text text-anchor="start" x="50.2" y="-845.8" font-family="Arial" font-size="14.00">city_id </text>
+<text text-anchor="start" x="93.77" y="-845.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="128.02" y="-845.8" font-family="Arial" font-size="14.00"> The city the provider operates in, picked from active cities. Replaces the old free&#45;text city.</text>
+<polygon fill="none" stroke="black" points="43.2,-802.8 43.2,-833.6 1376.26,-833.6 1376.26,-802.8 43.2,-802.8"/>
+<text text-anchor="start" x="50.2" y="-815" font-family="Arial" font-size="14.00">headline </text>
+<text text-anchor="start" x="107.03" y="-815" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="137.37" y="-815" font-family="Arial" font-size="14.00"> One line about what the provider does. Public on their profile while they can be booked. No contact details.</text>
+<polygon fill="none" stroke="black" points="43.2,-772 43.2,-802.8 1376.26,-802.8 1376.26,-772 43.2,-772"/>
+<text text-anchor="start" x="50.2" y="-784.2" font-family="Arial" font-size="14.00">bio </text>
+<text text-anchor="start" x="72.77" y="-784.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="103.12" y="-784.2" font-family="Arial" font-size="14.00"> About the provider, plain text. Public on their profile while they can be booked. No contact details.</text>
+<polygon fill="none" stroke="black" points="43.2,-741.2 43.2,-772 1376.26,-772 1376.26,-741.2 43.2,-741.2"/>
+<text text-anchor="start" x="50.2" y="-753.4" font-family="Arial" font-size="14.00">avatar_path </text>
+<text text-anchor="start" x="128.03" y="-753.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="158.38" y="-753.4" font-family="Arial" font-size="14.00"> The profile photo or logo (square, 512px) in the provider&#45;photos bucket, in the provider&#39;s own folder. Public.</text>
+<polygon fill="none" stroke="black" points="43.2,-710.4 43.2,-741.2 1376.26,-741.2 1376.26,-710.4 43.2,-710.4"/>
+<text text-anchor="start" x="50.2" y="-722.6" font-family="Arial" font-size="14.00">avatar_small_path </text>
+<text text-anchor="start" x="168.49" y="-722.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="198.83" y="-722.6" font-family="Arial" font-size="14.00"> The profile photo&#39;s 128px copy, for small places. Public.</text>
+<polygon fill="none" stroke="black" points="43.2,-679.6 43.2,-710.4 1376.26,-710.4 1376.26,-679.6 43.2,-679.6"/>
+<text text-anchor="start" x="50.2" y="-691.8" font-family="Arial" font-size="14.00">cover_path </text>
+<text text-anchor="start" x="123.36" y="-691.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="153.7" y="-691.8" font-family="Arial" font-size="14.00"> The cover photo (landscape, at least 1,600 x 600) in the provider&#45;photos bucket, in the provider&#39;s own folder. Public.</text>
+<polygon fill="none" stroke="black" points="43.2,-648.8 43.2,-679.6 1376.26,-679.6 1376.26,-648.8 43.2,-648.8"/>
+<text text-anchor="start" x="50.2" y="-661" font-family="Arial" font-size="14.00">cover_card_path </text>
+<text text-anchor="start" x="158.38" y="-661" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="188.72" y="-661" font-family="Arial" font-size="14.00"> The cover photo&#39;s 600px&#45;wide copy. Public.</text>
+<polygon fill="none" stroke="black" points="43.2,-618 43.2,-648.8 1376.26,-648.8 1376.26,-618 43.2,-618"/>
+<text text-anchor="start" x="50.2" y="-630.2" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="79.77" y="-630.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="110.12" y="-630.2" font-family="Arial" font-size="14.00"> The public profile&#39;s address, /providers/&lt;slug&gt;. Made from the business name when the provider is created; fixed.</text>
 </g>
 <!-- public.providers&#45;&gt;public.cities -->
 <g id="edge1" class="edge">
 <title>public.providers:city_id&#45;&gt;public.cities:id</title>
-<path fill="none" stroke="black" d="M1387.18,-738.94C1436.03,-714.28 1384.33,-495.35 1427.73,-451.6 1552.77,-325.53 2036.19,-308 2213.76,-308"/>
-<polygon fill="black" stroke="black" points="1387.33,-738.91 1376.58,-736.74 1382.13,-740.09 1377.91,-741.05 1377.91,-741.05 1377.91,-741.05 1382.13,-740.09 1378.58,-745.51 1387.33,-738.91"/>
-<text text-anchor="start" x="1298.38" y="-725.2" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M1387.28,-847.36C1458.36,-822.15 1369.03,-513.58 1427.73,-451.6 1549.83,-322.68 2036.19,-308 2213.76,-308"/>
+<polygon fill="black" stroke="black" points="1387.45,-847.33 1376.86,-844.5 1382.19,-848.19 1377.92,-848.89 1377.92,-848.89 1377.92,-848.89 1382.19,-848.19 1378.31,-853.39 1387.45,-847.33"/>
+<text text-anchor="start" x="1212.51" y="-833" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.service_areas -->
 <g id="node3" class="node">

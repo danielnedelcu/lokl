@@ -1,7 +1,8 @@
 // What public pages receive (docs/design/browse-and-listing-pages.md). The
 // shapes come from apps/website/server/utils/publicListings.ts, which reads
 // as a signed-out visitor, so nothing here is ever private: no address, and
-// nothing about the provider beyond the business name.
+// about the provider only their public profile
+// (docs/design/provider-profiles.md).
 
 import type { ListingKind, LocationMode } from "./listings";
 
@@ -44,6 +45,32 @@ export interface PublicListingCard {
   nextSessionAt: string | null;
 }
 
+/** A provider's public profile: what signed-out visitors may read. */
+export interface PublicProvider {
+  id: string;
+  slug: string;
+  name: string;
+  headline: string | null;
+  bio: string | null;
+  avatarPath: string | null;
+  avatarSmallPath: string | null;
+  coverPath: string | null;
+  coverCardPath: string | null;
+  /** Their market's name: "Based in Atlanta". */
+  market: string | null;
+  /** When they joined: "On lokl since October 2026". */
+  since: string;
+}
+
+/** The profile page: the provider and all their visible listings, newest first. */
+export interface PublicProviderPage {
+  provider: PublicProvider;
+  /** The provider's market (for times on their listing cards). */
+  market: PublicMarket | null;
+  experiences: PublicListingCard[];
+  services: PublicListingCard[];
+}
+
 export interface PublicListing extends PublicListingCard {
   description: string;
   locationMode: LocationMode | null;
@@ -54,6 +81,10 @@ export interface PublicListing extends PublicListingCard {
   photos: PublicPhoto[];
   /** Experiences: upcoming scheduled sessions, soonest first, with spots left. */
   sessions: { id: string; startsAt: string; spotsLeft: number }[];
+  /** The provider's public profile, for the card on the listing page. */
+  provider: PublicProvider | null;
+  /** Up to three of the provider's other visible listings, and how many there are. */
+  moreFromProvider: { items: PublicListingCard[]; total: number };
 }
 
 export interface PublicBrowseResult {

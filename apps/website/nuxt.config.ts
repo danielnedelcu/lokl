@@ -123,6 +123,7 @@ export default defineNuxtConfig({
     // unpublish in the admin app shows on the site within a minute.
     "/api/public/guides/**": { cache: { maxAge: 60, swr: false } },
     "/api/public/homepage-guides": { cache: { maxAge: 60, swr: false } },
+    "/api/public/providers/**": { cache: { maxAge: 60, swr: false } },
     "/dashboard/**": { robots: false },
     "/account/**": { robots: false },
     "/login": { robots: false },

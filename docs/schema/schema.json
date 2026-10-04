@@ -75,6 +75,48 @@
           "type": "uuid",
           "nullable": false,
           "comment": "The city the provider operates in, picked from active cities. Replaces the old free-text city."
+        },
+        {
+          "name": "headline",
+          "type": "text",
+          "nullable": true,
+          "comment": "One line about what the provider does. Public on their profile while they can be booked. No contact details."
+        },
+        {
+          "name": "bio",
+          "type": "text",
+          "nullable": true,
+          "comment": "About the provider, plain text. Public on their profile while they can be booked. No contact details."
+        },
+        {
+          "name": "avatar_path",
+          "type": "text",
+          "nullable": true,
+          "comment": "The profile photo or logo (square, 512px) in the provider-photos bucket, in the provider's own folder. Public."
+        },
+        {
+          "name": "avatar_small_path",
+          "type": "text",
+          "nullable": true,
+          "comment": "The profile photo's 128px copy, for small places. Public."
+        },
+        {
+          "name": "cover_path",
+          "type": "text",
+          "nullable": true,
+          "comment": "The cover photo (landscape, at least 1,600 x 600) in the provider-photos bucket, in the provider's own folder. Public."
+        },
+        {
+          "name": "cover_card_path",
+          "type": "text",
+          "nullable": true,
+          "comment": "The cover photo's 600px-wide copy. Public."
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "nullable": false,
+          "comment": "The public profile's address, /providers/\u003cslug\u003e. Made from the business name when the provider is created; fixed."
         }
       ],
       "indexes": [
@@ -133,9 +175,49 @@
           "columns": [
             "status"
           ]
+        },
+        {
+          "name": "providers_slug_unique",
+          "def": "CREATE UNIQUE INDEX providers_slug_unique ON public.providers USING btree (slug)",
+          "table": "public.providers",
+          "columns": [
+            "slug"
+          ]
         }
       ],
       "constraints": [
+        {
+          "name": "providers_avatar_pair",
+          "type": "CHECK",
+          "def": "CHECK (((avatar_path IS NULL) = (avatar_small_path IS NULL)))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "avatar_path",
+            "avatar_small_path"
+          ]
+        },
+        {
+          "name": "providers_bio_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(bio) \u003c= 1000) AND (NOT has_contact_details(bio))))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "bio"
+          ]
+        },
+        {
+          "name": "providers_cover_pair",
+          "type": "CHECK",
+          "def": "CHECK (((cover_path IS NULL) = (cover_card_path IS NULL)))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "cover_path",
+            "cover_card_path"
+          ]
+        },
         {
           "name": "providers_display_name_check",
           "type": "CHECK",
@@ -144,6 +226,40 @@
           "referenced_table": "",
           "columns": [
             "display_name"
+          ]
+        },
+        {
+          "name": "providers_headline_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(headline) \u003c= 80) AND (NOT has_contact_details(headline))))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "headline"
+          ]
+        },
+        {
+          "name": "providers_photos_own_folder",
+          "type": "CHECK",
+          "def": "CHECK ((((avatar_path IS NULL) OR (avatar_path ~~ ((id)::text || '/%'::text))) AND ((avatar_small_path IS NULL) OR (avatar_small_path ~~ ((id)::text || '/%'::text))) AND ((cover_path IS NULL) OR (cover_path ~~ ((id)::text || '/%'::text))) AND ((cover_card_path IS NULL) OR (cover_card_path ~~ ((id)::text || '/%'::text)))))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "avatar_path",
+            "id",
+            "avatar_small_path",
+            "cover_path",
+            "cover_card_path"
+          ]
+        },
+        {
+          "name": "providers_slug_format",
+          "type": "CHECK",
+          "def": "CHECK (((slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text) AND (char_length(slug) \u003c= 70)))",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "slug"
           ]
         },
         {
@@ -211,6 +327,16 @@
           "referenced_columns": [
             "id"
           ]
+        },
+        {
+          "name": "providers_slug_unique",
+          "type": "UNIQUE",
+          "def": "UNIQUE (slug)",
+          "table": "public.providers",
+          "referenced_table": "",
+          "columns": [
+            "slug"
+          ]
         }
       ],
       "triggers": [
@@ -221,6 +347,10 @@
         {
           "name": "providers_owner_not_admin",
           "def": "CREATE TRIGGER providers_owner_not_admin BEFORE INSERT OR UPDATE OF owner_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_owner_not_admin()"
+        },
+        {
+          "name": "providers_set_slug",
+          "def": "CREATE TRIGGER providers_set_slug BEFORE INSERT ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_set_slug()"
         },
         {
           "name": "providers_set_updated_at",
@@ -3208,7 +3338,7 @@
         {
           "name": "admin_actions_action_check",
           "type": "CHECK",
-          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text])))",
+          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3558,6 +3688,18 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "clock_timestamp()"
+        },
+        {
+          "name": "removed",
+          "type": "text[]",
+          "nullable": true,
+          "comment": "For provider_profile_edited: which parts of the profile lokl removed."
+        },
+        {
+          "name": "rule",
+          "type": "text",
+          "nullable": true,
+          "comment": "For provider_profile_edited: the profile rule they broke (PROFILE_RULES in packages/types)."
         }
       ],
       "indexes": [
@@ -3600,7 +3742,7 @@
         {
           "name": "provider_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['provider_account_paused'::text, 'provider_account_active'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['provider_account_paused'::text, 'provider_account_active'::text, 'provider_profile_edited'::text])))",
           "table": "public.provider_emails",
           "referenced_table": "",
           "columns": [
@@ -3625,6 +3767,38 @@
           "referenced_table": "",
           "columns": [
             "message"
+          ]
+        },
+        {
+          "name": "provider_emails_profile_edit_named",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'provider_profile_edited'::text) OR ((rule IS NOT NULL) AND (COALESCE(array_length(removed, 1), 0) \u003e 0))))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "rule",
+            "removed"
+          ]
+        },
+        {
+          "name": "provider_emails_removed_check",
+          "type": "CHECK",
+          "def": "CHECK ((removed \u003c@ ARRAY['avatar'::text, 'cover'::text, 'headline'::text, 'bio'::text]))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "removed"
+          ]
+        },
+        {
+          "name": "provider_emails_rule_check",
+          "type": "CHECK",
+          "def": "CHECK ((rule = ANY (ARRAY['contact_details'::text, 'private_information'::text, 'abuse'::text, 'impersonation'::text, 'unsuitable_photo'::text, 'not_yours'::text])))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "rule"
           ]
         },
         {
@@ -6541,6 +6715,30 @@
       "name": "public.admin_dashboard",
       "return_type": "jsonb",
       "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.has_contact_details",
+      "return_type": "bool",
+      "arguments": "p_text text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.provider_slug",
+      "return_type": "text",
+      "arguments": "p_name text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.providers_set_slug",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_remove_provider_profile_content",
+      "return_type": "_text",
+      "arguments": "p_provider_id uuid, p_admin_id uuid, p_parts text[], p_rule text, p_reason text, p_message text",
       "type": "FUNCTION"
     }
   ],

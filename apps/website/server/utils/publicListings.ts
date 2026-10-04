@@ -26,6 +26,8 @@ import type {
   PublicMarket,
   PublicMarketInfo,
   PublicPhoto,
+  PublicProvider,
+  PublicProviderPage,
 } from "@repo/types";
 import { zonedToInstant } from "../../../../packages/ui/app/utils/zonedTime";
 
@@ -39,6 +41,20 @@ export function publicSupabase(url: string, publishableKey: string): SupabaseCli
   });
 }
 
+// A provider's public profile columns (the only ones visitors may read;
+// column grants enforce it), with their market's name.
+const PROVIDER_PUBLIC = "id, slug, display_name, headline, bio, avatar_path, avatar_small_path, cover_path, cover_card_path, created_at, market:cities(name, slug, state, timezone)";
+interface ProviderRow {
+  id: string; slug: string; display_name: string; headline: string | null; bio: string | null;
+  avatar_path: string | null; avatar_small_path: string | null; cover_path: string | null; cover_card_path: string | null;
+  created_at: string; market: PublicMarket | null;
+}
+const toProvider = (p: ProviderRow): PublicProvider => ({
+  id: p.id, slug: p.slug, name: p.display_name, headline: p.headline, bio: p.bio,
+  avatarPath: p.avatar_path, avatarSmallPath: p.avatar_small_path, coverPath: p.cover_path, coverCardPath: p.cover_card_path,
+  market: p.market?.name ?? null, since: p.created_at,
+});
+
 // The two service_areas embeds name their relationship: the listing's own
 // area (area_id) and its travel areas (through listing_service_areas).
 const LISTING_SELECT = `
@@ -48,7 +64,7 @@ const LISTING_SELECT = `
   area:service_areas!listings_area_id_fkey(id, name, kind),
   travel:listing_service_areas(area:service_areas!listing_service_areas_service_area_id_fkey(id, name, kind)),
   photos:listing_photos(storage_path, card_path, alt_text, position),
-  hostedBy:providers(id, display_name),
+  hostedBy:providers(${PROVIDER_PUBLIC}),
   sessions:experience_sessions(id, starts_at)
 `;
 
@@ -68,7 +84,7 @@ interface Row {
   area: { id: string; name: string; kind: AreaKind } | null;
   travel: { area: { id: string; name: string; kind: AreaKind } | null }[];
   photos: { storage_path: string; card_path: string | null; alt_text: string; position: number }[];
-  hostedBy: { id: string; display_name: string } | null;
+  hostedBy: ProviderRow | null;
   sessions: { id: string; starts_at: string }[];
 }
 
@@ -133,7 +149,46 @@ export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, s
     providerId: r.hostedBy?.id ?? "",
     photos: [...r.photos].sort((a, b) => a.position - b.position).map(toPhoto),
     sessions: spots,
+    provider: r.hostedBy ? toProvider(r.hostedBy) : null,
+    moreFromProvider: r.hostedBy ? await moreFromProvider(db, r.hostedBy.id, r.id) : { items: [], total: 0 },
   };
+}
+
+/** Up to three of the provider's other visible listings, newest first, and how many there are. */
+async function moreFromProvider(db: SupabaseClient, providerId: string, exceptId: string) {
+  const { data, error, count } = await db
+    .from("listings")
+    .select(LISTING_SELECT, { count: "exact" })
+    .eq("provider_id", providerId)
+    .eq("status", "live")
+    .neq("id", exceptId)
+    .order("published_at", { ascending: false })
+    .limit(3);
+  if (error) throw new Error(error.message);
+  return { items: ((data ?? []) as unknown as Row[]).map((r) => stripInternal(toCard(r))), total: count ?? 0 };
+}
+
+/**
+ * A provider's public profile page, or null when it isn't public (the
+ * provider is suspended, or has no visible listing: the public read rule
+ * returns nothing then).
+ */
+export async function loadPublicProvider(db: SupabaseClient, slug: string): Promise<PublicProviderPage | null> {
+  const { data, error } = await db.from("providers").select(PROVIDER_PUBLIC).eq("slug", slug).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const row = data as unknown as ProviderRow;
+  const provider = toProvider(row);
+  const { data: rows, error: lErr } = await db
+    .from("listings")
+    .select(LISTING_SELECT)
+    .eq("provider_id", provider.id)
+    .eq("status", "live")
+    .order("published_at", { ascending: false })
+    .limit(100);
+  if (lErr) throw new Error(lErr.message);
+  const cards = ((rows ?? []) as unknown as Row[]).map((r) => stripInternal(toCard(r)));
+  return { provider, market: row.market, experiences: cards.filter((c) => c.kind === "experience"), services: cards.filter((c) => c.kind === "service") };
 }
 
 export interface BrowseQuery {
@@ -262,5 +317,10 @@ export async function publicSitemapEntries(db: SupabaseClient): Promise<{ loc: s
     entries.set(`/${m.slug}/guides`, guides[0]!.content_updated_at);
     for (const g of guides) entries.set(`/${m.slug}/guides/${g.slug}`, g.content_updated_at);
   }
+  // Provider profiles: only the public ones (the visitors' read rule: active,
+  // with a visible listing).
+  const { data: providers, error: pErr } = await db.from("providers").select("slug").limit(BROWSE_LIMIT * 10);
+  if (pErr) throw new Error(pErr.message);
+  for (const pr of (providers ?? []) as { slug: string }[]) entries.set(`/providers/${pr.slug}`, undefined);
   return [...entries].map(([loc, lastmod]) => (lastmod ? { loc, lastmod } : { loc }));
 }

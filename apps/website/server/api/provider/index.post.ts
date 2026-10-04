@@ -1,4 +1,4 @@
-import { providerProfileSchema } from "@repo/types";
+import { providerProfileSchema, type Database } from "@repo/types";
 import { serverSupabaseClient } from "#supabase/server";
 
 // Creates or updates the signed-in user's business profile.
@@ -19,11 +19,27 @@ export default defineEventHandler(async (event) => {
   if (cityError) throw createError({ statusCode: 500, statusMessage: cityError.message });
   if (!city) throw createError({ statusCode: 400, statusMessage: "Choose one of the listed cities." });
 
-  const query = existing
-    ? supabase.from("providers").update(input).eq("id", existing.id)
-    : supabase.from("providers").insert({ ...input, owner_id: user.sub });
+  // The public profile's text: blank means none. (The database refuses
+  // contact details too, as a backstop to the schema's check.)
+  const profile = { headline: input.headline || null, bio: input.bio || null };
+  const base = { display_name: input.display_name, city_id: input.city_id };
 
-  const { data, error } = await query.select("*").single();
-  if (error) throw createError({ statusCode: 500, statusMessage: error.message });
+  // A new business is created first (its address is made from the name),
+  // then given its headline and bio: a provider can't set those on insert.
+  let id = existing?.id;
+  if (!id) {
+    // No slug: the providers_set_slug trigger makes it from the name (the
+    // generated types list it as required because it has no column default,
+    // and providers may not write it).
+    const row = { ...base, owner_id: user.sub } as unknown as Database["public"]["Tables"]["providers"]["Insert"];
+    const { data: created, error } = await supabase.from("providers").insert(row).select("id").single();
+    if (error) throw createError({ statusCode: 500, statusMessage: error.message });
+    id = created.id;
+  }
+  const { data, error } = await supabase.from("providers").update({ ...base, ...profile }).eq("id", id).select("*").single();
+  if (error) {
+    if (error.code === "23514") throw createError({ statusCode: 400, statusMessage: "Leave phone numbers, emails and links out of your headline and bio." });
+    throw createError({ statusCode: 500, statusMessage: error.message });
+  }
   return data;
 });

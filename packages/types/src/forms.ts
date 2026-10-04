@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { contactDetailsMessage } from "./providers";
 
 // Schemas shared by a page's form and the server route it posts to, so both
 // validate the same way. The route always validates again (docs/frontend.md).
@@ -11,8 +12,25 @@ export const providerProfileSchema = z.object({
     .min(2, "Enter your business or host name (at least 2 characters).")
     .max(120, "Keep the name under 120 characters."),
   city_id: z.uuid("Choose your metro area from the list."),
+  // The public profile (docs/design/provider-profiles.md): no contact
+  // details, and the message says what the text looks like.
+  headline: profileText(80, "Keep the headline under 80 characters."),
+  bio: profileText(1000, "Keep it under 1,000 characters."),
 });
 export type ProviderProfileInput = z.input<typeof providerProfileSchema>;
+
+function profileText(max: number, tooLong: string) {
+  return z
+    .string()
+    .trim()
+    .max(max, tooLong)
+    .superRefine((text, ctx) => {
+      const problem = contactDetailsMessage(text);
+      if (problem) ctx.addIssue({ code: "custom", message: problem });
+    })
+    .optional()
+    .default("");
+}
 
 export const signInSchema = z.object({
   email: z.email("Enter your email address, like name@example.com."),

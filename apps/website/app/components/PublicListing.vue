@@ -169,14 +169,20 @@ useSchemaOrg([
 
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <div class="min-w-0 space-y-8">
-        <header>
-          <p class="text-muted-foreground text-sm">{{ l.category.name }}</p>
-          <h1 class="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">{{ l.title }}</h1>
-          <p class="mt-2 flex items-center gap-1.5 text-sm">
-            <Icon name="lucide:map-pin" class="size-4 shrink-0" aria-hidden="true" />
-            {{ where }}
-          </p>
-          <p class="text-muted-foreground mt-1 text-sm">{{ hostWord }} {{ l.hostedBy }}</p>
+        <!-- Room for later (docs/design/provider-profiles.md): the favourite
+             heart goes at the top right of this header (a 44px button the
+             title wraps short of), and the rating line directly under the
+             title. Neither shows anything until its feature exists. -->
+        <header class="flex items-start gap-3">
+          <div class="min-w-0 flex-1">
+            <p class="text-muted-foreground text-sm">{{ l.category.name }}</p>
+            <h1 class="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">{{ l.title }}</h1>
+            <p class="mt-2 flex items-center gap-1.5 text-sm">
+              <Icon name="lucide:map-pin" class="size-4 shrink-0" aria-hidden="true" />
+              {{ where }}
+            </p>
+            <p v-if="!l.provider" class="text-muted-foreground mt-1 text-sm">{{ hostWord }} {{ l.hostedBy }}</p>
+          </div>
         </header>
 
         <section aria-labelledby="about-heading">
@@ -205,6 +211,8 @@ useSchemaOrg([
             </UiButton>
           </template>
         </section>
+
+        <ProviderProfileCard v-if="l.provider" :provider="l.provider" :heading="hostWord" :more="l.moreFromProvider" :market="l.market" />
       </div>
 
       <!-- Price and booking: beside the details on wide screens, below them on phones. -->

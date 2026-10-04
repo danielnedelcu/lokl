@@ -213,6 +213,18 @@ export class TestData {
         delete from listing_photos where listing_id in (${ids});
         delete from listings where id in (${ids});`]);
     }
+    if (this.providers.length) {
+      // Profile photos, and the account emails and admin log rows that point at the provider.
+      for (const id of this.providers) {
+        const { data: files } = await this.env.db.storage.from("provider-photos").list(id);
+        if (files?.length) await this.env.db.storage.from("provider-photos").remove(files.map((f) => `${id}/${f.name}`));
+      }
+      const ids = this.providers.map((i) => `'${i}'`).join(",");
+      execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
+        set session_replication_role = replica;
+        delete from provider_emails where provider_id in (${ids});
+        delete from admin_actions where target = 'provider' and target_id in (${ids});`]);
+    }
     for (const id of this.providers) await this.env.db.from("providers").delete().eq("id", id);
     for (const id of this.users) await this.env.db.auth.admin.deleteUser(id);
     for (const id of this.areas) await this.env.db.from("service_areas").delete().eq("id", id);

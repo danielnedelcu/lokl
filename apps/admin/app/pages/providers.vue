@@ -88,6 +88,13 @@ async function confirmStatus(reason: string, message: string) {
   }
 }
 const notReadyLabel = "Can't be paid yet";
+// Their public profile, and removing content that breaks the profile rules.
+const profileOpen = ref(false);
+const profileId = ref<string | null>(null);
+function openProfile(p: ProviderRow) {
+  profileId.value = p.id;
+  profileOpen.value = true;
+}
 const paidSinceLabel = computed(() =>
   f.value.paid_since
     ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${f.value.paid_since}T00:00:00Z`))
@@ -169,6 +176,7 @@ const paidSinceLabel = computed(() =>
           <span class="text-muted-foreground">{{ formatDate(row.original.created_at) }}</span>
         </template>
         <template #actions-cell="{ row }">
+          <UiButton size="sm" variant="ghost" :aria-label="`Profile of ${row.original.display_name}`" @click="openProfile(row.original)">Profile</UiButton>
           <UiButton size="sm" variant="outline" :disabled="busy"
             :aria-label="`${row.original.status === 'suspended' ? 'Reinstate' : 'Suspend'} ${row.original.display_name}`" @click="ask(row.original)">
             {{ row.original.status === "suspended" ? "Reinstate" : "Suspend" }}
@@ -184,5 +192,6 @@ const paidSinceLabel = computed(() =>
       reason-label="Reason (lokl only)" hint="Kept in the provider's history. Never shown to them."
       message-label="Message to the provider (optional)"
       message-hint="Added to their email. Leave it empty to send the standard email only." @confirm="confirmStatus" />
+    <ProviderProfileSheet v-model:open="profileOpen" :provider-id="profileId" />
   </div>
 </template>
