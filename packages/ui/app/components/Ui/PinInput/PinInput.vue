@@ -1,3 +1,9 @@
+<!--
+  lokl change (2026-10-04): generic over Reka's input type, as Reka's own
+  PinInputRoot is, so type="number" (digits only, a numeric keypad) type-
+  checks with a number[] model; ui-thing's copy fixed it to "text". Keep this
+  if the component is re-added with the ui-thing CLI.
+-->
 <template>
   <PinInputRoot
     data-slot="pin-input"
@@ -15,7 +21,7 @@
   </PinInputRoot>
 </template>
 
-<script lang="ts" setup>
+<script lang="ts" setup generic="T extends 'text' | 'number' = 'text'">
   import { PinInputRoot, useForwardPropsEmits } from "reka-ui";
   import type { PinInputRootEmits, PinInputRootProps } from "reka-ui";
   import { normalizeClass } from "vue";
@@ -23,7 +29,7 @@
 
   const props = withDefaults(
     defineProps<
-      PinInputRootProps & {
+      PinInputRootProps<T> & {
         /** Custom class(es) to apply to the parent element. */
         class?: HTMLAttributes["class"];
         /** The number of inputs to render. @default 4. */
@@ -39,7 +45,7 @@
     }
   );
 
-  const emits = defineEmits<PinInputRootEmits>();
+  const emits = defineEmits<PinInputRootEmits<T>>();
 
   const forwarded = useForwardPropsEmits(
     reactiveOmit(props, "class", "inputCount", "separator"),

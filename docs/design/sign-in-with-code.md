@@ -44,15 +44,20 @@ does.
 
 - Text: "We sent a 6-digit code to **you@example.com**. It works for 10
   minutes." with **Use a different email** (back to step 1).
-- **One field**, not six boxes: one label, works with paste, password
-  managers and the phone's suggested code, and screen readers read it as one
-  field.
-  - Visible label: "6-digit code".
-  - `autocomplete="one-time-code"`, `inputmode="numeric"`,
-    `pattern="[0-9]*"`, `maxlength` 6 after cleaning; spaces and dashes in a
-    pasted code are ignored.
-  - Large, spaced digits; focus moves to it when the step opens.
-  - Errors are linked with `aria-describedby` and announced (`role="alert"`).
+- **Six boxes** (ui-thing's `UiPinInput`, on Reka's pin input; changed
+  from one field on 2026-10-04, see Decisions):
+  - Named as one group, "6-digit code" (`role="group"`, labelled by the
+    visible "6-digit code"); each box "Digit 1 of 6" and so on.
+  - Reka's `otp` setting: every box has `autocomplete="one-time-code"`, so
+    the phone offers the code from the email; an offered or pasted code
+    fills all six boxes from the first, digits only (spaces and dashes are
+    dropped). Number mode: `inputmode="numeric"`, letters ignored.
+  - Typing moves to the next box; Backspace clears a box, or on an empty
+    one steps back and clears that; the arrow keys move between boxes.
+  - The sixth digit moves focus to **Sign in**; it doesn't send the code.
+  - Focus goes to the first box when the step opens.
+  - Errors are linked to every box with `aria-describedby` and announced
+    (`role="alert"`); five wrong codes disable all six.
 - **Sign in** button; Enter submits. It doesn't submit by itself at the
   sixth digit: changing what's on screen while someone types is
   disorienting with a screen reader (WCAG 3.2.2), and a wrong last digit
@@ -185,6 +190,11 @@ so the dashboard can change before or after the code ships.
 4. The **admin app** signs in by code too.
 5. The email step says **"New to lokl? This creates your account."**
    (website only; the admin app never creates accounts).
+6. (Later the same day) The code is typed into **six boxes**, ui-thing's
+   pin input, instead of one field: each box labelled, the group named
+   "6-digit code", Reka's `otp` setting so phones still offer the code,
+   paste filling every box, and still no automatic submit (the sixth digit
+   moves focus to Sign in).
 
 Later (docs/TODO.md, Launch prep, Sign-in): a second factor for admins, and
 the terms line in the dialog once the terms exist.
@@ -212,11 +222,16 @@ the terms line in the dialog once the terms exist.
   in again, for a new code that works in this browser.
 - One template file, `supabase/templates/sign-in.html`, for Magic link and
   Confirm signup; the local stack's hourly email limit is 100.
+- The pin input's ui-thing wrapper is generic over Reka's input type (a
+  marked lokl change in `Ui/PinInput/PinInput.vue`), so number mode
+  type-checks.
 - Tests: `signInMessages` (UI test, 16 checks); end-to-end journey 5
   (code; link), journey 9 (the heart by code; by link) and journey 10
   (labels and focus, wrong codes and the lock, resend, expiry, Supabase's
-  429, the admin app). Deliberate breaks caught: never locking, no focus
-  return, every refusal read as expired.
+  429, the admin app; the boxes' labels, keys and paste, and no automatic
+  submit). Deliberate breaks caught: never locking, no focus return, every
+  refusal read as expired; for the boxes, sending at the sixth digit, `otp`
+  off, and the boxes' labels removed.
 
 ## Open questions (resolved: see Decisions)
 

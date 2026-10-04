@@ -27,7 +27,9 @@ const emit = defineEmits<{ "signed-in": [email: string] }>();
 const supabase = useSupabaseClient();
 const step = ref<"email" | "code">("email");
 const email = ref("");
-const code = ref("");
+// The six boxes (Reka's pin input, number mode: digits only; a value per box).
+const digits = ref<number[]>([]);
+const code = computed(() => digits.value.map(String).join(""));
 const sentAt = ref(0);
 const wrong = ref(0);
 const locked = ref(false);
@@ -38,7 +40,9 @@ const ids = {
   email: `${props.idPrefix}-email`,
   emailHint: `${props.idPrefix}-email-hint`,
   code: `${props.idPrefix}-code`,
+  codeLabel: `${props.idPrefix}-code-label`,
   codeHint: `${props.idPrefix}-code-hint`,
+  submit: `${props.idPrefix}-submit`,
   error: `${props.idPrefix}-error`,
   resend: `${props.idPrefix}-resend`,
   different: `${props.idPrefix}-different`,
@@ -86,7 +90,7 @@ async function send() {
   email.value = parsed.data.email;
   sentAt.value = Date.now();
   now.value = sentAt.value;
-  code.value = "";
+  digits.value = [];
   wrong.value = 0;
   locked.value = false;
   status.value = resending ? "We sent a new code. The old one no longer works." : "";
@@ -97,7 +101,6 @@ async function send() {
 async function verify() {
   error.value = "";
   const typed = cleanCode(code.value);
-  code.value = typed;
   const early = checkCodeBeforeSending(typed, sentAt.value);
   if (early) {
     error.value = early;
@@ -120,11 +123,18 @@ async function verify() {
   emit("signed-in", email.value);
 }
 
+// The sixth digit moves focus to Sign in; it doesn't send the code by itself
+// (a wrong last digit would cost a try, and changing what happens while
+// someone types is disorienting with a screen reader).
+function codeComplete() {
+  focus(ids.submit);
+}
+
 function differentEmail() {
   step.value = "email";
   error.value = "";
   status.value = "";
-  code.value = "";
+  digits.value = [];
   focus(ids.email);
 }
 
@@ -149,14 +159,21 @@ const describedBy = (hint: string) => [hint, error.value ? ids.error : ""].filte
         We sent a 6-digit code to <strong class="break-all">{{ email }}</strong>. It works for 10 minutes.
         The email also has a link, if you'd rather use that.
       </p>
+      <!-- Six boxes, named as one group ("6-digit code"), each "Digit 1 of 6".
+           otp: every box offers the code from the email (one-time-code);
+           a pasted or offered code fills them all, digits only, from the
+           first. Backspace and the arrow keys move between boxes. -->
       <div class="space-y-2">
-        <UiLabel :for="ids.code">6-digit code</UiLabel>
-        <UiInput :id="ids.code" v-model="code" name="code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 -]*"
-          :maxlength="9" spellcheck="false" :disabled="locked" :aria-invalid="!!error || undefined" :aria-describedby="describedBy(ids.codeHint)"
-          class="h-12 text-center font-mono text-2xl tracking-[0.4em]" />
+        <p :id="ids.codeLabel" class="text-sm font-medium">6-digit code</p>
+        <UiPinInput v-model="digits" :input-count="CODE_LENGTH" otp type="number" :disabled="locked"
+          role="group" :aria-labelledby="ids.codeLabel" class="justify-between gap-1.5 sm:justify-start sm:gap-2" @complete="codeComplete">
+          <UiPinInputInput v-for="(_, i) in CODE_LENGTH" :id="i === 0 ? ids.code : undefined" :key="i" :index="i"
+            :aria-label="`Digit ${i + 1} of ${CODE_LENGTH}`" :aria-invalid="!!error || undefined" :aria-describedby="describedBy(ids.codeHint)"
+            class="h-12 w-11 font-mono text-xl sm:w-12" />
+        </UiPinInput>
       </div>
       <p v-if="error" :id="ids.error" role="alert" class="text-destructive text-sm">{{ error }}</p>
-      <UiButton type="submit" class="min-h-11 w-full" :disabled="busy || locked">{{ busy ? "Checking…" : "Sign in" }}</UiButton>
+      <UiButton :id="ids.submit" type="submit" class="min-h-11 w-full" :disabled="busy || locked">{{ busy ? "Checking…" : "Sign in" }}</UiButton>
       <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
         <button :id="ids.different" type="button" class="hover:bg-accent -mx-1 min-h-11 rounded px-1 font-medium" @click="differentEmail">Use a different email</button>
         <button :id="ids.resend" type="button" class="hover:bg-accent -mx-1 min-h-11 rounded px-1 font-medium disabled:text-muted-foreground disabled:hover:bg-transparent"

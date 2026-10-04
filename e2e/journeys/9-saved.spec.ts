@@ -2,7 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import { signIn } from "../support/auth";
 import type { TestData } from "../support/data";
 import { expect, test } from "../support/fixtures";
-import { signInEmail } from "../support/mail";
+import { signInEmail, typeCode } from "../support/mail";
 
 // Journey 9: favourites, "Saved" (docs/design/favourites.md).
 
@@ -157,7 +157,7 @@ test("a signed-out visitor taps a heart, signs in with the code, and it's saved 
   await dialog.getByLabel("Email").fill(customer.email);
   await dialog.getByRole("button", { name: "Send me a code" }).click();
   const email = await signInEmail(data.env.mailpitUrl, customer.email);
-  await dialog.getByLabel("6-digit code").fill(email.code);
+  await typeCode(page, dialog, email.code);
   await dialog.getByRole("button", { name: "Sign in" }).click();
 
   await expect(dialog).toHaveCount(0);

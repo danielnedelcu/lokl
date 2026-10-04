@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 // The sign-in email, from the local stack's Mailpit (nothing is really
 // sent). Each has the 6-digit code and the link
@@ -30,3 +30,21 @@ export async function signInEmail(mailpitUrl: string, to: string, after?: SignIn
 
 /** A 6-digit code that isn't this one. */
 export const wrongCode = (code: string) => (code === "111111" ? "222222" : "111111");
+
+/** The six code boxes (a group named "6-digit code"), in order. */
+export const codeBoxes = (scope: Page | Locator) => scope.getByRole("group", { name: "6-digit code" }).getByRole("textbox");
+
+/** Types a code from the first box, one key at a time, as a person would. */
+export async function typeCode(page: Page, scope: Page | Locator, code: string) {
+  await codeBoxes(scope).first().click();
+  await page.keyboard.type(code);
+}
+
+/** Pastes text into the first box (a real paste event, as from the clipboard). */
+export async function pasteCode(scope: Page | Locator, text: string) {
+  await codeBoxes(scope).first().evaluate((el, t) => {
+    const data = new DataTransfer();
+    data.setData("text/plain", t);
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+  }, text);
+}

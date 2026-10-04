@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { daysFromNow } from "../support/data";
-import { signInEmail } from "../support/mail";
+import { codeBoxes, signInEmail, typeCode } from "../support/mail";
 import { expect, test } from "../support/fixtures";
 
 // Journey 5: the real sign-in (docs/design/sign-in-with-code.md). A
@@ -33,13 +33,14 @@ test("sign in to book with the emailed code, without leaving the listing", async
 
   await page.goto(`/experiences/${listing.slug}`);
   const dialog = await askForCode(page, customer.email);
-  const code = dialog.getByLabel("6-digit code");
-  await expect(code).toBeFocused();
+  await expect(codeBoxes(dialog).first()).toBeFocused();
   await expect(dialog).toContainText(customer.email);
 
+  // Typed digit by digit; the last one moves focus to Sign in, which sends it.
   const email = await signInEmail(data.env.mailpitUrl, customer.email);
-  await code.fill(email.code);
-  await dialog.getByRole("button", { name: "Sign in" }).click();
+  await typeCode(page, dialog, email.code);
+  await expect(dialog.getByRole("button", { name: "Sign in" })).toBeFocused();
+  await page.keyboard.press("Enter");
 
   await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`/experiences/${listing.slug}$`));
