@@ -1961,7 +1961,7 @@
         {
           "name": "notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text, 'booking_problem_reported'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text, 'booking_problem_reported'::text, 'review_posted'::text])))",
           "table": "public.notifications",
           "referenced_table": "",
           "columns": [
@@ -2734,6 +2734,10 @@
           "def": "CREATE TRIGGER bookings_queue_emails AFTER UPDATE OF status, problem_reported_at, problem_resolution ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_queue_emails()"
         },
         {
+          "name": "bookings_queue_review_request",
+          "def": "CREATE TRIGGER bookings_queue_review_request AFTER UPDATE OF status, problem_resolution ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_queue_review_request()"
+        },
+        {
           "name": "bookings_set_updated_at",
           "def": "CREATE TRIGGER bookings_set_updated_at BEFORE UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
@@ -3171,7 +3175,7 @@
         {
           "name": "booking_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['customer_request_sent'::text, 'customer_request_accepted'::text, 'customer_request_declined'::text, 'customer_request_expired'::text, 'customer_booking_confirmed'::text, 'customer_booking_cancelled'::text, 'customer_problem_received'::text, 'customer_problem_refunded'::text, 'provider_new_request'::text, 'provider_new_booking'::text, 'provider_booking_cancelled'::text, 'provider_request_unanswered'::text, 'provider_payout_sent'::text, 'provider_problem_reported'::text, 'provider_payout_problem'::text, 'provider_problem_paid'::text, 'provider_problem_refunded'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['customer_request_sent'::text, 'customer_request_accepted'::text, 'customer_request_declined'::text, 'customer_request_expired'::text, 'customer_booking_confirmed'::text, 'customer_booking_cancelled'::text, 'customer_problem_received'::text, 'customer_problem_refunded'::text, 'provider_new_request'::text, 'provider_new_booking'::text, 'provider_booking_cancelled'::text, 'provider_request_unanswered'::text, 'provider_payout_sent'::text, 'provider_problem_reported'::text, 'provider_payout_problem'::text, 'provider_problem_paid'::text, 'provider_problem_refunded'::text, 'customer_review_request'::text, 'customer_review_reminder'::text, 'customer_review_removed'::text, 'provider_new_review'::text, 'provider_reply_removed'::text])))",
           "table": "public.booking_emails",
           "referenced_table": "",
           "columns": [
@@ -3312,6 +3316,12 @@
           "type": "text",
           "nullable": true,
           "comment": "For suspending or reinstating a provider: the optional message lokl added to the provider's email. (The reason is internal and never sent.)"
+        },
+        {
+          "name": "rule",
+          "type": "text",
+          "nullable": true,
+          "comment": "For review moderation: the written review rule the removal applied."
         }
       ],
       "indexes": [
@@ -3338,7 +3348,7 @@
         {
           "name": "admin_actions_action_check",
           "type": "CHECK",
-          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text])))",
+          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3377,9 +3387,19 @@
           ]
         },
         {
+          "name": "admin_actions_rule_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(rule) \u003c= 60))",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "rule"
+          ]
+        },
+        {
           "name": "admin_actions_target_check",
           "type": "CHECK",
-          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text])))",
+          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text, 'review'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -5999,6 +6019,1088 @@
           "def": "CREATE TRIGGER saved_providers_limit BEFORE INSERT ON public.saved_providers FOR EACH ROW EXECUTE FUNCTION saved_items_limit()"
         }
       ]
+    },
+    {
+      "name": "public.reviews",
+      "type": "BASE TABLE",
+      "comment": "A customer's review of a completed booking: one to five stars and their words, public at once. One per booking. Deleted only by its customer within 14 days of the booking's end; removed (status) only by an admin, under the written rules.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "reviewer_name",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "booking_month",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "name": "rating",
+          "type": "smallint",
+          "nullable": false
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "edited_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'published'::text"
+        },
+        {
+          "name": "removed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "removed_rule",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "removed_reason",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "reviews_pkey",
+          "def": "CREATE UNIQUE INDEX reviews_pkey ON public.reviews USING btree (id)",
+          "table": "public.reviews",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "reviews_booking_id_key",
+          "def": "CREATE UNIQUE INDEX reviews_booking_id_key ON public.reviews USING btree (booking_id)",
+          "table": "public.reviews",
+          "columns": [
+            "booking_id"
+          ]
+        },
+        {
+          "name": "reviews_listing_idx",
+          "def": "CREATE INDEX reviews_listing_idx ON public.reviews USING btree (listing_id, created_at DESC) WHERE (status = 'published'::text)",
+          "table": "public.reviews",
+          "columns": [
+            "listing_id",
+            "created_at"
+          ]
+        },
+        {
+          "name": "reviews_provider_idx",
+          "def": "CREATE INDEX reviews_provider_idx ON public.reviews USING btree (provider_id, created_at DESC)",
+          "table": "public.reviews",
+          "columns": [
+            "provider_id",
+            "created_at"
+          ]
+        },
+        {
+          "name": "reviews_customer_idx",
+          "def": "CREATE INDEX reviews_customer_idx ON public.reviews USING btree (customer_id)",
+          "table": "public.reviews",
+          "columns": [
+            "customer_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "reviews_body_length",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(TRIM(BOTH FROM body)) \u003e= 20) AND (char_length(TRIM(BOTH FROM body)) \u003c= 2000)))",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "body"
+          ]
+        },
+        {
+          "name": "reviews_body_no_contact_details",
+          "type": "CHECK",
+          "def": "CHECK ((NOT has_contact_details(body)))",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "body"
+          ]
+        },
+        {
+          "name": "reviews_rating_check",
+          "type": "CHECK",
+          "def": "CHECK (((rating \u003e= 1) AND (rating \u003c= 5)))",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "rating"
+          ]
+        },
+        {
+          "name": "reviews_removed_has_rule",
+          "type": "CHECK",
+          "def": "CHECK (((status = 'removed'::text) = ((removed_at IS NOT NULL) AND (removed_rule IS NOT NULL))))",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "removed_at",
+            "removed_rule"
+          ]
+        },
+        {
+          "name": "reviews_removed_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(removed_reason) \u003c= 1000))",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "removed_reason"
+          ]
+        },
+        {
+          "name": "reviews_removed_rule_check",
+          "type": "CHECK",
+          "def": "CHECK ((removed_rule = ANY (ARRAY['abuse'::text, 'private_information'::text, 'off_topic'::text, 'spam'::text, 'sexual_or_illegal'::text, 'conflict_of_interest'::text])))",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "removed_rule"
+          ]
+        },
+        {
+          "name": "reviews_reviewer_name_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(reviewer_name) \u003e= 1) AND (char_length(reviewer_name) \u003c= 160)))",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "reviewer_name"
+          ]
+        },
+        {
+          "name": "reviews_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['published'::text, 'removed'::text])))",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "reviews_customer_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (customer_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+          "table": "public.reviews",
+          "referenced_table": "auth.users",
+          "columns": [
+            "customer_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "reviews_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.reviews",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "reviews_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT",
+          "table": "public.reviews",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "reviews_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.reviews",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "reviews_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "reviews_booking_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (booking_id)",
+          "table": "public.reviews",
+          "referenced_table": "",
+          "columns": [
+            "booking_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "reviews_fill",
+          "def": "CREATE TRIGGER reviews_fill BEFORE INSERT ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_fill()"
+        },
+        {
+          "name": "reviews_guard",
+          "def": "CREATE TRIGGER reviews_guard BEFORE UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_guard()"
+        },
+        {
+          "name": "reviews_notify_provider",
+          "def": "CREATE TRIGGER reviews_notify_provider AFTER INSERT ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_notify_provider()"
+        },
+        {
+          "name": "reviews_recount",
+          "def": "CREATE TRIGGER reviews_recount AFTER INSERT OR DELETE OR UPDATE OF rating, status ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_recount()"
+        }
+      ]
+    },
+    {
+      "name": "public.review_replies",
+      "type": "BASE TABLE",
+      "comment": "The provider's one public reply to a review. Editable and deletable by them at any time (deleting is also how a removed reply is written again); removed (status) only by an admin. Goes with its review.",
+      "columns": [
+        {
+          "name": "review_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "edited_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'published'::text"
+        },
+        {
+          "name": "removed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "removed_rule",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "removed_reason",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "review_replies_pkey",
+          "def": "CREATE UNIQUE INDEX review_replies_pkey ON public.review_replies USING btree (review_id)",
+          "table": "public.review_replies",
+          "columns": [
+            "review_id"
+          ]
+        },
+        {
+          "name": "review_replies_provider_idx",
+          "def": "CREATE INDEX review_replies_provider_idx ON public.review_replies USING btree (provider_id)",
+          "table": "public.review_replies",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "review_replies_body_length",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(TRIM(BOTH FROM body)) \u003e= 1) AND (char_length(TRIM(BOTH FROM body)) \u003c= 1500)))",
+          "table": "public.review_replies",
+          "referenced_table": "",
+          "columns": [
+            "body"
+          ]
+        },
+        {
+          "name": "review_replies_body_no_contact_details",
+          "type": "CHECK",
+          "def": "CHECK ((NOT has_contact_details(body)))",
+          "table": "public.review_replies",
+          "referenced_table": "",
+          "columns": [
+            "body"
+          ]
+        },
+        {
+          "name": "review_replies_removed_has_rule",
+          "type": "CHECK",
+          "def": "CHECK (((status = 'removed'::text) = ((removed_at IS NOT NULL) AND (removed_rule IS NOT NULL))))",
+          "table": "public.review_replies",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "removed_at",
+            "removed_rule"
+          ]
+        },
+        {
+          "name": "review_replies_removed_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(removed_reason) \u003c= 1000))",
+          "table": "public.review_replies",
+          "referenced_table": "",
+          "columns": [
+            "removed_reason"
+          ]
+        },
+        {
+          "name": "review_replies_removed_rule_check",
+          "type": "CHECK",
+          "def": "CHECK ((removed_rule = ANY (ARRAY['abuse'::text, 'private_information'::text, 'off_topic'::text, 'spam'::text, 'sexual_or_illegal'::text, 'conflict_of_interest'::text])))",
+          "table": "public.review_replies",
+          "referenced_table": "",
+          "columns": [
+            "removed_rule"
+          ]
+        },
+        {
+          "name": "review_replies_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['published'::text, 'removed'::text])))",
+          "table": "public.review_replies",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "review_replies_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.review_replies",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "review_replies_review_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE",
+          "table": "public.review_replies",
+          "referenced_table": "public.reviews",
+          "columns": [
+            "review_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "review_replies_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (review_id)",
+          "table": "public.review_replies",
+          "referenced_table": "",
+          "columns": [
+            "review_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "review_replies_fill",
+          "def": "CREATE TRIGGER review_replies_fill BEFORE INSERT OR UPDATE ON public.review_replies FOR EACH ROW EXECUTE FUNCTION review_replies_fill()"
+        }
+      ]
+    },
+    {
+      "name": "public.review_reports",
+      "type": "BASE TABLE",
+      "comment": "A signed-in person's report that a review or its reply breaks a written rule, for the admin's queue. One per person per review and target. Goes with its review (or the reporter's login).",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "review_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "target",
+          "type": "text",
+          "nullable": false,
+          "default": "'review'::text"
+        },
+        {
+          "name": "reporter_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "auth.uid()"
+        },
+        {
+          "name": "rule",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'open'::text"
+        },
+        {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "resolved_by",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "resolution_note",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "review_reports_pkey",
+          "def": "CREATE UNIQUE INDEX review_reports_pkey ON public.review_reports USING btree (id)",
+          "table": "public.review_reports",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "review_reports_once",
+          "def": "CREATE UNIQUE INDEX review_reports_once ON public.review_reports USING btree (review_id, target, reporter_id)",
+          "table": "public.review_reports",
+          "columns": [
+            "review_id",
+            "target",
+            "reporter_id"
+          ]
+        },
+        {
+          "name": "review_reports_open_idx",
+          "def": "CREATE INDEX review_reports_open_idx ON public.review_reports USING btree (review_id) WHERE (status = 'open'::text)",
+          "table": "public.review_reports",
+          "columns": [
+            "review_id"
+          ]
+        },
+        {
+          "name": "review_reports_reporter_idx",
+          "def": "CREATE INDEX review_reports_reporter_idx ON public.review_reports USING btree (reporter_id)",
+          "table": "public.review_reports",
+          "columns": [
+            "reporter_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "review_reports_note_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(note) \u003c= 1000))",
+          "table": "public.review_reports",
+          "referenced_table": "",
+          "columns": [
+            "note"
+          ]
+        },
+        {
+          "name": "review_reports_resolution_note_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(resolution_note) \u003c= 1000))",
+          "table": "public.review_reports",
+          "referenced_table": "",
+          "columns": [
+            "resolution_note"
+          ]
+        },
+        {
+          "name": "review_reports_resolved",
+          "type": "CHECK",
+          "def": "CHECK (((status = 'open'::text) = (resolved_at IS NULL)))",
+          "table": "public.review_reports",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "resolved_at"
+          ]
+        },
+        {
+          "name": "review_reports_rule_check",
+          "type": "CHECK",
+          "def": "CHECK ((rule = ANY (ARRAY['abuse'::text, 'private_information'::text, 'off_topic'::text, 'spam'::text, 'sexual_or_illegal'::text, 'conflict_of_interest'::text, 'something_else'::text])))",
+          "table": "public.review_reports",
+          "referenced_table": "",
+          "columns": [
+            "rule"
+          ]
+        },
+        {
+          "name": "review_reports_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['open'::text, 'upheld'::text, 'dismissed'::text])))",
+          "table": "public.review_reports",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "review_reports_target_check",
+          "type": "CHECK",
+          "def": "CHECK ((target = ANY (ARRAY['review'::text, 'reply'::text])))",
+          "table": "public.review_reports",
+          "referenced_table": "",
+          "columns": [
+            "target"
+          ]
+        },
+        {
+          "name": "review_reports_reporter_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (reporter_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+          "table": "public.review_reports",
+          "referenced_table": "auth.users",
+          "columns": [
+            "reporter_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "review_reports_resolved_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (resolved_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.review_reports",
+          "referenced_table": "auth.users",
+          "columns": [
+            "resolved_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "review_reports_review_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE",
+          "table": "public.review_reports",
+          "referenced_table": "public.reviews",
+          "columns": [
+            "review_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "review_reports_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.review_reports",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "review_reports_once",
+          "type": "UNIQUE",
+          "def": "UNIQUE (review_id, target, reporter_id)",
+          "table": "public.review_reports",
+          "referenced_table": "",
+          "columns": [
+            "review_id",
+            "target",
+            "reporter_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.listing_ratings",
+      "type": "BASE TABLE",
+      "comment": "Each listing's published reviews: count, star total and average (rounded half up to one decimal). Kept by the reviews_recount trigger; never written from the apps.",
+      "columns": [
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "review_count",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "rating_total",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "rating_average",
+          "type": "numeric(2,1)",
+          "nullable": true,
+          "extra_def": "GENERATED ALWAYS AS \nCASE\n    WHEN (review_count \u003e 0) THEN round(((rating_total)::numeric / (review_count)::numeric), 1)\n    ELSE NULL::numeric\nEND STORED"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "stars_1",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "stars_2",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "stars_3",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "stars_4",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "stars_5",
+          "type": "integer",
+          "nullable": false,
+          "default": "0",
+          "comment": "Published reviews with 5 stars (stars_1 to stars_4 likewise). Kept by recount_ratings."
+        }
+      ],
+      "indexes": [
+        {
+          "name": "listing_ratings_pkey",
+          "def": "CREATE UNIQUE INDEX listing_ratings_pkey ON public.listing_ratings USING btree (listing_id)",
+          "table": "public.listing_ratings",
+          "columns": [
+            "listing_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "listing_ratings_rating_total_check",
+          "type": "CHECK",
+          "def": "CHECK ((rating_total \u003e= 0))",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "rating_total"
+          ]
+        },
+        {
+          "name": "listing_ratings_review_count_check",
+          "type": "CHECK",
+          "def": "CHECK ((review_count \u003e= 0))",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "review_count"
+          ]
+        },
+        {
+          "name": "listing_ratings_stars_1_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_1 \u003e= 0))",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_1"
+          ]
+        },
+        {
+          "name": "listing_ratings_stars_2_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_2 \u003e= 0))",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_2"
+          ]
+        },
+        {
+          "name": "listing_ratings_stars_3_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_3 \u003e= 0))",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_3"
+          ]
+        },
+        {
+          "name": "listing_ratings_stars_4_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_4 \u003e= 0))",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_4"
+          ]
+        },
+        {
+          "name": "listing_ratings_stars_5_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_5 \u003e= 0))",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_5"
+          ]
+        },
+        {
+          "name": "listing_ratings_stars_add_up",
+          "type": "CHECK",
+          "def": "CHECK ((((((stars_1 + stars_2) + stars_3) + stars_4) + stars_5) = review_count))",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_1",
+            "stars_2",
+            "stars_3",
+            "stars_4",
+            "stars_5",
+            "review_count"
+          ]
+        },
+        {
+          "name": "listing_ratings_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.listing_ratings",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "listing_ratings_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (listing_id)",
+          "table": "public.listing_ratings",
+          "referenced_table": "",
+          "columns": [
+            "listing_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.provider_ratings",
+      "type": "BASE TABLE",
+      "comment": "Each provider's published reviews across all their listings (including ones no longer live): count, star total and average. Kept by the reviews_recount trigger.",
+      "columns": [
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "review_count",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "rating_total",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "rating_average",
+          "type": "numeric(2,1)",
+          "nullable": true,
+          "extra_def": "GENERATED ALWAYS AS \nCASE\n    WHEN (review_count \u003e 0) THEN round(((rating_total)::numeric / (review_count)::numeric), 1)\n    ELSE NULL::numeric\nEND STORED"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "stars_1",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "stars_2",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "stars_3",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "stars_4",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "stars_5",
+          "type": "integer",
+          "nullable": false,
+          "default": "0",
+          "comment": "Published reviews with 5 stars (stars_1 to stars_4 likewise). Kept by recount_ratings."
+        }
+      ],
+      "indexes": [
+        {
+          "name": "provider_ratings_pkey",
+          "def": "CREATE UNIQUE INDEX provider_ratings_pkey ON public.provider_ratings USING btree (provider_id)",
+          "table": "public.provider_ratings",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "provider_ratings_rating_total_check",
+          "type": "CHECK",
+          "def": "CHECK ((rating_total \u003e= 0))",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "rating_total"
+          ]
+        },
+        {
+          "name": "provider_ratings_review_count_check",
+          "type": "CHECK",
+          "def": "CHECK ((review_count \u003e= 0))",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "review_count"
+          ]
+        },
+        {
+          "name": "provider_ratings_stars_1_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_1 \u003e= 0))",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_1"
+          ]
+        },
+        {
+          "name": "provider_ratings_stars_2_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_2 \u003e= 0))",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_2"
+          ]
+        },
+        {
+          "name": "provider_ratings_stars_3_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_3 \u003e= 0))",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_3"
+          ]
+        },
+        {
+          "name": "provider_ratings_stars_4_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_4 \u003e= 0))",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_4"
+          ]
+        },
+        {
+          "name": "provider_ratings_stars_5_check",
+          "type": "CHECK",
+          "def": "CHECK ((stars_5 \u003e= 0))",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_5"
+          ]
+        },
+        {
+          "name": "provider_ratings_stars_add_up",
+          "type": "CHECK",
+          "def": "CHECK ((((((stars_1 + stars_2) + stars_3) + stars_4) + stars_5) = review_count))",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "stars_1",
+            "stars_2",
+            "stars_3",
+            "stars_4",
+            "stars_5",
+            "review_count"
+          ]
+        },
+        {
+          "name": "provider_ratings_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE",
+          "table": "public.provider_ratings",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_ratings_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (provider_id)",
+          "table": "public.provider_ratings",
+          "referenced_table": "",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -6562,6 +7664,110 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.reviews",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.reviews",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.reviews",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.review_replies",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.review_replies",
+      "columns": [
+        "review_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.reviews",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.review_reports",
+      "columns": [
+        "review_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.reviews",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.listing_ratings",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_ratings",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE"
     }
   ],
   "functions": [
@@ -6959,6 +8165,102 @@
       "name": "public.my_saved",
       "return_type": "jsonb",
       "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.review_display_name",
+      "return_type": "text",
+      "arguments": "p_name text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.review_window_open",
+      "return_type": "bool",
+      "arguments": "p_booking_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.booking_can_be_reviewed",
+      "return_type": "bool",
+      "arguments": "p_booking_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.reviews_fill",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.reviews_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.review_replies_fill",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.current_active_provider_id",
+      "return_type": "uuid",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.review_reportable",
+      "return_type": "bool",
+      "arguments": "p_review_id uuid, p_target text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.recount_ratings",
+      "return_type": "void",
+      "arguments": "p_listing_id uuid, p_provider_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.reviews_recount",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.bookings_queue_review_request",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.reviews_notify_provider",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.queue_review_reminders",
+      "return_type": "int4",
+      "arguments": "p_now timestamp with time zone DEFAULT now()",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.review_state",
+      "return_type": "jsonb",
+      "arguments": "p_booking_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_reviews_page",
+      "return_type": "jsonb",
+      "arguments": "p_reported boolean DEFAULT true, p_status text DEFAULT NULL::text, p_provider_id uuid DEFAULT NULL::uuid, p_rating integer DEFAULT NULL::integer, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_moderate_review",
+      "return_type": "void",
+      "arguments": "p_review_id uuid, p_admin_id uuid, p_target text, p_action text, p_rule text, p_reason text",
       "type": "FUNCTION"
     }
   ],

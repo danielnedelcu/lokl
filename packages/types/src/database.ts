@@ -99,6 +99,7 @@ export type Database = {
           id: string
           message: string | null
           reason: string | null
+          rule: string | null
           target: string
           target_id: string
         }
@@ -109,6 +110,7 @@ export type Database = {
           id?: string
           message?: string | null
           reason?: string | null
+          rule?: string | null
           target: string
           target_id: string
         }
@@ -119,6 +121,7 @@ export type Database = {
           id?: string
           message?: string | null
           reason?: string | null
+          rule?: string | null
           target?: string
           target_id?: string
         }
@@ -1175,6 +1178,53 @@ export type Database = {
           },
         ]
       }
+      listing_ratings: {
+        Row: {
+          listing_id: string
+          rating_average: number | null
+          rating_total: number
+          review_count: number
+          stars_1: number
+          stars_2: number
+          stars_3: number
+          stars_4: number
+          stars_5: number
+          updated_at: string
+        }
+        Insert: {
+          listing_id: string
+          rating_average?: number | null
+          rating_total?: number
+          review_count?: number
+          stars_1?: number
+          stars_2?: number
+          stars_3?: number
+          stars_4?: number
+          stars_5?: number
+          updated_at?: string
+        }
+        Update: {
+          listing_id?: string
+          rating_average?: number | null
+          rating_total?: number
+          review_count?: number
+          stars_1?: number
+          stars_2?: number
+          stars_3?: number
+          stars_4?: number
+          stars_5?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_ratings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_service_areas: {
         Row: {
           created_at: string
@@ -1436,6 +1486,53 @@ export type Database = {
           },
         ]
       }
+      provider_ratings: {
+        Row: {
+          provider_id: string
+          rating_average: number | null
+          rating_total: number
+          review_count: number
+          stars_1: number
+          stars_2: number
+          stars_3: number
+          stars_4: number
+          stars_5: number
+          updated_at: string
+        }
+        Insert: {
+          provider_id: string
+          rating_average?: number | null
+          rating_total?: number
+          review_count?: number
+          stars_1?: number
+          stars_2?: number
+          stars_3?: number
+          stars_4?: number
+          stars_5?: number
+          updated_at?: string
+        }
+        Update: {
+          provider_id?: string
+          rating_average?: number | null
+          rating_total?: number
+          review_count?: number
+          stars_1?: number
+          stars_2?: number
+          stars_3?: number
+          stars_4?: number
+          stars_5?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_ratings_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: true
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       providers: {
         Row: {
           avatar_path: string | null
@@ -1503,6 +1600,183 @@ export type Database = {
             columns: ["city_id"]
             isOneToOne: false
             referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_replies: {
+        Row: {
+          body: string
+          created_at: string
+          edited_at: string | null
+          provider_id: string
+          removed_at: string | null
+          removed_reason: string | null
+          removed_rule: string | null
+          review_id: string
+          status: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          edited_at?: string | null
+          provider_id: string
+          removed_at?: string | null
+          removed_reason?: string | null
+          removed_rule?: string | null
+          review_id: string
+          status?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          edited_at?: string | null
+          provider_id?: string
+          removed_at?: string | null
+          removed_reason?: string | null
+          removed_rule?: string | null
+          review_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_replies_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_replies_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: true
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_reports: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          reporter_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          review_id: string
+          rule: string
+          status: string
+          target: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          reporter_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_id: string
+          rule: string
+          status?: string
+          target?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          reporter_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_id?: string
+          rule?: string
+          status?: string
+          target?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_reports_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          body: string
+          booking_id: string
+          booking_month: string
+          created_at: string
+          customer_id: string
+          edited_at: string | null
+          id: string
+          listing_id: string
+          provider_id: string
+          rating: number
+          removed_at: string | null
+          removed_reason: string | null
+          removed_rule: string | null
+          reviewer_name: string
+          status: string
+        }
+        Insert: {
+          body: string
+          booking_id: string
+          booking_month: string
+          created_at?: string
+          customer_id: string
+          edited_at?: string | null
+          id?: string
+          listing_id: string
+          provider_id: string
+          rating: number
+          removed_at?: string | null
+          removed_reason?: string | null
+          removed_rule?: string | null
+          reviewer_name: string
+          status?: string
+        }
+        Update: {
+          body?: string
+          booking_id?: string
+          booking_month?: string
+          created_at?: string
+          customer_id?: string
+          edited_at?: string | null
+          id?: string
+          listing_id?: string
+          provider_id?: string
+          rating?: number
+          removed_at?: string | null
+          removed_reason?: string | null
+          removed_rule?: string | null
+          reviewer_name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
             referencedColumns: ["id"]
           },
         ]
@@ -1639,6 +1913,17 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_moderate_review: {
+        Args: {
+          p_action: string
+          p_admin_id: string
+          p_reason: string
+          p_review_id: string
+          p_rule: string
+          p_target: string
+        }
+        Returns: undefined
+      }
       admin_providers_page: {
         Args: {
           p_city_id?: string
@@ -1664,6 +1949,17 @@ export type Database = {
         }
         Returns: string[]
       }
+      admin_reviews_page: {
+        Args: {
+          p_page?: number
+          p_page_size?: number
+          p_provider_id?: string
+          p_rating?: number
+          p_reported?: boolean
+          p_status?: string
+        }
+        Returns: Json
+      }
       admin_search_patterns: { Args: { p_q: string }; Returns: string[] }
       admin_set_homepage_features: {
         Args: { p_guide_ids: string[] }
@@ -1677,6 +1973,10 @@ export type Database = {
           p_reason: string
           p_status: string
         }
+        Returns: boolean
+      }
+      booking_can_be_reviewed: {
+        Args: { p_booking_id: string }
         Returns: boolean
       }
       booking_emails_queue: {
@@ -1741,6 +2041,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      current_active_provider_id: { Args: never; Returns: string }
       current_provider_id: { Args: never; Returns: string }
       has_contact_details: { Args: { p_text: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
@@ -1771,6 +2072,11 @@ export type Database = {
       public_homepage_guides: { Args: never; Returns: Json }
       publish_guide: {
         Args: { p_admin_id: string; p_guide_id: string }
+        Returns: undefined
+      }
+      queue_review_reminders: { Args: { p_now?: string }; Returns: number }
+      recount_ratings: {
+        Args: { p_listing_id: string; p_provider_id: string }
         Returns: undefined
       }
       reorder_listing_photos: {
@@ -1830,6 +2136,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      review_display_name: { Args: { p_name: string }; Returns: string }
+      review_reportable: {
+        Args: { p_review_id: string; p_target: string }
+        Returns: boolean
+      }
+      review_state: { Args: { p_booking_id: string }; Returns: Json }
+      review_window_open: { Args: { p_booking_id: string }; Returns: boolean }
       session_spots_left: { Args: { p_session_id: string }; Returns: number }
       session_spots_taken: { Args: { p_session_id: string }; Returns: number }
       unpublish_guide: {
