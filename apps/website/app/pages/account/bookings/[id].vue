@@ -26,7 +26,7 @@ interface Detail {
   confirmed_at: string | null;
   payout_due_at: string | null;
   problem_reported_at: string | null;
-  listing: { title: string; slug: string; kind: string; locationMode: string | null; isLive: boolean; market: string; timezone: string } | null;
+  listing: { title: string; slug: string; kind: string; locationMode: string | null; isLive: boolean; market: string; timezone: string; providerName: string } | null;
   listingAddress: Address | null;
   givenAddress: Address | null;
 }
@@ -216,6 +216,9 @@ const address = computed(() => b.value?.listing?.locationMode === "customer_loca
       </UiButton>
       <UiButton v-if="canReport" variant="outline" :disabled="busy" @click="reportOpen = true">The provider didn't show up</UiButton>
     </div>
+
+    <BookingReview :booking-id="b.id" :timezone="tz" :listing-title="b.listing?.title ?? 'this booking'"
+      :listing-path="b.listing?.isLive ? listingPath : null" :provider-name="b.listing?.providerName ?? 'the provider'" />
 
     <div class="border-border mt-8 border-t pt-6">
       <CancellationPolicy :kind="b.kind" heading />

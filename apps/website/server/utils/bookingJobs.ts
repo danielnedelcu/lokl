@@ -16,7 +16,7 @@ import { abandonCheckout, recordDispute } from "./bookings";
 import { refundInFull } from "./bookingCancellations";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
-export const JOB_NAMES = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out"] as const;
+export const JOB_NAMES = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "review-reminders"] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
 export interface JobResult {
@@ -381,5 +381,22 @@ export async function runJob(name: JobName, db: SupabaseClient, stripe: Stripe, 
     case "release-reservations": return releaseReservations(db, stripe, opts);
     case "withdraw-unavailable": return withdrawUnavailable(db, stripe, opts);
     case "pay-out": return payOut(db, stripe, opts);
+    case "review-reminders": return reviewReminders(db, opts);
   }
+}
+
+/**
+ * Queues the one review reminder (docs/design/reviews.md, Emails): for each
+ * booking 10 to 14 days past its end that could still be reviewed and
+ * hasn't been. The database decides which and queues them once
+ * (queue_review_reminders); the route then sends them. No Stripe.
+ */
+async function reviewReminders(db: SupabaseClient, opts: JobOptions) {
+  // It works on every booking at once: a one-booking run (the development
+  // option) would queue other bookings' reminders as of a made-up time.
+  if (opts.bookingId) throw new Error("review-reminders runs for every booking; it can't be limited to one.");
+  const { data, error } = await db.rpc("queue_review_reminders", opts.now ? { p_now: opts.now.toISOString() } : {});
+  if (error) throw new Error(error.message);
+  const n = (data as number | null) ?? 0;
+  return { job: "review-reminders", checked: n, done: n ? [`queued ${n} review ${n === 1 ? "reminder" : "reminders"}`] : [], failed: [] as string[] };
 }

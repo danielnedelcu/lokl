@@ -15,7 +15,7 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { renderEmail, renderProviderAccountEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail } from "./bookingEmailTemplates";
+import { renderEmail, renderProviderAccountEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -130,8 +130,10 @@ export async function loadEmailContext(db: SupabaseClient, bookingId: string, si
   const { data: b, error } = await db
     .from("bookings")
     .select(
-      "id, kind, status, starts_at, confirmed_at, respond_by, preferred_times, party_size, total_cents, " +
+      "id, kind, status, starts_at, ends_at, confirmed_at, cancelled_at, problem_reported_at, problem_resolution, respond_by, preferred_times, party_size, total_cents, " +
       "refunded_cents, cancelled_by, status_changed_by, customer_name, customer_id, provider_id, " +
+      // The booking's review, for the review emails (docs/design/reviews.md).
+      "review:reviews(rating, status, removed_rule, reply:review_replies(status, removed_rule)), " +
       `${FINANCES}, ` +
       "contact:booking_contacts(email), " +
       "listing:listings(title, kind, category:categories(slug), city:cities(name, slug, timezone)), " +
@@ -153,8 +155,16 @@ export async function loadEmailContext(db: SupabaseClient, bookingId: string, si
       timezone: r.listing?.city?.timezone ?? "America/New_York",
     },
     provider: { name: r.provider?.display_name ?? "The provider" },
+    review: reviewOf(r.review),
   };
   return { ctx, customerEmail: (r.contact?.email as string | undefined) ?? null, providerOwnerId: r.provider?.owner_id as string | undefined, status: r.status as string };
+}
+
+function reviewOf(raw: any): EmailContext["review"] {
+  const r = Array.isArray(raw) ? raw[0] : raw;
+  if (!r) return null;
+  const reply = Array.isArray(r.reply) ? r.reply[0] : r.reply;
+  return { rating: r.rating, status: r.status, removedRule: r.removed_rule ?? null, replyStatus: reply?.status ?? null, replyRemovedRule: reply?.removed_rule ?? null };
 }
 
 // The provider's address: their sign-in email (decided 2026-10-02).
@@ -323,6 +333,8 @@ export async function sendBookingEmails(
       if ((row.kind === "customer_request_sent" || row.kind === "provider_new_request") && status !== "requested") {
         return { skip: "The request was already answered." };
       }
+      const stale = staleReviewEmail(row.kind, ctx);
+      if (stale) return { skip: stale };
       const to = row.recipient === "customer" ? customerEmail : await providerEmail(db, providerOwnerId);
       return { to, email: renderEmail(row.kind, ctx) };
     },

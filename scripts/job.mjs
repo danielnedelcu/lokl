@@ -7,12 +7,13 @@
 //   npm run job -- pay-out --booking <id> --as-of due   (just after its payout time)
 //
 // Jobs: expire-requests, release-reservations, withdraw-unavailable, pay-out,
+// review-reminders (queues the one review reminder, docs/design/reviews.md),
 // send-emails (sends or retries the booking emails that are due).
 // --booking and --as-of (development only) run a job for one booking as if
 // at a later time, for walkthroughs; --as-of needs --booking.
 import fs from "node:fs";
 
-const JOBS = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "send-emails"];
+const JOBS = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "review-reminders", "send-emails"];
 const [name, ...rest] = process.argv.slice(2);
 if (!JOBS.includes(name)) {
   console.error(`Usage: npm run job -- <${JOBS.join(" | ")}> [--booking <id>] [--as-of <time>]`);

@@ -128,13 +128,13 @@ Each step depends on the ones before it.
    with it saved; a Saved page in the account menu, where unavailable items
    stay, marked, and a removal can be undone. Later: named collections;
    counts for providers, if ever, through an aggregate that names no one.
-3. [ ] **Reviews and star ratings**, on the principles in docs/decisions.md
-   (2026-10-04): completed bookings only, one per booking, a review window
-   prompted by email, stars and text, a public reply from the provider,
-   written moderation rules (FTC 2024 rule: no fake reviews, never suppress
-   honest negative ones), "New on lokl" without reviews, average and count.
-   To decide in its design: category ratings, a minimum number of reviews
-   before showing the average, and the window's length. Design to come.
+3. [x] **Reviews and star ratings** (docs/design/reviews.md, built
+   2026-10-04; migrations `reviews`, `review_star_counts`): one to five
+   stars and words from completed bookings, 14 days to write, edit or
+   delete, one reminder; the rating line and breakdown from 3 reviews, cards
+   from 3; one public reply; Report and the admin's Reviews queue under the
+   written rules at `/review-rules`. Later: a "reply to your review" email
+   to the customer; ratings on browse sorting; category ratings.
 
 ## Admin dashboard
 
@@ -236,7 +236,7 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   handles, including disputes and transfer.reversed (the list is in the
   route's header comment and docs/architecture/booking-and-payments.md).
 - [ ] The job scheduler (`pg_cron` + `pg_net` calling `/api/jobs/*`,
-  including `send-emails`); until then jobs run with `npm run job`
+  including `send-emails` and, daily, `review-reminders`); until then jobs run with `npm run job`
   (docs/design/booking-and-checkout.md).
 - [ ] The Nuxt Image provider (`image.provider` in the shared layer, `none`
   today): the host's image service, or Supabase image transformations
@@ -316,7 +316,8 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [ ] Accountant consultation on Georgia marketplace sales tax, commission
     taxability, holding provider funds, 1099-K and business setup.
   - [ ] Customer terms, provider terms (including Stripe's Connected Account
-    Agreement), privacy policy and cancellation policy page, drafted then
+    Agreement, and the review rules' no-incentives rule: no discounts,
+    refunds or gifts for reviews, no asking only happy customers), privacy policy and cancellation policy page, drafted then
     reviewed by a marketplace lawyer.
 
 ## Notifications

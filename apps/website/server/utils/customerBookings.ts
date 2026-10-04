@@ -25,7 +25,7 @@ export async function listingDisplay(event: ServerEvent, listingIds: string[]) {
   if (!listingIds.length) return new Map();
   const { data, error } = await serverSupabaseServiceRole(event)
     .from("listings")
-    .select("id, kind, slug, title, location_mode, duration_minutes, status, city:cities(name, timezone), photos:listing_photos(storage_path, card_path, alt_text, position)")
+    .select("id, kind, slug, title, location_mode, duration_minutes, status, city:cities(name, timezone), photos:listing_photos(storage_path, card_path, alt_text, position), provider:providers(display_name)")
     .in("id", listingIds);
   if (error) throw createError({ statusCode: 500, statusMessage: "Your bookings didn't load. Please try again." });
   return new Map((data ?? []).map((l: any) => {
@@ -33,6 +33,8 @@ export async function listingDisplay(event: ServerEvent, listingIds: string[]) {
     return [l.id, {
       kind: l.kind, slug: l.slug, title: l.title, locationMode: l.location_mode, durationMinutes: l.duration_minutes,
       isLive: l.status === "live", market: l.city?.name ?? "", timezone: l.city?.timezone ?? "America/New_York",
+      // The business's public name (the reply to their review is "from" it).
+      providerName: l.provider?.display_name ?? "the provider",
       cover: cover ? { path: cover.card_path ?? cover.storage_path, alt: cover.alt_text } : null,
     }];
   }));

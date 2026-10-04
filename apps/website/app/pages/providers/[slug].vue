@@ -73,11 +73,12 @@ else {
         <ProviderAvatar :name="p.name" :path="p.avatarPath" :size="96" />
       </div>
       <div>
-        <!-- Room for later: the rating line, under the name. -->
         <div class="flex items-start gap-3">
           <h1 class="min-w-0 flex-1 text-2xl font-semibold tracking-tight md:text-3xl">{{ p.name }}</h1>
           <SaveButton kind="provider" :id="p.id" :name="p.name" :provider-id="p.id" />
         </div>
+        <!-- The provider's combined rating, under the name (docs/design/reviews.md). -->
+        <RatingLine :rating="p.rating" class="mt-1" />
         <p v-if="p.headline" class="mt-1 text-lg">{{ p.headline }}</p>
         <p class="text-muted-foreground mt-1 text-sm">{{ facts }}</p>
       </div>
@@ -87,6 +88,9 @@ else {
       <h2 id="about-heading" class="text-lg font-semibold">About {{ p.name }}</h2>
       <p class="mt-2 leading-relaxed whitespace-pre-line">{{ p.bio }}</p>
     </section>
+
+    <ReviewsSection :provider-id="p.id" :rating="p.rating" :stars="data!.stars" :provider-name="p.name"
+      :provider-avatar="p.avatarSmallPath" show-listing class="mt-8 max-w-3xl px-2 sm:px-6" />
 
     <section v-for="group in [{ id: 'experiences', title: 'Experiences', items: data!.experiences }, { id: 'services', title: 'Services', items: data!.services }].filter((g) => g.items.length)"
       :key="group.id" :aria-labelledby="`${group.id}-heading`" class="mt-10">

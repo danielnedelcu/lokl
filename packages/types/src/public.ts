@@ -5,6 +5,7 @@
 // (docs/design/provider-profiles.md).
 
 import type { ListingKind, LocationMode } from "./listings";
+import type { RatingSummary } from "./reviews";
 
 export type AreaKind = "neighborhood" | "city" | "zip";
 
@@ -45,6 +46,8 @@ export interface PublicListingCard {
   nextSessionAt: string | null;
   /** Whose listing it is (the heart is hidden on a provider's own). */
   providerId: string;
+  /** Its published reviews' count and average (docs/design/reviews.md); kept by the database. */
+  rating: RatingSummary;
 }
 
 /** A provider's public profile: what signed-out visitors may read. */
@@ -62,15 +65,46 @@ export interface PublicProvider {
   market: string | null;
   /** When they joined: "On lokl since October 2026". */
   since: string;
+  /** Their published reviews across all their listings: count and average. */
+  rating: RatingSummary;
 }
 
 /** The profile page: the provider and all their visible listings, newest first. */
 export interface PublicProviderPage {
   provider: PublicProvider;
+  /** The provider's reviews at each star level, for the breakdown. */
+  stars: StarCounts;
   /** The provider's market (for times on their listing cards). */
   market: PublicMarket | null;
   experiences: PublicListingCard[];
   services: PublicListingCard[];
+}
+
+/** Reviews at each star level, 1 to 5, for the breakdown. */
+export type StarCounts = [number, number, number, number, number];
+
+/** A published review on a public page (docs/design/reviews.md). */
+export interface PublicReview {
+  id: string;
+  rating: number;
+  body: string;
+  /** "Sam T.", made by the database from the booking's name. */
+  reviewerName: string;
+  /** yyyy-mm-01: "Booked October 2026". */
+  bookingMonth: string;
+  createdAt: string;
+  editedAt: string | null;
+  /** The listing it's for (on the profile page); null when no longer live. */
+  listing: { title: string; slug: string; kind: ListingKind } | null;
+  reply: { body: string; createdAt: string; editedAt: string | null } | null;
+}
+
+/** A page of a listing's or provider's reviews, newest first. */
+export interface PublicReviewPage {
+  items: PublicReview[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface PublicListing extends PublicListingCard {
@@ -87,6 +121,8 @@ export interface PublicListing extends PublicListingCard {
   provider: PublicProvider | null;
   /** Up to three of the provider's other visible listings, and how many there are. */
   moreFromProvider: { items: PublicListingCard[]; total: number };
+  /** This listing's reviews at each star level, for the breakdown. */
+  stars: StarCounts;
 }
 
 export interface PublicBrowseResult {

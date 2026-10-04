@@ -35,6 +35,8 @@ useSeoMeta({ title: () => b.value?.listing?.title ?? "Booking" });
 useLiveData({ refresh, listings: "any" });
 
 const tz = computed(() => (b.value ? bookingZone(b.value) : "America/New_York"));
+// The business's name, for "Reply from …".
+const { data: myProvider } = await useProvider();
 const zone = computed(() => timeZoneLabel(b.value?.listing?.city?.name ?? "Atlanta", tz.value));
 const money = (cents: number) => formatMoney(cents, "usd");
 const at = (t: string) => bookingAt(t, tz.value);
@@ -245,6 +247,10 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
         </dd>
       </div>
     </dl>
+
+    <!-- The customer's review, and the provider's reply (docs/design/reviews.md). -->
+    <BookingReview :booking-id="b.id" :timezone="tz" :listing-title="b.listing?.title ?? 'this booking'"
+      :listing-path="null" :provider-name="myProvider?.display_name ?? 'you'" />
 
     <div v-if="canCancel" class="mt-8 border-t border-border pt-6">
       <UiButton variant="outline" :disabled="busy" @click="cancelOpen = true">Cancel this booking</UiButton>

@@ -24,10 +24,13 @@ const facts = computed(() => [props.provider.market ? `Based in ${props.provider
     <div class="mt-3 flex items-start gap-4">
       <ProviderAvatar :name="provider.name" :path="provider.avatarSmallPath" :size="56" />
       <div class="min-w-0 flex-1">
-        <!-- Room for later: the provider's rating sits beside the name. -->
-        <p class="text-lg font-semibold">
-          <NuxtLink :to="profileUrl">{{ provider.name }}</NuxtLink>
-        </p>
+        <!-- The provider's combined rating beside the name (docs/design/reviews.md). -->
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p class="text-lg font-semibold">
+            <NuxtLink :to="profileUrl">{{ provider.name }}</NuxtLink>
+          </p>
+          <RatingLine :rating="provider.rating" :href="`${profileUrl}#reviews`" />
+        </div>
         <p v-if="provider.headline" class="mt-0.5">{{ provider.headline }}</p>
         <p class="text-muted-foreground mt-1 text-sm">{{ facts }}</p>
       </div>

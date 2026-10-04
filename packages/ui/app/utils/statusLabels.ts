@@ -39,6 +39,8 @@ export const STATUS_LABELS = {
     completed: "Happened",
     paid_out: "Paid out",
   },
+  // Reviews and replies (docs/design/reviews.md).
+  review: { published: "Published", removed: "Removed" },
   // Bookings, as the provider sees them.
   providerBooking: {
     requested: "Needs your answer",

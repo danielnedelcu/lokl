@@ -32,8 +32,17 @@ const { data, error, pending, refresh } = await useAsyncData("admin-dashboard", 
   return d as unknown as Dashboard;
 });
 watch(error, (e) => e && reportProblem("Couldn't load the dashboard", e), { immediate: true });
+// Reviews with open reports (docs/design/reviews.md), from the Reviews page's own function.
+const { data: reviewReports, refresh: refreshReviews } = await useAsyncData("admin-dashboard-review-reports", async () => {
+  const { data: d, error: e } = await supabase.rpc("admin_reviews_page", { p_reported: true, p_page_size: 1 });
+  if (e) {
+    reportProblem("Couldn't count the review reports", e);
+    return null;
+  }
+  return (d as unknown as { open_reports: number }).open_reports;
+});
 // Fresh numbers when the admin comes back to the tab.
-useLiveData({ refresh });
+useLiveData({ refresh: () => Promise.all([refresh(), refreshReviews()]) });
 
 // "Sep 5": a calendar day as the database gave it (no time zone shift).
 const day = (d: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`));
@@ -59,6 +68,7 @@ const queues = computed(() => {
     { label: "Open disputes", value: d.open_disputes, to: "/disputes", icon: "lucide:shield-alert" },
     { label: "Bookings that need attention", value: d.bookings_attention, to: "/bookings#attention-heading", icon: "lucide:triangle-alert" },
     { label: "Guide drafts", value: d.guide_drafts, to: "/content?status=draft", icon: "lucide:file-pen" },
+    { label: "Review reports to check", value: reviewReports.value ?? 0, to: "/content/reviews", icon: "lucide:flag" },
     { label: "Providers who can't be paid yet", value: d.providers_not_payable, to: "/providers?status=active&payouts=not_ready", icon: "lucide:wallet" },
   ];
 });

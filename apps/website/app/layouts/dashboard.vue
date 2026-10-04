@@ -11,6 +11,7 @@ const sections = computed(() => [{ items: provider.value
       { to: "/dashboard/services", label: "My services", icon: "lucide:wrench" },
       { to: "/dashboard/experiences", label: "My experiences", icon: "lucide:compass" },
       { to: "/dashboard/bookings", label: "Bookings", icon: "lucide:calendar" },
+      { to: "/dashboard/reviews", label: "Reviews", icon: "lucide:star" },
       { to: "/dashboard/payouts", label: "Payouts", icon: "lucide:wallet" },
       { to: "/dashboard/settings", label: "Business profile", icon: "lucide:settings" },
     ]

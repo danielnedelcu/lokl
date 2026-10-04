@@ -166,6 +166,36 @@ export class TestData {
       alter table public.bookings enable trigger bookings_guard;`]);
   }
 
+  /**
+   * Test-only: a booking that took place, `endedDaysAgo` days ago, and was
+   * completed by the pay-out job (so the review request is queued), with no
+   * payment (reviews don't need one; the guard trigger off, local database).
+   */
+  private sessions = 0;
+
+  async completedBooking(customer: TestUser, listingId: string, { name = "Sam Customer", endedDaysAgo = 1 } = {}) {
+    // A session each, an hour apart (a listing can't have two at one time).
+    const sessionId = await this.session(listingId, new Date(Date.parse(daysFromNow(3)) + this.sessions++ * 3600_000).toISOString());
+    const b = await must(this.env.db.rpc("reserve_experience_booking", {
+      p_session_id: sessionId, p_customer_id: customer.id, p_party_size: 1, p_customer_name: name,
+      p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null,
+      p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
+    })) as { id: string };
+    const ended = `now() - interval '${endedDaysAgo} days'`;
+    execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
+      alter table public.bookings disable trigger bookings_guard;
+      update public.bookings set status = 'confirmed', status_changed_by = 'stripe', confirmed_at = ${ended} - interval '3 days',
+        starts_at = ${ended} - interval '1 hour', ends_at = ${ended}, payout_due_at = ${ended} + interval '1 day' where id = '${b.id}';
+      update public.bookings set status = 'completed', status_changed_by = 'system' where id = '${b.id}';
+      alter table public.bookings enable trigger bookings_guard;`]);
+    return b.id;
+  }
+
+  /** Test-only: a published review, written as the database would take it (the service role skips the form). */
+  async review(bookingId: string, rating: number, body: string) {
+    return (await must(this.env.db.from("reviews").insert({ booking_id: bookingId, rating, body } as never).select("id").single())).id as string;
+  }
+
   /** Run a timed job through its route, as the scheduler does. */
   async job(name: string) {
     const res = await fetch(`http://localhost:3200/api/jobs/${name}`, { method: "POST", headers: { "x-job-secret": this.env.jobSecret } });
@@ -201,6 +231,11 @@ export class TestData {
       const ids = this.listings.map((i) => `'${i}'`).join(",");
       execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
         set session_replication_role = replica;
+        delete from admin_actions where target = 'review' and target_id in (select id from reviews where listing_id in (${ids}));
+        delete from review_reports where review_id in (select id from reviews where listing_id in (${ids}));
+        delete from review_replies where review_id in (select id from reviews where listing_id in (${ids}));
+        delete from reviews where listing_id in (${ids});
+        delete from listing_ratings where listing_id in (${ids});
         delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
         delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
         delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));
@@ -224,6 +259,7 @@ export class TestData {
         set session_replication_role = replica;
         delete from provider_emails where provider_id in (${ids});
         delete from saved_providers where provider_id in (${ids});
+        delete from provider_ratings where provider_id in (${ids});
         delete from admin_actions where target = 'provider' and target_id in (${ids});`]);
     }
     for (const id of this.providers) await this.env.db.from("providers").delete().eq("id", id);

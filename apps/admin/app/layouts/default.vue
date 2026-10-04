@@ -26,6 +26,7 @@ const sections = [
     items: [
       { to: "/content", label: "Destination guides", icon: "lucide:map" },
       { to: "/content/homepage", label: "Homepage", icon: "lucide:house" },
+      { to: "/content/reviews", label: "Reviews", icon: "lucide:star" },
     ],
   },
   {

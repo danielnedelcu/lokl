@@ -16,6 +16,7 @@
     "provider:suspended": "destructive",
     "record:active": "outline",
     "record:inactive": "secondary",
+    "review:removed": "destructive",
     "listing:draft": "outline",
     "listing:submitted": "secondary",
     "listing:live": "default",

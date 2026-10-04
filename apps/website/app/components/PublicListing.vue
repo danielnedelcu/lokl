@@ -169,13 +169,14 @@ useSchemaOrg([
 
     <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <div class="min-w-0 space-y-8">
-        <!-- The heart at the top right (docs/design/favourites.md). Room for
-             later (docs/design/provider-profiles.md): the rating line
-             directly under the title. -->
+        <!-- The heart at the top right (docs/design/favourites.md); the
+             listing's rating line directly under the title
+             (docs/design/reviews.md). -->
         <header class="flex items-start gap-3">
           <div class="min-w-0 flex-1">
             <p class="text-muted-foreground text-sm">{{ l.category.name }}</p>
             <h1 class="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">{{ l.title }}</h1>
+            <RatingLine :rating="l.rating" class="mt-1.5" />
             <p class="mt-2 flex items-center gap-1.5 text-sm">
               <Icon name="lucide:map-pin" class="size-4 shrink-0" aria-hidden="true" />
               {{ where }}
@@ -211,6 +212,9 @@ useSchemaOrg([
             </UiButton>
           </template>
         </section>
+
+        <ReviewsSection :listing-id="l.id" :rating="l.rating" :stars="l.stars" :provider-name="l.provider?.name ?? l.hostedBy"
+          :provider-avatar="l.provider?.avatarSmallPath" />
 
         <ProviderProfileCard v-if="l.provider" :provider="l.provider" :heading="hostWord" :more="l.moreFromProvider" :market="l.market" />
       </div>

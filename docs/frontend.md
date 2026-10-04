@@ -11,6 +11,8 @@ How the website and admin app build their UI. Same approach as The Reserve, adap
 - **Lucide** icons only. No Heroicons or other icon sets.
 - **vee-validate + zod** for forms.
 - **TanStack Table** for data tables.
+- **Radio groups** (`UiRadioGroup`) select the radio an arrow key moves to straight away, like native radios (a lokl change: Reka selects only if the key is still held when its timer runs, so an instant press from voice control, a switch device or a script moved focus without selecting).
+- **Stars:** ui-thing's `UiRating` draws stars only: its stars can't be reached or chosen with the keyboard and have no names, so it's always hidden from screen readers with the rating in words beside it (`ReviewStars`). To choose stars, use `StarRatingInput` (ui-thing's radio group, one named radio per star).
 - **Sonner**, through ui-thing's `UiSonner` (in each app's `app.vue`) and `useSonner`, for toasts. `useSonner` is the toast function itself, auto-imported by ui-thing: call `useSonner.success("Saved.")`, `useSonner.error(…)` or `useSonner("…")`, not `useSonner()`.
 
 No other component libraries. If ui-thing has a component for something, use it rather than writing a new one.

@@ -34,6 +34,13 @@ function ctx(kind: "service" | "experience", over: Partial<EmailContext["booking
   };
 }
 
+// A booking that took place two days ago, and its review.
+function done(): EmailContext {
+  const start = SAMPLE_NOW - 2 * 24 * H;
+  return ctx("experience", { status: "completed", starts_at: iso(start), ends_at: iso(start + 3 * H) });
+}
+const review: NonNullable<EmailContext["review"]> = { rating: 4, status: "published", removedRule: null, replyStatus: "published", replyRemovedRule: null };
+
 export interface Sample { kind: EmailKind; variant: string; ctx: EmailContext }
 
 export function emailSamples(): Sample[] {
@@ -73,5 +80,11 @@ export function emailSamples(): Sample[] {
     { kind: "provider_payout_problem", variant: "", ctx: ctx("experience", { status: "completed", starts_at: iso(start - 6 * 24 * H) }) },
     { kind: "provider_problem_paid", variant: "", ctx: ctx("experience", { status: "completed", starts_at: iso(SAMPLE_NOW - 26 * H) }) },
     { kind: "provider_problem_refunded", variant: "", ctx: ctx("experience", { status: "cancelled", cancelled_by: "admin", refunded_cents: 13000, starts_at: iso(SAMPLE_NOW - 26 * H) }) },
+    // Reviews (docs/design/reviews.md).
+    { kind: "customer_review_request", variant: "", ctx: done() },
+    { kind: "customer_review_reminder", variant: "", ctx: { ...done(), booking: { ...done().booking, starts_at: iso(SAMPLE_NOW - 10 * 24 * H), ends_at: iso(SAMPLE_NOW - 10 * 24 * H + 3 * H) } } },
+    { kind: "customer_review_removed", variant: "", ctx: { ...done(), review: { ...review, status: "removed", removedRule: "private_information" } } },
+    { kind: "provider_new_review", variant: "", ctx: { ...done(), review } },
+    { kind: "provider_reply_removed", variant: "", ctx: { ...done(), review: { ...review, replyStatus: "removed", replyRemovedRule: "abuse" } } },
   ];
 }

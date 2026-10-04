@@ -28,6 +28,10 @@ import type {
   PublicPhoto,
   PublicProvider,
   PublicProviderPage,
+  PublicReview,
+  PublicReviewPage,
+  RatingSummary,
+  StarCounts,
 } from "@repo/types";
 import { zonedToInstant } from "../../../../packages/ui/app/utils/zonedTime";
 
@@ -43,16 +47,29 @@ export function publicSupabase(url: string, publishableKey: string): SupabaseCli
 
 // A provider's public profile columns (the only ones visitors may read;
 // column grants enforce it), with their market's name.
-const PROVIDER_PUBLIC = "id, slug, display_name, headline, bio, avatar_path, avatar_small_path, cover_path, cover_card_path, created_at, market:cities(name, slug, state, timezone)";
+// Ratings (docs/design/reviews.md) are kept by the database on their own
+// rows, readable as far as the listing or provider is.
+const RATING_COLUMNS = "review_count, rating_average, stars_1, stars_2, stars_3, stars_4, stars_5";
+const PROVIDER_PUBLIC = `id, slug, display_name, headline, bio, avatar_path, avatar_small_path, cover_path, cover_card_path, created_at, market:cities(name, slug, state, timezone), ratings:provider_ratings(${RATING_COLUMNS})`;
+interface RatingRow {
+  review_count: number;
+  rating_average: number | string | null;
+  stars_1: number; stars_2: number; stars_3: number; stars_4: number; stars_5: number;
+}
+const toRating = (r: RatingRow | null | undefined): RatingSummary =>
+  ({ count: r?.review_count ?? 0, average: r?.rating_average == null ? null : Number(r.rating_average) });
+const toStars = (r: RatingRow | null | undefined): StarCounts =>
+  [r?.stars_1 ?? 0, r?.stars_2 ?? 0, r?.stars_3 ?? 0, r?.stars_4 ?? 0, r?.stars_5 ?? 0];
 interface ProviderRow {
   id: string; slug: string; display_name: string; headline: string | null; bio: string | null;
   avatar_path: string | null; avatar_small_path: string | null; cover_path: string | null; cover_card_path: string | null;
   created_at: string; market: PublicMarket | null;
+  ratings: RatingRow | null;
 }
 const toProvider = (p: ProviderRow): PublicProvider => ({
   id: p.id, slug: p.slug, name: p.display_name, headline: p.headline, bio: p.bio,
   avatarPath: p.avatar_path, avatarSmallPath: p.avatar_small_path, coverPath: p.cover_path, coverCardPath: p.cover_card_path,
-  market: p.market?.name ?? null, since: p.created_at,
+  market: p.market?.name ?? null, since: p.created_at, rating: toRating(p.ratings),
 });
 
 // The two service_areas embeds name their relationship: the listing's own
@@ -65,7 +82,8 @@ const LISTING_SELECT = `
   travel:listing_service_areas(area:service_areas!listing_service_areas_service_area_id_fkey(id, name, kind)),
   photos:listing_photos(storage_path, card_path, alt_text, position),
   hostedBy:providers(${PROVIDER_PUBLIC}),
-  sessions:experience_sessions(id, starts_at)
+  sessions:experience_sessions(id, starts_at),
+  ratings:listing_ratings(${RATING_COLUMNS})
 `;
 
 interface Row {
@@ -86,6 +104,7 @@ interface Row {
   photos: { storage_path: string; card_path: string | null; alt_text: string; position: number }[];
   hostedBy: ProviderRow | null;
   sessions: { id: string; starts_at: string }[];
+  ratings: RatingRow | null;
 }
 
 const toArea = (a: { name: string; kind: AreaKind }): PublicArea => ({ name: a.name, kind: a.kind });
@@ -109,6 +128,7 @@ function toCard(r: Row): PublicListingCard & { areaIds: string[]; sessionTimes: 
     cover: photos[0] ? toPhoto(photos[0]) : null,
     nextSessionAt: sessionTimes[0] ? new Date(sessionTimes[0]).toISOString() : null,
     providerId: r.hostedBy?.id ?? "",
+    rating: toRating(r.ratings),
     // For filtering and sorting only; not sent to pages.
     areaIds: [r.area?.id, ...travel.map((a) => a.id)].filter((id): id is string => !!id),
     sessionTimes,
@@ -152,6 +172,7 @@ export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, s
     sessions: spots,
     provider: r.hostedBy ? toProvider(r.hostedBy) : null,
     moreFromProvider: r.hostedBy ? await moreFromProvider(db, r.hostedBy.id, r.id) : { items: [], total: 0 },
+    stars: toStars(r.ratings),
   };
 }
 
@@ -189,7 +210,7 @@ export async function loadPublicProvider(db: SupabaseClient, slug: string): Prom
     .limit(100);
   if (lErr) throw new Error(lErr.message);
   const cards = ((rows ?? []) as unknown as Row[]).map((r) => stripInternal(toCard(r)));
-  return { provider, market: row.market, experiences: cards.filter((c) => c.kind === "experience"), services: cards.filter((c) => c.kind === "service") };
+  return { provider, stars: toStars(row.ratings), market: row.market, experiences: cards.filter((c) => c.kind === "experience"), services: cards.filter((c) => c.kind === "service") };
 }
 
 /** Saved listings that are visible now, as visitors see them (the Saved page). */
@@ -210,6 +231,41 @@ export async function loadSavedProviders(db: SupabaseClient, ids: string[]) {
   if (error) throw new Error(error.message);
   for (const r of (data ?? []) as unknown as ProviderRow[]) found.set(r.id, toProvider(r));
   return found;
+}
+
+export const REVIEWS_PAGE_SIZE = 10;
+
+/**
+ * A listing's or provider's published reviews, newest first, 10 a page,
+ * read as a visitor (docs/design/reviews.md). On a provider's, each names
+ * its listing while that listing is live (null otherwise: the read rules
+ * hide it). The reply comes with it.
+ */
+export async function loadPublicReviews(db: SupabaseClient, by: { listingId: string } | { providerId: string }, page: number): Promise<PublicReviewPage> {
+  const p = Math.max(1, Math.floor(page) || 1);
+  let q = db
+    .from("reviews")
+    .select("id, rating, body, reviewer_name, booking_month, created_at, edited_at, listing:listings(title, slug, kind), reply:review_replies(body, created_at, edited_at)", { count: "exact" });
+  q = "listingId" in by ? q.eq("listing_id", by.listingId) : q.eq("provider_id", by.providerId);
+  const { data, error, count } = await q
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range((p - 1) * REVIEWS_PAGE_SIZE, p * REVIEWS_PAGE_SIZE - 1);
+  if (error) throw new Error(error.message);
+  type R = {
+    id: string; rating: number; body: string; reviewer_name: string; booking_month: string; created_at: string; edited_at: string | null;
+    listing: { title: string; slug: string; kind: ListingKind } | null;
+    reply: { body: string; created_at: string; edited_at: string | null } | { body: string; created_at: string; edited_at: string | null }[] | null;
+  };
+  const items: PublicReview[] = ((data ?? []) as unknown as R[]).map((r) => {
+    const reply = Array.isArray(r.reply) ? r.reply[0] ?? null : r.reply;
+    return {
+      id: r.id, rating: r.rating, body: r.body, reviewerName: r.reviewer_name, bookingMonth: r.booking_month,
+      createdAt: r.created_at, editedAt: r.edited_at, listing: r.listing,
+      reply: reply ? { body: reply.body, createdAt: reply.created_at, editedAt: reply.edited_at } : null,
+    };
+  });
+  return { items, total: count ?? 0, page: p, pageSize: REVIEWS_PAGE_SIZE };
 }
 
 export interface BrowseQuery {

@@ -4,7 +4,8 @@
 
 export type NotificationKind =
   | "listing_approved" | "listing_rejected" | "listing_unpublished" | "listing_restored"
-  | "booking_requested" | "booking_confirmed" | "booking_cancelled" | "booking_problem_reported";
+  | "booking_requested" | "booking_confirmed" | "booking_cancelled" | "booking_problem_reported"
+  | "review_posted";
 
 export function notificationText(kind: NotificationKind, title: string): string {
   const t = `“${title}”`;
@@ -25,6 +26,8 @@ export function notificationText(kind: NotificationKind, title: string): string 
       return `A booking for ${t} was cancelled.`;
     case "booking_problem_reported":
       return `A customer reported a problem with a booking for ${t}. lokl will be in touch.`;
+    case "review_posted":
+      return `New review of ${t}. You can reply to it.`;
   }
 }
 

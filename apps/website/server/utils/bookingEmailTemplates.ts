@@ -11,7 +11,7 @@
 // Plain TypeScript with no Nuxt imports: the sender, the tests and
 // `npm run email:previews` all use these same functions.
 
-import { customerCancelOutcome, PROFILE_RULES, type ProfileRule } from "@repo/types";
+import { customerCancelOutcome, PROFILE_RULES, REVIEW_RULES, type ProfileRule, type ReviewRule } from "@repo/types";
 
 export const EMAIL_KINDS = [
   "customer_request_sent", "customer_request_accepted", "customer_request_declined", "customer_request_expired",
@@ -19,6 +19,7 @@ export const EMAIL_KINDS = [
   "provider_new_request", "provider_new_booking", "provider_booking_cancelled", "provider_request_unanswered",
   "provider_payout_sent", "provider_problem_reported", "provider_payout_problem",
   "provider_problem_paid", "provider_problem_refunded",
+  "customer_review_request", "customer_review_reminder", "customer_review_removed", "provider_new_review", "provider_reply_removed",
 ] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 
@@ -39,18 +40,51 @@ export interface EmailContext {
     cancelled_by: string | null;
     status_changed_by: string;
     customer_name: string;
+    /** For the review emails: the 14 days to review count from the end. */
+    ends_at?: string | null;
+    cancelled_at?: string | null;
+    problem_reported_at?: string | null;
+    problem_resolution?: string | null;
     /** lokl cancelled after the payout: the provider's share was taken back, or couldn't be. */
     stripe_transfer_reversal_id?: string | null;
     reversal_failed_at?: string | null;
   };
   listing: { title: string; kind: "service" | "experience"; categorySlug: string | null; marketSlug: string; marketName: string; timezone: string };
   provider: { name: string };
+  /** The booking's review, if any (docs/design/reviews.md). Never its words: emails get forwarded. */
+  review?: {
+    rating: number;
+    status: "published" | "removed";
+    removedRule: ReviewRule | null;
+    replyStatus: "published" | "removed" | null;
+    replyRemovedRule: ReviewRule | null;
+  } | null;
 }
 
 export interface RenderedEmail {
   subject: string;
   text: string;
   html: string;
+}
+
+/**
+ * A review email that no longer applies, with why (else null): a request or
+ * reminder once reviewed, past the window, or for a booking that no longer
+ * qualifies; a removal email once it's been restored; a new-review email
+ * once the review was deleted.
+ */
+export function staleReviewEmail(kind: EmailKind, ctx: EmailContext, now = new Date()): string | null {
+  const b = ctx.booking;
+  if (kind === "customer_review_request" || kind === "customer_review_reminder") {
+    if (ctx.review) return "Already reviewed.";
+    if (b.cancelled_at || !["completed", "paid_out"].includes(b.status)) return "The booking can't be reviewed.";
+    if (b.problem_reported_at && b.problem_resolution !== "paid_provider") return "A no-show report is open.";
+    if (!b.ends_at || now.getTime() >= Date.parse(b.ends_at) + 14 * 86_400_000) return "The 14 days to review have passed.";
+  }
+  if (kind === "customer_review_removed" && ctx.review?.status !== "removed") return "The review isn't removed any more.";
+  if (kind === "provider_reply_removed" && ctx.review?.replyStatus !== "removed") return "The reply isn't removed any more.";
+  if (kind === "provider_new_review" && !ctx.review) return "The review was deleted.";
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,6 +396,68 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
         ],
         button: { label: "Check payout settings", url: `${c.siteUrl}/dashboard/payouts` },
       });
+
+    // ------------------------------------------------------------ reviews
+    // The same words for everyone, and nothing offered (docs/design/reviews.md:
+    // no incentives). Never the review's own words.
+    case "customer_review_request":
+    case "customer_review_reminder": {
+      const closes = b.ends_at ? dateOnly(new Date(Date.parse(b.ends_at) + 14 * 86_400_000).toISOString(), tz) : "";
+      return render({
+        recipient: "customer",
+        subject: kind === "customer_review_request" ? `How was ${l.title}?` : `4 days left to review ${l.title}`,
+        intro: [
+          `Thanks for booking with ${provider.name}${date ? ` on ${date}` : ""}. If you have a minute, tell others what it was like: give it one to five stars and a few words.`,
+        ],
+        after: [
+          `You can write it${closes ? ` until ${closes}` : " for 14 days after your booking"}. Reviews are public and show your first name and last initial.`,
+        ],
+        button: { label: "Write a review", url: `${customerUrl}#review` },
+        link: { label: "Our review rules", url: `${c.siteUrl}/review-rules` },
+      });
+    }
+    case "customer_review_removed": {
+      const rule = c.review?.removedRule;
+      return render({
+        recipient: "customer",
+        subject: `We removed your review of ${l.title}`,
+        intro: [
+          rule
+            ? `We removed your review because it ${REVIEW_RULES[rule].title.toLowerCase()}: ${REVIEW_RULES[rule].text}`
+            : "We removed your review because it broke one of our review rules.",
+          "We remove a review only when it breaks one of our written rules, never for being negative. It can't be posted again for this booking.",
+        ],
+        button: { label: "See your booking", url: `${customerUrl}#review` },
+        link: { label: "Our review rules", url: `${c.siteUrl}/review-rules` },
+      });
+    }
+    case "provider_new_review": {
+      const stars = c.review?.rating;
+      return render({
+        recipient: "provider",
+        subject: `New review: ${l.title}`,
+        intro: [
+          `${name} reviewed their booking for ${l.title}${date ? ` on ${date}` : ""}${stars ? `, ${stars} out of 5 stars` : ""}.`,
+          "You can post one public reply. Keep it about the booking, and don't offer anything in return for changing the review.",
+        ],
+        button: { label: "Read and reply", url: `${providerUrl}#review` },
+      });
+    }
+    case "provider_reply_removed": {
+      const rule = c.review?.replyRemovedRule;
+      return render({
+        recipient: "provider",
+        subject: `We removed your reply: ${l.title}`,
+        intro: [
+          rule
+            ? `We removed your reply to ${name}'s review because it ${REVIEW_RULES[rule].title.toLowerCase()}: ${REVIEW_RULES[rule].text}`
+            : `We removed your reply to ${name}'s review because it broke one of our review rules.`,
+          "You can delete it and write a new one on the booking page.",
+        ],
+        button: { label: "See the booking", url: `${providerUrl}#review` },
+        link: { label: "Our review rules", url: `${c.siteUrl}/review-rules` },
+      });
+    }
   }
 }
 

@@ -4,8 +4,8 @@
 // dialog's rule. No network, no database.
 // Run: npx tsx supabase/tests/app/booking-email-templates.test.mts
 
-import { EMAIL_KINDS, renderEmail, renderProviderAccountEmail } from "../../../apps/website/server/utils/bookingEmailTemplates";
-import { emailSamples } from "./_emailSamples";
+import { EMAIL_KINDS, renderEmail, renderProviderAccountEmail, staleReviewEmail } from "../../../apps/website/server/utils/bookingEmailTemplates";
+import { emailSamples, SAMPLE_NOW } from "./_emailSamples";
 
 let failures = 0;
 const check = (ok: boolean, name: string) => { console.log(`${ok ? "ok  " : "FAIL"} ${name}`); if (!ok) failures++; };
@@ -112,6 +112,30 @@ check(edited.text.includes("Your profile photo") && edited.text.includes("The \"
 check(edited.text.includes("The rule it didn't follow: Phone numbers, email addresses or web addresses."), "8c. it names the rule, in its written words");
 check(edited.text.includes("A message from lokl:\nPlease add your photo again") && edited.text.includes("/dashboard/settings"),
   "8d. lokl's message is included, and the button goes to the profile settings");
+
+// 9. Reviews (docs/design/reviews.md).
+const req9 = find("customer_review_request");
+check(req9.subject === "How was Sweet Auburn food walk?" && req9.text.includes("/account/bookings/00000000-0000-4000-8000-000000000001#review"),
+  "9a. the request asks how it was, and links to the review form");
+check(req9.text.includes("until Sun, Oct 18") && req9.text.includes("first name and last initial") && req9.text.includes("/review-rules"),
+  "9b. ...says until when, how the name shows, and links to the rules");
+const allReview = all.filter((a) => a.kind.includes("review") || a.kind.includes("reply"));
+check(allReview.every((a) => !/discount|gift|reward|voucher|coupon|free|good review|5 stars|five-star/i.test(a.out.text.replace(/one to five stars|\d out of 5 stars/g, ""))),
+  "9c. no review email offers anything or asks for a good review");
+check(find("customer_review_reminder").subject === "4 days left to review Sweet Auburn food walk", "9d. the reminder says how long is left");
+const removed9 = find("customer_review_removed");
+check(removed9.text.includes("shares private information") && removed9.text.includes("never for being negative"), "9e. a removal names the rule, and says negative reviews stay");
+check(find("provider_new_review").text.includes("4 out of 5 stars") && find("provider_new_review").text.includes("#review"), "9f. the provider hears the stars and where to reply");
+check(find("provider_reply_removed").text.includes("is abusive") && find("provider_reply_removed").text.includes("write a new one"), "9g. a removed reply names the rule, and says they can write again");
+const base9 = all.find((a) => a.kind === "customer_review_request")!.ctx;
+const now9 = new Date(SAMPLE_NOW);
+check(staleReviewEmail("customer_review_request", base9, now9) === null, "9h. a request for a qualifying booking goes out");
+check(staleReviewEmail("customer_review_reminder", { ...base9, review: { rating: 5, status: "published", removedRule: null, replyStatus: null, replyRemovedRule: null } }, now9) === "Already reviewed.",
+  "9i. ...not once reviewed");
+check(staleReviewEmail("customer_review_request", { ...base9, booking: { ...base9.booking, cancelled_at: base9.booking.ends_at } }, now9) !== null, "9j. ...not for a cancelled booking");
+check(staleReviewEmail("customer_review_reminder", base9, new Date(SAMPLE_NOW + 15 * 86_400_000)) === "The 14 days to review have passed.", "9k. ...not after the window");
+check(staleReviewEmail("customer_review_removed", { ...base9, review: { rating: 2, status: "published", removedRule: null, replyStatus: null, replyRemovedRule: null } }, now9) !== null,
+  "9l. a removal email isn't sent once the review is restored");
 
 console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} booking emails, 3 account emails).`);
 process.exit(failures ? 1 : 0);

@@ -643,9 +643,20 @@ templates in [bookingEmailTemplates.ts](../../apps/website/server/utils/bookingE
 | `provider_problem_paid` | provider | the report resolved: pay the provider |
 | `customer_problem_refunded` | customer | the report resolved: refund (instead of the cancellation emails) |
 | `provider_problem_refunded` | provider | the same |
+| `customer_review_request` | customer | `confirmed` → `completed` (or a report resolved as "pay the provider"), if the booking can be reviewed: trigger `bookings_queue_review_request` ([reviews migration](../../supabase/migrations/20261004193319_reviews.sql), docs/design/reviews.md) |
+| `customer_review_reminder` | customer | the `review-reminders` job, once, 10 to 14 days after the end, if not reviewed |
+| `provider_new_review` | provider | a review is posted (trigger on `reviews`) |
+| `customer_review_removed` | customer | an admin removes the review (`admin_moderate_review`) |
+| `provider_reply_removed` | provider | an admin removes the provider's reply |
+
+The review emails are skipped when they no longer apply: a request or
+reminder once reviewed, past the 14 days, or for a booking that can't be
+reviewed; a removal email once restored; a new-review email once the
+review was deleted (`staleReviewEmail` in the templates).
 
 Not emailed: checkouts that lapse or fail (`pending_payment` → `expired` or
-`cancelled`) and `confirmed` → `completed`.
+`cancelled`), and `confirmed` → `completed` itself (only the review request
+above).
 
 **Sending:** a row is claimed (`pending` → `sending`; a claim older than 10
 minutes is taken over) and sent through Resend with the idempotency key
@@ -670,6 +681,7 @@ Provider account emails (paused or active again) are a separate outbox,
 | `booking_confirmed` | the same | an Experience is paid |
 | `booking_cancelled` | the same | a request or booking is cancelled by someone other than the provider |
 | `booking_problem_reported` | trigger `bookings_notify_problem` | a no-show report |
+| `review_posted` | trigger `reviews_notify_provider` | a review of the booking is posted (docs/design/reviews.md) |
 
 Listing kinds (approved, sent back and so on) come from
 `listings_notify_status_change`. Only `notifications` is published to
@@ -730,6 +742,7 @@ Locally: `npm run job -- <name>` ([scripts/job.mjs](../../scripts/job.mjs)).
 | `expire-requests` | expires requests past `respond_by` and releases the hold | skips a hold that was captured meanwhile; moves only from `requested` |
 | `withdraw-unavailable` | declines requests, and ends checkouts, whose listing, provider, category or city went away; refunds and cancels bookings on cancelled sessions | conditional moves; refunds count what's already refunded |
 | `pay-out` | completes ended bookings, then pays out or holds each due one | looks for an existing transfer in the booking's group first; holds only where none is set |
+| `review-reminders` | queues the one review reminder per booking, 10 to 14 days after its end (`queue_review_reminders`); not limited to one booking | the outbox sends each kind once per booking |
 | `send-emails` | sends queued emails | rows are claimed; Resend keys are per row |
 
 **No scheduler runs these yet.** Until hosting is chosen they're run by hand
