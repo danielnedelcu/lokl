@@ -149,19 +149,20 @@ const seriesSummary = computed(() => {
 const save = form.handleSubmit(async (v) => {
   const capacity = Number(v.capacity);
   busy.value = true;
-  const { error } = editing.value
+  const error = changedRows(editing.value
     ? await supabase
         .from("experience_sessions")
         .update({ starts_at: zonedToInstant(v, props.timeZone), capacity })
         .eq("id", editing.value.id)
+        .select("id")
     : await supabase.from("experience_sessions").insert(
         (v.repeat ? weeklyInstants(v, Number(v.weeks), props.timeZone) : [zonedToInstant(v, props.timeZone)])
           .map((starts_at) => ({ listing_id: props.listingId, starts_at, capacity })),
-      );
+      ).select("id"));
   busy.value = false;
   if (error) {
     const saving = editing.value ? "The change wasn't saved" : v.repeat ? "None of these sessions were added" : "The session wasn't added";
-    return useSonner.error(`${saving}. ${error.message}`);
+    return useSonner.error(problemText(error, `${saving}. ${error.message}`));
   }
   useSonner.success(editing.value ? "Session updated." : v.repeat ? `${v.weeks} sessions added.` : "Session added.");
   formOpen.value = false;
@@ -202,10 +203,10 @@ async function confirmCancelBooked(reason: string) {
 async function confirmCancel() {
   if (!cancelling.value) return;
   busy.value = true;
-  const { error } = await supabase.from("experience_sessions").delete().eq("id", cancelling.value.id);
+  const error = changedRows(await supabase.from("experience_sessions").delete().eq("id", cancelling.value.id).select("id"), "deleted");
   busy.value = false;
   cancelOpen.value = false;
-  if (error) return useSonner.error(`The session wasn't cancelled. ${error.message}`);
+  if (error) return useSonner.error(problemText(error, `The session wasn't cancelled. ${error.message}`));
   useSonner.success("Session cancelled.");
   await reload();
 }

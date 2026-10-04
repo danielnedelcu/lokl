@@ -81,16 +81,16 @@ watch(
 
 const save = handleSubmit(async (input) => {
   const { kind, ...fields } = input;
-  const { error } = editing.value
-    ? await supabase.from("categories").update(fields).eq("id", editing.value.id)
-    : await supabase.from("categories").insert({ ...fields, kind, sort_order: ofKind(kind).length });
+  const error = changedRows(editing.value
+    ? await supabase.from("categories").update(fields).eq("id", editing.value.id).select("id")
+    : await supabase.from("categories").insert({ ...fields, kind, sort_order: ofKind(kind).length }).select("id"));
 
-  if (error?.code === "23505") {
+  if (error && "code" in error && error.code === "23505") {
     setFieldError("slug", `Another ${kindLabel(kind).label} category already uses this slug. Choose a different one.`);
     return;
   }
   if (error) {
-    useSonner.error(reportProblem("The category wasn't saved. Try again.", error));
+    useSonner.error(reportProblem(problemText(error, "The category wasn't saved. Try again."), error));
     return;
   }
   useSonner.success(editing.value ? "Category saved." : "Category added.");
@@ -106,9 +106,9 @@ const busy = ref(false);
 
 async function toggleActive(category: Category) {
   busy.value = true;
-  const { error } = await supabase.from("categories").update({ active: !category.active }).eq("id", category.id);
+  const error = changedRows(await supabase.from("categories").update({ active: !category.active }).eq("id", category.id).select("id"), "changed");
   busy.value = false;
-  if (error) return useSonner.error(reportProblem("That didn't work. Try again.", error));
+  if (error) return useSonner.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
   useSonner.success(
     category.active
       ? `“${category.name}” is now inactive and hidden from the public site.`
@@ -148,7 +148,7 @@ async function move(kind: Kind, index: number, direction: -1 | 1) {
   try {
     await saveOrder(supabase, "categories", ofKind(kind), index, direction);
   } catch (e) {
-    useSonner.error(reportProblem("The new order wasn't saved. Try again.", e));
+    useSonner.error(reportProblem(problemText(e, "The new order wasn't saved. Try again."), e));
   }
   busy.value = false;
   await refresh();

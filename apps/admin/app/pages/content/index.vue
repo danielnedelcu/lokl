@@ -76,6 +76,11 @@ async function loadCounts() {
 }
 watch(() => table.query.value.q, () => void loadCounts(), { immediate: true });
 
+// Empty drafts left by a closed tab (the editor discards the rest itself).
+onMounted(async () => {
+  if (await removeAbandonedDrafts(supabase)) await Promise.all([table.refresh(), loadCounts()]);
+});
+
 const isLive = (r: Row) => r.status === "published";
 const tabs: { value: Tab; label: string; empty: string }[] = [
   { value: "all", label: "All", empty: "No guides yet. Start with “New guide”." },
@@ -90,18 +95,26 @@ const viewLink = (r: Row) =>
   isLive(r) && r.market ? { to: `${websiteUrl}/${r.market.slug}/guides/${r.slug}`, external: true } : { to: `/content/${r.id}/preview`, external: false };
 
 // Delete: only a guide that's never been published (the database refuses
-// the rest: their address is in search results). Asks first.
+// the rest: their address is in search results). Asks first. Which guide is
+// kept apart from whether the dialog is open: the dialog's Delete button
+// closes it before its click handler runs, and clearing the guide on close
+// made the delete do nothing (found 2026-10-04).
+const deleteOpen = ref(false);
 const deleting = ref<{ id: string; title: string } | null>(null);
 const deleteBusy = ref(false);
+function askDelete(r: Row) {
+  deleting.value = { id: r.id, title: titleOf(r) };
+  deleteOpen.value = true;
+}
 async function confirmDelete() {
   const row = deleting.value;
-  if (!row) return;
+  if (!row || deleteBusy.value) return;
   deleteBusy.value = true;
   const e = await deleteGuideWithPhotos(supabase, row.id);
   deleteBusy.value = false;
-  if (e) return void useSonner.error(reportProblem("The guide wasn't deleted. Try again.", e));
-  deleting.value = null;
-  useSonner.success("Guide deleted.");
+  deleteOpen.value = false;
+  if (e) return void useSonner.error(reportProblem(problemText(e, "The guide wasn't deleted. Try again."), e));
+  useSonner.success(`Deleted “${row.title}”.`);
   await Promise.all([table.refresh(), loadCounts()]);
 }
 
@@ -215,7 +228,7 @@ async function createGuide(marketId: string | undefined) {
                 <UiTooltip v-if="!r.published_at">
                   <UiTooltipTrigger as-child>
                     <UiButton size="icon-sm" variant="ghost" class="hover:text-destructive" :aria-label="`Delete post: ${titleOf(r)}`"
-                      @click="deleting = { id: r.id, title: titleOf(r) }">
+                      @click="askDelete(r)">
                       <Icon name="lucide:trash-2" aria-hidden="true" />
                     </UiButton>
                   </UiTooltipTrigger>
@@ -233,9 +246,8 @@ async function createGuide(marketId: string | undefined) {
       </UiTabsContent>
     </UiTabs>
 
-    <UiAlertDialog :open="!!deleting" title="Delete this guide?"
-      :description="`“${deleting?.title ?? ''}” and its photos are deleted. This can't be undone.`"
-      @update:open="(o) => { if (!o && !deleteBusy) deleting = null; }">
+    <UiAlertDialog v-model:open="deleteOpen" title="Delete this guide?"
+      :description="`“${deleting?.title ?? ''}” and its photos are deleted. This can't be undone.`">
       <template #footer>
         <UiAlertDialogFooter>
           <UiAlertDialogCancel text="Keep it" />

@@ -210,8 +210,8 @@ async function removePhoto(photo: GuidePhoto) {
   if (!(await autosave.flush())) {
     return void useSonner.error("Your latest changes haven't saved yet. Try again once they have.");
   }
-  const { error: e } = await supabase.from("guide_photos").delete().eq("id", photo.id);
-  if (e) return void useSonner.error(reportProblem("The photo wasn't deleted. Try again.", e));
+  const e = changedRows(await supabase.from("guide_photos").delete().eq("id", photo.id).select("id"), "deleted");
+  if (e) return void useSonner.error(reportProblem(problemText(e, "The photo wasn't deleted. Try again."), e));
   await supabase.storage.from(GUIDE_PHOTO_BUCKET).remove([photo.storage_path, ...(photo.card_path ? [photo.card_path] : [])]);
   // Deleting the draft cover clears it in the database, which changes the row.
   await reloadGuide();
@@ -434,12 +434,32 @@ async function deleteGuide() {
   const e = await deleteGuideWithPhotos(supabase, id.value);
   if (e) {
     busy.value = false;
-    return void useSonner.error(reportProblem("The guide wasn't deleted. Try again.", e));
+    return void useSonner.error(reportProblem(problemText(e, "The guide wasn't deleted. Try again."), e));
   }
+  discarded = true;
   autosave.stop();
   useSonner.success("Guide deleted.");
   await navigateTo("/content");
 }
+
+// Leaving a guide that's still empty (never published; no title, teaser,
+// text or photos) discards it, so "New guide" followed by a change of mind
+// leaves nothing behind (decided 2026-10-04). Going to its own preview
+// isn't leaving it. Runs after autosave's own leave check.
+let discarded = false;
+onBeforeRouteLeave(async (to) => {
+  // (Not while an AI draft is being written into it: it's about to have content.)
+  if (discarded || locked.value || !guide.value || to.path.startsWith(`/content/${id.value}`)) return true;
+  if (!isEmptyDraft({ ...guide.value, draft_title: draft.title, draft_teaser: draft.teaser, draft_body: draft.body }, photos.value.length)) return true;
+  autosave.stop();
+  const e = await deleteGuideWithPhotos(supabase, id.value);
+  if (e) reportProblem("Couldn't discard the empty guide", e);
+  else {
+    discarded = true;
+    useSonner("The empty guide was discarded.");
+  }
+  return true;
+});
 
 async function preview() {
   if (!(await autosave.flush())) {

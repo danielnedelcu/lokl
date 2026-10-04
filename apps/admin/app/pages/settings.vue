@@ -36,12 +36,12 @@ const save = handleSubmit(async (v) => {
     for (const kind of ["service", "experience"] as const) {
       const bps = Math.round(Number(v[kind]) * 100);
       if (bps === rateOf(kind)) continue;
-      const { error: e } = await supabase.from("commission_rates").update({ rate_bps: bps }).eq("kind", kind);
+      const e = changedRows(await supabase.from("commission_rates").update({ rate_bps: bps }).eq("kind", kind).select("kind"));
       if (e) throw e;
     }
     useSonner.success("Commission rates saved. They apply to new bookings.");
   } catch (e) {
-    useSonner.error(reportProblem("The commission rates weren't saved. Try again.", e));
+    useSonner.error(reportProblem(problemText(e, "The commission rates weren't saved. Try again."), e));
   } finally {
     saving.value = false;
     await refresh();

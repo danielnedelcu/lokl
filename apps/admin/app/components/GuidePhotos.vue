@@ -149,9 +149,9 @@ function openEdit(photo: GuidePhoto) {
 const saveEdit = form.handleSubmit(async (values) => {
   if (!editing.value) return;
   busy.value = true;
-  const { error } = await supabase.from("guide_photos").update(guidePhotoColumns(values)).eq("id", editing.value.id);
+  const error = changedRows(await supabase.from("guide_photos").update(guidePhotoColumns(values)).eq("id", editing.value.id).select("id"));
   busy.value = false;
-  if (error) return useSonner.error(reportProblem("The details weren't saved. Try again.", error));
+  if (error) return useSonner.error(reportProblem(problemText(error, "The details weren't saved. Try again."), error));
   useSonner.success("Photo details saved.");
   editOpen.value = false;
   emit("changed");
@@ -184,23 +184,24 @@ const removeDescription = computed(() => {
 
 <template>
   <section aria-labelledby="photos-heading" class="space-y-3">
-    <div class="flex items-center justify-between gap-2">
-      <h2 id="photos-heading" class="font-medium">Photos</h2>
-      <UiButton size="sm" variant="outline" :disabled="busy" @click="fileInput?.click()">
-        <Icon name="lucide:image-plus" aria-hidden="true" />
-        Add photos
-      </UiButton>
-    </div>
-    <p class="text-muted-foreground text-sm">
-      The cover needs to be landscape and at least 1,600 × 900 pixels. Photos in the body can be any size. Photos are resized and their location data is
-      removed before upload.
-    </p>
+    <h2 id="photos-heading" class="sr-only">Photos</h2>
+    <!-- One large area that opens the file picker (as the blog's cover upload
+         did), not a heading and a small button. A real button, so it works
+         with the keyboard; the text says what happens and what's accepted. -->
+    <button type="button" :disabled="busy" aria-describedby="photos-hint"
+      class="border-border bg-muted/50 text-muted-foreground hover:border-foreground/40 hover:text-foreground focus-visible:ring-ring/50 flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center transition-colors outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-60"
+      @click="fileInput?.click()">
+      <span class="bg-background flex size-10 items-center justify-center rounded-full border shadow-sm">
+        <Icon :name="busy ? 'lucide:loader-circle' : 'lucide:cloud-upload'" :class="['size-5', busy && 'animate-spin']" aria-hidden="true" />
+      </span>
+      <span class="text-foreground text-sm font-medium">{{ busy ? "Working…" : photos.length ? "Click to add more photos" : "Click to add photos" }}</span>
+      <span id="photos-hint" class="text-xs">
+        JPEG, PNG or WebP. The cover needs to be landscape and at least 1,600 × 900 pixels; photos in the body can be any size.
+        Photos are resized and their location data removed before upload.
+      </span>
+    </button>
 
-    <p v-if="!photos.length" class="border-border rounded-md border border-dashed p-4 text-center text-sm">
-      No photos yet. Add a cover photo, and any photos for the body.
-    </p>
-
-    <ul v-else class="space-y-3">
+    <ul v-if="photos.length" class="space-y-3">
       <li v-for="photo in photos" :key="photo.id" class="border-border overflow-hidden rounded-lg border">
         <NuxtImg :src="publicUrl(photo.card_path ?? photo.storage_path)" :alt="photo.alt_text" width="600"
           :height="Math.round((600 * photo.height) / photo.width)" class="h-auto w-full" loading="lazy" />

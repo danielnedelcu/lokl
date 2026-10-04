@@ -16,7 +16,7 @@ export async function saveOrder(
   [next[index], next[target]] = [next[target]!, next[index]!];
   for (const [position, item] of next.entries()) {
     if (item.sort_order === position) continue;
-    const { error } = await supabase.from(table).update({ sort_order: position }).eq("id", item.id);
-    if (error) throw error;
+    const e = changedRows(await supabase.from(table).update({ sort_order: position }).eq("id", item.id).select("id"), "changed");
+    if (e) throw e;
   }
 }

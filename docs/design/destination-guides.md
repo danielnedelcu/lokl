@@ -215,7 +215,9 @@ Following the blog's pattern, with its gaps closed:
 - **New guide (changed 2026-10-03):** creates an empty guide straight away and
   opens it (with several cities, it asks which first). Its address is a
   placeholder (`new-guide-…`) that follows the title, typed or from an AI draft,
-  until the admin types an address by hand or the guide is first published.
+  until the admin types an address by hand or the guide is first published. Left
+  empty (no title, teaser, text or photos), it's discarded on leaving the
+  editor; one left by a closed tab is removed from the list after an hour.
 - **Saving:** autosave about 1.5 seconds after typing stops, with "Saved" or
   "Couldn't save, retrying" shown; errors are handled, not lost.
 - **Draft and live:** the editor always edits the draft columns. On a published

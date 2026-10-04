@@ -224,6 +224,11 @@ async function run<T>(query: PromiseLike<{ data: T; error: { message: string } |
   if (error) throw new Error(error.message);
   return data;
 }
+/** An update or delete that must change at least one row (query ends in .select("id")). */
+async function runChanged(query: PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>, done: "saved" | "deleted" = "saved") {
+  const e = changedRows(await query, done);
+  if (e) throw e;
+}
 
 const save = handleSubmit(async (v) => {
   try {
@@ -251,16 +256,16 @@ const save = handleSubmit(async (v) => {
       );
       id = (created as { id: string }).id;
     } else if (status.value === "live") {
-      await run(supabase.from("listings").update({ price_cents: fields.price_cents, description: fields.description }).eq("id", id));
+      await runChanged(supabase.from("listings").update({ price_cents: fields.price_cents, description: fields.description }).eq("id", id).select("id"));
     } else if (editable.value) {
-      await run(supabase.from("listings").update(fields).eq("id", id));
+      await runChanged(supabase.from("listings").update(fields).eq("id", id).select("id"));
     }
 
     if (editable.value || !props.listingId) {
       if (showAddress.value && v.address) {
-        await run(supabase.from("listing_addresses").upsert({ listing_id: id, ...v.address }));
+        await runChanged(supabase.from("listing_addresses").upsert({ listing_id: id, ...v.address }).select("listing_id"));
       } else if (saved.value?.address) {
-        await run(supabase.from("listing_addresses").delete().eq("listing_id", id));
+        await runChanged(supabase.from("listing_addresses").delete().eq("listing_id", id).select("listing_id"), "deleted");
       }
     }
 
@@ -274,7 +279,7 @@ const save = handleSubmit(async (v) => {
         await run(supabase.from("listing_service_areas").insert(add.map((a) => ({ listing_id: id, service_area_id: a }))));
       }
       if (remove.length) {
-        await run(supabase.from("listing_service_areas").delete().eq("listing_id", id).in("service_area_id", remove));
+        await runChanged(supabase.from("listing_service_areas").delete().eq("listing_id", id).in("service_area_id", remove).select("listing_id"), "deleted");
       }
     }
 
@@ -287,7 +292,7 @@ const save = handleSubmit(async (v) => {
     await refreshOwn();
     resetForm({ values: formValues() });
   } catch (e) {
-    useSonner.error(`That didn't save: ${(e as Error).message}`);
+    useSonner.error(problemText(e, `That didn't save: ${(e as Error).message}`));
   }
 });
 
@@ -348,10 +353,10 @@ async function act(action: "publish" | "submit" | "unlist") {
 
 async function deleteDraft() {
   acting.value = true;
-  const { error } = await supabase.from("listings").delete().eq("id", props.listingId!);
+  const error = changedRows(await supabase.from("listings").delete().eq("id", props.listingId!).select("id"), "deleted");
   acting.value = false;
   deleteOpen.value = false;
-  if (error) return useSonner.error(`That didn't delete: ${error.message}`);
+  if (error) return useSonner.error(problemText(error, `That didn't delete: ${error.message}`));
   // The photo rows went with the listing; remove their files too.
   const folder = `${listing.value!.provider_id}/${props.listingId}`;
   const { data: files } = await supabase.storage.from("listing-photos").list(folder);

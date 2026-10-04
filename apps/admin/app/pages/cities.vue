@@ -82,14 +82,14 @@ watch(
 );
 
 const saveCity = cityForm.handleSubmit(async (input) => {
-  const { error } = editingCity.value
-    ? await supabase.from("cities").update(input).eq("id", editingCity.value.id)
-    : await supabase.from("cities").insert({ ...input, sort_order: cities.value.length });
-  if (error?.code === "23505") {
+  const error = changedRows(editingCity.value
+    ? await supabase.from("cities").update(input).eq("id", editingCity.value.id).select("id")
+    : await supabase.from("cities").insert({ ...input, sort_order: cities.value.length }).select("id"));
+  if (error && "code" in error && error.code === "23505") {
     cityForm.setFieldError("slug", "Another market already uses this slug. Choose a different one.");
     return;
   }
-  if (error) return useSonner.error(reportProblem("The market wasn't saved. Try again.", error));
+  if (error) return useSonner.error(reportProblem(problemText(error, "The market wasn't saved. Try again."), error));
   useSonner.success(editingCity.value ? "Market saved." : "Market added.");
   cityDialogOpen.value = false;
   await refresh();
@@ -97,9 +97,9 @@ const saveCity = cityForm.handleSubmit(async (input) => {
 
 async function toggleCity(city: City) {
   busy.value = true;
-  const { error } = await supabase.from("cities").update({ active: !city.active }).eq("id", city.id);
+  const error = changedRows(await supabase.from("cities").update({ active: !city.active }).eq("id", city.id).select("id"), "changed");
   busy.value = false;
-  if (error) return useSonner.error(reportProblem("That didn't work. Try again.", error));
+  if (error) return useSonner.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
   useSonner.success(
     city.active
       ? `${city.name} is now inactive. It's hidden from the public site, and new providers can't choose it.`
@@ -153,16 +153,17 @@ function openEditArea(area: ServiceArea) {
 }
 
 const saveArea = areaForm.handleSubmit(async (input) => {
-  const { error } = editingArea.value
-    ? await supabase.from("service_areas").update(input).eq("id", editingArea.value.id)
+  const error = changedRows(editingArea.value
+    ? await supabase.from("service_areas").update(input).eq("id", editingArea.value.id).select("id")
     : await supabase
         .from("service_areas")
-        .insert({ ...input, city_id: selectedCityId.value, sort_order: areas.value.length });
-  if (error?.code === "23505") {
+        .insert({ ...input, city_id: selectedCityId.value, sort_order: areas.value.length })
+        .select("id"));
+  if (error && "code" in error && error.code === "23505") {
     areaForm.setFieldError("name", `${selectedCity.value?.name} already has an area with this name.`);
     return;
   }
-  if (error) return useSonner.error(reportProblem("The area wasn't saved. Try again.", error));
+  if (error) return useSonner.error(reportProblem(problemText(error, "The area wasn't saved. Try again."), error));
   useSonner.success(editingArea.value ? "Area saved." : "Area added.");
   areaDialogOpen.value = false;
   await refresh();
@@ -170,9 +171,9 @@ const saveArea = areaForm.handleSubmit(async (input) => {
 
 async function toggleArea(area: ServiceArea) {
   busy.value = true;
-  const { error } = await supabase.from("service_areas").update({ active: !area.active }).eq("id", area.id);
+  const error = changedRows(await supabase.from("service_areas").update({ active: !area.active }).eq("id", area.id).select("id"), "changed");
   busy.value = false;
-  if (error) return useSonner.error(reportProblem("That didn't work. Try again.", error));
+  if (error) return useSonner.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
   useSonner.success(area.active ? `${area.name} is now inactive.` : `${area.name} is active again.`);
   await refresh();
 }
@@ -182,7 +183,7 @@ async function moveArea(index: number, direction: -1 | 1) {
   try {
     await saveOrder(supabase, "service_areas", areas.value, index, direction);
   } catch (e) {
-    useSonner.error(reportProblem("The new order wasn't saved. Try again.", e));
+    useSonner.error(reportProblem(problemText(e, "The new order wasn't saved. Try again."), e));
   }
   busy.value = false;
   await refresh();

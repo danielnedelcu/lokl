@@ -50,6 +50,7 @@ export class TestData {
   private listings: string[] = [];
   private categories: string[] = [];
   private areas: string[] = [];
+  private guides: string[] = [];
 
   private constructor(readonly env: TestEnv, readonly cityId: string) {}
 
@@ -172,7 +173,29 @@ export class TestData {
     return res.json();
   }
 
+  /** A never-published guide in Atlanta (or an id made by the app, to remove afterwards). */
+  async guide(fields: { title?: string; updatedHoursAgo?: number } = {}) {
+    const slug = `e2e-guide-${this.run}-${randomBytes(2).toString("hex")}`;
+    const id = (await must(this.env.db.from("guides").insert({ market_id: this.cityId, slug, draft_title: fields.title ?? "" }).select("id").single())).id as string;
+    this.guides.push(id);
+    if (fields.updatedHoursAgo) {
+      execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
+        alter table public.guides disable trigger guides_set_updated_at;
+        update public.guides set updated_at = now() - interval '${fields.updatedHoursAgo} hours' where id = '${id}';
+        alter table public.guides enable trigger guides_set_updated_at;`]);
+    }
+    return { id, slug };
+  }
+  trackGuide(id: string) {
+    this.guides.push(id);
+  }
+  async guideExists(id: string) {
+    const { data } = await this.env.db.from("guides").select("id").eq("id", id).maybeSingle();
+    return !!data;
+  }
+
   async cleanup() {
+    for (const id of this.guides) await this.env.db.from("guides").delete().eq("id", id).is("published_at", null);
     // Bookings are never deleted in real use; the tests remove their own rows directly.
     if (this.listings.length) {
       const ids = this.listings.map((i) => `'${i}'`).join(",");

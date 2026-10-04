@@ -162,9 +162,9 @@ function openEdit(photo: PhotoRow) {
 const saveEdit = altForm.handleSubmit(async ({ alt_text }) => {
   if (!editing.value) return;
   busy.value = true;
-  const { error } = await supabase.from("listing_photos").update({ alt_text }).eq("id", editing.value.id);
+  const error = changedRows(await supabase.from("listing_photos").update({ alt_text }).eq("id", editing.value.id).select("id"));
   busy.value = false;
-  if (error) return useSonner.error(`The description wasn't saved: ${error.message}`);
+  if (error) return useSonner.error(problemText(error, `The description wasn't saved: ${error.message}`));
   useSonner.success("Description saved.");
   editOpen.value = false;
   await reload();
@@ -191,14 +191,14 @@ async function confirmRemove() {
   const photo = removing.value;
   if (!photo) return;
   busy.value = true;
-  const { error } = await supabase.from("listing_photos").delete().eq("id", photo.id);
+  const error = changedRows(await supabase.from("listing_photos").delete().eq("id", photo.id).select("id"), "deleted");
   if (!error) {
     // The row is gone; remove the file too, so it isn't left in storage.
     await supabase.storage.from(BUCKET).remove([photo.storage_path, ...(photo.card_path ? [photo.card_path] : [])]);
   }
   busy.value = false;
   removeOpen.value = false;
-  if (error) return useSonner.error(error.message);
+  if (error) return useSonner.error(problemText(error, error.message));
   useSonner.success("Photo removed.");
   await reload();
 }
