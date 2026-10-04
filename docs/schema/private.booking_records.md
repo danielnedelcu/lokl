@@ -63,7 +63,8 @@ CREATE VIEW booking_records AS (
     f.dispute_reason,
     f.dispute_amount_cents,
     f.dispute_evidence_due_by,
-    r.note AS problem_note
+    r.note AS problem_note,
+    f.payout_holds_released
    FROM ((bookings b
      JOIN booking_finances f ON ((f.booking_id = b.id)))
      LEFT JOIN booking_reports r ON ((r.booking_id = b.id)))
@@ -131,13 +132,14 @@ CREATE VIEW booking_records AS (
 | dispute_amount_cents        | integer                    |         | true     |          |         |         |
 | dispute_evidence_due_by     | timestamp with time zone   |         | true     |          |         |         |
 | problem_note                | text                       |         | true     |          |         |         |
+| payout_holds_released       | text[]                     |         | true     |          |         |         |
 
 ## Referenced Tables
 
 | Name                                                  | Columns | Comment                                                                                                                                                                                                                                                                                               | Type       |
 | ----------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | [public.bookings](public.bookings.md)                 | 33      | A customer's booking of a Service (a request the provider accepts) or an Experience session (paid at once). Written only by the website's server. lokl holds the payment and transfers the provider's share 24 hours after the booking ends. Never deleted: payments, refunds and payouts point here. | BASE TABLE |
-| [public.booking_finances](public.booking_finances.md) | 22      | A booking's money side: the commission split (copied at booking), payout holds and failures, Stripe ids, dispute and reversal details. Read by the booking's provider and admins, never the customer; written by the server. Never deleted.                                                           | BASE TABLE |
+| [public.booking_finances](public.booking_finances.md) | 23      | A booking's money side: the commission split (copied at booking), payout holds and failures, Stripe ids, dispute and reversal details. Read by the booking's provider and admins, never the customer; written by the server. Never deleted.                                                           | BASE TABLE |
 | [public.booking_reports](public.booking_reports.md)   | 3       | The customer's "the provider didn't show up" note. Read by that customer and admins, never the provider; written by the server; final once written. Never deleted.                                                                                                                                    | BASE TABLE |
 
 ## Triggers

@@ -131,7 +131,9 @@ export async function adminCancelBooking(
 /**
  * Clears a payout hold, with a reason, and pays out straight away if it's
  * due. A reported no-show is resolved with resolveProblemPaid instead; an
- * open dispute can't be released.
+ * open dispute can't be released. The release is remembered
+ * (payout_holds_released), so the pay-out job doesn't hold the payout again
+ * for the same judgement (a lost dispute, a refund, a suspension).
  */
 export async function releasePayout(db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string) {
   const reason = requireReason(reasonIn);
@@ -139,7 +141,11 @@ export async function releasePayout(db: SupabaseClient, stripe: Stripe, bookingI
   if (!b.payout_hold) return "nothing held";
   if (b.payout_hold === "problem_reported") throw new BookingError("A customer reported a problem: resolve the report instead.", 409);
   if (b.disputed_at && !b.dispute_closed_at) throw new BookingError("The dispute is still open, so the payout stays held.", 409);
-  const { error } = await bookingRecords(db).update({ payout_hold: null, payout_held_at: null }).eq("id", b.id).eq("payout_hold", b.payout_hold);
+  const released = [...new Set([...((b.payout_holds_released as string[] | null) ?? []), b.payout_hold as string])];
+  const { error } = await bookingRecords(db)
+    .update({ payout_hold: null, payout_held_at: null, payout_holds_released: released })
+    .eq("id", b.id)
+    .eq("payout_hold", b.payout_hold);
   if (error) throw new Error(error.message);
   await logAdminAction(db, { adminId, target: "booking", targetId: b.id, action: "release_payout", reason });
   const run = await payOut(db, stripe, { bookingId: b.id });

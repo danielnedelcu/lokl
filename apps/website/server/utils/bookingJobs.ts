@@ -12,7 +12,7 @@
 
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { abandonCheckout } from "./bookings";
+import { abandonCheckout, recordDispute } from "./bookings";
 import { refundInFull } from "./bookingCancellations";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
@@ -207,7 +207,9 @@ type PayoutBooking = {
   problem_resolution: string | null;
   disputed_at: string | null;
   dispute_closed_at: string | null;
+  dispute_outcome: string | null;
   payout_hold: string | null;
+  payout_holds_released: string[] | null;
   stripe_charge_id: string | null;
   stripe_payment_intent_id: string | null;
   stripe_transfer_id: string | null;
@@ -234,8 +236,10 @@ async function hold(db: SupabaseClient, b: PayoutBooking, reason: string, failur
  * Marks bookings that have ended as completed, then pays out each one that's
  * due: a transfer of the provider's share, linked to the original charge
  * (source_transaction), so it can't move money lokl hasn't received. A
- * reported no-show, an open dispute, a refund, or a provider account that
- * can't receive transfers holds the payout for the admin instead.
+ * reported no-show, an open or lost dispute, a refund, a suspended provider,
+ * or a provider account that can't receive transfers holds the payout for
+ * the admin instead. A judgement the admin has released (a lost dispute, a
+ * refund, a suspension) isn't held again for the same reason.
  */
 export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOptions = {}): Promise<JobResult> {
   const now = (opts.now ?? new Date()).toISOString();
@@ -272,22 +276,49 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
   return r;
 }
 
+/**
+ * A dispute's hold, judged by the outcome recorded on the booking (from
+ * Stripe's dispute, recordDispute), never by Stripe's charge.disputed, which
+ * stays true after lokl wins: open always holds (it can't be released), lost
+ * holds unless the admin released it, won or closed as a warning doesn't.
+ */
+function disputeHold(b: Pick<PayoutBooking, "disputed_at" | "dispute_closed_at" | "dispute_outcome">, released: Set<string>) {
+  if (!b.disputed_at) return null;
+  if (!b.dispute_closed_at) return "open";
+  if (b.dispute_outcome === "lost" && !released.has("dispute")) return "lost";
+  return null;
+}
+
 async function payOne(db: SupabaseClient, stripe: Stripe, b: PayoutBooking): Promise<string> {
+  // What the admin has already released: those judgements don't hold it again.
+  const released = new Set(b.payout_holds_released ?? []);
   // Holds the database knows about.
   // A report holds the payout until lokl resolves it in the provider's favour.
   if (b.problem_reported_at && b.problem_resolution !== "paid_provider") return hold(db, b, "problem_reported");
-  if (b.disputed_at && !b.dispute_closed_at) return hold(db, b, "dispute");
-  if (b.refunded_cents > 0) return hold(db, b, "refunded");
+  if (disputeHold(b, released)) return hold(db, b, "dispute");
+  if (b.refunded_cents > 0 && !released.has("refunded")) return hold(db, b, "refunded");
   // A suspended provider's money waits for lokl's review (suspension can
   // mean fraud).
-  if (b.provider?.status !== "active") return hold(db, b, "provider_suspended");
+  if (b.provider?.status !== "active" && !released.has("provider_suspended")) return hold(db, b, "provider_suspended");
   if (!b.stripe_charge_id) throw new Error("no charge recorded for this booking");
 
   // What Stripe says now, in case a webhook was missed: a dispute or refund
   // on the charge, and whether the provider's account can receive transfers.
   const charge = await stripe.charges.retrieve(b.stripe_charge_id);
-  if (charge.disputed) return hold(db, b, "dispute");
-  if (charge.amount_refunded > 0) return hold(db, b, "refunded");
+  if (charge.disputed && !b.disputed_at) {
+    // A dispute the webhook missed: record it as Stripe has it, then judge it
+    // like any other. (No dispute found yet: hold until it can be recorded.)
+    const dispute = b.stripe_payment_intent_id
+      ? (await stripe.disputes.list({ payment_intent: b.stripe_payment_intent_id, limit: 1 })).data[0]
+      : undefined;
+    if (!dispute) return hold(db, b, "dispute");
+    await recordDispute(db, stripe, dispute.id);
+    const { data: fresh, error } = await bookingRecords(db).select("disputed_at, dispute_closed_at, dispute_outcome, payout_hold").eq("id", b.id).single();
+    if (error) throw new Error(error.message);
+    if (fresh.payout_hold) return `held for lokl to review: ${fresh.payout_hold} (found on Stripe's charge)`;
+    if (disputeHold(fresh, released)) return hold(db, b, "dispute");
+  }
+  if (charge.amount_refunded > 0 && !released.has("refunded")) return hold(db, b, "refunded");
   const accountId = b.provider?.stripe_account_id;
   if (!accountId) return hold(db, b, "account_cannot_receive", "The provider has no Stripe account.");
   let account: Stripe.Account;

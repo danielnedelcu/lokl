@@ -236,6 +236,40 @@ export async function abandonCheckout(db: SupabaseClient, stripe: Stripe, sessio
 }
 
 /**
+ * Records a dispute (chargeback) on its booking, as Stripe has it now, and
+ * holds the payout while it's open. Re-read from Stripe, so a late or
+ * repeated event can't reopen a closed dispute. Used by the webhook and by
+ * the pay-out job when it finds a dispute the webhook missed. The recorded
+ * outcome is what the pay-out job judges by: Stripe's charge.disputed stays
+ * true even after lokl wins.
+ */
+export async function recordDispute(db: SupabaseClient, stripe: Stripe, disputeId: string): Promise<string> {
+  const dispute = await stripe.disputes.retrieve(disputeId);
+  const piId = typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
+  const booking = piId ? await bookingBy(db, "stripe_payment_intent_id", piId) : null;
+  if (!booking) return "ignored: no booking for this dispute";
+  const closed = ["won", "lost", "warning_closed"].includes(dispute.status);
+  const now = new Date().toISOString();
+  const update: Record<string, unknown> = {
+    stripe_dispute_id: dispute.id,
+    disputed_at: (booking.disputed_at as string | null) ?? new Date(dispute.created * 1000).toISOString(),
+    dispute_closed_at: closed ? ((booking.dispute_closed_at as string | null) ?? now) : null,
+    dispute_outcome: closed ? dispute.status : null,
+    dispute_reason: dispute.reason?.slice(0, 100) ?? null,
+    dispute_amount_cents: dispute.amount,
+    dispute_evidence_due_by: dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000).toISOString() : null,
+  };
+  // Not paid out yet: hold it. (Already paid out: the admin sees the
+  // dispute and decides whether to reverse the transfer, part 8.)
+  if (!closed && booking.status !== "paid_out" && !booking.payout_hold) {
+    Object.assign(update, { payout_hold: "dispute", payout_held_at: now });
+  }
+  const { error } = await bookingRecords(db).update(update).eq("id", booking.id);
+  if (error) throw new Error(error.message);
+  return closed ? `dispute recorded as ${dispute.status}` : "dispute recorded, payout held";
+}
+
+/**
  * Handles one payments event. Webhooks can arrive late, twice or out of order,
  * so it acts on what Stripe says now (the Checkout Session or PaymentIntent is
  * re-read), and on the booking's current status, never on the event body
@@ -272,36 +306,11 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
       return `refund recorded: ${refunded} cents`;
     }
 
-    // Disputes (chargebacks): recorded on the booking, and the payout held
-    // while one is open. Re-read from Stripe, so a late or repeated event
-    // can't reopen a closed dispute.
+    // Disputes (chargebacks): recorded on the booking (recordDispute).
     case "charge.dispute.created":
     case "charge.dispute.updated":
-    case "charge.dispute.closed": {
-      const dispute = await stripe.disputes.retrieve((event.data.object as Stripe.Dispute).id);
-      const piId = typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
-      const booking = piId ? await bookingBy(db, "stripe_payment_intent_id", piId) : null;
-      if (!booking) return "ignored: no booking for this dispute";
-      const closed = ["won", "lost", "warning_closed"].includes(dispute.status);
-      const now = new Date().toISOString();
-      const update: Record<string, unknown> = {
-        stripe_dispute_id: dispute.id,
-        disputed_at: (booking.disputed_at as string | null) ?? new Date(dispute.created * 1000).toISOString(),
-        dispute_closed_at: closed ? ((booking.dispute_closed_at as string | null) ?? now) : null,
-        dispute_outcome: closed ? dispute.status : null,
-        dispute_reason: dispute.reason?.slice(0, 100) ?? null,
-        dispute_amount_cents: dispute.amount,
-        dispute_evidence_due_by: dispute.evidence_details?.due_by ? new Date(dispute.evidence_details.due_by * 1000).toISOString() : null,
-      };
-      // Not paid out yet: hold it. (Already paid out: the admin sees the
-      // dispute and decides whether to reverse the transfer, part 8.)
-      if (!closed && booking.status !== "paid_out" && !booking.payout_hold) {
-        Object.assign(update, { payout_hold: "dispute", payout_held_at: now });
-      }
-      const { error } = await bookingRecords(db).update(update).eq("id", booking.id);
-      if (error) throw new Error(error.message);
-      return closed ? `dispute recorded as ${dispute.status}` : "dispute recorded, payout held";
-    }
+    case "charge.dispute.closed":
+      return recordDispute(db, stripe, (event.data.object as Stripe.Dispute).id);
 
     // A transfer reversed (by lokl cancelling after a payout, or in Stripe's
     // dashboard): recorded on its booking, if it isn't already.

@@ -48,6 +48,7 @@ export type Database = {
           payout_failure: string | null
           payout_held_at: string | null
           payout_hold: string | null
+          payout_holds_released: string[] | null
           preferred_times: string[] | null
           problem_note: string | null
           problem_reported_at: string | null
@@ -296,6 +297,7 @@ export type Database = {
           payout_failure: string | null
           payout_held_at: string | null
           payout_hold: string | null
+          payout_holds_released: string[]
           provider_amount_cents: number
           reversal_failed_at: string | null
           reversal_failure: string | null
@@ -320,6 +322,7 @@ export type Database = {
           payout_failure?: string | null
           payout_held_at?: string | null
           payout_hold?: string | null
+          payout_holds_released?: string[]
           provider_amount_cents: number
           reversal_failed_at?: string | null
           reversal_failure?: string | null
@@ -344,6 +347,7 @@ export type Database = {
           payout_failure?: string | null
           payout_held_at?: string | null
           payout_hold?: string | null
+          payout_holds_released?: string[]
           provider_amount_cents?: number
           reversal_failed_at?: string | null
           reversal_failure?: string | null

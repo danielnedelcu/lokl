@@ -3832,6 +3832,13 @@
           "name": "dispute_evidence_due_by",
           "type": "timestamp with time zone",
           "nullable": true
+        },
+        {
+          "name": "payout_holds_released",
+          "type": "text[]",
+          "nullable": false,
+          "default": "'{}'::text[]",
+          "comment": "Payout hold reasons an admin has released for this booking (release-payout). The pay-out job doesn't hold the payout again for a released judgement (a lost dispute, a refund, a suspended provider); an open dispute and a reported problem always hold, and a fresh refusal from Stripe holds again. Only grows."
         }
       ],
       "indexes": [
@@ -3978,6 +3985,16 @@
           ]
         },
         {
+          "name": "booking_finances_payout_holds_released_check",
+          "type": "CHECK",
+          "def": "CHECK ((payout_holds_released \u003c@ ARRAY['problem_reported'::text, 'dispute'::text, 'refunded'::text, 'provider_suspended'::text, 'account_cannot_receive'::text, 'transfer_failed'::text]))",
+          "table": "public.booking_finances",
+          "referenced_table": "",
+          "columns": [
+            "payout_holds_released"
+          ]
+        },
+        {
           "name": "booking_finances_provider_amount_cents_check",
           "type": "CHECK",
           "def": "CHECK ((provider_amount_cents \u003e= 0))",
@@ -4059,6 +4076,10 @@
         {
           "name": "booking_finances_queue_emails",
           "def": "CREATE TRIGGER booking_finances_queue_emails AFTER UPDATE OF payout_hold ON public.booking_finances FOR EACH ROW WHEN (((old.payout_hold IS NULL) AND (new.payout_hold = ANY (ARRAY['account_cannot_receive'::text, 'transfer_failed'::text])))) EXECUTE FUNCTION booking_finances_queue_emails()"
+        },
+        {
+          "name": "booking_finances_released_only_grows",
+          "def": "CREATE TRIGGER booking_finances_released_only_grows BEFORE UPDATE OF payout_holds_released ON public.booking_finances FOR EACH ROW EXECUTE FUNCTION booking_finances_released_only_grows()"
         }
       ]
     },
@@ -4415,6 +4436,11 @@
           "name": "problem_note",
           "type": "text",
           "nullable": true
+        },
+        {
+          "name": "payout_holds_released",
+          "type": "text[]",
+          "nullable": true
         }
       ],
       "triggers": [
@@ -4423,7 +4449,7 @@
           "def": "CREATE TRIGGER booking_records_update INSTEAD OF UPDATE ON private.booking_records FOR EACH ROW EXECUTE FUNCTION private.booking_records_update()"
         }
       ],
-      "def": "CREATE VIEW booking_records AS (\n SELECT b.id,\n    b.kind,\n    b.listing_id,\n    b.provider_id,\n    b.customer_id,\n    b.session_id,\n    b.status,\n    b.preferred_times,\n    b.starts_at,\n    b.ends_at,\n    b.party_size,\n    b.customer_name,\n    b.customer_notes,\n    b.unit_price_cents,\n    b.total_cents,\n    b.currency,\n    b.refunded_cents,\n    b.refunded_at,\n    b.reserved_until,\n    b.respond_by,\n    b.confirmed_at,\n    b.payout_due_at,\n    b.problem_reported_at,\n    b.cancelled_by,\n    b.cancelled_at,\n    b.cancel_reason,\n    b.status_changed_by,\n    b.created_at,\n    b.updated_at,\n    b.customer_city,\n    b.customer_postal_code,\n    b.problem_resolved_at,\n    b.problem_resolution,\n    f.commission_rate_bps,\n    f.commission_cents,\n    f.provider_amount_cents,\n    f.payout_hold,\n    f.payout_held_at,\n    f.payout_failed_at,\n    f.payout_failure,\n    f.stripe_checkout_session_id,\n    f.stripe_payment_intent_id,\n    f.stripe_charge_id,\n    f.stripe_transfer_id,\n    f.stripe_transfer_reversal_id,\n    f.reversal_failed_at,\n    f.reversal_failure,\n    f.stripe_dispute_id,\n    f.disputed_at,\n    f.dispute_closed_at,\n    f.dispute_outcome,\n    f.dispute_reason,\n    f.dispute_amount_cents,\n    f.dispute_evidence_due_by,\n    r.note AS problem_note\n   FROM ((bookings b\n     JOIN booking_finances f ON ((f.booking_id = b.id)))\n     LEFT JOIN booking_reports r ON ((r.booking_id = b.id)))\n)",
+      "def": "CREATE VIEW booking_records AS (\n SELECT b.id,\n    b.kind,\n    b.listing_id,\n    b.provider_id,\n    b.customer_id,\n    b.session_id,\n    b.status,\n    b.preferred_times,\n    b.starts_at,\n    b.ends_at,\n    b.party_size,\n    b.customer_name,\n    b.customer_notes,\n    b.unit_price_cents,\n    b.total_cents,\n    b.currency,\n    b.refunded_cents,\n    b.refunded_at,\n    b.reserved_until,\n    b.respond_by,\n    b.confirmed_at,\n    b.payout_due_at,\n    b.problem_reported_at,\n    b.cancelled_by,\n    b.cancelled_at,\n    b.cancel_reason,\n    b.status_changed_by,\n    b.created_at,\n    b.updated_at,\n    b.customer_city,\n    b.customer_postal_code,\n    b.problem_resolved_at,\n    b.problem_resolution,\n    f.commission_rate_bps,\n    f.commission_cents,\n    f.provider_amount_cents,\n    f.payout_hold,\n    f.payout_held_at,\n    f.payout_failed_at,\n    f.payout_failure,\n    f.stripe_checkout_session_id,\n    f.stripe_payment_intent_id,\n    f.stripe_charge_id,\n    f.stripe_transfer_id,\n    f.stripe_transfer_reversal_id,\n    f.reversal_failed_at,\n    f.reversal_failure,\n    f.stripe_dispute_id,\n    f.disputed_at,\n    f.dispute_closed_at,\n    f.dispute_outcome,\n    f.dispute_reason,\n    f.dispute_amount_cents,\n    f.dispute_evidence_due_by,\n    r.note AS problem_note,\n    f.payout_holds_released\n   FROM ((bookings b\n     JOIN booking_finances f ON ((f.booking_id = b.id)))\n     LEFT JOIN booking_reports r ON ((r.booking_id = b.id)))\n)",
       "referenced_tables": [
         "public.bookings",
         "public.booking_finances",
@@ -6503,6 +6529,12 @@
       "name": "public.admin_set_homepage_features",
       "return_type": "void",
       "arguments": "p_guide_ids uuid[]",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.booking_finances_released_only_grows",
+      "return_type": "trigger",
+      "arguments": "",
       "type": "FUNCTION"
     }
   ],
