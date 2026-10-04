@@ -8,8 +8,11 @@
 //   node scripts/ci-start-apps.mjs --stop   stop the ones this script started
 //
 // Local keys come from `supabase status` and are never printed. It refuses
-// anything but a local stack. Email is off; there's no Stripe or Anthropic
-// key: the app tests that run against these apps don't need either.
+// anything but a local stack. Email is off and there's no Anthropic key.
+// The website gets a Stripe key only when NUXT_STRIPE_SECRET_KEY is set (the
+// end-to-end tests, scripts/e2e.mjs), and only a test-mode one; the admin
+// app never gets one. NUXT_JOB_SECRET, when set, is used instead of a fresh
+// random one, so a test can call the timed-job routes.
 import { execFileSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
@@ -48,10 +51,21 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(apiUrl) || !publishable |
   process.exit(1);
 }
 
+const stripeKey = process.env.NUXT_STRIPE_SECRET_KEY ?? "";
+if (stripeKey && !/^(sk|rk)_test_/.test(stripeKey)) {
+  console.error("Refusing to start: NUXT_STRIPE_SECRET_KEY isn't a test-mode key.");
+  process.exit(1);
+}
+
 const websiteUrl = `http://localhost:${websitePort}`;
 const adminUrl = `http://localhost:${adminPort}`;
 const shared = {
   NUXT_PUBLIC_SUPABASE_URL: apiUrl,
+  // The sign-in cookie's name is fixed at build time from the Supabase URL
+  // then in use (a laptop's build sees the hosted project's .env); name it
+  // for the local stack, as @supabase/ssr does, or every page reads as
+  // signed out.
+  NUXT_PUBLIC_SUPABASE_COOKIE_PREFIX: `sb-${new URL(apiUrl).hostname.split(".")[0]}-auth-token`,
   NUXT_PUBLIC_SUPABASE_KEY: publishable,
   NUXT_SUPABASE_SECRET_KEY: secret,
 };
@@ -64,11 +78,13 @@ const apps = [
       NUXT_PUBLIC_SITE_URL: websiteUrl,
       NUXT_ADMIN_ORIGIN: adminUrl,
       NUXT_EMAIL_MODE: "off",
-      // Only for this run's timed-job routes; made fresh each time.
-      NUXT_JOB_SECRET: randomBytes(32).toString("hex"),
+      NUXT_STRIPE_SECRET_KEY: stripeKey,
+      // Only for this run's timed-job routes; made fresh unless given.
+      NUXT_JOB_SECRET: process.env.NUXT_JOB_SECRET || randomBytes(32).toString("hex"),
     },
   },
-  { name: "admin", port: adminPort, env: { ...shared, NUXT_PUBLIC_WEBSITE_URL: websiteUrl } },
+  // Never a Stripe key in the admin app.
+  { name: "admin", port: adminPort, env: { ...shared, NUXT_PUBLIC_WEBSITE_URL: websiteUrl, NUXT_STRIPE_SECRET_KEY: "" } },
 ];
 
 const pids = [];

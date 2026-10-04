@@ -14,7 +14,11 @@ const props = defineProps<{
   touch?: boolean;
 }>();
 
-const id = useId();
+// From the field's name, not useId(): the label is drawn on the server and
+// the date field in the browser, and useId() gave them different ids there,
+// so the field had no accessible name (found by the end-to-end tests,
+// 2026-10-04). A form's field names are unique, so these are too.
+const id = `field-${props.name.replace(/[^A-Za-z0-9_-]/g, "-")}`;
 const { value, errorMessage, handleBlur } = useField<string>(() => props.name);
 const describedBy = computed(() => (errorMessage.value ? `${id}-error` : props.hint ? `${id}-hint` : undefined));
 </script>

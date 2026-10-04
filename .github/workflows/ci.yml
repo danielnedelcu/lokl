@@ -11,6 +11,10 @@
 #             STRIPE_SANDBOX_SECRET_KEY: a restricted test key for the Lokl
 #             sandbox (acct_1UKIdIEfG7OyQ6pv). Never a live key; the tests also
 #             refuse any key that isn't test-mode for that account.
+# - e2e:      the Playwright journeys (e2e/), with the same key and the same
+#             conditions: both apps built and started on 3200/3201 against a
+#             local stack, Chromium only. Traces and screenshots of a failure
+#             are kept for a week (test users and data only).
 #
 # No real keys live in this repository. Nothing here talks to the hosted
 # Supabase project, Resend or Anthropic.
@@ -54,6 +58,8 @@ jobs:
         run: npm run test:ui
       - name: Email templates
         run: npm run test:emails
+      - name: Type check the end-to-end tests
+        run: npx tsc -p e2e
 
   database:
     name: database
@@ -137,3 +143,70 @@ jobs:
         env:
           NUXT_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
         run: npm run db:test:app:stripe
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    environment: stripe-sandbox
+    # Shares the sandbox with the stripe job: one at a time.
+    concurrency:
+      group: stripe-sandbox
+      cancel-in-progress: false
+    steps:
+      - name: Check the Stripe sandbox key
+        id: key
+        env:
+          KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::notice::No STRIPE_SANDBOX_SECRET_KEY in the stripe-sandbox environment: the end-to-end tests are skipped."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$KEY" in
+            rk_test_*|sk_test_*) echo "run=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::STRIPE_SANDBOX_SECRET_KEY isn't a test-mode key. Only a Lokl sandbox test key belongs here."; exit 1 ;;
+          esac
+      - if: steps.key.outputs.run == 'true'
+        uses: actions/checkout@v4
+      - if: steps.key.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - if: steps.key.outputs.run == 'true'
+        run: npm ci
+      - name: Install Chromium for Playwright
+        if: steps.key.outputs.run == 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.key.outputs.run == 'true'
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Start the local Supabase stack
+        if: steps.key.outputs.run == 'true'
+        run: supabase start -x "$SUPABASE_EXCLUDE"
+      - name: End-to-end tests
+        if: steps.key.outputs.run == 'true'
+        env:
+          NUXT_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+        run: npm run test:e2e
+      - name: Keep the traces of a failure
+        if: failure() && steps.key.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
+          retention-days: 7
+      - name: App server logs
+        if: failure() && steps.key.outputs.run == 'true'
+        run: |
+          for app in website admin; do
+            echo "::group::$app server log"
+            tail -n 200 "apps/$app/.output-check/server.log" 2>/dev/null || echo "No log."
+            echo "::endgroup::"
+          done

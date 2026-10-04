@@ -36,3 +36,7 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Playwright (npm run test:e2e)
+test-results/
+playwright-report/

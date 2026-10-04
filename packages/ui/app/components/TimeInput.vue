@@ -23,7 +23,9 @@
     { minuteStep: 5 },
   );
 
-  const id = useId();
+  // From the field's name, not useId(), as in DateInput: the same id on the
+  // server and in the browser, so each dropdown keeps its label.
+  const id = `field-${props.name.replace(/[^A-Za-z0-9_-]/g, "-")}`;
   const { value, errorMessage, handleBlur } = useField<string>(() => props.name);
 
   const hours = Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));

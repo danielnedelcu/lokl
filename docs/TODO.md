@@ -137,21 +137,32 @@ Each step depends on the ones before it.
   - Not in CI: `db:test:checkout` (waits for a person to pay on Stripe's
     page) and the five-minute token-refresh Realtime test (needs a short
     `jwt_expiry`).
-- [ ] **Create the restricted Stripe key** (owner) with the permissions in
+- [x] **Create the restricted Stripe key** (owner) with the permissions in
   `docs/decisions.md`, run `NUXT_STRIPE_SECRET_KEY=<key> npm run
   db:test:app:stripe` locally once to confirm, then add it to the
-  `stripe-sandbox` environment as `STRIPE_SANDBOX_SECRET_KEY`.
-- [ ] **Playwright end-to-end tests for the key journeys**, against the
-  local stack and the Lokl sandbox:
-  - booking an Experience, through to payment (Stripe's test cards);
-  - requesting a Service, and the provider accepting a time;
-  - cancelling with a refund;
-  - a payout to the provider.
-  - **Signing in without email** during tests: a test-only route that
-    works only against the local stack (refusing to run anywhere else, like
-    the app tests), signing a test user in with a link made by the
-    service role. It must not exist in production builds.
-  - Run in the same GitHub Actions job once they're stable.
+  `stripe-sandbox` environment as `STRIPE_SANDBOX_SECRET_KEY`. Done
+  2026-10-04: the `stripe` job runs all five Stripe suites, green.
+- [x] **Playwright end-to-end tests** (`e2e/`, `npm run test:e2e`, built
+  2026-10-04), against the local stack and the Lokl sandbox, with both apps
+  built and started on 3200/3201 (never the dev servers), the browser in Los
+  Angeles time to prove pages show Atlanta times, and a CI job (`e2e`) with
+  the same key and conditions as `stripe`. Journeys:
+  1. booking an Experience: browse, choose a date, sent to Stripe for that
+     booking, back without paying (spot released), a paid booking confirmed;
+     at desktop and phone size;
+  2. requesting a Service (date and time pickers), sent to Stripe; the
+     provider accepts a time (card captured) and declines another (hold
+     released);
+  3. cancelling with a refund, by the customer and by the provider;
+  4. a payout: the pay-out job's route, a real test transfer, "Paid out" for
+     the provider and in the admin app;
+  5. the real sign-in, once per run: "Sign in to book", the emailed link
+     from the local stack's Mailpit, back on the listing signed in.
+  - Never paying on Stripe's own page; paid and held bookings are made
+    through Stripe's API with test payment methods. The real card payment
+    stays a manual check (`npm run db:test:checkout`).
+  - Signing in: a password sign-in in the test code, its cookies given to
+    the browser. Nothing test-only in the apps.
 
 ## Staging site
 
@@ -160,6 +171,16 @@ A real address before the live one: `staging.hilokl.com` (website) and
 Lokl Stripe sandbox. Test there first what needs a real address:
 
 - [ ] Switch to branches and pull requests, with `checks` and `database` required to merge.
+- [ ] Run the end-to-end tests in WebKit (Safari's engine) too, against the
+  staging site: it needs HTTPS. Production cookies are Secure, and WebKit
+  refuses Secure cookies on plain-http localhost (Chromium accepts them), so
+  WebKit can't run against the local build.
+- [ ] Build each app with the Supabase URL of the project it will run
+  against, or set `NUXT_PUBLIC_SUPABASE_COOKIE_PREFIX` where it runs: the
+  sign-in cookie's name is fixed at build time from that URL, and a build
+  pointed at another project at run time reads every visitor as signed out
+  (found 2026-10-04 by the end-to-end tests; `scripts/ci-start-apps.mjs`
+  sets it for the local stack).
 - [ ] Hosting for both apps on those addresses, over HTTPS.
 - [ ] Supabase auth URLs for staging: Site URL and the `/confirm` redirects
   on both addresses.
