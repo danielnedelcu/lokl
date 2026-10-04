@@ -59,6 +59,9 @@ const table = useServerTable({
     from: isDay,
     to: isDay,
     attention: oneOf(...GROUPS.map((g) => g.key)),
+    // Paid between (the dashboard's links): days in the market's time zone.
+    paid_from: isDay,
+    paid_to: isDay,
   },
   sorts: ["created", "when", "status", "listing", "charged", "commission", "provider_amount"],
   async load({ q, filters, page, sort, desc }, signal) {
@@ -71,6 +74,8 @@ const table = useServerTable({
         p_from: filters.from,
         p_to: filters.to,
         p_attention: filters.attention,
+        p_paid_from: filters.paid_from,
+        p_paid_to: filters.paid_to,
         p_sort: sort,
         p_desc: desc,
         p_page: page,
@@ -88,6 +93,15 @@ const dateRange = computed({
 });
 const picker = useProviderPicker(() => f.value.provider);
 const attentionLabel = computed(() => GROUPS.find((g) => g.key === f.value.attention)?.label);
+// "Paid Sep 5 – Oct 4": the dashboard's range, shown and clearable (no control of its own).
+const shortDay = (d: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`));
+const paidLabel = computed(() => {
+  const { paid_from: from, paid_to: to } = f.value;
+  if (from && to) return `Paid ${shortDay(from)} – ${shortDay(to)}, Atlanta time`;
+  if (from) return `Paid on or after ${shortDay(from)}, Atlanta time`;
+  if (to) return `Paid on or before ${shortDay(to)}, Atlanta time`;
+  return "";
+});
 
 async function showGroup(key: GroupKey) {
   await table.setFilters({ attention: key });
@@ -204,6 +218,10 @@ const columns = [
           {{ table.total.value === 1 ? "booking" : "bookings" }}<template v-if="totals">
             · {{ money(totals.charged_cents) }} charged · {{ money(totals.refunded_cents) }} refunded ·
             {{ money(totals.commission_cents) }} commission kept</template>
+        </p>
+        <p v-if="paidLabel" class="flex items-center gap-1">
+          <span>Showing only: {{ paidLabel }}</span>
+          <UiButton variant="link" size="sm" class="h-auto px-1" @click="table.setFilters({ paid_from: null, paid_to: null })">Show all dates</UiButton>
         </p>
         <p v-if="attentionLabel" class="flex items-center gap-1">
           <span>Showing only: {{ attentionLabel }}</span>

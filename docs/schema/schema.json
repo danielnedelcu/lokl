@@ -6484,21 +6484,9 @@
       "type": "FUNCTION"
     },
     {
-      "name": "public.admin_bookings_page",
-      "return_type": "jsonb",
-      "arguments": "p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_provider_id uuid DEFAULT NULL::uuid, p_from date DEFAULT NULL::date, p_to date DEFAULT NULL::date, p_attention text DEFAULT NULL::text, p_sort text DEFAULT 'created'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25, p_with_attention boolean DEFAULT false",
-      "type": "FUNCTION"
-    },
-    {
       "name": "public.admin_listings_page",
       "return_type": "jsonb",
       "arguments": "p_kind text, p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_city_id uuid DEFAULT NULL::uuid, p_provider_id uuid DEFAULT NULL::uuid, p_sort text DEFAULT 'updated'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25",
-      "type": "FUNCTION"
-    },
-    {
-      "name": "public.admin_providers_page",
-      "return_type": "jsonb",
-      "arguments": "p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_payout_setup text DEFAULT NULL::text, p_city_id uuid DEFAULT NULL::uuid, p_sort text DEFAULT 'joined'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25",
       "type": "FUNCTION"
     },
     {
@@ -6534,6 +6522,24 @@
     {
       "name": "public.booking_finances_released_only_grows",
       "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_bookings_page",
+      "return_type": "jsonb",
+      "arguments": "p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_provider_id uuid DEFAULT NULL::uuid, p_from date DEFAULT NULL::date, p_to date DEFAULT NULL::date, p_attention text DEFAULT NULL::text, p_sort text DEFAULT 'created'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25, p_with_attention boolean DEFAULT false, p_paid_from date DEFAULT NULL::date, p_paid_to date DEFAULT NULL::date",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_providers_page",
+      "return_type": "jsonb",
+      "arguments": "p_q text DEFAULT NULL::text, p_status text DEFAULT NULL::text, p_payout_setup text DEFAULT NULL::text, p_city_id uuid DEFAULT NULL::uuid, p_sort text DEFAULT 'joined'::text, p_desc boolean DEFAULT true, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25, p_paid_since date DEFAULT NULL::date",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_dashboard",
+      "return_type": "jsonb",
       "arguments": "",
       "type": "FUNCTION"
     }

@@ -1534,6 +1534,8 @@ export type Database = {
           p_kind?: string
           p_page?: number
           p_page_size?: number
+          p_paid_from?: string
+          p_paid_to?: string
           p_provider_id?: string
           p_q?: string
           p_sort?: string
@@ -1543,6 +1545,7 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_dashboard: { Args: never; Returns: Json }
       admin_listings_page: {
         Args: {
           p_city_id?: string
@@ -1563,6 +1566,7 @@ export type Database = {
           p_desc?: boolean
           p_page?: number
           p_page_size?: number
+          p_paid_since?: string
           p_payout_setup?: string
           p_q?: string
           p_sort?: string

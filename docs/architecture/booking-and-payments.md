@@ -489,6 +489,15 @@ sequenceDiagram
   log and job runs directly, under admin RLS.
 - Commission rates are edited directly under RLS (admin Settings), not
   through the website.
+- **The dashboard** ([index.vue](../../apps/admin/app/pages/index.vue)) reads
+  `admin_dashboard()` ([migration](../../supabase/migrations/20261004043455_admin_dashboard.sql)).
+  "Paid" means `confirmed_at` is set. GMV is charged less refunded for
+  bookings paid in the last 30 days, commission is after refunds and before
+  Stripe's fees (the Bookings totals' rule), and active providers have a
+  paid booking in the last 90, all by the Atlanta calendar. The money and
+  provider numbers come from `admin_bookings_page` (`p_paid_from`,
+  `p_paid_to`) and `admin_providers_page` (`p_paid_since`, `not_ready`), the
+  same filters the dashboard's links open, so each number matches its page.
 
 ## 8. Money
 

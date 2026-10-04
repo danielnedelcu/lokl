@@ -24,7 +24,9 @@ const { data: cities } = await useAsyncData("admin-provider-cities", async () =>
 });
 
 const table = useServerTable({
-  filters: { status: oneOf("active", "suspended"), payouts: oneOf("not_started", "in_progress", "ready"), city: isUuid },
+  // not_ready: can't be paid yet (not started or in progress). paid_since:
+  // a booking paid on or after that day (the dashboard's active providers).
+  filters: { status: oneOf("active", "suspended"), payouts: oneOf("not_started", "in_progress", "ready", "not_ready"), city: isUuid, paid_since: isDay },
   sorts: ["joined", "name", "city", "payouts", "status"],
   async load({ q, filters, page, sort, desc }, signal) {
     const { data, error } = await supabase
@@ -33,6 +35,7 @@ const table = useServerTable({
         p_status: filters.status,
         p_payout_setup: filters.payouts,
         p_city_id: filters.city,
+        p_paid_since: filters.paid_since,
         p_sort: sort,
         p_desc: desc,
         p_page: page,
@@ -84,6 +87,11 @@ async function confirmStatus(reason: string, message: string) {
     await table.refresh();
   }
 }
+const notReadyLabel = "Can't be paid yet";
+const paidSinceLabel = computed(() =>
+  f.value.paid_since
+    ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${f.value.paid_since}T00:00:00Z`))
+    : "");
 </script>
 
 <template>
@@ -104,6 +112,7 @@ async function confirmStatus(reason: string, message: string) {
         <UiLabel for="filter-payouts" class="mb-1">Payout setup</UiLabel>
         <SelectInput id="filter-payouts" :model-value="f.payouts ?? ''" :options="[
           { value: '', label: 'Any' },
+          { value: 'not_ready', label: notReadyLabel },
           ...['not_started', 'in_progress', 'ready'].map((s) => ({ value: s, label: statusLabel('payouts', s) })),
         ]" @update:model-value="(v) => table.setFilter('payouts', v)" />
       </div>
@@ -120,6 +129,10 @@ async function confirmStatus(reason: string, message: string) {
     <div class="mb-3 flex flex-wrap items-center gap-x-3 text-sm">
       <p class="text-muted-foreground" aria-live="polite">
         {{ table.total.value.toLocaleString("en-US") }} {{ table.total.value === 1 ? "provider" : "providers" }}
+      </p>
+      <p v-if="f.paid_since" class="flex items-center gap-1">
+        <span>Showing only: a booking paid since {{ paidSinceLabel }}, Atlanta time</span>
+        <UiButton variant="link" size="sm" class="h-auto px-1" @click="table.setFilter('paid_since', null)">Show all providers</UiButton>
       </p>
       <UiButton v-if="table.filtering.value" variant="link" size="sm" class="h-auto px-1" @click="table.clear()">Clear filters</UiButton>
     </div>

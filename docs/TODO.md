@@ -107,6 +107,16 @@ Each step depends on the ones before it.
      after the cache fix; back on republish, re-featured as the hero).
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
+## Admin dashboard
+
+- [x] Real numbers (`admin_dashboard()`, migration `admin_dashboard`, built
+  2026-10-04): GMV, commission before Stripe fees and bookings for payments
+  in the last 30 days, and providers with a paid booking in the last 90,
+  by the Atlanta calendar; listings awaiting review, open disputes, bookings
+  that need attention, guide drafts and providers who can't be paid yet.
+  Each number links to its page, filtered the same way (Bookings "paid
+  between", Providers "paid since" and "can't be paid yet").
+
 ## Admin tables at scale
 
 - [x] Server-side search, filters and pages for Bookings, Experiences,
@@ -298,7 +308,9 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
 - Area pages such as `/atlanta/decatur`, once areas have enough listings to stand as pages (docs/design/browse-and-listing-pages.md).
 - Optional note to the customer when declining a request (stored on the booking, sent in the decline email).
 - Track provider cancellations and show patterns to the admin.
-- Partial refunds (for example half, for a partly missed booking). Needs its own payout maths.
+- Partial refunds (for example half, for a partly missed booking). Needs its own payout maths. When admins can make them, the commission rule becomes proportional (commission × the share not refunded), on both the dashboard and the Bookings totals (`admin_bookings_page`). Today a partly refunded booking keeps its whole commission.
+- Record Stripe's actual fee per charge, from its balance transaction, so the dashboard can later show true net revenue (today it shows commission before Stripe fees).
+- Accounting report by period, dating refunds by when they happened rather than by the original payment, for the accountant. (The dashboard subtracts refunds from the bookings paid in its range, whenever the refund was made.)
 - Option to cancel and still pay the provider, when the cancellation isn't their fault.
 - Deduct money owed from a provider's future payouts (a reversal that failed after a payout).
 - A narrower provider view of `booking_finances`: providers can read their bookings' Stripe ids, though no page shows them (docs/design/booking-and-checkout.md).
