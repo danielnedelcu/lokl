@@ -1,3 +1,9 @@
+<!--
+  lokl change (docs/frontend.md, 2026-10-04): no backdrop blur on the sheet
+  panel (isBlurred no longer blurs); the darkened backdrop is in
+  Sheet/Overlay.vue. Keep this if the component is re-added with the
+  ui-thing CLI.
+-->
 <template>
   <UiSheetPortal :to="to">
     <slot name="overlay">
@@ -57,9 +63,10 @@
         right:
           "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
       },
+      // lokl change: no blur behind the panel either (see top).
       isBlurred: {
-        true: "backdrop-blur-sm",
-        false: "backdrop-blur-none",
+        true: "",
+        false: "",
       },
       variant: {
         default: "",
