@@ -1,40 +1,64 @@
+import type { Page } from "@playwright/test";
 import { daysFromNow } from "../support/data";
+import { signInEmail } from "../support/mail";
 import { expect, test } from "../support/fixtures";
 
-// Journey 5: the real sign-in, once per run. A signed-out visitor asks to
-// book, gets an emailed link (caught by the local stack's Mailpit; nothing
-// is really sent), opens it in the same browser, and lands back on the
-// listing, signed in.
+// Journey 5: the real sign-in (docs/design/sign-in-with-code.md). A
+// signed-out visitor asks to book, gets an email (caught by the local
+// stack's Mailpit) and signs in with its code in the dialog, without
+// leaving the listing; or opens its link in the same browser and comes back
+// to the listing.
 
-test("sign in by emailed link from a listing, and come back to it", async ({ page, data }) => {
-  const customer = await data.user("emailed");
+async function listingToBook(data: Parameters<Parameters<typeof test>[2]>[0]["data"]) {
   const owner = await data.user("owner");
   const provider = await data.provider(owner);
   const category = await data.category("experience");
   const listing = await data.listing(provider, "experience", category.id, await data.area());
   await data.session(listing.id, daysFromNow(4));
+  return listing;
+}
+
+async function askForCode(page: Page, email: string) {
+  await page.getByRole("button", { name: "Sign in to book" }).click();
+  const dialog = page.getByRole("dialog", { name: "Sign in to book" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Email").fill(email);
+  await dialog.getByRole("button", { name: "Send me a code" }).click();
+  return dialog;
+}
+
+test("sign in to book with the emailed code, without leaving the listing", async ({ page, data }) => {
+  const customer = await data.user("coded");
+  const listing = await listingToBook(data);
 
   await page.goto(`/experiences/${listing.slug}`);
-  await page.getByRole("button", { name: "Sign in to book" }).click();
-  await expect(page).toHaveURL(/\/login$/);
-  await page.getByLabel("Email").fill(customer.email);
-  await page.getByRole("button", { name: /email me a sign-in link/i }).click();
-  await expect(page.getByRole("status").filter({ hasText: customer.email })).toBeVisible();
+  const dialog = await askForCode(page, customer.email);
+  const code = dialog.getByLabel("6-digit code");
+  await expect(code).toBeFocused();
+  await expect(dialog).toContainText(customer.email);
 
-  // The email, from Mailpit's API.
-  const mailpit = data.env.mailpitUrl.replace(/\/$/, "");
-  let messageId = "";
-  await expect.poll(async () => {
-    const res = await fetch(`${mailpit}/api/v1/search?query=${encodeURIComponent(`to:${customer.email}`)}`);
-    messageId = ((await res.json()) as { messages?: { ID: string }[] }).messages?.[0]?.ID ?? "";
-    return messageId;
-  }, { message: "the sign-in email arrives", timeout: 20_000 }).not.toBe("");
-  const message = (await (await fetch(`${mailpit}/api/v1/message/${messageId}`)).json()) as { Text?: string; HTML?: string };
-  const link = `${message.Text ?? ""} ${message.HTML ?? ""}`.match(/https?:\/\/[^\s"'<>]+\/auth\/v1\/verify[^\s"'<>]*/)?.[0]?.replaceAll("&amp;", "&");
-  expect(link, "the email has a sign-in link").toBeTruthy();
+  const email = await signInEmail(data.env.mailpitUrl, customer.email);
+  await code.fill(email.code);
+  await dialog.getByRole("button", { name: "Sign in" }).click();
 
-  // Open it in the same browser: back on the listing, signed in.
-  await page.goto(link!);
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/experiences/${listing.slug}$`));
+  await expect(page.getByText(`Signed in as ${customer.email}.`)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue to payment" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+  // "Sign in to book" is gone, so focus goes to the panel above the form.
+  await expect(page.locator("#booking-panel-start")).toBeFocused();
+});
+
+test("the emailed link still works, and comes back to the listing", async ({ page, data }) => {
+  const customer = await data.user("emailed");
+  const listing = await listingToBook(data);
+
+  await page.goto(`/experiences/${listing.slug}`);
+  await askForCode(page, customer.email);
+  const email = await signInEmail(data.env.mailpitUrl, customer.email);
+
+  await page.goto(email.link);
   await expect(page).toHaveURL(new RegExp(`/experiences/${listing.slug}$`), { timeout: 20_000 });
   await expect(page.getByRole("button", { name: "Continue to payment" })).toBeVisible();
 });

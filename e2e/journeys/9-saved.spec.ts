@@ -2,6 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import { signIn } from "../support/auth";
 import type { TestData } from "../support/data";
 import { expect, test } from "../support/fixtures";
+import { signInEmail } from "../support/mail";
 
 // Journey 9: favourites, "Saved" (docs/design/favourites.md).
 
@@ -144,31 +145,41 @@ test("a save that fails flips the heart back and says why", async ({ page, conte
   expect((await savedRows(data, customer.id)).listings).toEqual([]);
 });
 
-test("a signed-out visitor taps a heart, signs in by email, and comes back with it saved", async ({ page, context, data }) => {
+test("a signed-out visitor taps a heart, signs in with the code, and it's saved without leaving the page", async ({ page, data }) => {
   const p = await provider(data, "Return");
+  const customer = await data.user("coded-saver");
+
+  await page.goto(`/experiences/${p.listing.slug}`);
+  const button = await heart(page, p.listing.title);
+  await button.click();
+  const dialog = page.getByRole("dialog", { name: `Sign in to save ${p.listing.title}` });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Email").fill(customer.email);
+  await dialog.getByRole("button", { name: "Send me a code" }).click();
+  const email = await signInEmail(data.env.mailpitUrl, customer.email);
+  await dialog.getByLabel("6-digit code").fill(email.code);
+  await dialog.getByRole("button", { name: "Sign in" }).click();
+
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`/experiences/${p.listing.slug}$`));
+  await expect(page.getByText(`Saved ${p.listing.title}.`)).toBeVisible();
+  await expect(button).toHaveAttribute("aria-pressed", "true");
+  await expect(button, "focus is back on the heart").toBeFocused();
+  await expect.poll(async () => (await savedRows(data, customer.id)).listings).toEqual([p.listing.id]);
+});
+
+test("a signed-out visitor taps a heart, signs in by the emailed link, and comes back with it saved", async ({ page, context, data }) => {
+  const p = await provider(data, "Linked");
   const customer = await data.user("emailed-saver");
 
   await page.goto(`/experiences/${p.listing.slug}`);
   await (await heart(page, p.listing.title)).click();
-  const dialog = page.getByRole("alertdialog", { name: `Sign in to save ${p.listing.title}` });
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/login$/);
-  await page.getByLabel("Email").fill(customer.email);
-  await page.getByRole("button", { name: /email me a sign-in link/i }).click();
+  const dialog = page.getByRole("dialog", { name: `Sign in to save ${p.listing.title}` });
+  await dialog.getByLabel("Email").fill(customer.email);
+  await dialog.getByRole("button", { name: "Send me a code" }).click();
+  const email = await signInEmail(data.env.mailpitUrl, customer.email);
 
-  const mailpit = data.env.mailpitUrl.replace(/\/$/, "");
-  let messageId = "";
-  await expect.poll(async () => {
-    const res = await fetch(`${mailpit}/api/v1/search?query=${encodeURIComponent(`to:${customer.email}`)}`);
-    messageId = ((await res.json()) as { messages?: { ID: string }[] }).messages?.[0]?.ID ?? "";
-    return messageId;
-  }, { message: "the sign-in email arrives", timeout: 20_000 }).not.toBe("");
-  const message = (await (await fetch(`${mailpit}/api/v1/message/${messageId}`)).json()) as { Text?: string; HTML?: string };
-  const link = `${message.Text ?? ""} ${message.HTML ?? ""}`.match(/https?:\/\/[^\s"'<>]+\/auth\/v1\/verify[^\s"'<>]*/)?.[0]?.replaceAll("&amp;", "&");
-  expect(link, "the email has a sign-in link").toBeTruthy();
-
-  await page.goto(link!);
+  await page.goto(email.link);
   await expect(page).toHaveURL(new RegExp(`/experiences/${p.listing.slug}$`), { timeout: 20_000 });
   await expect(page.getByText(`Saved ${p.listing.title}.`)).toBeVisible();
   await expect(await heart(page, p.listing.title)).toHaveAttribute("aria-pressed", "true");

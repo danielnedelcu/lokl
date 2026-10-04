@@ -40,6 +40,10 @@ lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
   function before a market gets near that.
 - [ ] **Check a listing's address against its city and area** (zip check, or
   geocoding).
+- [ ] **Sign-in codes guessed from many addresses at once.** Supabase limits
+  verifications per IP address, not per email address. If that's ever seen,
+  add a CAPTCHA on sending (Supabase supports Turnstile) or move to 8-digit
+  codes (docs/design/sign-in-with-code.md, Attempt limits).
 - [ ] **Audit log for listing reviews** (who approved, rejected, unpublished or
   restored what). Booking, email and provider actions are logged in
   `admin_actions` since 2026-10-03; listing reviews aren't yet.
@@ -265,6 +269,16 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [ ] Reply-to `help@hilokl.com`, forwarding to `hilokl.help@gmail.com`
     (`NUXT_EMAIL_REPLY_TO`, and `NUXT_PUBLIC_SUPPORT_EMAIL` on pages).
   - [ ] `NUXT_EMAIL_MODE=send` in production.
+- **Sign-in**
+  - [ ] A second factor (authenticator app) for admin accounts, since admin
+    access currently depends only on the email inbox.
+  - [ ] Once the terms and privacy policy exist, show "By continuing, you
+    agree to lokl's Terms and Privacy Policy" in the sign-in dialog, with
+    links.
+  - [ ] In the production Supabase project: the sign-in email templates
+    (Magic link and Confirm signup, from `supabase/templates/`), Email OTP
+    length 6 and expiration 600 seconds, and "Token verifications" at 30
+    per 5 minutes (docs/design/sign-in-with-code.md).
 - **Anthropic**
   - [ ] Create a separate production Anthropic API key for the admin app
     (`NUXT_ANTHROPIC_API_KEY`), apart from the development one.
@@ -405,5 +419,9 @@ walkthrough passed.
 - [x] The website's unused `h3` v2 removed (2026-10-02).
 - [x] Settled decisions: Services are request and confirm; one platform-wide
   cancellation policy (docs/decisions.md).
+- [x] Sign in with an emailed 6-digit code without leaving the page, on the
+  website (dialog and `/login`) and the admin app; the link still works
+  (docs/design/sign-in-with-code.md, 2026-10-04). Hosted dashboard settings:
+  see the design's "The email".
 
 </details>

@@ -16,7 +16,7 @@ flowchart TB
     admin["<b>Owner admin</b><br/>apps/admin · :3101<br/>Owner-only sign-in<br/>Providers, listings, bookings"]
   end
   stripe["<b>Stripe Connect</b><br/>Express accounts<br/>Hosted onboarding, payouts"]
-  supabase["<b>Supabase</b><br/>Auth: emailed sign-in links<br/>Postgres + RLS"]
+  supabase["<b>Supabase</b><br/>Auth: emailed sign-in codes and links<br/>Postgres + RLS"]
 
   website -. uses .- types
   admin -. uses .- types

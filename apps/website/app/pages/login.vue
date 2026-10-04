@@ -1,31 +1,17 @@
 <script setup lang="ts">
-import { signInSchema, type SignInInput } from "@repo/types";
-
+// Sign in or sign up (docs/design/sign-in-with-code.md): the same form as
+// the sign-in dialog. Pages that need sign-in send people here; signed in
+// by code, they go where they were headed (the module's saved address),
+// else to the dashboard. The emailed link does the same through /confirm.
 useSeoMeta({ title: "Sign in" });
 
-const supabase = useSupabaseClient();
+const redirect = useSupabaseCookieRedirect();
+const after = createSignInRedirect({ takeSaved: () => redirect.pluck(), fallback: "/dashboard", go: (path) => navigateTo(path) });
 
-const { handleSubmit, isSubmitting } = useForm<SignInInput>({
-  validationSchema: zodSchema(signInSchema),
-});
-
-const sentTo = ref("");
-const errorMessage = ref("");
-
-// Creates the account on first sign-in, so this doubles as provider sign-up.
-const signIn = handleSubmit(async ({ email }) => {
-  errorMessage.value = "";
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: `${window.location.origin}/confirm` },
-  });
-  if (error) {
-    errorMessage.value = error.message;
-    return;
-  }
-  sentTo.value = email;
-  useSonner.success("Sign-in link sent.");
-});
+function signedIn(email: string) {
+  useSonner.success(`Signed in as ${email}.`);
+  after.onUser(true);
+}
 </script>
 
 <template>
@@ -35,21 +21,8 @@ const signIn = handleSubmit(async ({ email }) => {
         <UiCardTitle as="h1">Sign in or sign up</UiCardTitle>
         <UiCardDescription>List your services and experiences, and manage bookings.</UiCardDescription>
       </UiCardHeader>
-
       <UiCardContent>
-        <p v-if="sentTo" class="text-sm" role="status">
-          Check <strong>{{ sentTo }}</strong> for a sign-in link.
-        </p>
-
-        <form v-else class="space-y-4" novalidate @submit="signIn">
-          <UiVeeInput name="email" type="email" label="Email" autocomplete="email" required />
-          <UiAlert v-if="errorMessage" variant="destructive">
-            <UiAlertDescription>{{ errorMessage }}</UiAlertDescription>
-          </UiAlert>
-          <UiButton type="submit" class="w-full" :disabled="isSubmitting">
-            {{ isSubmitting ? "Sending…" : "Email me a sign-in link" }}
-          </UiButton>
-        </form>
+        <SignInForm :create-user="true" new-account-hint id-prefix="login" @signed-in="signedIn" />
       </UiCardContent>
     </UiCard>
   </div>

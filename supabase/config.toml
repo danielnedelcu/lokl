@@ -199,9 +199,9 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-# Raised from 2 (local stack only) so the end-to-end test's one real
-# sign-in email per run doesn't hit the limit on the third run in an hour.
-email_sent = 10
+# Raised from 2 (local stack only): the end-to-end tests send several
+# sign-in codes per run (codes, resends, links), several runs an hour.
+email_sent = 100
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -236,7 +236,21 @@ max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# 10 minutes, for the code and the link alike (docs/design/sign-in-with-code.md);
+# the hosted project's Email OTP expiration is set the same.
+otp_expiry = 600
+
+# The sign-in email: a 6-digit code and the link (docs/design/sign-in-with-code.md).
+# Magic link is sent to an address that has signed in before; Confirm signup
+# to a new one when confirmations are on. The same template for both, pasted
+# into the hosted project's dashboard as well.
+[auth.email.template.magic_link]
+subject = "Your lokl sign-in code"
+content_path = "./supabase/templates/sign-in.html"
+
+[auth.email.template.confirmation]
+subject = "Your lokl sign-in code"
+content_path = "./supabase/templates/sign-in.html"
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]

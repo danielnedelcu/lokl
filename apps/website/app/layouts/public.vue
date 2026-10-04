@@ -5,7 +5,8 @@ const user = useSupabaseUser();
 // "Dashboard" only for providers; every signed-in visitor has "My bookings"
 // and "Saved".
 // Only when signed in: /api/provider is for signed-in users.
-const { data: provider } = user.value ? await useProvider() : { data: ref(null) };
+const { data: provider } = await useOwnProvider();
+const signIn = useSignIn();
 
 // Signing out stays on public pages; signed-in pages go home, since they'd
 // only send you to sign in again.
@@ -31,7 +32,7 @@ async function signOut() {
                move through it, Escape closes it and focus returns to the button. -->
           <UiDropdownMenu v-if="user">
             <UiDropdownMenuTrigger as-child>
-              <button type="button" class="hover:bg-accent focus-visible:ring-ring flex min-h-11 items-center gap-1 rounded-md px-2 focus-visible:ring-2 focus-visible:outline-none sm:px-3">
+              <button id="account-menu" type="button" class="hover:bg-accent focus-visible:ring-ring flex min-h-11 items-center gap-1 rounded-md px-2 focus-visible:ring-2 focus-visible:outline-none sm:px-3">
                 <Icon name="lucide:circle-user" class="size-4" aria-hidden="true" />
                 Account
                 <Icon name="lucide:chevron-down" class="size-3.5" aria-hidden="true" />
@@ -55,11 +56,12 @@ async function signOut() {
               </UiDropdownMenuItem>
             </UiDropdownMenuContent>
           </UiDropdownMenu>
-          <NuxtLink v-else to="/login" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">Sign in</NuxtLink>
+          <button v-else type="button" class="hover:bg-accent focus-visible:ring-ring min-h-11 rounded-md px-2 focus-visible:ring-2 focus-visible:outline-none sm:px-3"
+            @click="signIn.open({ title: 'Sign in or sign up', focusAfter: '#account-menu' })">Sign in</button>
         </nav>
       </div>
     </header>
-    <main id="main" class="flex-1">
+    <main id="main" tabindex="-1" class="flex-1 outline-none">
       <slot />
     </main>
     <footer class="border-border text-muted-foreground border-t">

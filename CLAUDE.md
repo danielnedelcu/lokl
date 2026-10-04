@@ -16,7 +16,7 @@ account and its own `.env` files. Don't copy values, migrations or code across.
 ## Stack
 
 - Turborepo + npm workspaces, Nuxt 4, TypeScript 5.9, Tailwind 4, ui-thing
-- Supabase: auth (emailed sign-in links), Postgres, row-level security (RLS)
+- Supabase: auth (emailed sign-in codes and links), Postgres, row-level security (RLS)
 - Stripe Connect with Express accounts (test mode until launch)
 
 | Path | What |

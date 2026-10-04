@@ -8,9 +8,9 @@
 //   one request after the one in flight.
 // - If the database refuses or the request fails, the heart flips back and
 //   a message says why.
-// - Signed out, a tap opens the sign-in dialog (SaveSignInDialog). Signing
-//   in returns to the page, where the saved intent (a 30-minute cookie) is
-//   saved once.
+// - Signed out, a tap opens the sign-in dialog (useSignIn). Sending the code
+//   remembers what was being saved (a 30-minute cookie); once signed in, by
+//   code on the page or by the emailed link back to it, it's saved once.
 
 export type SavedKind = "listing" | "provider";
 const key = (kind: SavedKind, id: string) => `${kind}:${id}`;
@@ -36,7 +36,6 @@ export function useSaved() {
   const loaded = useState("saved-loaded", () => false);
   const ownProviderId = useState<string | null>("saved-own-provider", () => null);
   const announcement = useState("saved-announcement", () => "");
-  const signInFor = useState<{ kind: SavedKind; id: string; name: string } | null>("saved-sign-in", () => null);
   const inFlight = new Set<string>();
 
   function load() {
@@ -97,7 +96,8 @@ export function useSaved() {
   /** A tap on a heart. Signed out: asks them to sign in. */
   async function toggle(kind: SavedKind, id: string, name: string) {
     if (!user.value) {
-      signInFor.value = { kind, id, name };
+      const path = route.path;
+      signIn.open({ title: `Sign in to save ${name}`, beforeSend: () => writeIntent({ kind, id, name, path, at: Date.now() }) });
       return;
     }
     if (!loaded.value) return;
@@ -124,24 +124,14 @@ export function useSaved() {
   // The sign-in return trip
   // ---------------------------------------------------------------------------
 
-  const intentCookie = useCookie<SaveIntent | null>(INTENT_COOKIE, { maxAge: INTENT_MS / 1000, sameSite: "lax", path: "/", default: () => null });
-  const redirect = useSupabaseCookieRedirect();
   const route = useRoute();
-
-  /** "Sign in" in the dialog: remember what they were saving, then go and sign in. */
-  function signInToSave(s: { kind: SavedKind; id: string; name: string }) {
-    const path = route.fullPath.split("?")[0]!;
-    intentCookie.value = { ...s, path, at: Date.now() };
-    redirect.path.value = path;
-    signInFor.value = null;
-    return navigateTo("/login");
-  }
+  const signIn = useSignIn();
 
   /** Back from signing in: save what they were saving, once, on the page they were on. */
   async function applyIntent() {
-    const intent = intentCookie.value;
+    const intent = readIntent();
     if (!intent) return;
-    intentCookie.value = null;
+    writeIntent(null);
     if (Date.now() - intent.at > INTENT_MS || intent.path !== route.path.split("?")[0]) return;
     const k = key(intent.kind, intent.id);
     wanted.value = { ...wanted.value, [k]: true };
@@ -159,5 +149,24 @@ export function useSaved() {
     ownProviderId.value = null;
   }
 
-  return { load, reset, loaded, isSaved, toggle, ownProviderId, announcement, signInFor, signInToSave };
+  return { load, reset, loaded, isSaved, toggle, ownProviderId, announcement };
+}
+
+// The intent cookie, read and written directly: the code sign-in reads it
+// moments after the dialog wrote it, from another useSaved() (a useCookie
+// ref keeps the value it read when it was made). Browser only.
+function readIntent(): SaveIntent | null {
+  const raw = document.cookie.split("; ").find((c) => c.startsWith(`${INTENT_COOKIE}=`))?.slice(INTENT_COOKIE.length + 1);
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(decodeURIComponent(raw)) as SaveIntent;
+    return v && typeof v.id === "string" && (v.kind === "listing" || v.kind === "provider") ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writeIntent(intent: SaveIntent | null) {
+  document.cookie = intent
+    ? `${INTENT_COOKIE}=${encodeURIComponent(JSON.stringify(intent))}; Max-Age=${INTENT_MS / 1000}; Path=/; SameSite=Lax`
+    : `${INTENT_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
 }
