@@ -219,3 +219,11 @@ user id is `user.sub`, not `user.id`.
 After a change lands, update `docs/TODO.md` (status, next steps). Record any
 settled decision, with its date and why, in `docs/decisions.md`.
 `docs/schema/` is generated. Don't edit it by hand.
+
+**Changes to booking or payment code update
+`docs/architecture/booking-and-payments.md` in the same commit.** That
+covers `apps/website/server/utils/booking*.ts`, `adminBookings.ts`,
+`stripe.ts`, the booking, session, admin-booking, job and Stripe routes
+under `apps/website/server/api/`, the booking migrations, and
+`packages/types/src/bookings.ts`. The document describes the code as
+built; `docs/design/booking-and-checkout.md` is the original design.

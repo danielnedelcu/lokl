@@ -2,12 +2,17 @@ import type Stripe from "stripe";
 import { serverSupabaseServiceRole } from "#supabase/server";
 
 // Events on lokl's own Stripe account: booking payments
-// (docs/design/booking-and-checkout.md, Webhooks). A separate endpoint from
-// /api/stripe/webhook (connected-account events), with its own signing
-// secret: NUXT_STRIPE_PAYMENTS_WEBHOOK_SECRET. In the Stripe dashboard, add it
-// under "Events on your account" with checkout.session.completed,
-// checkout.session.expired, checkout.session.async_payment_succeeded and
-// _failed, payment_intent.canceled and charge.refunded.
+// (docs/architecture/booking-and-payments.md, Idempotency, webhooks and
+// jobs). A separate endpoint from /api/stripe/webhook (connected-account
+// events), with its own signing secret: NUXT_STRIPE_PAYMENTS_WEBHOOK_SECRET.
+// In the Stripe dashboard, add it under "Events on your account" with every
+// event handlePaymentsEvent handles (server/utils/bookings.ts):
+//   checkout.session.completed, checkout.session.expired,
+//   checkout.session.async_payment_succeeded, checkout.session.async_payment_failed,
+//   payment_intent.canceled, charge.refunded,
+//   charge.dispute.created, charge.dispute.updated, charge.dispute.closed,
+//   transfer.reversed.
+// Anything else is answered "ignored".
 export default defineEventHandler(async (event) => {
   const { stripePaymentsWebhookSecret } = useRuntimeConfig();
   const signature = getHeader(event, "stripe-signature");

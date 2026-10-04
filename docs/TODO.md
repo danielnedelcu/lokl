@@ -193,6 +193,9 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   ("Events on connected accounts", `account.updated`) and
   `/api/stripe/webhook-payments`. (The connected-accounts listener hasn't
   been tested locally yet either.)
+- [ ] Production payments webhook must subscribe to every event the route
+  handles, including disputes and transfer.reversed (the list is in the
+  route's header comment and docs/architecture/booking-and-payments.md).
 - [ ] The job scheduler (`pg_cron` + `pg_net` calling `/api/jobs/*`,
   including `send-emails`); until then jobs run with `npm run job`
   (docs/design/booking-and-checkout.md).

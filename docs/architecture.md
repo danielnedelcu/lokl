@@ -3,6 +3,8 @@
 Last updated: 2026-09-27.
 
 Two Nuxt apps share one Supabase project; only the website talks to Stripe.
+
+Booking and payments, as built, with diagrams: [architecture/booking-and-payments.md](architecture/booking-and-payments.md).
 The database enforces who can see and change what, so a bug in a page can't
 expose another provider's data.
 
