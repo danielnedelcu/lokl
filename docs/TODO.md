@@ -160,6 +160,80 @@ Each step depends on the ones before it.
 - [x] Money totals for the filtered bookings, summed in the database
   (migration `admin_booking_totals`, pushed 2026-10-03).
 
+## Hardening
+
+Checks and safeguards to add, in roughly this order (2026-10-09; the first
+three are done: explicit API grants, the build secrets check, and
+`npm run schema:compare`).
+
+- [ ] **Who can call the helper functions.** Forty-six functions in `public`
+  still carry Postgres's default `EXECUTE` for everyone, including signed-out
+  visitors calling them directly through the API. Most are trigger
+  functions, which can't be called that way, but `current_provider_id()`,
+  `listing_parents_active()` and `provider_slug()` are security definer,
+  and `is_admin()` and `has_contact_details()` are used inside access rules
+  and checks. Decide per function what each role needs (the access rules
+  must stay able to call theirs), revoke the rest, and add a test that every
+  security-definer function states who may call it. Also change the default
+  privileges so new functions get no PUBLIC EXECUTE, granting callers
+  explicitly, including the roles that evaluate policies using them.
+- [ ] **Append-only, for every role.** The booking log (`booking_events`),
+  `admin_actions`, `job_runs` and the money columns in `booking_finances`
+  are only protected by the absence of policies, which the service role
+  skips; the server key can still update or delete them, and `TRUNCATE` is
+  gone only since the grants migration. A trigger that refuses updates and
+  deletes for every role where a table is a record of what happened (with a
+  named, re-enabled-at-commit escape hatch for a one-off backfill).
+- [ ] **Access rules evaluated once per query, with a guard.** A helper
+  called directly in a rule runs once per row; wrapped as `(select …)` it
+  runs once per query. Three rules call `is_admin()` unwrapped today
+  (`reviews_read_admin`, `review_replies_read_admin`,
+  `review_reports_read_admin`). Wrap them, and add a test reading
+  `pg_policies` that fails on any unwrapped `auth.uid()`, `auth.jwt()`,
+  `is_admin()` or `current_provider_id()`, and on any table with row
+  security but no rule.
+- [ ] **Lists that stop at 1,000 rows without saying so.** The API returns
+  at most 1,000 rows (`max_rows`) with no error. Find every read without a
+  limit or a range on a table that grows, and page it on the server (as the
+  admin tables already do); `BROWSE_LIMIT` (Open now) is one known case.
+- [ ] **Joins under the caller's rights that quietly drop data.** Where a
+  function or view runs as the caller and joins a table that caller can't
+  read, rows or values vanish without an error. Check each one shows the gap
+  plainly, or only joins what the page's own permission already covers.
+- [ ] **Money writes in one transaction, safe to retry.** Check how a
+  booking, its finances and its payout are written: if any step is a
+  separate request, a crash between them leaves half a booking, and a lost
+  response followed by a retry could write twice. One database function per
+  money change, an idempotency key checked against what was asked for, and
+  checks at commit (the finances add up to the booking's total).
+- [ ] **A lost-response journey.** An end-to-end test where the server
+  commits a payment-related change, the browser never hears back, the
+  person presses the button again, and exactly one change exists.
+- [ ] **Business time, with a guard.** Formatting already goes through
+  `zonedTime`, and the end-to-end browser runs in Los Angeles while the
+  market is Atlanta. Add a test that fails on any date formatting that
+  doesn't name a time zone (outside a short allowlist), and one journey
+  with a booking just after midnight in Atlanta.
+- [ ] **Stripe errors without key fragments.** Stripe's error messages
+  include a shortened form of the key, which GitHub doesn't mask. Rethrow
+  Stripe errors in the test gate with only their type, code and status, with
+  a test that no fragment survives. The gate should skip only when no key
+  is set: a key that's present but live, or another account's, fails the job.
+- [ ] **CI that can't quietly skip.** A shared check for scripts that must
+  only run against the local stack, a test that reads `ci.yml` and fails if
+  such a step runs without it, and command chains that stop at the first
+  failure, with any hosted push on a step of its own after the checks.
+- [ ] **Test clean-up that proves nothing is left.** After each end-to-end
+  test, check every table that points at the test's providers or listings
+  (from the foreign keys) for leftover rows.
+- [ ] **Smaller habits.** Compare like with like in the dashboard (the same
+  number of days, not month-to-date against a whole month); one shared
+  constant, with a test, wherever two places must agree; a local-only demo
+  seed with a clean-up that proves it removed everything; after large
+  changes, bringing the docs (and the migrations skill) back in line and
+  checking every Mermaid diagram still renders; and checking that every
+  claimed check or trigger really exists before writing that it does.
+
 ## Automated checks
 
 - [x] **GitHub Actions** (`.github/workflows/ci.yml`, built 2026-10-03), on
@@ -269,6 +343,12 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [ ] Reply-to `help@hilokl.com`, forwarding to `hilokl.help@gmail.com`
     (`NUXT_EMAIL_REPLY_TO`, and `NUXT_PUBLIC_SUPPORT_EMAIL` on pages).
   - [ ] `NUXT_EMAIL_MODE=send` in production.
+- **Database**
+  - [ ] Run `npm run schema:compare` before every deploy: zero differences
+    between the migrations and the hosted (and later production) database.
+  - [ ] After 2026-10-30 (when the Supabase CLI drops it), delete
+    `auto_expose_new_tables` from `supabase/config.toml`; every grant is in
+    the migrations since `explicit_api_grants`.
 - **Sign-in**
   - [ ] A second factor (authenticator app) for admin accounts, since admin
     access currently depends only on the email inbox.

@@ -36,7 +36,7 @@ permissions:
   contents: read
 
 env:
-  SUPABASE_CLI_VERSION: 2.118.0
+  SUPABASE_CLI_VERSION: 2.120.0
   # Services the tests don't use, left out to start faster.
   SUPABASE_EXCLUDE: studio,imgproxy,edge-runtime,logflare,vector,supavisor
 
@@ -60,6 +60,10 @@ jobs:
         run: npm run test:emails
       - name: Type check the end-to-end tests
         run: npx tsc -p e2e
+      # Builds both apps with a sentinel value for every private setting, and
+      # fails if any reaches the build output (scripts/build-secrets-check.mjs).
+      - name: No secret is baked into a build
+        run: npm run build:secrets-check
 
   database:
     name: database

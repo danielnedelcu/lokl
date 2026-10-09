@@ -132,9 +132,22 @@ The providers table also has `providers_insert_own` and `providers_update_own`.
   evaluates them once per query, not once per row.
 - Update policies carry both `using` and `with check`.
 
-**Column grants** decide which columns signed-in users may write. Supabase
-grants full table privileges to `anon` and `authenticated` by default, so
-revoke, then grant back only what users may write:
+**Grants are explicit** (since `explicit_api_grants`, 2026-10-09;
+`auto_expose_new_tables = false` in `supabase/config.toml`). **New tables and
+functions in `public` reach only `service_role` by default, so each migration
+must grant `anon` and `authenticated` exactly what they need, explicitly**:
+the table privileges (or columns) each role uses, and `EXECUTE` on every
+function they call directly or whose access rules call it (a role evaluating
+a policy needs `EXECUTE` on the helpers in it). A table a role can't select
+fails with "permission denied", even where a row policy would allow the row;
+cover both the granted and the refused case in the pgTAP test. Never grant
+`TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` to the API roles. Postgres
+still gives `PUBLIC` `EXECUTE` on new functions: revoke it from every
+security-definer function and grant only the roles that call it.
+
+**Column grants** decide which columns signed-in users may write. Older
+tables were made when the defaults granted everything, which is why their
+migrations revoke first, then grant back only what users may write:
 
 ```sql
 revoke insert, update on public.providers from anon, authenticated;

@@ -49,6 +49,13 @@ export default defineNuxtConfig({
   modules: ["@nuxt/eslint", "@nuxtjs/supabase"],
 
   supabase: {
+    // The server key is read only at runtime (NUXT_SUPABASE_SECRET_KEY). The
+    // module's own defaults read it from the environment while building,
+    // which baked the hosted project's key into the server output (found
+    // 2026-10-09); these literal empty values replace those defaults, and the
+    // build check (npm run build:secrets-check) fails if one comes back.
+    secretKey: "",
+    serviceKey: "",
     // Auth cookies. The module's default forces Secure, which Safari refuses on
     // http://localhost (Chrome allows it), so the sign-in link's one-time code
     // verifier was never saved and every Safari sign-in failed. Secure in

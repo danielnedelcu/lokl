@@ -9,6 +9,9 @@ const buildCheckFolders = buildCheck
   ? { buildDir: ".nuxt-check", nitro: { output: { dir: ".output-check" } }, vite: { cacheDir: "node_modules/.cache/vite-check" } }
   : {};
 
+// See `hooks` below: the OG image secret, kept out of module setup.
+let hiddenOgSecret: string | undefined;
+
 export default defineNuxtConfig({
   ...buildCheckFolders,
   // Shared UI layer: ui-thing components, theme, Tailwind (docs/frontend.md).
@@ -75,6 +78,13 @@ export default defineNuxtConfig({
   },
 
   supabase: {
+    // The server key is read only at runtime (NUXT_SUPABASE_SECRET_KEY). The
+    // module's own defaults read it from the environment while building,
+    // which baked the hosted project's key into the server output (found
+    // 2026-10-09); these literal empty values replace those defaults, and the
+    // build check (npm run build:secrets-check) fails if one comes back.
+    secretKey: "",
+    serviceKey: "",
     // Auth cookies. The module's default forces Secure, which Safari refuses on
     // http://localhost (Chrome allows it), so the sign-in link's one-time code
     // verifier was never saved and every Safari sign-in failed. Secure in
@@ -128,6 +138,23 @@ export default defineNuxtConfig({
     "/account/**": { robots: false },
     "/login": { robots: false },
     "/confirm": { robots: false },
+  },
+
+  // nuxt-og-image (part of @nuxtjs/seo) reads NUXT_OG_IMAGE_SECRET from the
+  // environment while it sets up, and bakes it into the build (found
+  // 2026-10-09). An empty `security.secret` doesn't stop that (it falls back
+  // to the environment), so the variable is hidden while modules set up and
+  // put back after, for the dev server. Built apps read it at runtime
+  // (runtimeConfig.ogImage.secret, from NUXT_OG_IMAGE_SECRET); the build
+  // check (npm run build:secrets-check) fails if it's baked in again.
+  hooks: {
+    "modules:before": () => {
+      hiddenOgSecret = process.env.NUXT_OG_IMAGE_SECRET;
+      delete process.env.NUXT_OG_IMAGE_SECRET;
+    },
+    "modules:done": () => {
+      if (hiddenOgSecret !== undefined) process.env.NUXT_OG_IMAGE_SECRET = hiddenOgSecret;
+    },
   },
 
   modules: [

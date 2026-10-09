@@ -45,6 +45,8 @@ npm run db:test               # rebuild the local DB from migrations, run pgTAP 
 npm run db:push               # db:test, then apply to hosted Supabase, then db:types + db:docs
 npm run db:types              # regenerate packages/types/src/database.ts from the linked project
 npm run db:docs               # regenerate docs/schema/ with tbls (needs TBLS_DSN in root .env)
+npm run schema:compare        # rebuild locally from migrations, compare with hosted; must show no differences
+npm run build:secrets-check   # build both apps with sentinel secrets; fails if any reaches the output
 ```
 
 **Ports are fixed** (`devServer.port` in each `nuxt.config.ts`): website 3100,
@@ -73,7 +75,18 @@ page then fails with a 500 until the dev server is restarted (seen
 3. `npm run db:test` until it passes.
 4. Show the migration and test diff and wait for an explicit go-ahead.
 5. `npm run db:push`. It applies to the hosted database, which can't be undone,
-   so never run it as an automatic last step.
+   so never run it as an automatic last step. It ends with
+   `schema:compare`: any difference between hosted and the migrations is a
+   failure to report, not to ignore. The comparison must also show no
+   differences before every deploy.
+
+**Grants are explicit** (`auto_expose_new_tables = false`,
+`explicit_api_grants`, 2026-10-09). New tables and functions in `public`
+reach only `service_role` by default, so each migration must grant `anon`
+and `authenticated` exactly what they need, explicitly: the table privileges
+(or columns) each role uses, and `EXECUTE` on each function they call or
+whose access rules call it. Never grant `TRUNCATE`, `REFERENCES`, `TRIGGER`
+or `MAINTAIN` to the API roles.
 
 Never edit a migration once it has been pushed to the hosted database; fix it
 with a new one. A migration that has only run locally can still be edited.
@@ -158,6 +171,10 @@ user id is `user.sub`, not `user.id`.
   `NUXT_STRIPE_SECRET_KEY` → `runtimeConfig.stripeSecretKey`, used through
   `useStripe()` in `apps/website/server/utils/stripe.ts`.
 - Never under a `NUXT_PUBLIC_` name, never in client code, never in `apps/admin`.
+- No secret is ever read at build time: private `runtimeConfig` values have
+  literal empty defaults, and module defaults that read the environment
+  (the Supabase server key, the OG image secret) are overridden in
+  `nuxt.config.ts`. `npm run build:secrets-check` (in CI) proves it.
 - Stripe-derived columns (`stripe_*` on `providers`) are written only by
   `syncStripeAccount()`, from an account object fetched from Stripe or from a
   signature-verified webhook. Never from request input.
