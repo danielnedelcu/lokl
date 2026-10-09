@@ -138,6 +138,13 @@ test("a new code replaces the old one; a pasted code with a space works", async 
   // Pasted as an email client might copy it, with a space: every box fills.
   await pasteCode(dialog, `${second.code.slice(0, 3)} ${second.code.slice(3)}`);
   await expect(dialog.getByRole("button", { name: "Sign in" })).toBeFocused();
+  // The module's claims check (the signing keys, or the user) answers late
+  // here, as it sometimes did: focus must still end on the account menu, not
+  // on the "Sign in" button the header shows until then (2026-10-09).
+  await page.route(/\/auth\/v1\/(user|\.well-known\/jwks\.json)/, async (route) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.continue();
+  });
   await dialog.getByRole("button", { name: "Sign in" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Account" })).toBeFocused();

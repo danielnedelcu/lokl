@@ -39,10 +39,29 @@ async function signedIn(email: string) {
   const restoreFocus = close();
   useSonner.success(`Signed in as ${email}.`);
   // Focus once the page shows the signed-in person (the account menu, the
-  // booking form), so a redraw can't take it away again.
+  // booking form), so a redraw can't take it away again. The module sets
+  // the signed-in user only after its own claims request answers, which can
+  // come after the refresh; until then the header still shows "Sign in", and
+  // focus went back to that button just before it was replaced (an
+  // intermittent end-to-end failure, 2026-10-09).
+  await signedInUserShown();
   await refreshNuxtData();
   await nextTick();
   restoreFocus();
+}
+
+/** Resolves once useSupabaseUser() has the signed-in person (or after 5 s, so focus is never left waiting). */
+function signedInUserShown() {
+  if (user.value) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const done = () => {
+      stop();
+      clearTimeout(timer);
+      resolve();
+    };
+    const stop = watch(() => user.value?.sub, (id) => id && done());
+    const timer = setTimeout(done, 5000);
+  });
 }
 </script>
 
