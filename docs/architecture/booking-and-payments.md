@@ -280,6 +280,9 @@ sequenceDiagram
   ([providerBookingList.ts](../../apps/website/server/utils/providerBookingList.ts);
   until 2026-10-10 the page read the 500 most recently made bookings and
   grouped them in code). Checkouts never finished are in no tab.
+- The customer's My bookings has the same shape: Upcoming and Past, each
+  counted and paged by the database, 20 at a time
+  ([customerBookingList.ts](../../apps/website/server/utils/customerBookingList.ts)).
 
 ## 5. Cancellations and refunds
 

@@ -26,8 +26,8 @@ export function useBookingCheckout() {
 // The name from the customer's last booking, to save retyping it.
 export async function lastBookingName(): Promise<string> {
   try {
-    const list = await $fetch<{ customer_name: string }[]>("/api/account/bookings");
-    return list[0]?.customer_name ?? "";
+    const { items } = await $fetch<{ items: { customer_name: string }[] }>("/api/account/bookings", { query: { group: "latest" } });
+    return items[0]?.customer_name ?? "";
   } catch {
     return "";
   }

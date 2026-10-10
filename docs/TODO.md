@@ -211,7 +211,8 @@ three are done: explicit API grants, the build secrets check, and
   `public_browse`), category counts (done: `public_category_counts`), the sitemap (done:
   `allRows()` pages it), admin disputes (done: all open, the rest paged),
   the other admin lists (done: AI cost, review queue, and the shorter
-  lists now count everything and say when they show only the latest); then jobs ordered by due time with "more
+  lists now count everything and say when they show only the latest),
+  and the customer's My bookings (done: paged); then jobs ordered by due time with "more
   waiting" logged, the Saved page's long request, and two guards (a
   static check in CI, and a runtime check on full pages).
 - [ ] **Split the sitemap before 50,000 URLs.** One sitemap file holds at
