@@ -341,15 +341,15 @@ export async function loadPublicMarket(db: SupabaseClient, slug: string): Promis
   if (error) throw new Error(error.message);
   if (!market) return null;
 
-  const [categories, areas, listings] = await Promise.all([
+  // Visible listings per category, counted by the database
+  // (public_category_counts, visitors' own rules).
+  const [categories, areas, counted] = await Promise.all([
     db.from("categories").select("id, kind, name, slug, description").order("sort_order").order("name"),
     db.from("service_areas").select("id, name, kind").eq("city_id", market.id).order("sort_order").order("name"),
-    db.from("listings").select("category_id").eq("city_id", market.id).eq("status", "live").limit(BROWSE_LIMIT * 2),
+    db.rpc("public_category_counts", { p_market_id: market.id }),
   ]);
-  for (const r of [categories, areas, listings]) if (r.error) throw new Error(r.error.message);
-
-  const counts = new Map<string, number>();
-  for (const l of listings.data as { category_id: string }[]) counts.set(l.category_id, (counts.get(l.category_id) ?? 0) + 1);
+  for (const r of [categories, areas, counted]) if (r.error) throw new Error(r.error.message);
+  const counts = new Map(Object.entries((counted.data ?? {}) as Record<string, number>));
 
   const { id: _id, ...publicMarket } = market;
   return {

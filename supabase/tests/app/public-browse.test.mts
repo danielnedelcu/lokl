@@ -1,4 +1,4 @@
-// Browse past the API's 1,000-row limit (server/utils/publicListings.ts),
+// Browse and the market page's category counts past the API's 1,000-row limit (server/utils/publicListings.ts),
 // read as a signed-out visitor against the LOCAL stack. Recreates the
 // cut-off found on 2026-10-10: browse read at most 1,000 live listings per
 // market and kind, then sorted, counted and paged them in code.
@@ -7,7 +7,7 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { browsePublicListings, PAGE_SIZE } from "../../../apps/website/server/utils/publicListings";
+import { browsePublicListings, loadPublicMarket, PAGE_SIZE } from "../../../apps/website/server/utils/publicListings";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -78,6 +78,11 @@ try {
   check(dated?.total === 1 && dated.items[0]?.id === soonest, "2b. a date range finds the one listing with a session then");
   check((await browsePublicListings(visitor, { market, kind: "experience", category: "no-such-category" })) === null, "2c. an unknown category is not found");
   check(page1?.items.every((c) => !("sessionTimes" in c) && !("areaIds" in c)), "2d. cards carry no internal fields");
+
+  // 3. The market page's count per category.
+  const info = await loadPublicMarket(visitor, market);
+  const count = info?.categories.find((c) => c.slug === `browse-${run}`)?.count;
+  check(count === MANY + 1, `3. the market page counts all ${MANY + 1} in the category (got ${count})`);
 } catch (e) {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
