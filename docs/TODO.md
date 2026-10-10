@@ -209,7 +209,7 @@ three are done: explicit API grants, the build secrets check, and
   Inventory and order agreed 2026-10-10: provider bookings (done), the
   sessions panel (done: `listing_sessions_page`), browse (done:
   `public_browse`), category counts (done: `public_category_counts`), the sitemap (done:
-  `allRows()` pages it), admin disputes,
+  `allRows()` pages it), admin disputes (done: all open, the rest paged),
   the other admin lists; then jobs ordered by due time with "more
   waiting" logged, the Saved page's long request, and two guards (a
   static check in CI, and a runtime check on full pages).

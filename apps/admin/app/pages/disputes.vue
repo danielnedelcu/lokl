@@ -7,21 +7,29 @@ import { whenOf } from "~/utils/bookingAdmin";
 useHead({ title: "Disputes & refunds · Admin" });
 const supabase = useSupabaseClient();
 
-// Disputes start from booking_finances (where the dispute is recorded);
-// refunds from bookings (where the refund is). Admins read both.
-const BOOKING = "id, status, starts_at, total_cents, refunded_cents, refunded_at, cancelled_by, cancel_reason, problem_resolution, " +
-  "listing:listings(title, city:cities(timezone)), provider:providers(display_name)";
-const DISPUTE = "stripe_dispute_id, disputed_at, dispute_closed_at, dispute_outcome, dispute_reason, dispute_amount_cents, dispute_evidence_due_by";
-const { data, error, pending } = await useAsyncData("admin-disputes", async () => {
-  const [d, r] = await Promise.all([
-    supabase.from("booking_finances").select(`${DISPUTE}, booking:bookings(${BOOKING})`).not("disputed_at", "is", null).order("disputed_at", { ascending: false }).limit(200),
-    supabase.from("bookings").select(BOOKING).gt("refunded_cents", 0).order("refunded_at", { ascending: false }).limit(100),
-  ]);
-  if (d.error) throw d.error;
-  if (r.error) throw r.error;
-  const disputes = ((d.data ?? []) as any[]).map(({ booking, ...f }) => ({ ...booking, ...f }));
-  return { open: disputes.filter((x) => !x.dispute_closed_at), closed: disputes.filter((x) => x.dispute_closed_at), refunds: (r.data ?? []) as any[] };
+// Every open dispute (each has an evidence deadline); closed disputes and
+// refunds counted and paged by the database (utils/disputes.ts).
+const { data, error, pending } = await useAsyncData("admin-disputes", () => loadDisputes(supabase));
+const more = reactive({ closed: [] as any[], refunds: [] as any[] });
+watch(data, () => {
+  more.closed = [];
+  more.refunds = [];
 });
+const closed = computed(() => [...(data.value?.closed.items ?? []), ...more.closed]);
+const refunds = computed(() => [...(data.value?.refunds.items ?? []), ...more.refunds]);
+const loadingMore = ref<"" | "closed" | "refunds">("");
+async function showMore(which: "closed" | "refunds") {
+  loadingMore.value = which;
+  try {
+    const shown = which === "closed" ? closed.value.length : refunds.value.length;
+    const next = await loadDisputes(supabase, { [which]: Math.floor(shown / DISPUTES_PAGE_SIZE) + 1 });
+    more[which] = [...more[which], ...next[which].items];
+  } catch (e) {
+    reportProblem(`Couldn't load more ${which === "closed" ? "closed disputes" : "refunds"}`, e);
+  } finally {
+    loadingMore.value = "";
+  }
+}
 watch(error, (e) => e && reportProblem("Couldn't load disputes", e), { immediate: true });
 const money = (cents: number) => formatMoney(cents ?? 0, "usd");
 // The Lokl sandbox until launch, so Stripe's test dashboard.
@@ -57,25 +65,31 @@ const why = (b: any) => b.problem_resolution === "refunded" ? "a reported no-sho
         </ul>
       </section>
 
-      <section v-if="data.closed.length" class="mt-8" aria-labelledby="closed-heading">
-        <h2 id="closed-heading" class="font-medium">Closed disputes</h2>
+      <section v-if="data.closed.total" class="mt-8" aria-labelledby="closed-heading">
+        <h2 id="closed-heading" class="font-medium">Closed disputes ({{ data.closed.total }})</h2>
         <ul class="mt-2 space-y-1 text-sm">
-          <li v-for="d in data.closed" :key="d.id">
+          <li v-for="d in closed" :key="d.id">
             <NuxtLink :to="`/bookings/${d.id}`" class="font-medium">{{ d.listing?.title }}</NuxtLink>
             · {{ formatDate(d.dispute_closed_at) }} · {{ d.dispute_outcome }} · {{ money(d.dispute_amount_cents ?? d.total_cents) }}
           </li>
         </ul>
+        <UiButton v-if="closed.length < data.closed.total" variant="outline" size="sm" class="mt-3" :disabled="!!loadingMore" @click="showMore('closed')">
+          {{ loadingMore === "closed" ? "Loading…" : `Show more closed disputes (${data.closed.total - closed.length} more)` }}
+        </UiButton>
       </section>
 
       <section class="mt-8" aria-labelledby="refunds-heading">
-        <h2 id="refunds-heading" class="font-medium">Refunds</h2>
-        <p v-if="!data.refunds.length" class="mt-2 text-sm text-muted-foreground">No refunds yet.</p>
+        <h2 id="refunds-heading" class="font-medium">Refunds ({{ data.refunds.total }})</h2>
+        <p v-if="!data.refunds.total" class="mt-2 text-sm text-muted-foreground">No refunds yet.</p>
         <ul v-else class="mt-2 space-y-1 text-sm">
-          <li v-for="r in data.refunds" :key="r.id">
+          <li v-for="r in refunds" :key="r.id">
             <NuxtLink :to="`/bookings/${r.id}`" class="font-medium">{{ r.listing?.title }}</NuxtLink>
             · {{ money(r.refunded_cents) }} · {{ r.refunded_at ? formatDate(r.refunded_at) : "" }} · {{ why(r) }}
           </li>
         </ul>
+        <UiButton v-if="refunds.length < data.refunds.total" variant="outline" size="sm" class="mt-3" :disabled="!!loadingMore" @click="showMore('refunds')">
+          {{ loadingMore === "refunds" ? "Loading…" : `Show more refunds (${data.refunds.total - refunds.length} more)` }}
+        </UiButton>
       </section>
     </template>
     <p v-else-if="pending" class="text-sm text-muted-foreground">Loading…</p>
