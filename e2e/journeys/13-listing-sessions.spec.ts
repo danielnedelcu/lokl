@@ -25,14 +25,15 @@ test("a session's bookings are counted however many rows the listing has", async
   const row = (session: string, status: string, people: number, startsSql: string) =>
     `('experience', '${listing.id}', '${provider}', '${customer.id}', '${session}', 'Sam', 5000, ${people}, ${5000 * people}, '${status}', ${startsSql}, ${startsSql} + interval '1 hour')`;
   const abandoned = Array.from({ length: 1050 }, () => row(old, "expired", 1, "now() - interval '20 days'"));
-  execFileSync("psql", [data.env.dbUrl, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-c", `
+  // On standard input: Linux caps one command-line argument at 128 KB.
+  execFileSync("psql", [data.env.dbUrl, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", "-"], { input: `
     set local session_replication_role = replica;
     insert into public.experience_sessions (id, listing_id, starts_at, capacity) values ('${old}', '${listing.id}', now() - interval '20 days', 500);
     insert into public.bookings (kind, listing_id, provider_id, customer_id, session_id, customer_name, unit_price_cents, party_size, total_cents, status, starts_at, ends_at)
     values ${abandoned.join(",")};
     insert into public.bookings (kind, listing_id, provider_id, customer_id, session_id, customer_name, unit_price_cents, party_size, total_cents, status, starts_at, ends_at)
     values ${row(upcoming, "confirmed", 2, `(select starts_at from public.experience_sessions where id = '${upcoming}')`)},
-           ${row(upcoming, "confirmed", 3, `(select starts_at from public.experience_sessions where id = '${upcoming}')`)};`]);
+           ${row(upcoming, "confirmed", 3, `(select starts_at from public.experience_sessions where id = '${upcoming}')`)};` });
 
   await signIn(context, owner.email, owner.password);
   await page.goto(`/dashboard/listings/${listing.id}`);

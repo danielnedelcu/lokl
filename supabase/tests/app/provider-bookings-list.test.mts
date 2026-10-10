@@ -18,7 +18,9 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(local.API_URL ?? "")) {
   process.exit(1);
 }
 const db = createClient(local.API_URL!, local.SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-const psql = (sql: string) => execFileSync("psql", [local.DB_URL!, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-c", sql]);
+// The SQL goes on standard input: Linux caps one command-line argument at
+// 128 KB, and the bulk inserts here are bigger (CI, 2026-10-10).
+const psql = (sql: string) => execFileSync("psql", [local.DB_URL!, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", "-"], { input: sql });
 
 const run = randomBytes(4).toString("hex");
 let failures = 0;
