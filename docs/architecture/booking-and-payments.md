@@ -273,6 +273,13 @@ sequenceDiagram
 - Routes: [service.post.ts](../../apps/website/server/api/bookings/service.post.ts),
   [accept.post.ts](../../apps/website/server/api/bookings/[id]/accept.post.ts),
   [decline.post.ts](../../apps/website/server/api/bookings/[id]/decline.post.ts).
+- The provider's bookings page has three tabs: Requests (by answer-by
+  time), Upcoming (confirmed, not yet ended, soonest first) and Past (most
+  recent first). Each tab is filtered, counted and paged, 20 at a time, by
+  the database, so no booking drops out however many were made after it
+  ([providerBookingList.ts](../../apps/website/server/utils/providerBookingList.ts);
+  until 2026-10-10 the page read the 500 most recently made bookings and
+  grouped them in code). Checkouts never finished are in no tab.
 
 ## 5. Cancellations and refunds
 

@@ -1,21 +1,54 @@
 <script setup lang="ts">
 // The provider's bookings (docs/design/booking-and-checkout.md, Provider
-// pages): Requests to answer, Upcoming and Past. The customer's email, phone
-// and street address appear only once a booking is accepted or confirmed.
+// pages): Requests to answer, Upcoming and Past, 20 at a time, each tab
+// counted and paged by the database. The customer's email, phone and street
+// address appear only once a booking is accepted or confirmed.
 definePageMeta({ layout: "dashboard", middleware: "provider-only" });
 useSeoMeta({ title: "Bookings" });
 
 const route = useRoute();
 const router = useRouter();
-const { data, error, refresh } = await useProviderBookings();
+const tab = computed<ProviderBookingTab>({
+  get: () => (["requests", "upcoming", "past"].includes(String(route.query.tab)) ? (route.query.tab as ProviderBookingTab) : "requests"),
+  set: (value) => router.replace({ query: { ...route.query, tab: value } }),
+});
+const { data, error, refresh } = await useProviderBookings(tab);
 // New requests and bookings arrive as notifications, which refresh this.
 useLiveData({ refresh, listings: "any" });
 
-type Tab = "requests" | "upcoming" | "past";
-const tab = computed<Tab>({
-  get: () => (["requests", "upcoming", "past"].includes(String(route.query.tab)) ? (route.query.tab as Tab) : "requests"),
-  set: (value) => router.replace({ query: { ...route.query, tab: value } }),
+// "Show more bookings": later pages, added below the first.
+const more = ref<ProviderBooking[]>([]);
+const page = ref(1);
+const loadingMore = ref(false);
+const moreError = ref("");
+// A refresh or another tab starts again from page one.
+watch(data, () => {
+  more.value = [];
+  page.value = 1;
+  moreError.value = "";
 });
+// Only this tab's bookings: while another tab loads, the last one's stay hidden.
+const current = computed(() => (data.value?.tab === tab.value ? data.value : null));
+const items = computed(() => [...(current.value?.items ?? []), ...more.value]);
+const total = computed(() => current.value?.total ?? 0);
+const counts = computed(() => data.value?.counts ?? { requests: 0, upcoming: 0, past: 0 });
+async function showMore() {
+  loadingMore.value = true;
+  moreError.value = "";
+  const firstNew = items.value.length;
+  try {
+    const next = await fetchProviderBookingsPage(tab.value, page.value + 1);
+    more.value = [...more.value, ...next.items];
+    page.value += 1;
+    // Focus the first new booking, so keyboard users carry on from there.
+    await nextTick();
+    document.querySelectorAll<HTMLElement>("[data-booking]")[firstNew]?.focus();
+  } catch {
+    moreError.value = "More bookings didn't load. Try again.";
+  } finally {
+    loadingMore.value = false;
+  }
+}
 const money = (cents: number) => formatMoney(cents, "usd");
 </script>
 
@@ -29,20 +62,20 @@ const money = (cents: number) => formatMoney(cents, "usd");
       <UiAlertDescription>Please refresh the page to try again.</UiAlertDescription>
     </UiAlert>
 
-    <UiTabs v-else-if="data" v-model="tab" class="mt-6">
+    <UiTabs v-else v-model="tab" class="mt-6">
       <UiTabsList>
-        <UiTabsTrigger value="requests">Requests ({{ data.requests.length }})</UiTabsTrigger>
-        <UiTabsTrigger value="upcoming">Upcoming</UiTabsTrigger>
-        <UiTabsTrigger value="past">Past</UiTabsTrigger>
+        <UiTabsTrigger value="requests">Requests ({{ counts.requests }})</UiTabsTrigger>
+        <UiTabsTrigger value="upcoming">Upcoming ({{ counts.upcoming }})</UiTabsTrigger>
+        <UiTabsTrigger value="past">Past ({{ counts.past }})</UiTabsTrigger>
       </UiTabsList>
 
       <!-- Requests: answer each one before its time runs out. -->
       <UiTabsContent value="requests" class="mt-4">
-        <p v-if="!data.requests.length" class="rounded-lg border border-dashed border-input bg-card p-8 text-center text-sm text-muted-foreground">
+        <p v-if="current && !items.length" class="rounded-lg border border-dashed border-input bg-card p-8 text-center text-sm text-muted-foreground">
           No requests to answer.
         </p>
         <ul v-else class="space-y-3">
-          <li v-for="b in data.requests" :key="b.id" class="rounded-lg border border-border bg-card p-4">
+          <li v-for="b in items" :key="b.id" data-booking tabindex="-1" class="rounded-lg border border-border bg-card p-4 outline-none">
             <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <h2 class="font-medium">{{ b.listing?.title }}</h2>
@@ -71,11 +104,11 @@ const money = (cents: number) => formatMoney(cents, "usd");
 
       <!-- Upcoming: accepted or paid, with the customer's details. -->
       <UiTabsContent value="upcoming" class="mt-4">
-        <p v-if="!data.upcoming.length" class="rounded-lg border border-dashed border-input bg-card p-8 text-center text-sm text-muted-foreground">
+        <p v-if="current && !items.length" class="rounded-lg border border-dashed border-input bg-card p-8 text-center text-sm text-muted-foreground">
           No upcoming bookings.
         </p>
         <ul v-else class="space-y-3">
-          <li v-for="b in data.upcoming" :key="b.id" class="rounded-lg border border-border bg-card p-4">
+          <li v-for="b in items" :key="b.id" data-booking tabindex="-1" class="rounded-lg border border-border bg-card p-4 outline-none">
             <p class="text-sm font-medium">{{ bookingRange(b) }}</p>
             <h2 class="mt-1 font-medium">{{ b.listing?.title }}</h2>
             <dl class="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
@@ -104,11 +137,11 @@ const money = (cents: number) => formatMoney(cents, "usd");
 
       <!-- Past: done, cancelled, declined, or ended unanswered. -->
       <UiTabsContent value="past" class="mt-4">
-        <p v-if="!data.past.length" class="rounded-lg border border-dashed border-input bg-card p-8 text-center text-sm text-muted-foreground">
+        <p v-if="current && !items.length" class="rounded-lg border border-dashed border-input bg-card p-8 text-center text-sm text-muted-foreground">
           No past bookings yet.
         </p>
         <ul v-else class="divide-y divide-border rounded-lg border border-border bg-card">
-          <li v-for="b in data.past" :key="b.id">
+          <li v-for="b in items" :key="b.id" data-booking tabindex="-1" class="outline-none">
             <NuxtLink :to="`/dashboard/bookings/${b.id}`" class="flex min-h-11 flex-wrap items-center justify-between gap-2 p-4 hover:bg-accent">
               <span>
                 <span class="block font-medium">{{ b.listing?.title }}</span>
@@ -122,6 +155,10 @@ const money = (cents: number) => formatMoney(cents, "usd");
           </li>
         </ul>
       </UiTabsContent>
+      <div v-if="items.length < total" class="mt-4">
+        <UiButton variant="outline" :disabled="loadingMore" @click="showMore">{{ loadingMore ? "Loading…" : "Show more bookings" }}</UiButton>
+        <p v-if="moreError" role="alert" class="mt-2 text-sm text-destructive">{{ moreError }}</p>
+      </div>
     </UiTabs>
   </div>
 </template>

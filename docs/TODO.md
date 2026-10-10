@@ -197,6 +197,11 @@ three are done: explicit API grants, the build secrets check, and
   at most 1,000 rows (`max_rows`) with no error. Find every read without a
   limit or a range on a table that grows, and page it on the server (as the
   admin tables already do); `BROWSE_LIMIT` (Open now) is one known case.
+  Inventory and order agreed 2026-10-10: provider bookings (done), the
+  sessions panel, browse, category counts, the sitemap, admin disputes,
+  the other admin lists; then jobs ordered by due time with "more
+  waiting" logged, the Saved page's long request, and two guards (a
+  static check in CI, and a runtime check on full pages).
 - [ ] **Joins under the caller's rights that quietly drop data.** Where a
   function or view runs as the caller and joins a table that caller can't
   read, rows or values vanish without an error. Check each one shows the gap

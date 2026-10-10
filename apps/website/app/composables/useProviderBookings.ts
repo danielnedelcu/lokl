@@ -33,12 +33,30 @@ export interface ProviderBooking {
   address: ProviderBookingAddress | null;
 }
 
-export function useProviderBookings() {
-  return useFetch<{ requests: ProviderBooking[]; upcoming: ProviderBooking[]; past: ProviderBooking[] }>(
-    "/api/provider/bookings",
-    { key: "provider-bookings", headers: useRequestHeaders(["cookie"]) },
-  );
+export type ProviderBookingTab = "requests" | "upcoming" | "past";
+
+/** One page of one tab, with every tab's count (the route pages in the database). */
+export interface ProviderBookingsPage {
+  tab: ProviderBookingTab;
+  items: ProviderBooking[];
+  page: number;
+  pageSize: number;
+  total: number;
+  counts: Record<ProviderBookingTab, number>;
 }
+
+/** The first page of a tab; it reloads when the tab changes. */
+export function useProviderBookings(tab: Ref<ProviderBookingTab>) {
+  return useFetch<ProviderBookingsPage>("/api/provider/bookings", {
+    key: "provider-bookings",
+    query: computed(() => ({ tab: tab.value, page: 1 })),
+    headers: useRequestHeaders(["cookie"]),
+  });
+}
+
+/** A later page of a tab ("Show more bookings"). */
+export const fetchProviderBookingsPage = (tab: ProviderBookingTab, page: number) =>
+  $fetch<ProviderBookingsPage>("/api/provider/bookings", { query: { tab, page } });
 
 export const bookingZone = (b: Pick<ProviderBooking, "listing">) => b.listing?.city?.timezone ?? "America/New_York";
 
