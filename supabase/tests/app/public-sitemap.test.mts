@@ -1,4 +1,5 @@
-// The sitemap past the API's 1,000-row limit (publicSitemapEntries in
+// The sitemap past the API's 1,000-row limit, and the Saved page's
+// largest load, (publicSitemapEntries in
 // server/utils/publicListings.ts), read as a signed-out visitor against the
 // LOCAL stack. Recreates the cut-off found on 2026-10-10: the sitemap asked
 // for up to 10,000 listings and providers, and the API returned 1,000 of
@@ -8,7 +9,7 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { publicSitemapEntries } from "../../../apps/website/server/utils/publicListings";
+import { loadSavedListingCards, loadSavedProviders, publicSitemapEntries } from "../../../apps/website/server/utils/publicListings";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -54,6 +55,22 @@ try {
   check(locs.has(`/${market}/experiences/${market}`), "1c. the market's category page is in it");
   check(locs.size === entries.length, "1d. no URL twice");
   check(listings.every((e) => !!e.lastmod), "1e. listings carry when they last changed");
+
+  // 2. The Saved page loads up to 500 saved listings and 500 saved
+  //    providers (the most one person can save) by id. In one request the
+  //    ids made an address of about 19 KB (found 2026-10-10).
+  const ids = (sql: string) => execFileSync("psql", [local.DB_URL!, "-X", "-At", "-f", "-"], { input: sql, encoding: "utf8" }).trim().split("\n");
+  const listingIds = ids(`select l.id from public.listings l join public.cities c on c.id = l.city_id where c.slug = '${market}' order by l.id limit 500`);
+  const providerIds = ids(`select p.id from public.providers p join public.cities c on c.id = p.city_id where c.slug = '${market}' order by p.id limit 500`);
+  let saved = -1, savedProviders = -1, problem = "";
+  try {
+    saved = (await loadSavedListingCards(visitor, listingIds)).size;
+    savedProviders = (await loadSavedProviders(visitor, providerIds)).size;
+  } catch (e) {
+    problem = (e as Error).message.slice(0, 120);
+  }
+  check(saved === 500, `2a. 500 saved listings load (got ${saved}${problem ? `: ${problem}` : ""})`);
+  check(savedProviders === 500, `2b. 500 saved providers load (got ${savedProviders})`);
 } catch (e) {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);

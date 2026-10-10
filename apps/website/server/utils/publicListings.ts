@@ -216,23 +216,30 @@ export async function loadPublicProvider(db: SupabaseClient, slug: string): Prom
   return { provider, stars: toStars(row.ratings), market: row.market, experiences: cards.filter((c) => c.kind === "experience"), services: cards.filter((c) => c.kind === "service") };
 }
 
+// Ids go in the request's address, so they're asked for 100 at a time: 500
+// (the most one person can save) made an address of about 19 KB, which the
+// API refuses as too long (found 2026-10-10).
+const IDS_PER_REQUEST = 100;
+async function byIds<T>(ids: string[], read: (chunk: string[]) => PromiseLike<{ data: unknown; error: { message: string } | null }>) {
+  const chunks = Array.from({ length: Math.ceil(ids.length / IDS_PER_REQUEST) }, (_, i) => ids.slice(i * IDS_PER_REQUEST, (i + 1) * IDS_PER_REQUEST));
+  const results = await Promise.all(chunks.map(read));
+  for (const r of results) if (r.error) throw new Error(r.error.message);
+  return results.flatMap((r) => (r.data ?? []) as T[]);
+}
+
 /** Saved listings that are visible now, as visitors see them (the Saved page). */
 export async function loadSavedListingCards(db: SupabaseClient, ids: string[]) {
   const found = new Map<string, PublicListingCard & { market: PublicMarket }>();
-  if (!ids.length) return found;
-  const { data, error } = await db.from("listings").select(LISTING_SELECT).in("id", ids).eq("status", "live");
-  if (error) throw new Error(error.message);
-  for (const r of (data ?? []) as unknown as Row[]) found.set(r.id, { ...stripInternal(toCard(r)), market: r.city });
+  const rows = await byIds<Row>(ids, (chunk) => db.from("listings").select(LISTING_SELECT).in("id", chunk).eq("status", "live"));
+  for (const r of rows) found.set(r.id, { ...stripInternal(toCard(r)), market: r.city });
   return found;
 }
 
 /** Saved providers whose profiles are public now (the Saved page). */
 export async function loadSavedProviders(db: SupabaseClient, ids: string[]) {
   const found = new Map<string, PublicProvider>();
-  if (!ids.length) return found;
-  const { data, error } = await db.from("providers").select(PROVIDER_PUBLIC).in("id", ids);
-  if (error) throw new Error(error.message);
-  for (const r of (data ?? []) as unknown as ProviderRow[]) found.set(r.id, toProvider(r));
+  const rows = await byIds<ProviderRow>(ids, (chunk) => db.from("providers").select(PROVIDER_PUBLIC).in("id", chunk));
+  for (const r of rows) found.set(r.id, toProvider(r));
   return found;
 }
 
