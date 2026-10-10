@@ -34,13 +34,14 @@ export interface ProviderBookingsPage {
  * others were made after it.
  * - Requests: waiting for the provider's answer.
  * - Upcoming: confirmed, not yet ended.
- * - Past: everything else that was ever a request or a booking (an expired
- *   booking with no answer-by time was a checkout never paid, so it isn't).
+ * - Past: everything else that was ever a request or a booking. An expired
+ *   or cancelled one with neither an answer-by time nor a confirmation was a
+ *   checkout never paid (it ran out, or couldn't start), so it isn't.
  */
 function inTab<Q extends { eq: any; gt: any; or: any }>(q: Q, tab: ProviderBookingTab, now: string): Q {
   if (tab === "requests") return q.eq("status", "requested");
   if (tab === "upcoming") return q.eq("status", "confirmed").gt("ends_at", now);
-  return q.or(`status.in.(declined,cancelled,completed,paid_out),and(status.eq.expired,respond_by.not.is.null),and(status.eq.confirmed,ends_at.lte.${now})`);
+  return q.or(`status.in.(declined,completed,paid_out),and(status.in.(expired,cancelled),or(respond_by.not.is.null,confirmed_at.not.is.null)),and(status.eq.confirmed,ends_at.lte.${now})`);
 }
 
 /** One page of one tab of the provider's bookings, with every tab's count. */

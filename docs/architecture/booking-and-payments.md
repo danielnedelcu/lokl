@@ -175,7 +175,7 @@ sequenceDiagram
   participant DB as Postgres
   participant S as Stripe
 
-  C->>W: POST /api/bookings/experience (session, party size, name)
+  C->>W: POST /api/bookings/experience (session, party size, name, checkout key)
   W->>DB: provider can be paid? (charges and payouts enabled)
   W->>DB: reserve_experience_booking (locks the session row)
   Note over DB: spots taken = confirmed, completed, paid_out<br/>+ pending_payment still within reserved_until<br/>reserved_until = now + 31 min
@@ -213,6 +213,41 @@ sequenceDiagram
   [abandon.post.ts](../../apps/website/server/api/bookings/[id]/abandon.post.ts).
   Request shape: `experienceBookingRequestSchema` in the
   [policy](../../packages/types/src/bookings.ts) file.
+
+### Checkout attempts and a lost reply
+
+(Decided 2026-10-10; `checkout_keys` migration, `bookings.ts`.) The booking
+form sends a **checkout key** per attempt: a new one whenever the details
+change, or when the server refuses the attempt. If the reply to "Continue to
+payment" is lost after the server made the booking, pressing again sends the
+same key, and:
+
+| The booking already made with that key | The retry gets |
+| --- | --- |
+| waiting for payment, Checkout open | the same Checkout link |
+| waiting for payment, no Checkout yet (a simultaneous request is making it) | the same Checkout: same Stripe key, `expires_at` from `reserved_until`, and a Stripe 409 "in progress" is waited out |
+| paid (confirmed or requested) | its confirmation page |
+| expired or cancelled | "This checkout has ended. Please start again." (the page then makes a new key) |
+| made with other details | refused: "This checkout was started with different details. Check your details and try again." |
+
+The database functions take the key and a SHA-256 of the details
+(`checkout_key`, `checkout_request_hash` on `bookings`, unique per customer),
+under an advisory lock on customer and key, so two simultaneous identical
+requests make one booking. A **new attempt for the same Experience session**
+ends the customer's earlier unpaid ones first: the server expires their Stripe
+Checkouts (one Stripe says was paid becomes a booking instead), and the
+database expires them before counting spots, so a lost attempt can't block
+the new one. After a lost reply the page keeps its key and doesn't reload the
+spots, so pressing again isn't blocked by its own attempt. Calls without a
+key (older pages) work as before.
+
+Checkouts never paid (expired or cancelled with no confirmation and no
+answer-by time) are listed neither to the customer (My bookings) nor to the
+provider.
+
+Tested in [checkout_keys.test.sql](../../supabase/tests/checkout_keys.test.sql),
+[booking-checkout-retry.test.mts](../../supabase/tests/app/booking-checkout-retry.test.mts)
+and e2e journey 18 (the reply dropped after the server commits).
 
 ## 4. Requesting a Service
 
@@ -717,7 +752,7 @@ Wording: [notifications.ts](../../packages/types/src/notifications.ts).
 
 | Key | For | Where |
 | --- | --- | --- |
-| `booking:<id>:checkout:1` | creating the Checkout Session | `createCheckout`, `bookings.ts` |
+| `booking:<id>:checkout:1` | creating the Checkout Session (a retried checkout attempt sends the identical request, `expires_at` from `reserved_until`) | `createCheckout`, `bookings.ts` |
 | `booking:<id>:late-refund:1` | refunding a payment that arrived after the booking ended | `syncCheckoutSession` |
 | `booking:<id>:capture:<w>` | accepting a request | `acceptRequest` |
 | `booking:<id>:release:<w>` | releasing a card hold | `declineRequest`, cancellations, jobs |

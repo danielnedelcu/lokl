@@ -33,6 +33,8 @@ export const serviceBookingRequestSchema = z.object({
   phone,
   notes,
   address: bookingAddressSchema.optional(),
+  /** The page's key for this checkout attempt: a retry with it never makes a second booking. */
+  checkoutKey: z.uuid().optional(),
 });
 export type ServiceBookingRequest = z.infer<typeof serviceBookingRequestSchema>;
 
@@ -42,6 +44,8 @@ export const experienceBookingRequestSchema = z.object({
   name,
   phone,
   notes,
+  /** The page's key for this checkout attempt: a retry with it never makes a second booking. */
+  checkoutKey: z.uuid().optional(),
 });
 export type ExperienceBookingRequest = z.infer<typeof experienceBookingRequestSchema>;
 

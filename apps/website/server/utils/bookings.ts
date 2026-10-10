@@ -8,6 +8,7 @@
 // guards their statuses (create_service_request, reserve_experience_booking,
 // bookings_guard); this module only adds Stripe.
 
+import { createHash } from "node:crypto";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExperienceBookingRequest, ServiceBookingRequest } from "@repo/types";
@@ -33,6 +34,8 @@ interface BookingRow {
   party_size: number;
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
+  reserved_until: string;
+  customer_id: string;
 }
 
 export interface CheckoutContext {
@@ -65,10 +68,13 @@ async function assertProviderCanBeBooked(db: SupabaseClient, listingId: string) 
 }
 
 async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: string, listingPath: string) {
-  const expiresAt = Math.floor((Date.now() + CHECKOUT_WINDOW_MS) / 1000);
+  // From the booking's reservation, not the clock: a retry of the same
+  // attempt sends Stripe exactly the same request under the same key, so
+  // Stripe returns the same Checkout instead of refusing a changed one.
+  const expiresAt = Math.floor(Date.parse(booking.reserved_until) / 1000);
   let session: Stripe.Checkout.Session;
   try {
-    session = await ctx.stripe.checkout.sessions.create(
+    session = await stripeCreatingOnce(() => ctx.stripe.checkout.sessions.create(
       {
         mode: "payment",
         customer_email: ctx.customer.email,
@@ -89,7 +95,7 @@ async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: 
         cancel_url: `${ctx.siteUrl}${listingPath}?checkout=cancelled&booking=${booking.id}`,
       },
       { idempotencyKey: idempotencyKey(booking.id, "checkout") },
-    );
+    ));
   } catch (e) {
     // Don't leave spots or a request held for a checkout that doesn't exist.
     await bookingRecords(ctx.db)
@@ -101,6 +107,89 @@ async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: 
   const { error } = await bookingRecords(ctx.db).update({ stripe_checkout_session_id: session.id }).eq("id", booking.id);
   if (error) throw fromDatabase(error);
   return { bookingId: booking.id, url: session.url! };
+}
+
+/**
+ * A Stripe create call whose key may be in use by a simultaneous request
+ * (the same checkout attempt twice): Stripe answers 409 until the first
+ * finishes, then replays its result. Waits and asks again, briefly.
+ */
+async function stripeCreatingOnce<T>(create: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await create();
+    } catch (e) {
+      const err = e as { statusCode?: number; type?: string };
+      if (err.statusCode !== 409 || attempt >= 10) throw e;
+      await new Promise((r) => setTimeout(r, 300 * attempt));
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Checkout attempts (decided 2026-10-10): the page sends a key per attempt,
+// a new one whenever the details change. The database returns the booking
+// already made with that key (and refuses the key with other details); this
+// sends the customer on from wherever that booking is.
+// ---------------------------------------------------------------------------
+
+export const CHECKOUT_ENDED = "This checkout has ended. Please start again.";
+
+/** SHA-256 of an attempt's details, in a fixed order, without its key. */
+export function checkoutRequestHash(kind: "service" | "experience", input: Record<string, unknown>) {
+  const { checkoutKey: _key, ...details } = input;
+  const sorted = (v: unknown): unknown =>
+    Array.isArray(v) ? v.map(sorted)
+      : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted((v as Record<string, unknown>)[k])]))
+      : v ?? null;
+  return createHash("sha256").update(JSON.stringify({ kind, details: sorted(details) })).digest("hex");
+}
+
+/**
+ * Where a booking from a checkout attempt sends the customer: its open
+ * Checkout (made now if it isn't yet), its confirmation page once paid, or
+ * "the checkout has ended".
+ */
+async function continueCheckout(ctx: CheckoutContext, booking: BookingRow, title: string, listingPath: string) {
+  const done = { bookingId: booking.id, url: `${ctx.siteUrl}/account/bookings/${booking.id}?checkout=done` };
+  if (booking.status === "pending_payment") {
+    const { data } = await bookingRecords(ctx.db).select("stripe_checkout_session_id").eq("id", booking.id).single();
+    const sessionId = (data as { stripe_checkout_session_id: string | null } | null)?.stripe_checkout_session_id;
+    if (!sessionId) return createCheckout(ctx, booking, title, listingPath);
+    const session = await ctx.stripe.checkout.sessions.retrieve(sessionId);
+    if (session.status === "open" && session.url) return { bookingId: booking.id, url: session.url };
+    // Paid or expired in Stripe since: bring the booking in line, then decide.
+    await syncCheckoutSession(ctx.db, ctx.stripe, sessionId);
+    const { data: now } = await ctx.db.from("bookings").select("status").eq("id", booking.id).single();
+    if (["requested", "confirmed"].includes((now as { status: string }).status)) return done;
+    throw new BookingError(CHECKOUT_ENDED, 409);
+  }
+  if (["requested", "confirmed", "completed", "paid_out"].includes(booking.status)) return done;
+  throw new BookingError(CHECKOUT_ENDED, 409);
+}
+
+/**
+ * Ends the customer's earlier unpaid attempts for an Experience session
+ * (another key): their Stripe Checkouts are expired, so they can't be paid,
+ * and the database then releases their spots. One that Stripe says was paid
+ * meanwhile becomes a booking instead (abandonCheckout syncs it).
+ */
+async function endEarlierAttempts(ctx: CheckoutContext, sessionId: string, checkoutKey: string) {
+  // bounded: one customer's unpaid attempts for one session
+  const { data, error } = await ctx.db.from("bookings").select("id")
+    .eq("customer_id", ctx.customer.id).eq("session_id", sessionId).eq("status", "pending_payment")
+    .neq("checkout_key", checkoutKey);
+  if (error) throw fromDatabase(error);
+  // bounded: one customer's unpaid attempts for one session
+  const { data: noKey } = await ctx.db.from("bookings").select("id")
+    .eq("customer_id", ctx.customer.id).eq("session_id", sessionId).eq("status", "pending_payment").is("checkout_key", null);
+  const ids = [...(data ?? []), ...(noKey ?? [])].map((b) => b.id as string);
+  if (!ids.length) return;
+  // bounded: the same few attempts, by id
+  const { data: records } = await bookingRecords(ctx.db).select("id, stripe_checkout_session_id").in("id", ids);
+  for (const r of (records ?? []) as { id: string; stripe_checkout_session_id: string | null }[]) {
+    if (r.stripe_checkout_session_id) await abandonCheckout(ctx.db, ctx.stripe, r.stripe_checkout_session_id);
+  }
 }
 
 /** A Service request: saved as pending payment, then a Checkout Session that holds the card. */
@@ -118,9 +207,11 @@ export async function startServiceCheckout(ctx: CheckoutContext, input: ServiceB
     p_customer_notes: input.notes ?? null,
     p_address: input.address ?? null,
     p_reserved_until: new Date(Date.now() + CHECKOUT_WINDOW_MS).toISOString(),
+    p_checkout_key: input.checkoutKey,
+    p_request_hash: input.checkoutKey ? checkoutRequestHash("service", input) : undefined,
   });
   if (error) throw fromDatabase(error);
-  return createCheckout(ctx, data as BookingRow, listing.title, `/services/${listing.slug}`);
+  return continueCheckout(ctx, data as BookingRow, listing.title, `/services/${listing.slug}`);
 }
 
 /** An Experience booking: spots reserved for the checkout window, then a Checkout Session that charges at once. */
@@ -130,6 +221,7 @@ export async function startExperienceCheckout(ctx: CheckoutContext, input: Exper
   const listing = (session as { listing: { slug: string; title: string } | null } | null)?.listing;
   if (!listing) throw new BookingError("That date isn't available any more.", 404);
   await assertProviderCanBeBooked(ctx.db, (session as { listing_id: string }).listing_id);
+  if (input.checkoutKey) await endEarlierAttempts(ctx, input.sessionId, input.checkoutKey);
   const { data, error } = await ctx.db.rpc("reserve_experience_booking", {
     p_session_id: input.sessionId,
     p_customer_id: ctx.customer.id,
@@ -139,9 +231,11 @@ export async function startExperienceCheckout(ctx: CheckoutContext, input: Exper
     p_customer_phone: input.phone ?? null,
     p_customer_notes: input.notes ?? null,
     p_reserved_until: new Date(Date.now() + CHECKOUT_WINDOW_MS).toISOString(),
+    p_checkout_key: input.checkoutKey,
+    p_request_hash: input.checkoutKey ? checkoutRequestHash("experience", input) : undefined,
   });
   if (error) throw fromDatabase(error);
-  return createCheckout(ctx, data as BookingRow, listing.title, `/experiences/${listing.slug}`);
+  return continueCheckout(ctx, data as BookingRow, listing.title, `/experiences/${listing.slug}`);
 }
 
 // ---------------------------------------------------------------------------

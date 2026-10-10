@@ -58,7 +58,9 @@ onMounted(async () => {
   if (name && !values.name) setFieldValue("name", name);
 });
 
-const { sending, problem, start } = useBookingCheckout();
+const { sending, problem, start, newAttempt } = useBookingCheckout();
+// Other details are a new checkout attempt (a new key).
+watch(values, newAttempt, { deep: true });
 const submit = handleSubmit((v) =>
   start("/api/bookings/service", {
     listingId: props.listing.id,

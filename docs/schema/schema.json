@@ -2308,6 +2308,18 @@
           "type": "text",
           "nullable": true,
           "comment": "How lokl resolved a no-show report: paid_provider (the payout goes ahead) or refunded (the booking was cancelled with a full refund)."
+        },
+        {
+          "name": "checkout_key",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "The booking page's key for the checkout attempt that made this booking: a retry with the same key returns this booking instead of a second one. Unique per customer. Written only by the booking functions (the server)."
+        },
+        {
+          "name": "checkout_request_hash",
+          "type": "text",
+          "nullable": true,
+          "comment": "SHA-256 of the attempt's details (the validated request), so the same key with other details is refused. Written only by the booking functions."
         }
       ],
       "indexes": [
@@ -2429,6 +2441,15 @@
           "columns": [
             "coalesce"
           ]
+        },
+        {
+          "name": "bookings_checkout_key_idx",
+          "def": "CREATE UNIQUE INDEX bookings_checkout_key_idx ON public.bookings USING btree (customer_id, checkout_key) WHERE (checkout_key IS NOT NULL)",
+          "table": "public.bookings",
+          "columns": [
+            "customer_id",
+            "checkout_key"
+          ]
         }
       ],
       "constraints": [
@@ -2450,6 +2471,16 @@
           "referenced_table": "",
           "columns": [
             "cancelled_by"
+          ]
+        },
+        {
+          "name": "bookings_checkout_request_hash_check",
+          "type": "CHECK",
+          "def": "CHECK ((checkout_request_hash ~ '^[0-9a-f]{64}$'::text))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "checkout_request_hash"
           ]
         },
         {
@@ -8029,18 +8060,6 @@
       "type": "FUNCTION"
     },
     {
-      "name": "public.reserve_experience_booking",
-      "return_type": "bookings",
-      "arguments": "p_session_id uuid, p_customer_id uuid, p_party_size smallint, p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_reserved_until timestamp with time zone",
-      "type": "FUNCTION"
-    },
-    {
-      "name": "public.create_service_request",
-      "return_type": "bookings",
-      "arguments": "p_listing_id uuid, p_customer_id uuid, p_preferred_times timestamp with time zone[], p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_address jsonb, p_reserved_until timestamp with time zone",
-      "type": "FUNCTION"
-    },
-    {
       "name": "public.experience_sessions_booked_guard",
       "return_type": "trigger",
       "arguments": "",
@@ -8434,6 +8453,18 @@
       "name": "public.public_provider_ids",
       "return_type": "uuid",
       "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.reserve_experience_booking",
+      "return_type": "bookings",
+      "arguments": "p_session_id uuid, p_customer_id uuid, p_party_size smallint, p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_reserved_until timestamp with time zone, p_checkout_key uuid DEFAULT NULL::uuid, p_request_hash text DEFAULT NULL::text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.create_service_request",
+      "return_type": "bookings",
+      "arguments": "p_listing_id uuid, p_customer_id uuid, p_preferred_times timestamp with time zone[], p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_address jsonb, p_reserved_until timestamp with time zone, p_checkout_key uuid DEFAULT NULL::uuid, p_request_hash text DEFAULT NULL::text",
       "type": "FUNCTION"
     }
   ],

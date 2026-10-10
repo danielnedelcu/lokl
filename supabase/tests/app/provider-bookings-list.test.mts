@@ -62,7 +62,7 @@ try {
   const cols = "id, kind, listing_id, provider_id, customer_id, session_id, customer_name, unit_price_cents, total_cents, status, starts_at, ends_at, confirmed_at, payout_due_at, respond_by, created_at";
   const row = (id: string, status: string, startsDays: number, createdDays: number, respondBy: string | null = null) => {
     const start = `now() + interval '${startsDays} days'`;
-    const confirmed = ["requested", "pending_payment", "expired"].includes(status) ? "null" : `now() - interval '${createdDays} days'`;
+    const confirmed = ["requested", "pending_payment", "expired", "cancelled"].includes(status) ? "null" : `now() - interval '${createdDays} days'`;
     return `('${id}', 'experience', '${created.listing}', '${created.provider}', '${customer.id}', '${session}', 'Sam', 5000, 5000, '${status}', ` +
       `${start}, ${start} + interval '1 hour', ${confirmed}, ${start} + interval '25 hours', ${respondBy ?? "null"}, now() - interval '${createdDays} days')`;
   };
@@ -71,7 +71,7 @@ try {
   const rows = [row(upcomingId, "confirmed", 10, 60), row(requestId, "requested", 12, 59, "now() + interval '1 day'")];
   for (let i = 0; i < PAST; i++) rows.push(row(randomUUID(), "completed", -1 - i / 100, 50 - i / 100));
   // Checkouts never finished: one still open, one that ran out unpaid.
-  rows.push(row(randomUUID(), "pending_payment", 11, 1), row(randomUUID(), "expired", 11, 2));
+  rows.push(row(randomUUID(), "pending_payment", 11, 1), row(randomUUID(), "expired", 11, 2), row(randomUUID(), "cancelled", 11, 2));
   psql(`set local session_replication_role = replica; insert into public.bookings (${cols}) values ${rows.join(",\n")};`);
 
   const as = owner.client;
@@ -94,7 +94,7 @@ try {
   check(starts.every((t, i) => i === 0 || t <= starts[i - 1]!), "2d. ...most recent first, across pages");
   check(new Set([...past1.items, ...past2.items].map((b) => b.id)).size === PROVIDER_BOOKINGS_PAGE_SIZE * 2, "2e. ...with no booking on two pages");
   check(!past1.items.some((b) => b.id === upcomingId || b.id === requestId), "2f. upcoming bookings and requests aren't in Past");
-  check(past1.counts.requests + past1.counts.upcoming + past1.counts.past === PAST + 2, "2g. checkouts never finished (open, or expired unpaid) are in no tab");
+  check(past1.counts.requests + past1.counts.upcoming + past1.counts.past === PAST + 2, "2g. checkouts never finished (open, expired or cancelled unpaid) are in no tab");
 
 } catch (e) {
   failures++;

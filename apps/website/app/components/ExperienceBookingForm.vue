@@ -40,16 +40,20 @@ const total = computed(() => {
   return `${n} × ${formatMoney(props.listing.priceCents, props.listing.currency)} = ${formatMoney(props.listing.priceCents * n, props.listing.currency)}`;
 });
 
-const { sending, problem, start } = useBookingCheckout();
+const { sending, problem, start, newAttempt } = useBookingCheckout();
+// Other details are a new checkout attempt (a new key).
+watch(values, newAttempt, { deep: true });
 const submit = handleSubmit(async (v) => {
   if (chosen.value && Number(v.partySize) > chosen.value.spotsLeft) {
     return setFieldError("partySize", `Only ${spotsText(chosen.value.spotsLeft).replace(" left", "")} left on that date.`);
   }
-  const ok = await start("/api/bookings/experience", {
+  const result = await start("/api/bookings/experience", {
     sessionId: v.sessionId, partySize: Number(v.partySize), name: v.name, phone: v.phone || undefined, notes: v.notes || undefined,
   });
-  // Spots may have changed while they filled the form: show the latest.
-  if (!ok) await refreshNuxtData();
+  // Refused: spots may have changed while they filled the form, so show the
+  // latest. Not after a lost reply: the spots shown would count the attempt
+  // that may have been made, and block pressing again.
+  if (result === "refused") await refreshNuxtData();
 });
 </script>
 

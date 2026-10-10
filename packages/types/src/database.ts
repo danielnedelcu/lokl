@@ -402,6 +402,8 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          checkout_key: string | null
+          checkout_request_hash: string | null
           confirmed_at: string | null
           created_at: string
           currency: string
@@ -437,6 +439,8 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          checkout_key?: string | null
+          checkout_request_hash?: string | null
           confirmed_at?: string | null
           created_at?: string
           currency?: string
@@ -472,6 +476,8 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          checkout_key?: string | null
+          checkout_request_hash?: string | null
           confirmed_at?: string | null
           created_at?: string
           currency?: string
@@ -1998,6 +2004,7 @@ export type Database = {
       create_service_request: {
         Args: {
           p_address: Json
+          p_checkout_key?: string
           p_customer_email: string
           p_customer_id: string
           p_customer_name: string
@@ -2005,12 +2012,15 @@ export type Database = {
           p_customer_phone: string
           p_listing_id: string
           p_preferred_times: string[]
+          p_request_hash?: string
           p_reserved_until: string
         }
         Returns: {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          checkout_key: string | null
+          checkout_request_hash: string | null
           confirmed_at: string | null
           created_at: string
           currency: string
@@ -2117,12 +2127,14 @@ export type Database = {
       }
       reserve_experience_booking: {
         Args: {
+          p_checkout_key?: string
           p_customer_email: string
           p_customer_id: string
           p_customer_name: string
           p_customer_notes: string
           p_customer_phone: string
           p_party_size: number
+          p_request_hash?: string
           p_reserved_until: string
           p_session_id: string
         }
@@ -2130,6 +2142,8 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          checkout_key: string | null
+          checkout_request_hash: string | null
           confirmed_at: string | null
           created_at: string
           currency: string

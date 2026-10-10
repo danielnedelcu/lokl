@@ -59,7 +59,11 @@ try {
   const row = (id: string, status: string, startDays: number, madeDays: number, name = "Sam") =>
     `('${id}', 'experience', '${created.listing}', '${created.provider}', '${customer.id}', (select id from s), '${name}', 5000, 5000, ` +
     `now() + interval '${startDays} days', now() + interval '${startDays} days' + interval '1 hour', '${status}', now() - interval '${madeDays} days')`;
-  const rows = [row(upcoming, "confirmed", 10, 90), ...Array.from({ length: PAST }, (_, i) => row(randomUUID(), "completed", -1 - i / 100, 80 - i / 100, i === PAST - 1 ? "Latest" : "Sam"))];
+  // Checkouts never paid: one that ran out, one that couldn't start. Neither
+  // was ever a booking, so neither is listed (as on the provider's list).
+  const neverPaid = [randomUUID(), randomUUID()];
+  const rows = [row(upcoming, "confirmed", 10, 90), ...Array.from({ length: PAST }, (_, i) => row(randomUUID(), "completed", -1 - i / 100, 80 - i / 100, i === PAST - 1 ? "Latest" : "Sam")),
+    row(neverPaid[0]!, "expired", -2, 3), row(neverPaid[1]!, "cancelled", 5, 2)];
   psql(`set local session_replication_role = replica;
     with s as (insert into public.experience_sessions (listing_id, starts_at, capacity) values ('${created.listing}', now() + interval '10 days', 500) returning id)
     insert into public.bookings (id, kind, listing_id, provider_id, customer_id, session_id, customer_name, unit_price_cents, total_cents, starts_at, ends_at, status, created_at)
@@ -76,6 +80,8 @@ try {
     `2c. ...and the last page (${last}) holds the rest`);
   const past2 = await customerBookingsPage(as, customer.id, "past", 2);
   check(new Set([...past1.items, ...past2.items].map((b) => b.id)).size === CUSTOMER_BOOKINGS_PAGE_SIZE * 2, "2d. no booking on two pages");
+  const everything = [...(await customerBookingsPage(as, customer.id, "past", 1)).items, ...(await customerBookingsPage(as, customer.id, "upcoming")).items];
+  check(past1.total === PAST && !everything.some((b) => neverPaid.includes(b.id)), "2e. checkouts never paid (ran out, or couldn't start) aren't listed");
   const latest = await customerBookingsPage(as, customer.id, "latest");
   check(latest.items.length === 1 && latest.items[0].customer_name === "Latest", "3. latest is the one most recently made");
   const other = await customerBookingsPage(stranger.client, customer.id, "past");

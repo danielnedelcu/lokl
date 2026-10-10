@@ -224,9 +224,18 @@ three are done: explicit API grants, the build secrets check, and
   response followed by a retry could write twice. One database function per
   money change, an idempotency key checked against what was asked for, and
   checks at commit (the finances add up to the booking's total).
-- [ ] **A lost-response journey.** An end-to-end test where the server
-  commits a payment-related change, the browser never hears back, the
-  person presses the button again, and exactly one change exists.
+- [x] **A lost-response journey: booking creation** (`checkout_keys`,
+  2026-10-10). The booking form sends a key per checkout attempt; a retry
+  after a lost reply returns the same booking and Checkout, the same key
+  with other details is refused, and a new attempt for an Experience
+  session ends the customer's earlier unpaid one. E2e journey 18 drops the
+  reply after the server commits. Other payment actions (accepting a
+  request, cancelling, the admin's refunds) still to check the same way.
+- [ ] **A reload after a lost reply can hide a date.** Within 31 minutes of a
+  lost reply, the booking page's spots still count the customer's own unpaid
+  attempt as taken, so a date it filled shows as full and can't be chosen,
+  although the server would accept a new attempt (it ends the earlier one).
+  The page would need to know the signed-in customer's own unpaid attempts.
 - [ ] **Business time, with a guard.** Formatting already goes through
   `zonedTime`, and the end-to-end browser runs in Los Angeles while the
   market is Atlanta. Add a test that fails on any date formatting that
