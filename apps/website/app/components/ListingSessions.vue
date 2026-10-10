@@ -22,47 +22,67 @@ interface SessionRow {
   starts_at: string;
   capacity: number;
   status: "scheduled" | "cancelled";
+  /** Booking rows of any kind: any at all means it can't be deleted, only cancelled with refunds. */
+  booking_rows: number;
+  /** People on confirmed bookings, and what cancelling would refund them. */
+  booked: number;
+  refund_cents: number;
 }
+interface SessionsPage { total: number; items: SessionRow[] }
 
-const { data: sessions, refresh, error: loadError } = await useAsyncData(`listing-sessions-${props.listingId}`, async () => {
-  const { data, error } = await supabase
-    .from("experience_sessions")
-    .select("id, starts_at, capacity, status")
-    .eq("listing_id", props.listingId)
-    .order("starts_at");
+// Sessions with each one's bookings counted by the database
+// (listing_sessions_page), 50 at a time: upcoming soonest first, past most
+// recent first. Adding up booking rows in the browser stopped at the API's
+// 1,000 rows (found 2026-10-10).
+const PAGE_SIZE = 50;
+async function loadPage(past: boolean, page: number) {
+  const { data, error } = await supabase.rpc("listing_sessions_page", {
+    p_listing_id: props.listingId, p_past: past, p_page: page, p_page_size: PAGE_SIZE,
+  });
   if (error) throw error;
-  return data as SessionRow[];
+  return data as unknown as SessionsPage;
+}
+const { data: firstPages, refresh, error: loadError } = await useAsyncData(`listing-sessions-${props.listingId}`, async () => {
+  const [upcoming, past] = await Promise.all([loadPage(false, 1), loadPage(true, 1)]);
+  return { upcoming, past };
 });
 
-// Bookings per session: any booking row at all (even an expired checkout)
-// means the session can't be deleted, only cancelled with refunds.
-const { data: bookingsBySession, refresh: refreshBookings } = await useAsyncData(`listing-session-bookings-${props.listingId}`, async () => {
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("session_id, status, party_size, total_cents")
-    .eq("listing_id", props.listingId)
-    .not("session_id", "is", null);
-  if (error) throw error;
-  const map = new Map<string, { rows: number; booked: number; refundCents: number }>();
-  for (const b of data ?? []) {
-    const m = map.get(b.session_id!) ?? { rows: 0, booked: 0, refundCents: 0 };
-    m.rows++;
-    if (b.status === "confirmed") { m.booked += b.party_size; m.refundCents += b.total_cents; }
-    map.set(b.session_id!, m);
+// "Show more sessions": later pages, added below the first.
+const more = reactive({ upcoming: [] as SessionRow[], past: [] as SessionRow[] });
+watch(firstPages, () => {
+  more.upcoming = [];
+  more.past = [];
+});
+const upcoming = computed(() => [...(firstPages.value?.upcoming.items ?? []), ...more.upcoming]);
+const past = computed(() => [...(firstPages.value?.past.items ?? []), ...more.past]);
+const totals = computed(() => ({ upcoming: firstPages.value?.upcoming.total ?? 0, past: firstPages.value?.past.total ?? 0 }));
+const loadingMore = ref(false);
+const moreError = ref("");
+async function showMore(which: "upcoming" | "past") {
+  loadingMore.value = true;
+  moreError.value = "";
+  const shown = which === "upcoming" ? upcoming.value : past.value;
+  const firstNew = shown.length;
+  try {
+    const next = await loadPage(which === "past", Math.floor(firstNew / PAGE_SIZE) + 1);
+    more[which] = [...more[which], ...next.items];
+    // Focus the first new session, so keyboard users carry on from there.
+    await nextTick();
+    document.querySelectorAll<HTMLElement>(`[data-session="${which}"]`)[firstNew]?.focus();
+  } catch {
+    moreError.value = "More sessions didn't load. Try again.";
+  } finally {
+    loadingMore.value = false;
   }
-  return Object.fromEntries(map);
-});
-const bookingsOf = (s: SessionRow) => bookingsBySession.value?.[s.id] ?? { rows: 0, booked: 0, refundCents: 0 };
+}
+const bookingsOf = (s: SessionRow) => ({ rows: s.booking_rows, booked: s.booked, refundCents: s.refund_cents });
 
 async function reload() {
-  await Promise.all([refresh(), refreshBookings()]);
+  await refresh();
   emit("changed");
 }
 
 // Past sessions are kept but tucked away; they can't be changed.
-const nowMs = ref(Date.now());
-const upcoming = computed(() => (sessions.value ?? []).filter((s) => Date.parse(s.starts_at) > nowMs.value));
-const past = computed(() => (sessions.value ?? []).filter((s) => Date.parse(s.starts_at) <= nowMs.value).reverse());
 const showPast = ref(false);
 
 const editable = computed(() => ["draft", "rejected", "live"].includes(props.status));
@@ -166,7 +186,6 @@ const save = form.handleSubmit(async (v) => {
   }
   useSonner.success(editing.value ? "Session updated." : v.repeat ? `${v.weeks} sessions added.` : "Session added.");
   formOpen.value = false;
-  nowMs.value = Date.now();
   await reload();
 });
 
@@ -235,7 +254,7 @@ async function confirmCancel() {
       </p>
 
       <ul v-else class="divide-border divide-y rounded-lg border">
-        <li v-for="s in upcoming" :key="s.id" class="flex flex-wrap items-center gap-x-4 gap-y-2 p-3">
+        <li v-for="s in upcoming" :key="s.id" data-session="upcoming" tabindex="-1" class="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 outline-none">
           <div class="min-w-0 flex-1">
             <p class="font-medium">{{ dateOf(s) }}</p>
             <p class="text-muted-foreground text-sm">
@@ -254,21 +273,28 @@ async function confirmCancel() {
           </div>
         </li>
       </ul>
+      <UiButton v-if="upcoming.length < totals.upcoming" variant="outline" :disabled="loadingMore" @click="showMore('upcoming')">
+        {{ loadingMore ? "Loading…" : `Show more upcoming sessions (${totals.upcoming - upcoming.length} more)` }}
+      </UiButton>
 
       <UiButton v-if="editable" variant="outline" :disabled="busy" @click="openAdd">Add a session</UiButton>
 
-      <div v-if="past.length">
+      <div v-if="totals.past">
         <UiButton variant="link" class="px-0" :aria-expanded="showPast" aria-controls="past-sessions" @click="showPast = !showPast">
           <Icon :name="showPast ? 'lucide:chevron-down' : 'lucide:chevron-right'" aria-hidden="true" />
-          Past sessions ({{ past.length }})
+          Past sessions ({{ totals.past }})
         </UiButton>
         <ul v-show="showPast" id="past-sessions" class="text-muted-foreground mt-2 space-y-1 text-sm">
-          <li v-for="s in past" :key="s.id">
+          <li v-for="s in past" :key="s.id" data-session="past" tabindex="-1" class="outline-none">
             {{ dateOf(s) }}, {{ timeOf(s) }} · {{ spotsOf(s) }}
             <StatusBadge v-if="s.status === 'cancelled'" kind="session" :status="s.status" class="ml-2" />
           </li>
         </ul>
+        <UiButton v-if="showPast && past.length < totals.past" variant="link" class="px-0" :disabled="loadingMore" @click="showMore('past')">
+          {{ loadingMore ? "Loading…" : "Show more past sessions" }}
+        </UiButton>
       </div>
+      <p v-if="moreError" role="alert" class="text-destructive text-sm">{{ moreError }}</p>
     </UiCardContent>
   </UiCard>
 

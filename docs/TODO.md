@@ -208,7 +208,7 @@ three are done: explicit API grants, the build secrets check, and
   limit or a range on a table that grows, and page it on the server (as the
   admin tables already do); `BROWSE_LIMIT` (Open now) is one known case.
   Inventory and order agreed 2026-10-10: provider bookings (done), the
-  sessions panel, browse, category counts, the sitemap, admin disputes,
+  sessions panel (done: `listing_sessions_page`), browse, category counts, the sitemap, admin disputes,
   the other admin lists; then jobs ordered by due time with "more
   waiting" logged, the Saved page's long request, and two guards (a
   static check in CI, and a runtime check on full pages).
