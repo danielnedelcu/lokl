@@ -118,7 +118,8 @@ async function saveReply() {
   const reviewId = state.value?.review?.id;
   if (!reviewId) return;
   busy.value = true;
-  const result = state.value?.reply
+  const editingReply = !!state.value?.reply;
+  const result = editingReply
     ? await supabase.from("review_replies").update({ body: parsed.data.body }).eq("review_id", reviewId).select("review_id")
     // Cast: provider_id is filled from the review by the trigger.
     : await supabase.from("review_replies").insert({ review_id: reviewId, body: parsed.data.body } as never).select("review_id");
@@ -128,7 +129,9 @@ async function saveReply() {
     replyError.value = problemText(problemFound, reviewProblem(result.error, "reply"));
     return;
   }
-  useSonner.success("Your reply is up.");
+  // An edit says so, as the review does: two identical messages in a row
+  // told nobody the edit had saved (and made e2e journey 11 flaky in CI).
+  useSonner.success(editingReply ? "Your reply is updated." : "Your reply is up.");
   replying.value = false;
   await refresh();
 }

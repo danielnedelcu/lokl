@@ -143,7 +143,7 @@ test("the provider replies to a review, and edits the reply", async ({ page, con
   await section.getByRole("button", { name: "Edit reply" }).click();
   await section.getByLabel("Your public reply").fill("Sorry about the closed stop, Dee. We've changed the route since.");
   await section.getByRole("button", { name: "Save reply" }).click();
-  await expect(page.getByText("Your reply is up.")).toBeVisible();
+  await expect(page.getByText("Your reply is updated.")).toBeVisible();
 
   await page.goto(`/experiences/${p.listing.slug}`);
   const review = reviewsSection(page).getByRole("article", { name: "Review by Dee F." });
