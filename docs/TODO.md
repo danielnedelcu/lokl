@@ -210,7 +210,7 @@ three are done: explicit API grants, the build secrets check, and
   sessions panel (done: `listing_sessions_page`), browse (done:
   `public_browse`), category counts (done: `public_category_counts`), the sitemap (done:
   `allRows()` pages it), admin disputes (done: all open, the rest paged),
-  the other admin lists (AI cost done: `admin_ai_draft_cost`); then jobs ordered by due time with "more
+  the other admin lists (AI cost and the review queue done); then jobs ordered by due time with "more
   waiting" logged, the Saved page's long request, and two guards (a
   static check in CI, and a runtime check on full pages).
 - [ ] **Split the sitemap before 50,000 URLs.** One sitemap file holds at
