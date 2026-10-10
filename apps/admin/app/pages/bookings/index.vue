@@ -25,23 +25,24 @@ type GroupKey = (typeof GROUPS)[number]["key"];
 
 const { data: attention, error: attentionError, pending: attentionPending, refresh: refreshAttention } = await useAsyncData("admin-booking-attention", async () => {
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
-  const [counts, failedEmails, failedRuns, ...groups] = await Promise.all([
+  const [counts, emails, runs, ...groups] = await Promise.all([
     supabase.rpc("admin_bookings_page", { p_with_attention: true, p_page_size: 1 }),
-    supabase.from("booking_emails").select("id, booking_id, kind, last_error, created_at").eq("status", "failed").order("created_at", { ascending: false }).limit(100),
-    supabase.from("job_runs").select("id, job, finished_at, failed, failures, error").gte("finished_at", since).or("failed.gt.0,error.not.is.null").order("finished_at", { ascending: false }).limit(50),
+    failedEmails(supabase),
+    failedJobRuns(supabase, since),
     ...GROUPS.map((g) => supabase.rpc("admin_bookings_page", { p_attention: g.key, p_page_size: 20 })),
   ]);
-  for (const r of [counts, failedEmails, failedRuns, ...groups]) if (r.error) throw r.error;
+  for (const r of [counts, ...groups]) if (r.error) throw r.error;
   const totals = ((counts.data as { attention?: Record<GroupKey, number> }).attention ?? {}) as Record<GroupKey, number>;
   return {
     groups: GROUPS.map((g, i) => ({ ...g, count: totals[g.key] ?? 0, rows: asServerPage<AdminBookingRow>(groups[i]!.data, null).rows })),
-    failedEmails: failedEmails.data ?? [],
-    failedRuns: failedRuns.data ?? [],
+    // Each shows its latest rows and counts them all (utils/adminLists.ts).
+    failedEmails: emails,
+    failedRuns: runs,
   };
 });
 watch(attentionError, (e) => e && reportProblem("Couldn't load what needs attention", e), { immediate: true });
 const attentionCount = computed(() =>
-  (attention.value?.groups ?? []).reduce((n, g) => n + g.count, 0) + (attention.value?.failedEmails.length ?? 0) + (attention.value?.failedRuns.length ?? 0));
+  (attention.value?.groups ?? []).reduce((n, g) => n + g.count, 0) + (attention.value?.failedEmails.total ?? 0) + (attention.value?.failedRuns.total ?? 0));
 
 // ---------------------------------------------------------------------------
 // All bookings
@@ -153,19 +154,25 @@ const columns = [
             Show all {{ g.count }} in the table
           </UiButton>
         </div>
-        <div v-if="attention.failedEmails.length">
-          <h3 class="text-sm font-medium">Emails that failed ({{ attention.failedEmails.length }})</h3>
+        <div v-if="attention.failedEmails.total">
+          <h3 class="text-sm font-medium">Emails that failed ({{ attention.failedEmails.total }})</h3>
+          <p v-if="attention.failedEmails.items.length < attention.failedEmails.total" class="text-sm text-muted-foreground">
+            Showing the latest {{ attention.failedEmails.items.length }}.
+          </p>
           <ul class="mt-1 space-y-1 text-sm">
-            <li v-for="e in attention.failedEmails" :key="e.id">
+            <li v-for="e in attention.failedEmails.items" :key="e.id">
               <NuxtLink :to="`/bookings/${e.booking_id}`" class="font-medium"><code>{{ e.kind }}</code></NuxtLink>
               · {{ formatDate(e.created_at) }} · {{ e.last_error }}
             </li>
           </ul>
         </div>
-        <div v-if="attention.failedRuns.length">
-          <h3 class="text-sm font-medium">Job runs with failures, last 7 days ({{ attention.failedRuns.length }})</h3>
+        <div v-if="attention.failedRuns.total">
+          <h3 class="text-sm font-medium">Job runs with failures, last 7 days ({{ attention.failedRuns.total }})</h3>
+          <p v-if="attention.failedRuns.items.length < attention.failedRuns.total" class="text-sm text-muted-foreground">
+            Showing the latest {{ attention.failedRuns.items.length }}.
+          </p>
           <ul class="mt-1 space-y-1 text-sm">
-            <li v-for="r in attention.failedRuns" :key="r.id">
+            <li v-for="r in attention.failedRuns.items" :key="r.id">
               <code>{{ r.job }}</code> · {{ formatDate(r.finished_at) }} ·
               {{ r.error ? `crashed: ${r.error}` : `${r.failed} failed: ${(r.failures ?? []).slice(0, 2).join("; ")}` }}
             </li>

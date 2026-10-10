@@ -22,15 +22,12 @@ interface Choice {
 
 const { data, error, refresh } = await useAsyncData("admin-homepage", async () => {
   const [guides, features] = await Promise.all([
-    supabase
-      .from("guides")
-      .select("id, slug, title, teaser, market:cities(slug), cover:guide_photos!guides_cover_fk(id, storage_path, card_path, width, height, alt_text, source, credit_name, credit_url, source_url, licence)")
-      .eq("status", "published")
-      .order("content_updated_at", { ascending: false }),
+    // Every published guide, a page of 1,000 at a time (utils/adminLists.ts).
+    publishedGuides(supabase),
     supabase.from("homepage_features").select("position, guide_id").order("position"),
   ]);
-  for (const r of [guides, features]) if (r.error) throw r.error;
-  const published: Choice[] = (guides.data as any[]).map((g) => ({
+  if (features.error) throw features.error;
+  const published: Choice[] = guides.map((g) => ({
     id: g.id,
     title: g.title ?? "",
     teaser: g.teaser ?? "",

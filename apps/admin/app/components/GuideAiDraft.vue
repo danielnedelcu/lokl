@@ -74,15 +74,16 @@ interface LogRow {
   previous_draft_restored_at: string | null;
 }
 const log = ref<LogRow[]>([]);
+const logTotal = ref(0);
+// The latest 10, with all of them counted (utils/adminLists.ts).
 async function loadLog() {
-  const { data, error: e } = await supabase
-    .from("guide_ai_drafts")
-    .select("id, created_at, topic, error, cost_usd, reply, previous_draft, previous_draft_restored_at")
-    .eq("guide_id", props.guide.id)
-    .order("created_at", { ascending: false })
-    .limit(10);
-  if (e) return void reportProblem("Couldn't load this guide's AI drafts", e);
-  log.value = data as LogRow[];
+  try {
+    const r = await guideDraftLog(supabase, props.guide.id);
+    log.value = r.items as LogRow[];
+    logTotal.value = r.total;
+  } catch (e) {
+    reportProblem("Couldn't load this guide's AI drafts", e);
+  }
 }
 onMounted(loadLog);
 const undoable = computed(() => {
@@ -232,7 +233,8 @@ const money = (n: number | null) => (n == null ? "" : formatMoney(Math.round(n *
         </UiAlert>
 
         <details v-if="log.length" class="border-border border-t px-1 pt-2 text-sm">
-          <summary class="text-muted-foreground cursor-pointer">AI drafts for this guide ({{ log.length }})</summary>
+          <summary class="text-muted-foreground cursor-pointer">AI drafts for this guide ({{ logTotal }})</summary>
+          <p v-if="log.length < logTotal" class="text-muted-foreground mt-2">Showing the latest {{ log.length }}.</p>
           <ul class="mt-2 space-y-1">
             <li v-for="r in log" :key="r.id" class="flex flex-wrap justify-between gap-x-2">
               <span class="min-w-0 truncate">{{ formatDateTime(r.created_at) }} · {{ outcome(r) }} · {{ r.topic }}</span>

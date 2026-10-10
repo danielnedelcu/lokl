@@ -13,11 +13,10 @@ const user = useSupabaseUser();
 const { data, error, refresh } = await useAsyncData("admin-settings", async () => {
   const [rates, history] = await Promise.all([
     supabase.from("commission_rates").select("kind, rate_bps, updated_at"),
-    supabase.from("commission_rate_changes").select("id, kind, old_rate_bps, new_rate_bps, changed_by, changed_at").order("changed_at", { ascending: false }).limit(50),
+    rateChanges(supabase),
   ]);
   if (rates.error) throw rates.error;
-  if (history.error) throw history.error;
-  return { rates: rates.data ?? [], history: history.data ?? [] };
+  return { rates: rates.data ?? [], history };
 });
 watch(error, (e) => e && reportProblem("Couldn't load settings", e), { immediate: true });
 const rateOf = (kind: string) => data.value?.rates.find((r) => r.kind === kind)?.rate_bps ?? 0;
@@ -74,10 +73,11 @@ const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 2 : 0)}%`;
         </div>
       </form>
 
-      <h3 class="mt-6 text-sm font-medium">History</h3>
-      <p v-if="!data.history.length" class="mt-1 text-sm text-muted-foreground">No changes yet. Services started at 12% and Experiences at 20%.</p>
-      <ul v-else class="mt-1 space-y-1 text-sm">
-        <li v-for="h in data.history" :key="h.id">
+      <h3 class="mt-6 text-sm font-medium">History<template v-if="data.history.total"> ({{ data.history.total }} changes)</template></h3>
+      <p v-if="!data.history.total" class="mt-1 text-sm text-muted-foreground">No changes yet. Services started at 12% and Experiences at 20%.</p>
+      <p v-else-if="data.history.items.length < data.history.total" class="mt-1 text-sm text-muted-foreground">Showing the latest {{ data.history.items.length }}.</p>
+      <ul v-if="data.history.total" class="mt-1 space-y-1 text-sm">
+        <li v-for="h in data.history.items" :key="h.id">
           {{ formatDate(h.changed_at) }} · {{ h.kind === "service" ? "Services" : "Experiences" }}: {{ pct(h.old_rate_bps) }} → {{ pct(h.new_rate_bps) }}
           · {{ h.changed_by === user?.sub ? "by you" : "by another admin" }}
         </li>
