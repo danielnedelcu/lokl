@@ -20,12 +20,12 @@ const { data: markets } = await useAsyncData("admin-guide-markets", async () => 
 const { data: aiMonth } = await useAsyncData("admin-guide-ai-month", async () => {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const { data, error } = await supabase.from("guide_ai_drafts").select("cost_usd").gte("created_at", monthStart);
-  if (error) {
+  try {
+    return await aiDraftCostSince(supabase, monthStart);
+  } catch (error) {
     reportProblem("Couldn't load this month's AI drafting cost", error);
     return null;
   }
-  return { count: data.length, cents: Math.round(data.reduce((n, r) => n + Number(r.cost_usd ?? 0), 0) * 100) };
 });
 
 // ---------------------------------------------------------------------------
