@@ -215,7 +215,8 @@ three are done: explicit API grants, the build secrets check, and
   and the customer's My bookings (done: paged); then jobs ordered by due time with "more
   waiting" logged (done; withdraw-unavailable and pay-out could starve too), the Saved page's long request (done: 100
   ids per request), and two guards (a
-  static check in CI, and a runtime check on full pages).
+  static check in CI: done, `npm run check:reads`; and a runtime check on
+  full pages).
 - [ ] **Split the sitemap before 50,000 URLs.** One sitemap file holds at
   most 50,000; `publicSitemapEntries` lists the first 50,000 and logs an
   error past that. Split it by market or kind (@nuxtjs/sitemap supports

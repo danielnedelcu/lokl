@@ -11,6 +11,7 @@ const { data, error } = await useAsyncData(`guide-preview-${id.value}`, async ()
   const { data: guide, error: e } = await supabase.from("guides").select("*, market:cities(name)").eq("id", id.value).maybeSingle();
   if (e) throw e;
   if (!guide) return null;
+  // bounded: one guide's photos
   const { data: photos, error: pe } = await supabase.from("guide_photos").select("*").eq("guide_id", id.value);
   if (pe) throw pe;
   return { guide: guide as unknown as Guide & { market: { name: string } | null }, photos: photos as GuidePhoto[] };

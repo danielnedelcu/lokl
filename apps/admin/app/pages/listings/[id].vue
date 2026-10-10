@@ -47,14 +47,19 @@ const { data, error, pending, refresh } = await useAsyncData(`admin-listing-${id
       .eq("id", id.value)
       .maybeSingle(),
     supabase.from("listing_addresses").select("*").eq("listing_id", id.value).maybeSingle(),
+    // bounded: one listing's photos, at most 8
     supabase.from("listing_photos").select("id, storage_path, alt_text, position").eq("listing_id", id.value).order("position"),
+    // The next 50, with every upcoming one counted (a year of several a day
+    // would pass the API's 1,000 rows).
     supabase
       .from("experience_sessions")
-      .select("id, starts_at, capacity")
+      .select("id, starts_at, capacity", { count: "exact" })
       .eq("listing_id", id.value)
       .eq("status", "scheduled")
       .gt("starts_at", new Date().toISOString())
-      .order("starts_at"),
+      .order("starts_at")
+      .limit(50),
+    // bounded: one listing's travel areas
     supabase.from("listing_service_areas").select("area:service_areas!listing_service_areas_service_area_id_fkey(name)").eq("listing_id", id.value),
   ]);
   for (const r of [listing, address, photos, sessions, travel]) if (r.error) throw r.error;
@@ -63,6 +68,7 @@ const { data, error, pending, refresh } = await useAsyncData(`admin-listing-${id
     address: address.data as { line1: string; line2: string | null; city: string; state: string; postal_code: string; instructions: string | null } | null,
     photos: (photos.data ?? []) as { id: string; storage_path: string; alt_text: string }[],
     sessions: (sessions.data ?? []) as { id: string; starts_at: string; capacity: number }[],
+    sessionCount: sessions.count ?? 0,
     travelAreas: ((travel.data ?? []) as unknown as { area: { name: string } | null }[]).map((t) => t.area?.name).filter(Boolean) as string[],
   };
 });
@@ -89,7 +95,7 @@ const blockers = computed(() => {
     hasAddress: !!data.value?.address,
     travelAreaCount: data.value?.travelAreas.length ?? 0,
     photoCount: data.value?.photos.length ?? 0,
-    upcomingSessionCount: data.value?.sessions.length ?? 0,
+    upcomingSessionCount: data.value?.sessionCount ?? 0,
     providerActive: l.provider.status === "active",
     payoutsReady: payoutSetupOf(l.provider) === "ready",
   });
@@ -319,19 +325,22 @@ watch(error, (e) => e && reportProblem("Couldn't load this listing", e), { immed
 
           <UiCard v-if="listing.kind === 'experience'">
             <UiCardHeader>
-              <UiCardTitle as="h2">Upcoming sessions ({{ data?.sessions.length ?? 0 }})</UiCardTitle>
+              <UiCardTitle as="h2">Upcoming sessions ({{ data?.sessionCount ?? 0 }})</UiCardTitle>
               <UiCardDescription v-if="listing.city">Times are {{ timeZoneLabel(listing.city.name, timeZone) }}.</UiCardDescription>
             </UiCardHeader>
             <UiCardContent class="text-sm">
               <p v-if="!data?.sessions.length" class="text-muted-foreground">
                 None yet. It can still be approved; customers can book once sessions are added.
               </p>
-              <ul v-else class="space-y-1">
-                <li v-for="s in data.sessions" :key="s.id">
-                  {{ formatSessionDate(s.starts_at, timeZone) }}, {{ formatSessionTime(s.starts_at, timeZone) }} ·
-                  {{ s.capacity }} {{ s.capacity === 1 ? "spot" : "spots" }}
-                </li>
-              </ul>
+              <template v-else>
+                <p v-if="data.sessions.length < data.sessionCount" class="text-muted-foreground mb-2">Showing the next {{ data.sessions.length }}.</p>
+                <ul class="space-y-1">
+                  <li v-for="s in data.sessions" :key="s.id">
+                    {{ formatSessionDate(s.starts_at, timeZone) }}, {{ formatSessionTime(s.starts_at, timeZone) }} ·
+                    {{ s.capacity }} {{ s.capacity === 1 ? "spot" : "spots" }}
+                  </li>
+                </ul>
+              </template>
             </UiCardContent>
           </UiCard>
 

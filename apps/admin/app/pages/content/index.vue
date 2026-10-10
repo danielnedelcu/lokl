@@ -46,6 +46,7 @@ const table = useServerTable({
   filters: { status: oneOf("published", "draft") },
   sorts: ["updated"],
   async load({ q, filters, page }, signal) {
+    // bounded: paged below with .range()
     let query = supabase.from("guides").select("*, market:cities(name, slug)", { count: "exact" });
     if (filters.status === "published") query = query.eq("status", "published");
     if (filters.status === "draft") query = query.neq("status", "published");

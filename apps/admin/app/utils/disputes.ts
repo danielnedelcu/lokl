@@ -27,6 +27,7 @@ const OPEN_MAX = 5000;
 
 export async function loadDisputes(supabase: SupabaseClient<Database>, pages: { closed?: number; refunds?: number } = {}): Promise<DisputesPage> {
   const range = (page = 1) => [(Math.max(1, page) - 1) * DISPUTES_PAGE_SIZE, Math.max(1, page) * DISPUTES_PAGE_SIZE - 1] as const;
+  // bounded: each use below adds .range() or goes through allRows()
   const disputes = () => supabase.from("booking_finances").select(`${DISPUTE}, booking:bookings(${BOOKING})`, { count: "exact" }).not("disputed_at", "is", null);
   // Ordered by a unique key last, so pages never repeat or skip a row.
   const [open, closed, refunds] = await Promise.all([

@@ -48,6 +48,7 @@ export async function providerBookingsPage(db: SupabaseClient, providerId: strin
   const at = new Date(now).toISOString();
   const p = Math.max(1, Math.floor(page) || 1);
   const size = PROVIDER_BOOKINGS_PAGE_SIZE;
+  // bounded: paged below with .range()
   let list = inTab(db.from("bookings").select(BOOKING_LIST_FIELDS, { count: "exact" }).eq("provider_id", providerId), tab, at);
   list = tab === "requests" ? list.order("respond_by", { ascending: true })
     : tab === "upcoming" ? list.order("starts_at", { ascending: true })

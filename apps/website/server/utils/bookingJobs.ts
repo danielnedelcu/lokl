@@ -96,6 +96,7 @@ async function releaseHold(stripe: Stripe, bookingId: string, paymentIntentId: s
 
 export async function expireRequests(db: SupabaseClient, stripe: Stripe, opts: JobOptions = {}): Promise<JobResult> {
   const now = (opts.now ?? new Date()).toISOString();
+  // bounded: batched below (ordered, BATCH at a time)
   let q = bookingRecords(db).select("id, status, stripe_payment_intent_id").eq("status", "requested").lt("respond_by", now);
   if (opts.bookingId) q = q.eq("id", opts.bookingId);
   const { data, error } = await q.order("respond_by").order("id").limit(BATCH);
@@ -116,6 +117,7 @@ export async function expireRequests(db: SupabaseClient, stripe: Stripe, opts: J
 
 export async function releaseReservations(db: SupabaseClient, stripe: Stripe, opts: JobOptions = {}): Promise<JobResult> {
   const now = (opts.now ?? new Date()).toISOString();
+  // bounded: batched below (ordered, BATCH at a time)
   let q = bookingRecords(db).select("id, stripe_checkout_session_id").eq("status", "pending_payment").lt("reserved_until", now);
   if (opts.bookingId) q = q.eq("id", opts.bookingId);
   const { data, error } = await q.order("reserved_until").order("id").limit(BATCH);
@@ -188,6 +190,7 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
 
   // Confirmed bookings left on a cancelled session (the session's
   // cancellation stopped partway): refund and cancel them now.
+  // bounded: batched below (ordered, BATCH at a time)
   let left = db
     .from("bookings")
     .select(`id, kind, status, session_id, starts_at, confirmed_at, total_cents, refunded_cents, session:experience_sessions!inner(status), ${FINANCES}`)
@@ -268,6 +271,7 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
   const r = result("pay-out");
 
   // 1. Ended bookings read as done.
+  // bounded: batched below (ordered, BATCH at a time)
   let ended = bookingRecords(db).select("id").eq("status", "confirmed").lt("ends_at", now);
   if (opts.bookingId) ended = ended.eq("id", opts.bookingId);
   const { data: endedRows, error: endedError } = await ended.order("ends_at").order("id").limit(500);
@@ -283,6 +287,7 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
   // them (cancelled and refunded) stop every payout behind them
   // (truncation sweep, 2026-10-10). Each one read is paid or held, so it
   // leaves the batch.
+  // bounded: batched below (ordered, BATCH at a time)
   let due = db
     .from("bookings")
     .select(PAYOUT_FIELDS)

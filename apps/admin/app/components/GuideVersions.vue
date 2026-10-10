@@ -17,6 +17,7 @@ const confirmOpen = ref(false);
 
 async function load() {
   loading.value = true;
+  // bounded: one guide's published versions
   const { data, error: e } = await supabase
     .from("guide_versions")
     .select("*")

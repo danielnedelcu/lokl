@@ -33,6 +33,7 @@ const { data, error } = await useAsyncData(`guide-editor-${id.value}`, async () 
   if (e) throw e;
   if (!guide) return null;
   const [photos, areas, categories, market] = await Promise.all([
+    // bounded: one guide's photos
     supabase.from("guide_photos").select("*").eq("guide_id", id.value).order("created_at"),
     supabase.from("service_areas").select("*").eq("city_id", guide.market_id).order("sort_order").order("name"),
     supabase.from("categories").select("*").order("kind").order("sort_order").order("name"),
@@ -81,6 +82,7 @@ async function reloadGuide() {
   draft.coverId = row.draft_cover_photo_id;
 }
 async function reloadPhotos() {
+  // bounded: one guide's photos
   const { data: rows, error: e } = await supabase.from("guide_photos").select("*").eq("guide_id", id.value).order("created_at");
   if (e) return void useSonner.error(reportProblem("The photos didn't reload. Refresh the page.", e));
   photos.value = rows as GuidePhoto[];

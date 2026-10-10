@@ -29,6 +29,7 @@ const { data: listings, error, pending, refresh } = await useAsyncData(
   `my-listings-${props.kind}`,
   async () => {
     if (!provider.value) return [];
+    // bounded: one provider's own listings of one kind
     const { data, error } = await supabase
       .from("listings")
       .select("*, category:categories(name)")

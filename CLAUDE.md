@@ -47,7 +47,16 @@ npm run db:types              # regenerate packages/types/src/database.ts from t
 npm run db:docs               # regenerate docs/schema/ with tbls (needs TBLS_DSN in root .env)
 npm run schema:compare        # rebuild locally from migrations, compare with hosted; must show no differences
 npm run build:secrets-check   # build both apps with sentinel secrets; fails if any reaches the output
+npm run check:reads           # fails on a read of a growing table that could stop at the API's 1,000 rows
 ```
+
+**The API returns at most 1,000 rows per request, with no error**
+(`max_rows`, `API_MAX_ROWS` in `@repo/types`). Lists people page through are
+counted and paged on the server (`.range()` with `count: "exact"`, or a
+database function); a read that genuinely needs every row uses `allRows()`;
+anything else bounded by its parent says why with `// bounded: <reason>`.
+`npm run check:reads` (CI) enforces it, and every table in `database.ts`
+must be classified in `scripts/check-reads.mjs` as growing or reference.
 
 **Ports are fixed** (`devServer.port` in each `nuxt.config.ts`): website 3100,
 admin 3101. The Reserve uses 3000 and falls back to 3001, so keep this project

@@ -122,6 +122,7 @@ export async function providerCancel(db: SupabaseClient, stripe: Stripe, booking
 export async function cancelSession(db: SupabaseClient, stripe: Stripe, sessionId: string, reason: string, by: "provider" | "system" = "provider") {
   const { error } = await db.from("experience_sessions").update({ status: "cancelled" }).eq("id", sessionId).eq("status", "scheduled");
   if (error) throw new BookingError(error.message, 409);
+  // bounded: one session's bookings, at most its capacity (500)
   const { data, error: listError } = await bookingRecords(db).select("id, status").eq("session_id", sessionId).in("status", ["pending_payment", "confirmed"]);
   if (listError) throw new Error(listError.message);
   const done: string[] = [];

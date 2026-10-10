@@ -42,6 +42,7 @@ const { data: saved, refresh: refreshSaved } = await useAsyncData(`listing-${pro
   const [listing, address, travel, photos, sessions] = await Promise.all([
     supabase.from("listings").select("*").eq("id", props.listingId).maybeSingle(),
     supabase.from("listing_addresses").select("*").eq("listing_id", props.listingId).maybeSingle(),
+    // bounded: one listing's travel areas
     supabase.from("listing_service_areas").select("service_area_id").eq("listing_id", props.listingId),
     supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", props.listingId),
     supabase.from("experience_sessions").select("id", { count: "exact", head: true })

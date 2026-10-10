@@ -778,7 +778,9 @@ bookings went unavailable, so it reads every open one (`allRows`), and
 fill a batch and stop the payouts behind them. The email outbox reports a
 full batch the same way. Tested in
 [booking-job-batches.test.mts](../../supabase/tests/app/booking-job-batches.test.mts)
-and e2e journey 16.
+and e2e journey 16. Every read in the booking code is bounded (a batch, a
+page, `allRows`, or a `// bounded:` reason such as "one session's
+bookings"), which `npm run check:reads` checks in CI.
 
 **No scheduler runs these yet.** Until hosting is chosen they're run by hand
 or by tests ([docs/TODO.md](../TODO.md)).

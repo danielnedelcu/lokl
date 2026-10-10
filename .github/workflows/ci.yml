@@ -54,6 +54,8 @@ jobs:
       - run: npm ci
       - name: Type check
         run: npm run typecheck
+      - name: Reads that could stop at the API's 1,000 rows
+        run: npm run check:reads
       - name: UI tests
         run: npm run test:ui
       - name: Email templates

@@ -29,6 +29,7 @@ const { data: needsAttention, refresh: refreshAttention } = await useAsyncData(
   "listings-needing-attention",
   async () => {
     if (!provider.value) return [];
+    // bounded: one provider's own rejected or taken-down listings
     const { data, error } = await supabase
       .from("listings")
       .select("id, title, status")

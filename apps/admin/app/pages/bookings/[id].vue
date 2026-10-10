@@ -13,8 +13,11 @@ const call = useWebsiteAdmin();
 const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async () => {
   const [b, events, emails, actions] = await Promise.all([
     supabase.from("bookings").select("*, listing:listings(id, title, kind, status, city:cities(name, timezone)), provider:providers(id, display_name, status), contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), finances:booking_finances(*), report:booking_reports(note)").eq("id", id).maybeSingle(),
+    // bounded: one booking's history
     supabase.from("booking_events").select("from_status, to_status, actor, created_at").eq("booking_id", id).order("created_at"),
+    // bounded: one booking's history
     supabase.from("booking_emails").select("id, kind, status, attempts, sent_at, created_at, skip_reason, last_error").eq("booking_id", id).order("created_at"),
+    // bounded: one booking's history
     supabase.from("admin_actions").select("action, reason, created_at").eq("target", "booking").eq("target_id", id).order("created_at"),
   ]);
   for (const r of [b, events, emails, actions]) if (r.error) throw r.error;

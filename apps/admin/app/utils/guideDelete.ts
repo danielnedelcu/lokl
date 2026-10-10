@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // row, which takes its photo rows with it, then its photo files from
 // storage. Used by the guides list and the editor. Returns the error, or null.
 export async function deleteGuideWithPhotos(supabase: SupabaseClient<Database>, guideId: string) {
+  // bounded: one guide's photos
   const { data: photos, error: pErr } = await supabase.from("guide_photos").select("storage_path, card_path").eq("guide_id", guideId);
   if (pErr) return pErr;
   // A delete that matched nothing (already gone, or not allowed) is an

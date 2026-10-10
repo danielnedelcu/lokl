@@ -22,6 +22,7 @@ interface PhotoRow {
 }
 
 const { data: photos, refresh } = await useAsyncData(`listing-photos-${props.listingId}`, async () => {
+  // bounded: one listing's photos, at most 8
   const { data, error } = await supabase
     .from("listing_photos")
     .select("id, storage_path, card_path, position, alt_text")

@@ -230,6 +230,7 @@ async function byIds<T>(ids: string[], read: (chunk: string[]) => PromiseLike<{ 
 /** Saved listings that are visible now, as visitors see them (the Saved page). */
 export async function loadSavedListingCards(db: SupabaseClient, ids: string[]) {
   const found = new Map<string, PublicListingCard & { market: PublicMarket }>();
+  // bounded: at most IDS_PER_REQUEST ids
   const rows = await byIds<Row>(ids, (chunk) => db.from("listings").select(LISTING_SELECT).in("id", chunk).eq("status", "live"));
   for (const r of rows) found.set(r.id, { ...stripInternal(toCard(r)), market: r.city });
   return found;
@@ -238,6 +239,7 @@ export async function loadSavedListingCards(db: SupabaseClient, ids: string[]) {
 /** Saved providers whose profiles are public now (the Saved page). */
 export async function loadSavedProviders(db: SupabaseClient, ids: string[]) {
   const found = new Map<string, PublicProvider>();
+  // bounded: at most IDS_PER_REQUEST ids
   const rows = await byIds<ProviderRow>(ids, (chunk) => db.from("providers").select(PROVIDER_PUBLIC).in("id", chunk));
   for (const r of rows) found.set(r.id, toProvider(r));
   return found;
@@ -253,6 +255,7 @@ export const REVIEWS_PAGE_SIZE = 10;
  */
 export async function loadPublicReviews(db: SupabaseClient, by: { listingId: string } | { providerId: string }, page: number): Promise<PublicReviewPage> {
   const p = Math.max(1, Math.floor(page) || 1);
+  // bounded: paged below with .range()
   let q = db
     .from("reviews")
     .select("id, rating, body, reviewer_name, booking_month, created_at, edited_at, listing:listings(title, slug, kind), reply:review_replies(body, created_at, edited_at)", { count: "exact" });
@@ -330,6 +333,7 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
 
   let cards: ReturnType<typeof toCard>[] = [];
   if (ids.length) {
+    // bounded: one browse page's ids (public_browse caps a page at 100)
     const { data, error } = await db.from("listings").select(LISTING_SELECT).in("id", ids).eq("status", "live");
     if (error) throw new Error(error.message);
     const byId = new Map((data as unknown as Row[]).map((r) => [r.id, toCard(r)]));

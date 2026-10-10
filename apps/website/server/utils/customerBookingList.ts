@@ -22,6 +22,7 @@ export async function customerBookingsPage(db: SupabaseClient, customerId: strin
   const at = new Date(now).toISOString();
   const p = Math.max(1, Math.floor(page) || 1);
   const size = group === "latest" ? 1 : CUSTOMER_BOOKINGS_PAGE_SIZE;
+  // bounded: paged below with .range()
   let q = db.from("bookings").select(FIELDS, { count: "exact" }).eq("customer_id", customerId).neq("status", "pending_payment");
   if (group === "past") q = q.or(`status.in.(declined,expired,cancelled,completed,paid_out),ends_at.lt.${at}`);
   if (group === "upcoming") q = q.in("status", ["requested", "confirmed"]).or(`ends_at.is.null,ends_at.gte.${at}`);

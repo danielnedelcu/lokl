@@ -35,6 +35,7 @@ export default defineEventHandler(async (event) => {
     const times = booking.preferred_times.map((t: string) => Date.parse(t));
     const from = new Date(Math.min(...times) - 24 * 3600_000).toISOString();
     const to = new Date(Math.max(...times) + 24 * 3600_000).toISOString();
+    // bounded: one provider's confirmed bookings in the times this request offers
     const { data: confirmed } = await db
       .from("bookings")
       .select("id, starts_at, ends_at, listing:listings(title)")

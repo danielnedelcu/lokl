@@ -23,6 +23,7 @@ export async function loadCustomerBooking(event: ServerEvent, id: string) {
 // the customer's booking; only display fields, for listings they've booked.
 export async function listingDisplay(event: ServerEvent, listingIds: string[]) {
   if (!listingIds.length) return new Map();
+  // bounded: the listings of one page of bookings (20 at most)
   const { data, error } = await serverSupabaseServiceRole(event)
     .from("listings")
     .select("id, kind, slug, title, location_mode, duration_minutes, status, city:cities(name, timezone), photos:listing_photos(storage_path, card_path, alt_text, position), provider:providers(display_name)")

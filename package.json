@@ -15,6 +15,7 @@
     "db:test:app:stripe": "tsx supabase/tests/app/booking-routes.test.mts && tsx supabase/tests/app/provider-bookings.test.mts && tsx supabase/tests/app/booking-jobs.test.mts && tsx supabase/tests/app/booking-job-batches.test.mts && tsx supabase/tests/app/cancellations.test.mts && tsx supabase/tests/app/admin-actions.test.mts && tsx supabase/tests/app/admin-disputes.test.mts && tsx supabase/tests/app/payout-holds.test.mts",
     "db:push": "npm run db:test && supabase db push && npm run db:types && npm run db:docs && npm run schema:compare -- --no-reset",
     "schema:compare": "node scripts/schema-compare.mjs",
+    "check:reads": "node scripts/check-reads.mjs",
     "build:secrets-check": "node scripts/build-secrets-check.mjs",
     "db:types": "supabase gen types typescript --linked --schema public,private > packages/types/src/database.ts.tmp && mv packages/types/src/database.ts.tmp packages/types/src/database.ts",
     "db:docs": "dotenv -e .env -- tbls doc --force -c .tbls.yml",
