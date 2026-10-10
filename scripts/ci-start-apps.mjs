@@ -68,6 +68,8 @@ const shared = {
   NUXT_PUBLIC_SUPABASE_COOKIE_PREFIX: `sb-${new URL(apiUrl).hostname.split(".")[0]}-auth-token`,
   NUXT_PUBLIC_SUPABASE_KEY: publishable,
   NUXT_SUPABASE_SECRET_KEY: secret,
+  // Tests: a read cut off at the API's 1,000 rows fails (rowLimitFetch).
+  NUXT_PUBLIC_ROW_LIMIT_CHECK: "throw",
 };
 const apps = [
   {

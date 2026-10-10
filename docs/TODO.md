@@ -202,21 +202,14 @@ three are done: explicit API grants, the build secrets check, and
   check (and indexable). Checking each session against a once-per-query set
   instead was tried: browse 7 ms, but every single listing's sessions read
   went from 0.4 ms to 2.7 ms, growing with the number of listings.
-- [ ] **Lists that stop at 1,000 rows without saying so.** The API returns
-  at most 1,000 rows (`max_rows`) with no error. Find every read without a
-  limit or a range on a table that grows, and page it on the server (as the
-  admin tables already do); `BROWSE_LIMIT` (Open now) is one known case.
-  Inventory and order agreed 2026-10-10: provider bookings (done), the
-  sessions panel (done: `listing_sessions_page`), browse (done:
-  `public_browse`), category counts (done: `public_category_counts`), the sitemap (done:
-  `allRows()` pages it), admin disputes (done: all open, the rest paged),
-  the other admin lists (done: AI cost, review queue, and the shorter
-  lists now count everything and say when they show only the latest),
-  and the customer's My bookings (done: paged); then jobs ordered by due time with "more
-  waiting" logged (done; withdraw-unavailable and pay-out could starve too), the Saved page's long request (done: 100
-  ids per request), and two guards (a
-  static check in CI: done, `npm run check:reads`; and a runtime check on
-  full pages).
+- [x] **Lists that stop at 1,000 rows without saying so** (truncation
+  sweep, 2026-10-10). Every read that could stop at the API's 1,000 rows
+  without saying so is fixed, each with a test that recreated the cut-off
+  first: provider bookings, the sessions panel, browse, category counts,
+  the sitemap, admin disputes, the admin lists, My bookings, the jobs'
+  batches (two could starve), and the Saved page's request. Two guards:
+  `npm run check:reads` in CI, and `rowLimitFetch` at run time (throws in
+  tests, warns in production).
 - [ ] **Split the sitemap before 50,000 URLs.** One sitemap file holds at
   most 50,000; `publicSitemapEntries` lists the first 50,000 and logs an
   error past that. Split it by market or kind (@nuxtjs/sitemap supports

@@ -15,6 +15,16 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
 
+  // The runtime row-limit check (rowLimitFetch in @repo/types, installed by
+  // the plugins/row-limit-check files): "warn" logs a read that was probably
+  // cut off at the API's 1,000 rows; "throw" makes it fail. The test apps
+  // run with NUXT_PUBLIC_ROW_LIMIT_CHECK=throw (scripts/ci-start-apps.mjs).
+  runtimeConfig: {
+    public: {
+      rowLimitCheck: "warn",
+    },
+  },
+
   modules: [
     "@nuxtjs/color-mode",
     "motion-v/nuxt",

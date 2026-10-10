@@ -57,6 +57,10 @@ database function); a read that genuinely needs every row uses `allRows()`;
 anything else bounded by its parent says why with `// bounded: <reason>`.
 `npm run check:reads` (CI) enforces it, and every table in `database.ts`
 must be classified in `scripts/check-reads.mjs` as growing or reference.
+At run time, `rowLimitFetch` (both apps, server and browser, and the app
+tests) catches a read that asked for no limit and got exactly 1,000 rows:
+it fails in tests (`NUXT_PUBLIC_ROW_LIMIT_CHECK=throw`) and logs a warning
+otherwise.
 
 **Ports are fixed** (`devServer.port` in each `nuxt.config.ts`): website 3100,
 admin 3101. The Reserve uses 3000 and falls back to 3001, so keep this project
