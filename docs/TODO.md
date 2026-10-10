@@ -34,10 +34,9 @@ lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
   yet: lokl has no way to refund an already cancelled booking (admin cancel
   refuses it). When that's added, give the refund its own email (e.g.
   `customer_late_cancel_refunded`) rather than reusing "Cancelled".
-- [ ] **Browse beyond 1,000 listings.** Browse filters and sorts in the server
-  over at most 1,000 visible listings per market and kind (`BROWSE_LIMIT` in
-  `apps/website/server/utils/publicListings.ts`). Move it into a database
-  function before a market gets near that.
+- [x] **Browse beyond 1,000 listings** (2026-10-10). Browse filters, sorts,
+  counts and pages in the database (`public_browse`), then loads only the
+  page's cards; `public-browse.test.mts` checks 1,051 listings.
 - [ ] **Check a listing's address against its city and area** (zip check, or
   geocoding).
 - [ ] **Sign-in codes guessed from many addresses at once.** Supabase limits
@@ -208,7 +207,8 @@ three are done: explicit API grants, the build secrets check, and
   limit or a range on a table that grows, and page it on the server (as the
   admin tables already do); `BROWSE_LIMIT` (Open now) is one known case.
   Inventory and order agreed 2026-10-10: provider bookings (done), the
-  sessions panel (done: `listing_sessions_page`), browse, category counts, the sitemap, admin disputes,
+  sessions panel (done: `listing_sessions_page`), browse (done:
+  `public_browse`), category counts, the sitemap, admin disputes,
   the other admin lists; then jobs ordered by due time with "more
   waiting" logged, the Saved page's long request, and two guards (a
   static check in CI, and a runtime check on full pages).

@@ -10,9 +10,8 @@
 // (supabase/tests/realtime/public-routes.leak.test.mts) runs this same code
 // against the local stack.
 //
-// Browse filtering and sorting happen here, over at most BROWSE_LIMIT
-// visible listings per market and kind. That's ample for launch; move it to
-// a database function when a market outgrows it (docs/TODO.md).
+// Browse filters, sorts, counts and pages in the database (public_browse,
+// read with visitors' own rules), then loads only that page's cards.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type {
@@ -278,6 +277,8 @@ export interface BrowseQuery {
   from?: string;
   to?: string;
   page?: number;
+  /** Cards per page (default PAGE_SIZE); guides show fewer. */
+  pageSize?: number;
 }
 
 /** A market's visible listings of one kind, filtered and paged; null if the market or category isn't public. */
@@ -295,43 +296,42 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
     if (!category) return null;
   }
 
-  let query = db
-    .from("listings")
-    .select(LISTING_SELECT)
-    .eq("kind", q.kind)
-    .eq("status", "live")
-    .eq("city.slug", q.market)
-    .limit(BROWSE_LIMIT);
-  if (q.category) query = query.eq("category.slug", q.category);
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-
-  let cards = (data as unknown as Row[]).map(toCard);
-  if (q.area) cards = cards.filter((c) => c.areaIds.includes(q.area!));
-  if (q.kind === "experience" && (q.from || q.to)) {
-    const tz = (market as PublicMarket).timezone;
-    const start = q.from ? Date.parse(zonedToInstant({ date: q.from, time: "00:00" }, tz)) : -Infinity;
+  // The database picks the page, in browse order, with the total
+  // (public_browse, read with visitors' own rules), so nothing is cut off at
+  // the API's 1,000 rows; then only that page's cards are loaded.
+  const tz = (market as PublicMarket).timezone;
+  const isExperience = q.kind === "experience";
+  const page = Math.max(1, Math.floor(q.page ?? 1) || 1);
+  const pageSize = q.pageSize ?? PAGE_SIZE;
+  const { data: picked, error: pickError } = await db.rpc("public_browse", {
+    p_market: q.market,
+    p_kind: q.kind,
+    p_category: q.category,
+    p_area: q.area,
+    p_from: isExperience && q.from ? zonedToInstant({ date: q.from, time: "00:00" }, tz) : undefined,
     // Inclusive of the whole last day: up to midnight at the start of the next.
-    const end = q.to ? Date.parse(zonedToInstant({ date: q.to, time: "23:59" }, tz)) + 60_000 : Infinity;
-    cards = cards.filter((c) => c.sessionTimes.some((t) => t >= start && t < end));
+    p_to: isExperience && q.to ? new Date(Date.parse(zonedToInstant({ date: q.to, time: "23:59" }, tz)) + 60_000).toISOString() : undefined,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+  if (pickError) throw new Error(pickError.message);
+  const { ids, total } = picked as unknown as { ids: string[]; total: number };
+
+  let cards: ReturnType<typeof toCard>[] = [];
+  if (ids.length) {
+    const { data, error } = await db.from("listings").select(LISTING_SELECT).in("id", ids).eq("status", "live");
+    if (error) throw new Error(error.message);
+    const byId = new Map((data as unknown as Row[]).map((r) => [r.id, toCard(r)]));
+    cards = ids.map((id) => byId.get(id)).filter((c): c is ReturnType<typeof toCard> => !!c);
   }
 
-  // Experiences: soonest next session first, those with none last.
-  // Services: newest first.
-  cards.sort((a, b) =>
-    q.kind === "experience"
-      ? (a.sessionTimes[0] ?? Infinity) - (b.sessionTimes[0] ?? Infinity) || a.title.localeCompare(b.title)
-      : b.createdAt.localeCompare(a.createdAt),
-  );
-
-  const page = Math.max(1, q.page ?? 1);
   return {
     market: market as PublicMarket,
     kind: q.kind,
-    items: cards.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(stripInternal),
+    items: cards.map(stripInternal),
     page,
-    pageSize: PAGE_SIZE,
-    total: cards.length,
+    pageSize,
+    total,
   };
 }
 

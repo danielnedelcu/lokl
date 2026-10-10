@@ -47,7 +47,7 @@ export async function guideListings(db: SupabaseClient, q: GuideListingsQuery, l
   const kinds: ListingKind[] = category ? [category.kind] : q.kind ? [q.kind] : ["experience", "service"];
   const results = await Promise.all(
     kinds.map((kind) =>
-      browsePublicListings(db, { market: market.slug, kind, category: category?.slug, area: q.areaId ?? undefined }),
+      browsePublicListings(db, { market: market.slug, kind, category: category?.slug, area: q.areaId ?? undefined, pageSize: limit }),
     ),
   );
   const items = results.flatMap((r) => r?.items ?? []);
