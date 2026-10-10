@@ -69,6 +69,8 @@ select tests.clear_authentication();
 create function pg_temp.ids(p jsonb) returns uuid[] language sql as $$
   select coalesce(array_agg((r ->> 'id')::uuid order by n), '{}') from jsonb_array_elements(p -> 'rows') with ordinality as t(r, n)
 $$;
+-- Called as the signed-in admin: new functions get no PUBLIC EXECUTE (function_execute_grants).
+grant execute on function pg_temp.ids(jsonb) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 1. WHO MAY CALL THEM

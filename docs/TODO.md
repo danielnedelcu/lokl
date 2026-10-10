@@ -166,17 +166,13 @@ Checks and safeguards to add, in roughly this order (2026-10-09; the first
 three are done: explicit API grants, the build secrets check, and
 `npm run schema:compare`).
 
-- [ ] **Who can call the helper functions.** Forty-six functions in `public`
-  still carry Postgres's default `EXECUTE` for everyone, including signed-out
-  visitors calling them directly through the API. Most are trigger
-  functions, which can't be called that way, but `current_provider_id()`,
-  `listing_parents_active()` and `provider_slug()` are security definer,
-  and `is_admin()` and `has_contact_details()` are used inside access rules
-  and checks. Decide per function what each role needs (the access rules
-  must stay able to call theirs), revoke the rest, and add a test that every
-  security-definer function states who may call it. Also change the default
-  privileges so new functions get no PUBLIC EXECUTE, granting callers
-  explicitly, including the roles that evaluate policies using them.
+- [x] **Who can call each function** (`function_execute_grants`,
+  2026-10-10): no function has `PUBLIC` `EXECUTE`; the helpers reach
+  exactly the roles that evaluate them; trigger functions reach no API role;
+  new functions get no `PUBLIC` `EXECUTE`; `providers_set_slug` is security
+  definer, so nobody can call `provider_slug()` to probe names.
+  `function_privileges.test.sql` holds the list of security-definer
+  functions allowed to reach visitors or signed-in users.
 - [ ] **Append-only, for every role.** The booking log (`booking_events`),
   `admin_actions`, `job_runs` and the money columns in `booking_finances`
   are only protected by the absence of policies, which the service role

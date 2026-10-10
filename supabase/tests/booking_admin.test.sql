@@ -37,6 +37,8 @@ $$;
 create function pg_temp.kinds(p_id uuid) returns text[] language sql as $$
   select coalesce(array_agg(kind order by kind), '{}') from public.booking_emails where booking_id = p_id
 $$;
+-- Called as the API roles: new functions get no PUBLIC EXECUTE (function_execute_grants).
+grant execute on function pg_temp.kinds(uuid) to anon, authenticated, service_role;
 
 select tests.authenticate_as_service_role();
 create temp table bk (label text primary key, id uuid);

@@ -141,9 +141,35 @@ function they call directly or whose access rules call it (a role evaluating
 a policy needs `EXECUTE` on the helpers in it). A table a role can't select
 fails with "permission denied", even where a row policy would allow the row;
 cover both the granted and the refused case in the pgTAP test. Never grant
-`TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` to the API roles. Postgres
-still gives `PUBLIC` `EXECUTE` on new functions: revoke it from every
-security-definer function and grant only the roles that call it.
+`TRUNCATE`, `REFERENCES`, `TRIGGER` or `MAINTAIN` to the API roles.
+
+**Every new function states its callers explicitly** (since
+`function_execute_grants`, 2026-10-10: new functions get no `PUBLIC`
+`EXECUTE`, only `service_role`'s default). Grant `EXECUTE` to exactly the
+roles that run it:
+
+- **Called through the API** (`rpc`): the roles that call it.
+- **Used inside an access rule:** the roles that rule is for (a helper in a
+  policy runs as the role being checked).
+- **Used inside a check constraint or an ordinary (invoker) trigger:** the
+  roles that write that table (both run as the writer). Prefer making such a
+  trigger `security definer` with `set search_path = ''`, so the function it
+  calls needs no grant.
+- **Trigger functions themselves:** no grant (a trigger fires without the
+  writer holding `EXECUTE`).
+- **A new `security definer` function that visitors or signed-in users may
+  call** must be added, with its roles, to the list in
+  `supabase/tests/function_privileges.test.sql` in the same change;
+  anything not on the list fails that test.
+- **Test helpers** (`tests.*`, `pg_temp.*`) called after switching to an API
+  role need an explicit grant too.
+- **Extensions:** the no-`PUBLIC`-`EXECUTE` default is global for `postgres`,
+  so a migration that creates or updates an extension (`create extension`,
+  `alter extension … update`) leaves its new functions callable only by
+  the owner (and `service_role`, through its default, only if they land in
+  `public`; extensions usually install into `extensions`). Grant `EXECUTE` on the
+  functions the apps or access rules use to exactly the roles that need
+  them, in that migration, and test each allowed and refused call.
 
 **Column grants** decide which columns signed-in users may write. Older
 tables were made when the defaults granted everything, which is why their

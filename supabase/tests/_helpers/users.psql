@@ -60,3 +60,8 @@ begin
   perform set_config('role', 'none', true);
 end;
 $$;
+
+-- The tests switch between the API roles and back, so those roles call
+-- these helpers. Granted explicitly: since function_execute_grants
+-- (2026-10-10), new functions get no PUBLIC EXECUTE.
+grant execute on all functions in schema tests to anon, authenticated, service_role;

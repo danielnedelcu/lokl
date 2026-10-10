@@ -88,6 +88,19 @@ and `authenticated` exactly what they need, explicitly: the table privileges
 whose access rules call it. Never grant `TRUNCATE`, `REFERENCES`, `TRIGGER`
 or `MAINTAIN` to the API roles.
 
+**Every new function states its callers explicitly** (`function_execute_grants`,
+2026-10-10): new functions get no `PUBLIC` `EXECUTE`, so grant it to the
+roles that call it, that evaluate an access rule using it, or that write a
+table whose check constraint or ordinary trigger calls it. A new security
+definer function that visitors or signed-in users may call must be added to
+the list in `supabase/tests/function_privileges.test.sql`, or that test fails.
+
+**Extensions too.** The default is global for `postgres`, so the functions
+an extension creates when a migration creates or updates it (`create
+extension`, `alter extension … update`) get no `PUBLIC` `EXECUTE` either.
+That migration must grant the roles that use them, explicitly, and its
+pgTAP test must check each allowed and refused call.
+
 Never edit a migration once it has been pushed to the hosted database; fix it
 with a new one. A migration that has only run locally can still be edited.
 
