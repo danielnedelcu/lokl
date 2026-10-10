@@ -48,19 +48,21 @@ export default defineEventHandler(async (event) => {
   // Every run is logged in job_runs, for the admin's "needs attention" list,
   // including one that crashes. The log is append-only, so its lines name
   // rows by id, and any address or phone number in an error is replaced.
-  const log = async (r: { checked: number; done: string[]; failed: string[] } | null, error?: string) => {
+  const log = async (r: { checked: number; done: string[]; failed: string[]; moreWaiting?: boolean } | null, error?: string) => {
     const { error: logError } = await db.from("job_runs").insert({
       job: opts.now ? `${name} (as of ${opts.now.toISOString()})` : name,
       started_at: started.toISOString(),
       checked: r?.checked ?? 0, changed: r?.done.length ?? 0, failed: r?.failed.length ?? 0,
       failures: (r?.failed ?? []).slice(0, 50).map((l) => logText(l, 300)),
       error: error ? logText(error, 1000) : null,
+      // A batch was full: more waits for the next run (the admin sees it).
+      more_waiting: r?.moreWaiting ?? false,
     });
     if (logError) console.error("[jobs] couldn't log the run", logError.message);
   };
 
   try {
-    let result: { job: string; checked: number; done: string[]; failed: string[] };
+    let result: { job: string; checked: number; done: string[]; failed: string[]; moreWaiting: boolean };
     // send-emails: retry what's due. Every other job then sends the emails
     // its changes queued, so they don't wait for the next send-emails run.
     if (name === "send-emails") {
@@ -69,10 +71,11 @@ export default defineEventHandler(async (event) => {
       if (!opts.bookingId) {
         const p = await sendProviderEmails(db, mailer, settings, { limit: 50 });
         for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k]);
+        r.more ||= p.more;
       }
       result = {
         job: name, checked: r.sent.length + r.retrying.length + r.failed.length + r.skipped.length,
-        done: [...r.sent, ...r.skipped.map((l) => `skipped ${l}`)], failed: r.failed,
+        done: [...r.sent, ...r.skipped.map((l) => `skipped ${l}`)], failed: r.failed, moreWaiting: r.more,
       };
       if (r.retrying.length) result.done.push(...r.retrying.map((l) => `retrying ${l}`));
     } else {

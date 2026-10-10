@@ -213,7 +213,7 @@ three are done: explicit API grants, the build secrets check, and
   the other admin lists (done: AI cost, review queue, and the shorter
   lists now count everything and say when they show only the latest),
   and the customer's My bookings (done: paged); then jobs ordered by due time with "more
-  waiting" logged, the Saved page's long request, and two guards (a
+  waiting" logged (done; withdraw-unavailable and pay-out could starve too), the Saved page's long request, and two guards (a
   static check in CI, and a runtime check on full pages).
 - [ ] **Split the sitemap before 50,000 URLs.** One sitemap file holds at
   most 50,000; `publicSitemapEntries` lists the first 50,000 and logs an

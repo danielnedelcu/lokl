@@ -25,10 +25,10 @@ export async function failedEmails(supabase: Db): Promise<Capped<any>> {
   return { items: data ?? [], total: count ?? 0 };
 }
 
-/** Job runs since a time that failed or crashed, newest first. */
+/** Job runs since a time that failed, crashed or left work for the next run, newest first. */
 export async function failedJobRuns(supabase: Db, since: string): Promise<Capped<any>> {
-  const { data, error, count } = await supabase.from("job_runs").select("id, job, finished_at, failed, failures, error", { count: "exact" })
-    .gte("finished_at", since).or("failed.gt.0,error.not.is.null").order("finished_at", { ascending: false }).limit(FAILED_RUNS_SHOWN);
+  const { data, error, count } = await supabase.from("job_runs").select("id, job, finished_at, failed, failures, error, more_waiting", { count: "exact" })
+    .gte("finished_at", since).or("failed.gt.0,error.not.is.null,more_waiting.is.true").order("finished_at", { ascending: false }).limit(FAILED_RUNS_SHOWN);
   if (error) throw error;
   return { items: data ?? [], total: count ?? 0 };
 }

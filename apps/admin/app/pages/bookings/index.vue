@@ -167,14 +167,15 @@ const columns = [
           </ul>
         </div>
         <div v-if="attention.failedRuns.total">
-          <h3 class="text-sm font-medium">Job runs with failures, last 7 days ({{ attention.failedRuns.total }})</h3>
+          <h3 class="text-sm font-medium">Job runs that need a look, last 7 days ({{ attention.failedRuns.total }})</h3>
           <p v-if="attention.failedRuns.items.length < attention.failedRuns.total" class="text-sm text-muted-foreground">
             Showing the latest {{ attention.failedRuns.items.length }}.
           </p>
           <ul class="mt-1 space-y-1 text-sm">
             <li v-for="r in attention.failedRuns.items" :key="r.id">
               <code>{{ r.job }}</code> · {{ formatDate(r.finished_at) }} ·
-              {{ r.error ? `crashed: ${r.error}` : `${r.failed} failed: ${(r.failures ?? []).slice(0, 2).join("; ")}` }}
+              {{ r.error ? `crashed: ${r.error}` : r.failed ? `${r.failed} failed: ${(r.failures ?? []).slice(0, 2).join("; ")}` : "" }}
+              <template v-if="r.more_waiting">{{ r.error || r.failed ? " · " : "" }}a full batch: more were waiting for the next run</template>
             </li>
           </ul>
         </div>

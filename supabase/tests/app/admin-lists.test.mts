@@ -95,7 +95,7 @@ try {
   check(emails.items.length === FAILED_EMAILS_SHOWN && emails.total === allFailedEmails,
     `1. failed emails: the latest ${FAILED_EMAILS_SHOWN} shown, all ${allFailedEmails} counted (got ${emails.total})`);
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
-  const allFailedRuns = count(`select count(*) from public.job_runs where finished_at >= '${since}' and (failed > 0 or error is not null)`);
+  const allFailedRuns = count(`select count(*) from public.job_runs where finished_at >= '${since}' and (failed > 0 or error is not null or more_waiting)`);
   const runs = await failedJobRuns(admin.client, since);
   check(runs.items.length === FAILED_RUNS_SHOWN && runs.total === allFailedRuns,
     `2. failed job runs: the latest ${FAILED_RUNS_SHOWN} shown, all ${allFailedRuns} counted (got ${runs.total})`);

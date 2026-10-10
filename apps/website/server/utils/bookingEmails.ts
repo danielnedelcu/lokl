@@ -122,6 +122,8 @@ export interface SendResult {
   failed: string[];
   /** Resend refused for the account's quota, so the run stopped early. */
   limited?: boolean;
+  /** The batch was full, so more emails may be waiting for the next run. */
+  more: boolean;
 }
 
 /** Everything one email needs, read with the server key. */
@@ -208,7 +210,7 @@ async function runOutbox<R extends OutboxRow>(
     prepare: (row: R) => Promise<{ skip: string; to?: string | null } | { to: string | null; email: RenderedEmail }>;
   },
 ): Promise<SendResult> {
-  const out: SendResult = { sent: [], skipped: [], retrying: [], failed: [] };
+  const out: SendResult = { sent: [], skipped: [], retrying: [], failed: [], more: false };
   try {
     const now = o.now ?? new Date();
     const staleBefore = new Date(now.getTime() - STALE_CLAIM_MS).toISOString();
@@ -228,6 +230,7 @@ async function runOutbox<R extends OutboxRow>(
     if (o.narrow) q = o.narrow(q);
     const { data, error } = await q;
     if (error) throw new Error(error.message);
+    out.more = (data?.length ?? 0) >= (o.limit ?? 50);
 
     for (const row of (data ?? []) as unknown as R[]) {
       // Over the quota: the rest would be refused too, so leave them for later.

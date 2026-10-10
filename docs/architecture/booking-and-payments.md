@@ -768,6 +768,18 @@ Locally: `npm run job -- <name>` ([scripts/job.mjs](../../scripts/job.mjs)).
 | `review-reminders` | queues the one review reminder per booking, 10 to 14 days after its end (`queue_review_reminders`); not limited to one booking | the outbox sends each kind once per booking |
 | `send-emails` | sends queued emails | rows are claimed; Resend keys are per row |
 
+**Batches** (truncation sweep, 2026-10-10): each job takes up to 200 rows
+(pay-out's completing step 500), most overdue first, ordered by due time
+and then id. A full batch sets `job_runs.more_waiting`, and the admin's
+Bookings page lists those runs under "Job runs that need a look"; the next
+run takes the rest. `withdraw-unavailable` decides in code which open
+bookings went unavailable, so it reads every open one (`allRows`), and
+`pay-out` filters payable bookings in the database, so unpayable ones can't
+fill a batch and stop the payouts behind them. The email outbox reports a
+full batch the same way. Tested in
+[booking-job-batches.test.mts](../../supabase/tests/app/booking-job-batches.test.mts)
+and e2e journey 16.
+
 **No scheduler runs these yet.** Until hosting is chosen they're run by hand
 or by tests ([docs/TODO.md](../TODO.md)).
 

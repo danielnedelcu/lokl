@@ -11,6 +11,7 @@
 // a job as if at a later time.
 
 import type Stripe from "stripe";
+import { allRows } from "@repo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { abandonCheckout, recordDispute } from "./bookings";
 import { refundInFull } from "./bookingCancellations";
@@ -27,7 +28,18 @@ export interface JobResult {
   done: string[];
   /** One line per booking that couldn't be handled this run (tried again next run). */
   failed: string[];
+  /** A batch was full, so more may be waiting for the next run (logged in job_runs.more_waiting). */
+  moreWaiting: boolean;
 }
+
+// Each run takes a batch, most overdue first (ordered by due time, then id,
+// so the same rows come back in the same order); a full batch means more
+// may be waiting. Unordered batches let a newer booking go first and gave no
+// sign of a backlog (truncation sweep, 2026-10-10).
+const BATCH = 200;
+/** withdraw-unavailable reads every open booking; past this many it stops with an error. */
+const OPEN_MAX = 50_000;
+const full = (rows: unknown[] | null, size = BATCH) => (rows?.length ?? 0) >= size;
 
 export interface JobOptions {
   /** Treat this as the current time. Defaults to the real time. */
@@ -47,7 +59,7 @@ async function move(db: SupabaseClient, id: string, from: string, update: Record
 }
 
 function result(job: JobName): JobResult {
-  return { job, checked: 0, done: [], failed: [] };
+  return { job, checked: 0, done: [], failed: [], moreWaiting: false };
 }
 
 async function each<T extends { id: string }>(r: JobResult, rows: T[], work: (row: T) => Promise<string | null>) {
@@ -86,9 +98,11 @@ export async function expireRequests(db: SupabaseClient, stripe: Stripe, opts: J
   const now = (opts.now ?? new Date()).toISOString();
   let q = bookingRecords(db).select("id, status, stripe_payment_intent_id").eq("status", "requested").lt("respond_by", now);
   if (opts.bookingId) q = q.eq("id", opts.bookingId);
-  const { data, error } = await q.limit(200);
+  const { data, error } = await q.order("respond_by").order("id").limit(BATCH);
   if (error) throw new Error(error.message);
-  return each(result("expire-requests"), data ?? [], async (b) => {
+  const r = result("expire-requests");
+  r.moreWaiting = full(data);
+  return each(r, data ?? [], async (b) => {
     if (b.stripe_payment_intent_id && (await releaseHold(stripe, b.id, b.stripe_payment_intent_id)) === "captured") {
       return null; // accepted at the last moment; the accept route confirms it
     }
@@ -104,9 +118,11 @@ export async function releaseReservations(db: SupabaseClient, stripe: Stripe, op
   const now = (opts.now ?? new Date()).toISOString();
   let q = bookingRecords(db).select("id, stripe_checkout_session_id").eq("status", "pending_payment").lt("reserved_until", now);
   if (opts.bookingId) q = q.eq("id", opts.bookingId);
-  const { data, error } = await q.limit(200);
+  const { data, error } = await q.order("reserved_until").order("id").limit(BATCH);
   if (error) throw new Error(error.message);
-  return each(result("release-reservations"), data ?? [], async (b) => {
+  const r = result("release-reservations");
+  r.moreWaiting = full(data);
+  return each(r, data ?? [], async (b) => {
     // No checkout was ever made (it failed while starting): nothing to ask Stripe.
     if (!b.stripe_checkout_session_id) {
       return (await move(db, b.id, "pending_payment", { status: "expired", status_changed_by: "system" })) ? "expired (no checkout)" : null;
@@ -140,13 +156,18 @@ export function unavailableBecause(b: Pick<OpenBooking, "listing" | "provider">)
 }
 
 export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, opts: JobOptions = {}): Promise<JobResult> {
-  let q = db
-    .from("bookings")
-    .select(`id, status, listing:listings(status, category:categories(active), city:cities(active)), provider:providers(status), ${FINANCES}`)
-    .in("status", ["requested", "pending_payment"]);
-  if (opts.bookingId) q = q.eq("id", opts.bookingId);
-  const { data, error } = await q.limit(500);
-  if (error) throw new Error(error.message);
+  // Which open bookings went unavailable is decided here, so every open
+  // one is read (allRows, a page at a time): a batch of 500 decided in code
+  // could keep returning the same available ones, and a booking behind them
+  // was never withdrawn (truncation sweep, 2026-10-10).
+  const data = await allRows((from, to) => {
+    let q = db
+      .from("bookings")
+      .select(`id, status, listing:listings(status, category:categories(active), city:cities(active)), provider:providers(status), ${FINANCES}`)
+      .in("status", ["requested", "pending_payment"]);
+    if (opts.bookingId) q = q.eq("id", opts.bookingId);
+    return q.order("id").range(from, to);
+  }, OPEN_MAX);
   const rows = ((data ?? []) as any[]).map(withFinances).filter((b) => unavailableBecause(b)) as OpenBooking[];
   const r = await each(result("withdraw-unavailable"), rows, async (b) => {
     const why = unavailableBecause(b)!;
@@ -173,8 +194,9 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
     .eq("status", "confirmed")
     .eq("session.status", "cancelled");
   if (opts.bookingId) left = left.eq("id", opts.bookingId);
-  const { data: leftRows, error: leftError } = await left.limit(200);
+  const { data: leftRows, error: leftError } = await left.order("starts_at").order("id").limit(BATCH);
   if (leftError) throw new Error(leftError.message);
+  r.moreWaiting = full(leftRows);
   const extra = result("withdraw-unavailable");
   await each(extra, ((leftRows ?? []) as any[]).map(withFinances), async (b) => {
     const refunded = await refundInFull(stripe, b);
@@ -248,24 +270,30 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
   // 1. Ended bookings read as done.
   let ended = bookingRecords(db).select("id").eq("status", "confirmed").lt("ends_at", now);
   if (opts.bookingId) ended = ended.eq("id", opts.bookingId);
-  const { data: endedRows, error: endedError } = await ended.limit(500);
+  const { data: endedRows, error: endedError } = await ended.order("ends_at").order("id").limit(500);
   if (endedError) throw new Error(endedError.message);
+  r.moreWaiting = full(endedRows, 500);
   for (const b of endedRows ?? []) {
     if (await move(db, b.id, "confirmed", { status: "completed", status_changed_by: "system" })) r.done.push(`${b.id}: completed`);
   }
 
   // 2. Due payouts: completed, or cancelled late by the customer with no
-  // refund (the provider keeps their share), with nothing held.
+  // refund (the provider keeps their share), with nothing held. Filtered in
+  // the database: dropping unpayable ones from a batch in code let 200 of
+  // them (cancelled and refunded) stop every payout behind them
+  // (truncation sweep, 2026-10-10). Each one read is paid or held, so it
+  // leaves the batch.
   let due = db
     .from("bookings")
     .select(PAYOUT_FIELDS)
-    .in("status", ["completed", "cancelled"])
+    .or("status.eq.completed,and(status.eq.cancelled,cancelled_by.eq.customer,refunded_cents.eq.0,confirmed_at.not.is.null)")
     .lte("payout_due_at", now)
     .is("finances.stripe_transfer_id", null)
     .is("finances.payout_hold", null);
   if (opts.bookingId) due = due.eq("id", opts.bookingId);
-  const { data: dueRows, error: dueError } = await due.limit(200);
+  const { data: dueRows, error: dueError } = await due.order("payout_due_at").order("id").limit(BATCH);
   if (dueError) throw new Error(dueError.message);
+  r.moreWaiting ||= full(dueRows);
   const rows = ((dueRows ?? []) as any[]).map(withFinances).filter(
     (b) => b.status === "completed" || (b.cancelled_by === "customer" && b.refunded_cents === 0 && b.confirmed_at),
   );
@@ -398,5 +426,6 @@ async function reviewReminders(db: SupabaseClient, opts: JobOptions) {
   const { data, error } = await db.rpc("queue_review_reminders", opts.now ? { p_now: opts.now.toISOString() } : {});
   if (error) throw new Error(error.message);
   const n = (data as number | null) ?? 0;
-  return { job: "review-reminders", checked: n, done: n ? [`queued ${n} review ${n === 1 ? "reminder" : "reminders"}`] : [], failed: [] as string[] };
+  // One statement queues every due reminder, so nothing waits for a later run.
+  return { job: "review-reminders", checked: n, done: n ? [`queued ${n} review ${n === 1 ? "reminder" : "reminders"}`] : [], failed: [] as string[], moreWaiting: false };
 }
