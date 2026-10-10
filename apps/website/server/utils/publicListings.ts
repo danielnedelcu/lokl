@@ -14,6 +14,7 @@
 // read with visitors' own rules), then loads only that page's cards.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { allRows } from "@repo/types";
 import type {
   AreaKind,
   ListingKind,
@@ -35,7 +36,10 @@ import type {
 import { zonedToInstant } from "../../../../packages/ui/app/utils/zonedTime";
 
 export const PAGE_SIZE = 24;
-export const BROWSE_LIMIT = 1000;
+/** URLs one sitemap file may hold (the sitemap protocol). */
+export const SITEMAP_MAX_URLS = 50_000;
+/** The most rows the sitemap reads from one table before stopping with an error. */
+const READ_MAX = 200_000;
 
 /** A Supabase client that is always signed out: no cookies, no stored session. */
 export function publicSupabase(url: string, publishableKey: string): SupabaseClient {
@@ -361,17 +365,21 @@ export async function loadPublicMarket(db: SupabaseClient, slug: string): Promis
   };
 }
 
+interface SitemapListing { kind: ListingKind; slug: string; updated_at: string; city: { slug: string }; category: { slug: string } }
+
 /** Every public URL, for the sitemap: markets, their browse and category pages with listings, and each visible listing. */
 export async function publicSitemapEntries(db: SupabaseClient): Promise<{ loc: string; lastmod?: string }[]> {
-  const [markets, listings] = await Promise.all([
+  // Every visible listing and provider, a page of 1,000 at a time
+  // (allRows): one read stopped at the API's 1,000 rows (found 2026-10-10).
+  const [markets, rows] = await Promise.all([
     db.from("cities").select("slug").order("sort_order"),
-    db.from("listings")
-      .select("kind, slug, updated_at, city:cities!inner(slug), category:categories!inner(slug)")
+    allRows((from, to) => db.from("listings")
+      .select("id, kind, slug, updated_at, city:cities!inner(slug), category:categories!inner(slug)")
       .eq("status", "live")
-      .limit(BROWSE_LIMIT * 10),
+      .order("id")
+      .range(from, to), READ_MAX).then((r) => r as unknown as SitemapListing[]),
   ]);
-  for (const r of [markets, listings]) if (r.error) throw new Error(r.error.message);
-  const rows = listings.data as unknown as { kind: ListingKind; slug: string; updated_at: string; city: { slug: string }; category: { slug: string } }[];
+  if (markets.error) throw new Error(markets.error.message);
   const plural = (k: ListingKind) => (k === "experience" ? "experiences" : "services");
 
   const entries = new Map<string, string | undefined>();
@@ -396,8 +404,15 @@ export async function publicSitemapEntries(db: SupabaseClient): Promise<{ loc: s
   }
   // Provider profiles: only the public ones (the visitors' read rule: active,
   // with a visible listing).
-  const { data: providers, error: pErr } = await db.from("providers").select("slug").limit(BROWSE_LIMIT * 10);
-  if (pErr) throw new Error(pErr.message);
-  for (const pr of (providers ?? []) as { slug: string }[]) entries.set(`/providers/${pr.slug}`, undefined);
-  return [...entries].map(([loc, lastmod]) => (lastmod ? { loc, lastmod } : { loc }));
+  const providers = await allRows((from, to) => db.from("providers").select("id, slug").order("id").range(from, to), READ_MAX);
+  for (const pr of providers) entries.set(`/providers/${pr.slug}`, undefined);
+  const all = [...entries].map(([loc, lastmod]) => (lastmod ? { loc, lastmod } : { loc }));
+  // One sitemap file holds at most 50,000 URLs; split it before then
+  // (docs/TODO.md). Until it's split, the first 50,000 are listed and the
+  // overflow is logged.
+  if (all.length > SITEMAP_MAX_URLS) {
+    console.error(`[sitemap] ${all.length} URLs, over the ${SITEMAP_MAX_URLS} one sitemap may hold: split the sitemap.`);
+    return all.slice(0, SITEMAP_MAX_URLS);
+  }
+  return all;
 }

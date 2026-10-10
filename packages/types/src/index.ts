@@ -11,3 +11,4 @@ export * from "./guides";
 export * from "./guideDrafts";
 export * from "./reviews";
 export * from "./logs";
+export * from "./rows";

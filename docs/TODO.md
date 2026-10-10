@@ -208,10 +208,15 @@ three are done: explicit API grants, the build secrets check, and
   admin tables already do); `BROWSE_LIMIT` (Open now) is one known case.
   Inventory and order agreed 2026-10-10: provider bookings (done), the
   sessions panel (done: `listing_sessions_page`), browse (done:
-  `public_browse`), category counts (done: `public_category_counts`), the sitemap, admin disputes,
+  `public_browse`), category counts (done: `public_category_counts`), the sitemap (done:
+  `allRows()` pages it), admin disputes,
   the other admin lists; then jobs ordered by due time with "more
   waiting" logged, the Saved page's long request, and two guards (a
   static check in CI, and a runtime check on full pages).
+- [ ] **Split the sitemap before 50,000 URLs.** One sitemap file holds at
+  most 50,000; `publicSitemapEntries` lists the first 50,000 and logs an
+  error past that. Split it by market or kind (@nuxtjs/sitemap supports
+  several sitemaps) before a market gets near it.
 - [ ] **Joins under the caller's rights that quietly drop data.** Where a
   function or view runs as the caller and joins a table that caller can't
   read, rows or values vanish without an error. Check each one shows the gap
