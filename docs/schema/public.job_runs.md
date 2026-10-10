@@ -33,6 +33,13 @@ Each timed job run (website /api/jobs/*): how many bookings it looked at, change
 | job_runs_pkey       | CREATE UNIQUE INDEX job_runs_pkey ON public.job_runs USING btree (id)              |
 | job_runs_recent_idx | CREATE INDEX job_runs_recent_idx ON public.job_runs USING btree (finished_at DESC) |
 
+## Triggers
+
+| Name                          | Definition                                                                                                                              |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| job_runs_append_only          | CREATE TRIGGER job_runs_append_only BEFORE DELETE OR UPDATE ON public.job_runs FOR EACH ROW EXECUTE FUNCTION append_only_guard()        |
+| job_runs_append_only_truncate | CREATE TRIGGER job_runs_append_only_truncate BEFORE TRUNCATE ON public.job_runs FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard() |
+
 ## Relations
 
 ![er](public.job_runs.svg)

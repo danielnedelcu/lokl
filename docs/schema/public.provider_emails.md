@@ -54,6 +54,13 @@ Emails about a provider's account (paused, active again) to send, and what happe
 | provider_emails_admin_action_id_key | CREATE UNIQUE INDEX provider_emails_admin_action_id_key ON public.provider_emails USING btree (admin_action_id)                                             |
 | provider_emails_due_idx             | CREATE INDEX provider_emails_due_idx ON public.provider_emails USING btree (next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'sending'::text])) |
 
+## Triggers
+
+| Name                                  | Definition                                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| provider_emails_outbox_guard          | CREATE TRIGGER provider_emails_outbox_guard BEFORE DELETE OR UPDATE ON public.provider_emails FOR EACH ROW EXECUTE FUNCTION outbox_guard()        |
+| provider_emails_outbox_guard_truncate | CREATE TRIGGER provider_emails_outbox_guard_truncate BEFORE TRUNCATE ON public.provider_emails FOR EACH STATEMENT EXECUTE FUNCTION outbox_guard() |
+
 ## Relations
 
 ![er](public.provider_emails.svg)

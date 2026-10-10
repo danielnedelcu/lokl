@@ -38,6 +38,13 @@ A snapshot of a guide's live copy each time it's published, with who and when. W
 | guide_versions_pkey      | CREATE UNIQUE INDEX guide_versions_pkey ON public.guide_versions USING btree (id)                        |
 | guide_versions_guide_idx | CREATE INDEX guide_versions_guide_idx ON public.guide_versions USING btree (guide_id, published_at DESC) |
 
+## Triggers
+
+| Name                                | Definition                                                                                                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| guide_versions_append_only          | CREATE TRIGGER guide_versions_append_only BEFORE DELETE OR UPDATE ON public.guide_versions FOR EACH ROW EXECUTE FUNCTION append_only_guard('published_by', 'cover_photo_id', 'area_id', 'category_id') |
+| guide_versions_append_only_truncate | CREATE TRIGGER guide_versions_append_only_truncate BEFORE TRUNCATE ON public.guide_versions FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard()                                                    |
+
 ## Relations
 
 ![er](public.guide_versions.svg)

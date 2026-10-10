@@ -173,13 +173,18 @@ three are done: explicit API grants, the build secrets check, and
   definer, so nobody can call `provider_slug()` to probe names.
   `function_privileges.test.sql` holds the list of security-definer
   functions allowed to reach visitors or signed-in users.
-- [ ] **Append-only, for every role.** The booking log (`booking_events`),
-  `admin_actions`, `job_runs` and the money columns in `booking_finances`
-  are only protected by the absence of policies, which the service role
-  skips; the server key can still update or delete them, and `TRUNCATE` is
-  gone only since the grants migration. A trigger that refuses updates and
-  deletes for every role where a table is a record of what happened (with a
-  named, re-enabled-at-commit escape hatch for a one-off backfill).
+- [x] **Append-only, for every role** (`append_only_logs`, 2026-10-10).
+  `admin_actions`, `booking_events`, `commission_rate_changes`,
+  `guide_versions`, `job_runs` and `booking_reports` refuse updates,
+  deletes and truncates for everyone, the server key and the owner
+  included; an `on delete set null` key may still clear its column (a
+  deleted login, guide photo, area or category). The email outboxes change
+  only their delivery columns and are never deleted; `bookings` and
+  `booking_finances` are never deleted. Error text stored in `job_runs` and
+  `last_error` passes through `logText()`, which replaces email addresses
+  and phone numbers, so the logs hold ids only. Anonymising on request: a
+  migration that switches the guard off and back on, ending with
+  `assert_log_guards_on()` (the procedure is in the migration's header).
 - [ ] **Access rules evaluated once per query, with a guard.** A helper
   called directly in a rule runs once per row; wrapped as `(select …)` it
   runs once per query. Three rules call `is_admin()` unwrapped today
@@ -395,6 +400,11 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     Agreement, and the review rules' no-incentives rule: no discounts,
     refunds or gifts for reviews, no asking only happy customers), privacy policy and cancellation policy page, drafted then
     reviewed by a marketplace lawyer.
+- **Personal data**
+  - [ ] Design for data deletion requests: what happens to a customer's
+    bookings, contact details, addresses and login when they ask lokl to
+    delete their data. (Today a login with bookings can't be deleted, and
+    the logs can only be changed by a migration; see `append_only_logs`.)
 
 ## Notifications
 

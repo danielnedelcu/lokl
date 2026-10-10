@@ -248,9 +248,11 @@ try {
   if (created.market) {
     execFileSync("psql", [env.DB_URL!, "-q", "-c", `
       alter table public.guides disable trigger guides_guard;
+      alter table public.guide_versions disable trigger guide_versions_append_only;
       delete from public.guide_versions where guide_id in (select id from public.guides where market_id = '${created.market}');
       update public.guides set cover_photo_id = null, status = 'draft' where market_id = '${created.market}';
       delete from public.guides where market_id = '${created.market}';
+      alter table public.guide_versions enable trigger guide_versions_append_only;
       alter table public.guides enable trigger guides_guard;`]);
   }
   if (created.listings.length) await server.from("listings").delete().in("id", created.listings);

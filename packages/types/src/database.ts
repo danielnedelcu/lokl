@@ -1975,6 +1975,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      assert_log_guards_on: { Args: never; Returns: undefined }
       booking_can_be_reviewed: {
         Args: { p_booking_id: string }
         Returns: boolean

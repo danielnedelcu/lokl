@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { serverSupabaseServiceRole } from "#supabase/server";
+import { logText } from "@repo/types";
 
 // POST /api/jobs/:name: one timed booking job (server/utils/bookingJobs.ts).
 // Called by `npm run job -- <name>` in development and, after launch, by the
@@ -45,14 +46,15 @@ export default defineEventHandler(async (event) => {
   const db = serverSupabaseServiceRole(event);
   const started = new Date();
   // Every run is logged in job_runs, for the admin's "needs attention" list,
-  // including one that crashes.
+  // including one that crashes. The log is append-only, so its lines name
+  // rows by id, and any address or phone number in an error is replaced.
   const log = async (r: { checked: number; done: string[]; failed: string[] } | null, error?: string) => {
     const { error: logError } = await db.from("job_runs").insert({
       job: opts.now ? `${name} (as of ${opts.now.toISOString()})` : name,
       started_at: started.toISOString(),
       checked: r?.checked ?? 0, changed: r?.done.length ?? 0, failed: r?.failed.length ?? 0,
-      failures: (r?.failed ?? []).slice(0, 50).map((l) => l.slice(0, 300)),
-      error: error?.slice(0, 1000) ?? null,
+      failures: (r?.failed ?? []).slice(0, 50).map((l) => logText(l, 300)),
+      error: error ? logText(error, 1000) : null,
     });
     if (logError) console.error("[jobs] couldn't log the run", logError.message);
   };

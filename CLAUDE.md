@@ -127,6 +127,15 @@ for usability and defence in depth, never as the only protection.
   (`serverSupabaseClient` or `useSupabaseClient`), so RLS applies.
 - `anon` (signed-out visitors) gets no access unless a table is meant to be public.
 
+- **Logs are append-only for every role**, the server key and the owner
+  included (`append_only_logs`): `admin_actions`, `booking_events`,
+  `commission_rate_changes`, `guide_versions`, `job_runs`,
+  `booking_reports`. The email outboxes change only their delivery columns;
+  `bookings` and `booking_finances` are never deleted. A new log gets the
+  same guard, in `append_only.test.sql`'s list. Logs hold ids, never
+  contact details: error text goes through `logText()`. Anonymising a log is
+  a migration that switches the guard off and on and ends with
+  `select public.assert_log_guards_on();`.
 - Policies are named `<table>_<action>` (`providers_read_own`); their
   plain-English meaning goes in `comment on policy`.
 - Every table's migration states its delete behaviour. Tables that bookings,

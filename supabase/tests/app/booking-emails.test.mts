@@ -194,7 +194,12 @@ try {
   await sendBookingEmails(db, mq, settings(), { bookingId: q, now: later(61 * 11) });
   check((await emailsFor(q)).every((r) => r.status === "sent"), "8f. once the quota resets, both are sent");
   const old = await request();
-  await must(db.from("booking_emails").update({ created_at: new Date(Date.now() - 49 * 3600_000).toISOString() }).eq("booking_id", old));
+  // When an email was queued can't change (outbox_guard), so the test
+  // backdates it with the guard off, on the local database only.
+  execFileSync("psql", [local.DB_URL!, "-q", "-v", "ON_ERROR_STOP=1", "-c", `
+    alter table public.booking_emails disable trigger booking_emails_outbox_guard;
+    update public.booking_emails set created_at = now() - interval '49 hours' where booking_id = '${old}';
+    alter table public.booking_emails enable trigger booking_emails_outbox_guard;`]);
   const mo = fakeMailer();
   mo.limitTimes(5, "quota");
   await sendBookingEmails(db, mo, settings(), { bookingId: old });

@@ -46,6 +46,13 @@ Booking emails to send and what happened to each (the outbox and the log). Fille
 | booking_emails_once    | CREATE UNIQUE INDEX booking_emails_once ON public.booking_emails USING btree (booking_id, kind)                                                           |
 | booking_emails_due_idx | CREATE INDEX booking_emails_due_idx ON public.booking_emails USING btree (next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'sending'::text])) |
 
+## Triggers
+
+| Name                                 | Definition                                                                                                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| booking_emails_outbox_guard          | CREATE TRIGGER booking_emails_outbox_guard BEFORE DELETE OR UPDATE ON public.booking_emails FOR EACH ROW EXECUTE FUNCTION outbox_guard()        |
+| booking_emails_outbox_guard_truncate | CREATE TRIGGER booking_emails_outbox_guard_truncate BEFORE TRUNCATE ON public.booking_emails FOR EACH STATEMENT EXECUTE FUNCTION outbox_guard() |
+
 ## Relations
 
 ![er](public.booking_emails.svg)

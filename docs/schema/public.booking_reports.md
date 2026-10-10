@@ -28,9 +28,11 @@ The customer's "the provider didn't show up" note. Read by that customer and adm
 
 ## Triggers
 
-| Name                  | Definition                                                                                                                         |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| booking_reports_final | CREATE TRIGGER booking_reports_final BEFORE UPDATE ON public.booking_reports FOR EACH ROW EXECUTE FUNCTION booking_reports_final() |
+| Name                                 | Definition                                                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| booking_reports_append_only          | CREATE TRIGGER booking_reports_append_only BEFORE DELETE ON public.booking_reports FOR EACH ROW EXECUTE FUNCTION append_only_guard()                  |
+| booking_reports_append_only_truncate | CREATE TRIGGER booking_reports_append_only_truncate BEFORE TRUNCATE ON public.booking_reports FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard() |
+| booking_reports_final                | CREATE TRIGGER booking_reports_final BEFORE UPDATE ON public.booking_reports FOR EACH ROW EXECUTE FUNCTION booking_reports_final()                    |
 
 ## Relations
 

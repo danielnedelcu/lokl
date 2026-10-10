@@ -15,6 +15,7 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { logText } from "@repo/types";
 import { renderEmail, renderProviderAccountEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
@@ -178,6 +179,8 @@ async function providerEmail(db: SupabaseClient, ownerId: string | undefined) {
 type OutboxTable = "booking_emails" | "provider_emails";
 
 async function finish(db: SupabaseClient, table: OutboxTable, id: string, update: Record<string, unknown>) {
+  // Resend's messages can quote an address; the row keeps only its id.
+  if (typeof update.last_error === "string") update = { ...update, last_error: logText(update.last_error, 500) };
   const { error } = await db.from(table).update({ ...update, locked_at: null }).eq("id", id);
   if (error) console.error("[emails] couldn't record the outcome", id, error.message);
 }

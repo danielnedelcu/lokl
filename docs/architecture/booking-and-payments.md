@@ -593,15 +593,15 @@ note), which only the service role can use.
 
 | Table | Customer | Provider | Admin | Visitor | Written by | Deleted? |
 | --- | --- | --- | --- | --- | --- | --- |
-| `bookings` | own | own business's | all | no | service role only | never |
-| `booking_finances` | **no** | own business's | all | no | service role only | never |
-| `booking_reports` | own | **no** | all | no | service role, once; final | never |
+| `bookings` | own | own business's | all | no | service role only | never (refused) |
+| `booking_finances` | **no** | own business's | all | no | service role only | never (refused) |
+| `booking_reports` | own | **no** | all | no | service role, once; final | never (append-only) |
 | `booking_contacts`, `booking_addresses` | own | once the booking is confirmed | all | no | service role | never |
-| `booking_events` | as the booking | as the booking | all | no | trigger only | never |
-| `booking_emails` | no | no | all | no | triggers and the server | never |
+| `booking_events` | as the booking | as the booking | all | no | trigger only | never (append-only) |
+| `booking_emails` | no | no | all | no | triggers and the server (delivery columns only) | never (refused) |
 | `experience_sessions` | future, visible ones | own (all) | all | future, visible ones | provider (not moved or cancelled once booked) | with its listing, unless booked |
 | `notifications` | no | own (may mark read) | no | no | triggers | with its listing |
-| `admin_actions`, `job_runs` | no | no | all | no | service role | never |
+| `admin_actions`, `job_runs` | no | no | all | no | service role | never (append-only) |
 | `commission_rates` | any signed-in user | any signed-in user | all, may change the rate | no | admin (rate only) | never |
 | `providers` (`stripe_*`, `status`) | no | own | all | no | server only (Stripe sync, admin RPC) | never |
 
@@ -612,6 +612,16 @@ Sources: [bookings](../../supabase/migrations/20261001012101_bookings.sql),
 [experience_sessions](../../supabase/migrations/20260928002703_experience_sessions.sql),
 [notifications](../../supabase/migrations/20260928031356_notifications.sql);
 pgTAP tests in [supabase/tests](../../supabase/tests).
+
+"Never (append-only)" and "never (refused)" hold for every role, the
+server key and the database owner included
+([append_only_logs](../../supabase/migrations/20261010190000_append_only_logs.sql),
+tested in [append_only.test.sql](../../supabase/tests/append_only.test.sql)).
+An append-only log refuses updates, deletes and truncates; an outbox lets
+only its delivery columns change (status, attempts, times, `to_address`,
+`resend_id`, `last_error`, `skip_reason`); bookings and their finances
+refuse deletes. Local test clean-up deletes in replica mode, which skips
+the guards and only the database owner can set.
 
 ## 10. Emails and notifications
 
@@ -732,7 +742,10 @@ every event in the table ([docs/TODO.md](../TODO.md), Staging site).
 `POST /api/jobs/<name>` with the header `x-job-secret`
 ([jobs/[name].post.ts](../../apps/website/server/api/jobs/[name].post.ts)),
 compared in constant time with `NUXT_JOB_SECRET`; no secret set means every
-call is refused. Every run is logged in `job_runs`. In development only,
+call is refused. Every run is logged in `job_runs` (append-only); its
+failure lines name rows by id, and an email address or phone number in an
+error is replaced (`logText()` in `@repo/types`), as it is in the outboxes'
+`last_error`. In development only,
 `?bookingId=` and `?asOf=` run a job for one booking at a given time.
 Locally: `npm run job -- <name>` ([scripts/job.mjs](../../scripts/job.mjs)).
 

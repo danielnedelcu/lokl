@@ -29,6 +29,13 @@ Each change to a commission rate: from, to, who and when. Filled by a trigger on
 | ---------------------------- | --------------------------------------------------------------------------------------------------- |
 | commission_rate_changes_pkey | CREATE UNIQUE INDEX commission_rate_changes_pkey ON public.commission_rate_changes USING btree (id) |
 
+## Triggers
+
+| Name                                         | Definition                                                                                                                                                                 |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| commission_rate_changes_append_only          | CREATE TRIGGER commission_rate_changes_append_only BEFORE DELETE OR UPDATE ON public.commission_rate_changes FOR EACH ROW EXECUTE FUNCTION append_only_guard('changed_by') |
+| commission_rate_changes_append_only_truncate | CREATE TRIGGER commission_rate_changes_append_only_truncate BEFORE TRUNCATE ON public.commission_rate_changes FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard()      |
+
 ## Relations
 
 ![er](public.commission_rate_changes.svg)

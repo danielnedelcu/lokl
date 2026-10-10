@@ -38,6 +38,13 @@ Every admin action on bookings, emails and providers: who, what, when and why. W
 | admin_actions_pkey       | CREATE UNIQUE INDEX admin_actions_pkey ON public.admin_actions USING btree (id)                           |
 | admin_actions_target_idx | CREATE INDEX admin_actions_target_idx ON public.admin_actions USING btree (target, target_id, created_at) |
 
+## Triggers
+
+| Name                               | Definition                                                                                                                                           |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| admin_actions_append_only          | CREATE TRIGGER admin_actions_append_only BEFORE DELETE OR UPDATE ON public.admin_actions FOR EACH ROW EXECUTE FUNCTION append_only_guard('admin_id') |
+| admin_actions_append_only_truncate | CREATE TRIGGER admin_actions_append_only_truncate BEFORE TRUNCATE ON public.admin_actions FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard()    |
+
 ## Relations
 
 ![er](public.admin_actions.svg)

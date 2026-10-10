@@ -191,6 +191,38 @@ affect 0 rows, silently. For never-deleted tables, also
 `revoke delete … from anon, authenticated`, so a mistaken delete raises an
 error instead.
 
+**Logs are append-only for every role** (since `append_only_logs`,
+2026-10-10), because the server key skips row policies. A table that
+records what happened (an audit log, a history, a run log) gets:
+
+```sql
+create trigger <table>_append_only
+  before update or delete on public.<table>
+  for each row execute function public.append_only_guard('<fk column>', …);
+create trigger <table>_append_only_truncate
+  before truncate on public.<table>
+  for each statement execute function public.append_only_guard();
+```
+
+The arguments name the columns whose `on delete set null` key may clear
+them (a deleted login, photo, area or category); any other change is
+refused. Add both triggers to the list in `supabase/tests/append_only.test.sql`
+and test an update, a delete and a truncate refused, as the server and as
+the owner. Email outboxes use `outbox_guard()` (only delivery columns
+change); bookings and their finances use `refuse_delete()`.
+
+- **Logs hold ids, never contact details.** Error text from outside
+  services goes through `logText()` (`@repo/types`) before it's stored.
+- **Anonymising a log on request** is a migration of its own, by row id
+  only (never the person's name or email in the file): switch the guard
+  off, update, switch it back on, and end with
+  `select public.assert_log_guards_on();`, which fails if any guard is
+  off. The migration is one transaction, so a failure never leaves a
+  guard off, and `schema:compare` shows one left off on hosted.
+- **Local test clean-up** deletes these rows with
+  `set session_replication_role = replica` (owner only), or switches the
+  named guards off and on in the same `psql -c` call.
+
 ## Tests
 
 pgTAP files live in `supabase/tests/` and end in `.test.sql`. Each file is one

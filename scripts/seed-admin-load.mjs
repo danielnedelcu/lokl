@@ -30,6 +30,13 @@ const GUARDED = [
   ["public.booking_finances", "booking_finances_guard"],
   ["public.experience_sessions", "experience_sessions_guard"],
   ["public.experience_sessions", "experience_sessions_check"],
+  // Append-only logs and never-deleted rows (append_only_logs): removing
+  // the load data deletes them, on the local database only.
+  ["public.bookings", "bookings_refuse_delete"],
+  ["public.booking_finances", "booking_finances_refuse_delete"],
+  ["public.booking_events", "booking_events_append_only"],
+  ["public.booking_reports", "booking_reports_append_only"],
+  ["public.booking_emails", "booking_emails_outbox_guard"],
 ];
 const off = GUARDED.map(([t, g]) => `alter table ${t} disable trigger ${g};`).join("\n");
 const on = GUARDED.map(([t, g]) => `alter table ${t} enable trigger ${g};`).join("\n");

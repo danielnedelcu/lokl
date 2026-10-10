@@ -29,6 +29,13 @@ Every status change of a booking: from, to, who (customer, provider, admin, syst
 | booking_events_pkey           | CREATE UNIQUE INDEX booking_events_pkey ON public.booking_events USING btree (id)                        |
 | booking_events_booking_id_idx | CREATE INDEX booking_events_booking_id_idx ON public.booking_events USING btree (booking_id, created_at) |
 
+## Triggers
+
+| Name                                | Definition                                                                                                                                          |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| booking_events_append_only          | CREATE TRIGGER booking_events_append_only BEFORE DELETE OR UPDATE ON public.booking_events FOR EACH ROW EXECUTE FUNCTION append_only_guard()        |
+| booking_events_append_only_truncate | CREATE TRIGGER booking_events_append_only_truncate BEFORE TRUNCATE ON public.booking_events FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard() |
+
 ## Relations
 
 ![er](public.booking_events.svg)
