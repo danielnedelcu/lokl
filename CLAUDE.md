@@ -136,6 +136,10 @@ for usability and defence in depth, never as the only protection.
   contact details: error text goes through `logText()`. Anonymising a log is
   a migration that switches the guard off and on and ends with
   `select public.assert_log_guards_on();`.
+- **Access rules run helpers once per query** (`policy_guard.test.sql`):
+  wrap `auth.uid()`, `is_admin()` and the provider helpers as `(select …)`,
+  and never call a helper with the row's values in a read rule; use
+  `column in (select public.active_provider_ids())` and its siblings.
 - Policies are named `<table>_<action>` (`providers_read_own`); their
   plain-English meaning goes in `comment on policy`.
 - Every table's migration states its delete behaviour. Tables that bookings,

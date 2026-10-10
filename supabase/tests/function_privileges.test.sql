@@ -33,13 +33,15 @@ select set_eq(
        ('admin_providers_page|authenticated'), ('admin_reviews_page|authenticated'),
        -- Public pages.
        ('public_guide|anon,authenticated'), ('public_guides|anon,authenticated'), ('public_homepage_guides|anon,authenticated'),
-       ('session_spots_left|anon,authenticated'), ('provider_is_public|anon,authenticated'),
+       ('session_spots_left|anon,authenticated'),
        -- Signed-in features.
        ('my_saved|authenticated'), ('review_state|authenticated'), ('booking_can_be_reviewed|authenticated'),
-       ('review_window_open|authenticated'), ('review_reportable|authenticated'),
+       ('review_window_open|authenticated'), ('review_reportable|authenticated'), ('provider_is_public|authenticated'),
        -- Helpers called inside access rules.
        ('current_provider_id|authenticated'), ('current_active_provider_id|authenticated'),
-       ('listing_parents_active|anon,authenticated') $$,
+       -- Sets the visitors' read rules check once per query (policy_helpers_once_per_query).
+       ('active_provider_ids|anon,authenticated'), ('active_category_ids|anon,authenticated'),
+       ('active_city_ids|anon,authenticated'), ('public_provider_ids|anon,authenticated') $$,
   '2. only the listed security-definer functions reach visitors or signed-in users');
 
 -- 3. Each helper reaches exactly the roles that evaluate it.
@@ -49,10 +51,10 @@ select ok(not has_function_privilege('anon', 'public.is_admin()', 'EXECUTE') and
 select ok(has_function_privilege('authenticated', 'public.current_provider_id()', 'EXECUTE'), '3c. current_provider_id(): signed-in users');
 select ok(not has_function_privilege('anon', 'public.current_provider_id()', 'EXECUTE') and not has_function_privilege('service_role', 'public.current_provider_id()', 'EXECUTE'),
   '3d. ...not visitors or the server');
-select ok(has_function_privilege('anon', 'public.listing_parents_active(uuid,uuid,uuid)', 'EXECUTE')
-      and has_function_privilege('authenticated', 'public.listing_parents_active(uuid,uuid,uuid)', 'EXECUTE')
+select ok(not has_function_privilege('anon', 'public.listing_parents_active(uuid,uuid,uuid)', 'EXECUTE')
+      and not has_function_privilege('authenticated', 'public.listing_parents_active(uuid,uuid,uuid)', 'EXECUTE')
       and has_function_privilege('service_role', 'public.listing_parents_active(uuid,uuid,uuid)', 'EXECUTE'),
-  '3e. listing_parents_active(): visitors, signed-in users and the server (the booking functions)');
+  '3e. listing_parents_active(): only the server (the booking functions); access rules use the once-per-query sets');
 select ok(has_function_privilege('authenticated', 'public.has_contact_details(text)', 'EXECUTE')
       and has_function_privilege('service_role', 'public.has_contact_details(text)', 'EXECUTE'),
   '3f. has_contact_details(): signed-in users and the server (its check constraints run as the writer)');
@@ -99,7 +101,7 @@ select lives_ok(format($$ update providers set headline = 'Food walks through At
   '5e. ...and a normal headline is fine (the trigger set_updated_at fires too)');
 select tests.clear_authentication();
 
--- A live listing: visitors still see it (the rule calls listing_parents_active()).
+-- A live listing: visitors still see it (the rule checks the once-per-query sets).
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
 values (:'p1', 'experience', :'cat', :'atl', 'Taco crawl', 'A listing made for the function privileges tests.', 5000, 60, :'o4w', 'submitted')
 returning id as l1 \gset

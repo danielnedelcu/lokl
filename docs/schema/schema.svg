@@ -954,39 +954,43 @@
 <!-- public.job_runs -->
 <g id="node19" class="node">
 <title>public.job_runs</title>
-<polygon fill="#efefef" stroke="none" points="5788.72,-5904.6 5788.72,-5950.6 6845.4,-5950.6 6845.4,-5904.6 5788.72,-5904.6"/>
-<polygon fill="none" stroke="black" points="5788.72,-5904.6 5788.72,-5950.6 6845.4,-5950.6 6845.4,-5904.6 5788.72,-5904.6"/>
-<text text-anchor="start" x="6198.57" y="-5928.4" font-family="Arial Bold" font-size="18.00">public.job_runs</text>
-<text text-anchor="start" x="6311.06" y="-5928.4" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="6342.18" y="-5928.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="5795.72" y="-5914" font-family="Arial" font-size="14.00" fill="#333333">Each timed job run (website /api/jobs/*): how many bookings it looked at, changed and couldn&#39;t handle, with the failures. Written by the website&#39;s server; read by admins.</text>
-<polygon fill="none" stroke="black" points="5788.72,-5873.8 5788.72,-5904.6 6845.4,-5904.6 6845.4,-5873.8 5788.72,-5873.8"/>
-<text text-anchor="start" x="5795.72" y="-5886" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="5810.51" y="-5886" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="5788.72,-5843 5788.72,-5873.8 6845.4,-5873.8 6845.4,-5843 5788.72,-5843"/>
-<text text-anchor="start" x="5795.72" y="-5855.2" font-family="Arial" font-size="14.00">job </text>
-<text text-anchor="start" x="5818.3" y="-5855.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="5788.72,-5812.2 5788.72,-5843 6845.4,-5843 6845.4,-5812.2 5788.72,-5812.2"/>
-<text text-anchor="start" x="5795.72" y="-5824.4" font-family="Arial" font-size="14.00">started_at </text>
-<text text-anchor="start" x="5861.87" y="-5824.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="5788.72,-5781.4 5788.72,-5812.2 6845.4,-5812.2 6845.4,-5781.4 5788.72,-5781.4"/>
-<text text-anchor="start" x="5795.72" y="-5793.6" font-family="Arial" font-size="14.00">finished_at </text>
-<text text-anchor="start" x="5867.33" y="-5793.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="5788.72,-5750.6 5788.72,-5781.4 6845.4,-5781.4 6845.4,-5750.6 5788.72,-5750.6"/>
-<text text-anchor="start" x="5795.72" y="-5762.8" font-family="Arial" font-size="14.00">checked </text>
-<text text-anchor="start" x="5851.76" y="-5762.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="5788.72,-5719.8 5788.72,-5750.6 6845.4,-5750.6 6845.4,-5719.8 5788.72,-5719.8"/>
-<text text-anchor="start" x="5795.72" y="-5732" font-family="Arial" font-size="14.00">changed </text>
-<text text-anchor="start" x="5853.33" y="-5732" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="5788.72,-5689 5788.72,-5719.8 6845.4,-5719.8 6845.4,-5689 5788.72,-5689"/>
-<text text-anchor="start" x="5795.72" y="-5701.2" font-family="Arial" font-size="14.00">failed </text>
-<text text-anchor="start" x="5833.08" y="-5701.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="5788.72,-5658.2 5788.72,-5689 6845.4,-5689 6845.4,-5658.2 5788.72,-5658.2"/>
-<text text-anchor="start" x="5795.72" y="-5670.4" font-family="Arial" font-size="14.00">failures </text>
-<text text-anchor="start" x="5844.74" y="-5670.4" font-family="Arial" font-size="14.00" fill="#666666">[text[]]</text>
-<polygon fill="none" stroke="black" points="5788.72,-5627.4 5788.72,-5658.2 6845.4,-5658.2 6845.4,-5627.4 5788.72,-5627.4"/>
-<text text-anchor="start" x="5795.72" y="-5639.6" font-family="Arial" font-size="14.00">error </text>
-<text text-anchor="start" x="5829.17" y="-5639.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="#efefef" stroke="none" points="5788.72,-5920 5788.72,-5966 6845.4,-5966 6845.4,-5920 5788.72,-5920"/>
+<polygon fill="none" stroke="black" points="5788.72,-5920 5788.72,-5966 6845.4,-5966 6845.4,-5920 5788.72,-5920"/>
+<text text-anchor="start" x="6198.57" y="-5943.8" font-family="Arial Bold" font-size="18.00">public.job_runs</text>
+<text text-anchor="start" x="6311.06" y="-5943.8" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="6342.18" y="-5943.8" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="5795.72" y="-5929.4" font-family="Arial" font-size="14.00" fill="#333333">Each timed job run (website /api/jobs/*): how many bookings it looked at, changed and couldn&#39;t handle, with the failures. Written by the website&#39;s server; read by admins.</text>
+<polygon fill="none" stroke="black" points="5788.72,-5889.2 5788.72,-5920 6845.4,-5920 6845.4,-5889.2 5788.72,-5889.2"/>
+<text text-anchor="start" x="5795.72" y="-5901.4" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="5810.51" y="-5901.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5858.4 5788.72,-5889.2 6845.4,-5889.2 6845.4,-5858.4 5788.72,-5858.4"/>
+<text text-anchor="start" x="5795.72" y="-5870.6" font-family="Arial" font-size="14.00">job </text>
+<text text-anchor="start" x="5818.3" y="-5870.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5827.6 5788.72,-5858.4 6845.4,-5858.4 6845.4,-5827.6 5788.72,-5827.6"/>
+<text text-anchor="start" x="5795.72" y="-5839.8" font-family="Arial" font-size="14.00">started_at </text>
+<text text-anchor="start" x="5861.87" y="-5839.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5796.8 5788.72,-5827.6 6845.4,-5827.6 6845.4,-5796.8 5788.72,-5796.8"/>
+<text text-anchor="start" x="5795.72" y="-5809" font-family="Arial" font-size="14.00">finished_at </text>
+<text text-anchor="start" x="5867.33" y="-5809" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5766 5788.72,-5796.8 6845.4,-5796.8 6845.4,-5766 5788.72,-5766"/>
+<text text-anchor="start" x="5795.72" y="-5778.2" font-family="Arial" font-size="14.00">checked </text>
+<text text-anchor="start" x="5851.76" y="-5778.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5735.2 5788.72,-5766 6845.4,-5766 6845.4,-5735.2 5788.72,-5735.2"/>
+<text text-anchor="start" x="5795.72" y="-5747.4" font-family="Arial" font-size="14.00">changed </text>
+<text text-anchor="start" x="5853.33" y="-5747.4" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5704.4 5788.72,-5735.2 6845.4,-5735.2 6845.4,-5704.4 5788.72,-5704.4"/>
+<text text-anchor="start" x="5795.72" y="-5716.6" font-family="Arial" font-size="14.00">failed </text>
+<text text-anchor="start" x="5833.08" y="-5716.6" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5673.6 5788.72,-5704.4 6845.4,-5704.4 6845.4,-5673.6 5788.72,-5673.6"/>
+<text text-anchor="start" x="5795.72" y="-5685.8" font-family="Arial" font-size="14.00">failures </text>
+<text text-anchor="start" x="5844.74" y="-5685.8" font-family="Arial" font-size="14.00" fill="#666666">[text[]]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5642.8 5788.72,-5673.6 6845.4,-5673.6 6845.4,-5642.8 5788.72,-5642.8"/>
+<text text-anchor="start" x="5795.72" y="-5655" font-family="Arial" font-size="14.00">error </text>
+<text text-anchor="start" x="5829.17" y="-5655" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="5788.72,-5612 5788.72,-5642.8 6845.4,-5642.8 6845.4,-5612 5788.72,-5612"/>
+<text text-anchor="start" x="5795.72" y="-5624.2" font-family="Arial" font-size="14.00">more_waiting </text>
+<text text-anchor="start" x="5882.87" y="-5624.2" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="5940.48" y="-5624.2" font-family="Arial" font-size="14.00"> True when a batch was full, so more rows may be waiting for the next run. Written by the job route.</text>
 </g>
 <!-- public.provider_emails -->
 <g id="node20" class="node">

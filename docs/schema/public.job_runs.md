@@ -6,17 +6,18 @@ Each timed job run (website /api/jobs/*): how many bookings it looked at, change
 
 ## Columns
 
-| Name        | Type                     | Default           | Nullable | Children | Parents | Comment |
-| ----------- | ------------------------ | ----------------- | -------- | -------- | ------- | ------- |
-| id          | uuid                     | gen_random_uuid() | false    |          |         |         |
-| job         | text                     |                   | false    |          |         |         |
-| started_at  | timestamp with time zone |                   | false    |          |         |         |
-| finished_at | timestamp with time zone | clock_timestamp() | false    |          |         |         |
-| checked     | integer                  | 0                 | false    |          |         |         |
-| changed     | integer                  | 0                 | false    |          |         |         |
-| failed      | integer                  | 0                 | false    |          |         |         |
-| failures    | text[]                   | '{}'::text[]      | false    |          |         |         |
-| error       | text                     |                   | true     |          |         |         |
+| Name         | Type                     | Default           | Nullable | Children | Parents | Comment                                                                                             |
+| ------------ | ------------------------ | ----------------- | -------- | -------- | ------- | --------------------------------------------------------------------------------------------------- |
+| id           | uuid                     | gen_random_uuid() | false    |          |         |                                                                                                     |
+| job          | text                     |                   | false    |          |         |                                                                                                     |
+| started_at   | timestamp with time zone |                   | false    |          |         |                                                                                                     |
+| finished_at  | timestamp with time zone | clock_timestamp() | false    |          |         |                                                                                                     |
+| checked      | integer                  | 0                 | false    |          |         |                                                                                                     |
+| changed      | integer                  | 0                 | false    |          |         |                                                                                                     |
+| failed       | integer                  | 0                 | false    |          |         |                                                                                                     |
+| failures     | text[]                   | '{}'::text[]      | false    |          |         |                                                                                                     |
+| error        | text                     |                   | true     |          |         |                                                                                                     |
+| more_waiting | boolean                  | false             | false    |          |         | True when a batch was full, so more rows may be waiting for the next run. Written by the job route. |
 
 ## Constraints
 

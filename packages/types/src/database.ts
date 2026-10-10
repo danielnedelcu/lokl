@@ -1067,6 +1067,7 @@ export type Database = {
           finished_at: string
           id: string
           job: string
+          more_waiting: boolean
           started_at: string
         }
         Insert: {
@@ -1078,6 +1079,7 @@ export type Database = {
           finished_at?: string
           id?: string
           job: string
+          more_waiting?: boolean
           started_at: string
         }
         Update: {
@@ -1089,6 +1091,7 @@ export type Database = {
           finished_at?: string
           id?: string
           job?: string
+          more_waiting?: boolean
           started_at?: string
         }
         Relationships: []
@@ -1879,6 +1882,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      active_category_ids: { Args: never; Returns: string[] }
+      active_city_ids: { Args: never; Returns: string[] }
+      active_provider_ids: { Args: never; Returns: string[] }
+      admin_ai_draft_cost: { Args: { p_since: string }; Returns: Json }
       admin_bookings_page: {
         Args: {
           p_attention?: string
@@ -2054,6 +2061,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      listing_sessions_page: {
+        Args: {
+          p_listing_id: string
+          p_page?: number
+          p_page_size?: number
+          p_past: boolean
+        }
+        Returns: Json
+      }
       my_saved: { Args: never; Returns: Json }
       provider_is_public: { Args: { p_provider_id: string }; Returns: boolean }
       provider_payout_setup: {
@@ -2061,6 +2077,20 @@ export type Database = {
         Returns: string
       }
       provider_slug: { Args: { p_name: string }; Returns: string }
+      public_browse: {
+        Args: {
+          p_area?: string
+          p_category?: string
+          p_from?: string
+          p_kind: string
+          p_market: string
+          p_page?: number
+          p_page_size?: number
+          p_to?: string
+        }
+        Returns: Json
+      }
+      public_category_counts: { Args: { p_market_id: string }; Returns: Json }
       public_guide: {
         Args: { p_market: string; p_slug: string }
         Returns: Json
@@ -2071,6 +2101,7 @@ export type Database = {
       }
       public_guides: { Args: { p_market: string }; Returns: Json }
       public_homepage_guides: { Args: never; Returns: Json }
+      public_provider_ids: { Args: never; Returns: string[] }
       publish_guide: {
         Args: { p_admin_id: string; p_guide_id: string }
         Returns: undefined

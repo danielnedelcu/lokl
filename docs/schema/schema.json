@@ -3618,6 +3618,13 @@
           "name": "error",
           "type": "text",
           "nullable": true
+        },
+        {
+          "name": "more_waiting",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false",
+          "comment": "True when a batch was full, so more rows may be waiting for the next run. Written by the job route."
         }
       ],
       "indexes": [
@@ -8378,6 +8385,54 @@
     {
       "name": "public.assert_log_guards_on",
       "return_type": "void",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_sessions_page",
+      "return_type": "jsonb",
+      "arguments": "p_listing_id uuid, p_past boolean, p_page integer DEFAULT 1, p_page_size integer DEFAULT 50",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.public_browse",
+      "return_type": "jsonb",
+      "arguments": "p_market text, p_kind text, p_category text DEFAULT NULL::text, p_area uuid DEFAULT NULL::uuid, p_from timestamp with time zone DEFAULT NULL::timestamp with time zone, p_to timestamp with time zone DEFAULT NULL::timestamp with time zone, p_page integer DEFAULT 1, p_page_size integer DEFAULT 24",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.public_category_counts",
+      "return_type": "jsonb",
+      "arguments": "p_market_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_ai_draft_cost",
+      "return_type": "jsonb",
+      "arguments": "p_since timestamp with time zone",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.active_provider_ids",
+      "return_type": "uuid",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.active_category_ids",
+      "return_type": "uuid",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.active_city_ids",
+      "return_type": "uuid",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.public_provider_ids",
+      "return_type": "uuid",
       "arguments": "",
       "type": "FUNCTION"
     }

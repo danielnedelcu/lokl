@@ -185,14 +185,24 @@ three are done: explicit API grants, the build secrets check, and
   and phone numbers, so the logs hold ids only. Anonymising on request: a
   migration that switches the guard off and back on, ending with
   `assert_log_guards_on()` (the procedure is in the migration's header).
-- [ ] **Access rules evaluated once per query, with a guard.** A helper
-  called directly in a rule runs once per row; wrapped as `(select …)` it
-  runs once per query. Three rules call `is_admin()` unwrapped today
-  (`reviews_read_admin`, `review_replies_read_admin`,
-  `review_reports_read_admin`). Wrap them, and add a test reading
-  `pg_policies` that fails on any unwrapped `auth.uid()`, `auth.jwt()`,
-  `is_admin()` or `current_provider_id()`, and on any table with row
-  security but no rule.
+- [x] **Access rules evaluated once per query, with a guard**
+  (`policy_helpers_once_per_query`, 2026-10-10). Visitors' read rules
+  called `listing_parents_active()` and `provider_is_public()` per row; they
+  now check the row against sets computed once per query
+  (`active_provider_ids()`, `active_category_ids()`, `active_city_ids()`,
+  `public_provider_ids()`), with exactly the same conditions. At about 4,800
+  listings a visitor's category count went from 26 ms to 2 ms and browse
+  from 56 ms to 31 ms. The three reviews admin rules wrap `is_admin()`.
+  `policy_guard.test.sql` fails on an unwrapped helper, a per-row helper in
+  a read, update or delete rule, and row security without a rule.
+- [ ] **A stored "visible" flag on listings, if browse gets slow.** Browse's
+  remaining time (31 ms for 2,266 Experiences in one market, 2026-10-10) is
+  the sessions read rule rechecking each session's listing. A `visible`
+  column on listings, kept by triggers when a listing, its provider,
+  category or city changes, would make every visitor rule a plain column
+  check (and indexable). Checking each session against a once-per-query set
+  instead was tried: browse 7 ms, but every single listing's sessions read
+  went from 0.4 ms to 2.7 ms, growing with the number of listings.
 - [ ] **Lists that stop at 1,000 rows without saying so.** The API returns
   at most 1,000 rows (`max_rows`) with no error. Find every read without a
   limit or a range on a table that grows, and page it on the server (as the

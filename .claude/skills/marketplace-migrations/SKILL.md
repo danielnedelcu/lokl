@@ -128,8 +128,16 @@ comment on policy providers_read_admin on public.providers is
 
 The providers table also has `providers_insert_own` and `providers_update_own`.
 
-- Wrap `auth.uid()` and `public.is_admin()` in `(select …)` so Postgres
-  evaluates them once per query, not once per row.
+- Wrap `auth.uid()`, `public.is_admin()`, `current_provider_id()` and
+  `current_active_provider_id()` in `(select …)` so Postgres evaluates them
+  once per query, not once per row.
+- **Never call a helper that takes the row's values in a read rule** (or an
+  update or delete rule's USING): it runs per row and can't be wrapped. Check
+  the row against a set computed once instead, e.g.
+  `provider_id in (select public.active_provider_ids())`
+  (`policy_helpers_once_per_query`, 2026-10-10). Insert checks may call
+  them (they see only the row being written). `supabase/tests/policy_guard.test.sql`
+  fails otherwise; a genuine exception goes on its list with the reason.
 - Update policies carry both `using` and `with check`.
 
 **Grants are explicit** (since `explicit_api_grants`, 2026-10-09;
