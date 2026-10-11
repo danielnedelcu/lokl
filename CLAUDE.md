@@ -48,7 +48,15 @@ npm run db:docs               # regenerate docs/schema/ with tbls (needs TBLS_DS
 npm run schema:compare        # rebuild locally from migrations, compare with hosted; must show no differences
 npm run build:secrets-check   # build both apps with sentinel secrets; fails if any reaches the output
 npm run check:reads           # fails on a read of a growing table that could stop at the API's 1,000 rows
+npm run check:dates           # fails on a date or time that would follow the device's zone
 ```
+
+**Every date and time names its zone** (`docs/frontend.md`): a booking's,
+listing's or session's market zone (`marketZone`), or the home zone for the
+admin's own record-keeping times, labelled "Atlanta time". `formatDate` and
+`formatDateTime` require the zone (typecheck); `npm run check:dates` (CI)
+catches the rest: formatters without `timeZone`, local getters, `new Date(y,
+m, d)`, `toISOString()` cut to a day, and date-only strings.
 
 **The API returns at most 1,000 rows per request, with no error**
 (`max_rows`, `API_MAX_ROWS` in `@repo/types`). Lists people page through are

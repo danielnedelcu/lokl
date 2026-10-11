@@ -16,6 +16,7 @@
     "db:push": "npm run db:test && supabase db push && npm run db:types && npm run db:docs && npm run schema:compare -- --no-reset",
     "schema:compare": "node scripts/schema-compare.mjs",
     "check:reads": "node scripts/check-reads.mjs",
+    "check:dates": "node scripts/check-dates.mjs",
     "build:secrets-check": "node scripts/build-secrets-check.mjs",
     "db:types": "supabase gen types typescript --linked --schema public,private > packages/types/src/database.ts.tmp && mv packages/types/src/database.ts.tmp packages/types/src/database.ts",
     "db:docs": "dotenv -e .env -- tbls doc --force -c .tbls.yml",
