@@ -233,6 +233,27 @@ the terms line in the dialog once the terms exist.
   refusal read as expired; for the boxes, sending at the sixth digit, `otp`
   off, and the boxes' labels removed.
 
+## Destinations (2026-10-11)
+
+- A sign-in request can name where to go afterwards (`goTo` in
+  `useSignIn().open`, a path on this site only). Signed in by code, the
+  person goes there, with focus on the new page's main content (`#main`;
+  the dashboard layout's `main` has the id and `tabindex="-1"`), and the
+  route announcer reads the new page's title. The emailed link goes there
+  too (the redirect cookie is the destination, not the page).
+- The homepage's "Get started" (the host card) and "Start hosting" (the
+  hosting section) use it, through `StartHostingButton`: signed out, each is a
+  button that opens "Sign in or sign up to start hosting" and goes to
+  `/dashboard`; signed in, it's a plain link to `/dashboard`, so there's no
+  dialog.
+- The header's "Sign in" still keeps people on the page. For people who
+  have a business, the toast ("Signed in as …") offers "Go to your
+  dashboard" (`offerDashboard`), for ten seconds; the account menu's
+  Dashboard is the lasting way there.
+- Tests: end-to-end journey 22 (Get started and Start hosting, each by code and by link; already
+  signed in; the header with and without a business; the dialog's focus
+  in and back out).
+
 ## Open questions (resolved: see Decisions)
 
 1. **Header "Sign in":** open the dialog in place (recommended, it's the

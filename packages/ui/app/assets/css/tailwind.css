@@ -15,6 +15,9 @@
      700); system fonts until it loads or if it can't. */
   --font-sans: "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* Bricolage Grotesque 800, self-hosted the same way: display headings only
+     (font-display font-extrabold), such as the homepage's hosting section. */
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
 
@@ -105,6 +108,10 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-overlay: var(--overlay);
+  --color-hosts: var(--hosts);
+  --color-hosts-foreground: var(--hosts-foreground);
+  --color-hosts-ink: var(--hosts-ink);
+  --color-hosts-ink-foreground: var(--hosts-ink-foreground);
 
   --color-sidebar-background: var(--sidebar-background);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -158,6 +165,13 @@
   /* lokl: the backdrop behind dialogs, alert dialogs and sheets (bg-overlay):
      black at 40%, no blur (2026-10-04). Defined here only. */
   --overlay: oklch(0 0 0 / 40%);
+  /* lokl: the hosts' orange (2026-10-11), behind everything that invites
+     people to host: #ff6a3d with black text is 7.4:1 (AA for small text).
+     The ink is the near-black of its buttons and rules, with white text. */
+  --hosts: #ff6a3d;
+  --hosts-foreground: #000000;
+  --hosts-ink: #121212;
+  --hosts-ink-foreground: #ffffff;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -195,6 +209,11 @@
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --overlay: oklch(0 0 0 / 40%);
+  /* The hosts' colours stay the same in dark mode. */
+  --hosts: #ff6a3d;
+  --hosts-foreground: #000000;
+  --hosts-ink: #121212;
+  --hosts-ink-foreground: #ffffff;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);

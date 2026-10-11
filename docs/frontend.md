@@ -43,10 +43,11 @@ Never hand-copy a component from the ui-thing website or another project.
 
 - All colours come from CSS variables defined once in `packages/ui` (background, foreground, primary, muted, border, destructive and so on). No hex or rgb values in components or pages.
 - Neutral greys until lokl's brand is set. The brand should then be a change to the token file only.
+- The hosts' orange (`bg-hosts`, black text `text-hosts-foreground`; buttons and rules in `hosts-ink`) marks what invites people to host: the homepage's host card and hosting section (2026-10-11).
 - Backdrops behind dialogs, alert dialogs and sheets are `bg-overlay` (the `--overlay` token: black at 40%), never blurred. Any new overlay component uses the same token.
 - Light mode only at launch. The tokens are structured so dark mode can be added later without touching components.
 - Typography and spacing use Tailwind's scale; no arbitrary pixel values without a reason.
-- The font is Roboto, served from our own site by `@nuxt/fonts` (configured in `packages/ui/nuxt.config.ts`, used through `--font-sans` in `tailwind.css`), so visitors' browsers never contact Google. No `<link>` to Google Fonts or other font CDNs. Only weights 400, 500 and 700 are loaded: use `font-normal`, `font-medium` and `font-bold`. Any other weight is drawn with the nearest loaded one (`font-semibold` draws as 700). `font-display: swap`, with system fonts (and a size-matched Arial fallback) until Roboto loads. To add a weight, add it in both places it's named: the config and this line.
+- The font is Roboto, served from our own site by `@nuxt/fonts` (configured in `packages/ui/nuxt.config.ts`, used through `--font-sans` in `tailwind.css`), so visitors' browsers never contact Google. No `<link>` to Google Fonts or other font CDNs. Only weights 400, 500 and 700 are loaded: use `font-normal`, `font-medium` and `font-bold`. Any other weight is drawn with the nearest loaded one (`font-semibold` draws as 700). `font-display: swap`, with system fonts (and a size-matched Arial fallback) until Roboto loads. To add a weight, add it in both places it's named: the config and this line. Display headings (`font-display`, used with `font-extrabold`) are Bricolage Grotesque 800, self-hosted the same way, the only weight loaded (2026-10-11: the homepage's hosting section).
 
 ## Forms
 

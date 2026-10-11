@@ -51,7 +51,8 @@ async function signOut() {
           <NotificationBell v-if="provider" :provider-id="provider.id" :listing-path="(id) => `/dashboard/listings/${id}`" :booking-path="(id) => `/dashboard/bookings/${id}`" />
         </ClientOnly>
       </header>
-      <main class="min-w-0 flex-1 p-4 md:p-8">
+      <!-- id and tabindex: focus lands here after signing in to come here ("Get started"). -->
+      <main id="main" tabindex="-1" class="min-w-0 flex-1 p-4 outline-none md:p-8">
         <!-- While lokl has paused the account (decided 2026-10-03). They can
              still see and cancel bookings; the rest is refused. -->
         <UiAlert v-if="provider?.status === 'suspended'" variant="destructive" icon="lucide:pause-circle" class="mb-6 max-w-3xl">

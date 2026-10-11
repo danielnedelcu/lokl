@@ -1,15 +1,19 @@
 <script setup lang="ts">
 // The website's sign-in dialog (docs/design/sign-in-with-code.md), opened by
-// useSignIn() from "Sign in to book", a heart, or the header. Signed in by
-// code, the person stays on the page: the dialog closes, focus goes back,
-// and the page's signed-in parts refresh in place. Also the hearts' polite
-// live region, and their reset when the person signing in changes. Browser
-// only (app.vue).
+// useSignIn() from "Sign in to book", a heart, the header or "Get started".
+// Signed in by code, the person stays on the page: the dialog closes, focus
+// goes back, and the page's signed-in parts refresh in place. A request with
+// a destination (goTo) goes there instead, with focus on its main content.
+// From the header, people who have a business are offered their dashboard
+// in the toast. Also the hearts' polite live region, and their reset when
+// the person signing in changes. Browser only (app.vue).
 const { current, close } = useSignIn();
 const { announcement, reset, load } = useSaved();
 const user = useSupabaseUser();
 const route = useRoute();
 const redirect = useSupabaseCookieRedirect();
+// The signed-in person's business, as the public layout loads it (useOwnProvider).
+const { data: provider } = useNuxtData<{ id: string } | null>("provider");
 
 // A different person (or nobody): the hearts start again from their saved items.
 watch(() => user.value?.sub, () => {
@@ -27,17 +31,26 @@ function closeAutoFocus(event: Event) {
   onDismissed = null;
 }
 
-// The emailed link comes back to this page.
+// The emailed link comes back to this page, or goes to the request's destination.
 function beforeSend() {
-  redirect.path.value = route.fullPath.split("?")[0]!;
+  redirect.path.value = sitePath(current.value?.goTo) ?? route.fullPath.split("?")[0]!;
   current.value?.beforeSend?.();
 }
 
 async function signedIn(email: string) {
   // Signed in here, so the link's way back isn't needed.
   redirect.pluck();
+  const request = current.value;
   const restoreFocus = close();
-  useSonner.success(`Signed in as ${email}.`);
+  const goTo = sitePath(request?.goTo);
+  if (goTo) {
+    useSonner.success(`Signed in as ${email}.`);
+    await signedInUserShown();
+    const leaving = document.getElementById("main");
+    await navigateTo(goTo);
+    focusMainOn(goTo, leaving);
+    return;
+  }
   // Focus once the page shows the signed-in person (the account menu, the
   // booking form), so a redraw can't take it away again. The module sets
   // the signed-in user only after its own claims request answers, which can
@@ -47,7 +60,32 @@ async function signedIn(email: string) {
   await signedInUserShown();
   await refreshNuxtData();
   await nextTick();
+  // From the header, people who have a business are offered their
+  // dashboard; it's in the account menu too, so the toast isn't the only way.
+  if (request?.offerDashboard && provider.value) {
+    useSonner.success(`Signed in as ${email}.`, {
+      duration: 10_000,
+      action: { label: "Go to your dashboard", onClick: () => void navigateTo("/dashboard") },
+    });
+  } else {
+    useSonner.success(`Signed in as ${email}.`);
+  }
   restoreFocus();
+}
+
+/**
+ * After going to another page: focus its main content once that page is
+ * shown, not the one being left, which can linger for a moment (looked for
+ * up to two seconds).
+ */
+function focusMainOn(path: string, leaving: HTMLElement | null) {
+  let tries = 0;
+  const place = () => {
+    const main = route.path === path ? document.getElementById("main") : null;
+    if (main && main !== leaving && main.isConnected) return main.focus();
+    if (++tries < 40) setTimeout(place, 50);
+  };
+  place();
 }
 
 /** Resolves once useSupabaseUser() has the signed-in person (or after 5 s, so focus is never left waiting). */

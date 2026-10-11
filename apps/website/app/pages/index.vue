@@ -23,14 +23,16 @@ const mainGuide = computed(() => guides.value[0]);
 const cards = computed(() => guides.value.slice(1, 3));
 const headline = "Book local Experiences and Services in Atlanta";
 
-// Up to six live listings, alternating Experiences and Services.
+// Up to four live listings, alternating Experiences and Services: two rows
+// of two beside the host card (2026-10-11; six, in rows of three, before).
+const LISTINGS = 4;
 const featured = computed(() => {
   const a = experiences.value?.items ?? [];
   const b = services.value?.items ?? [];
   const out: PublicListingCard[] = [];
-  for (let i = 0; out.length < 6 && (i < a.length || i < b.length); i++) {
+  for (let i = 0; out.length < LISTINGS && (i < a.length || i < b.length); i++) {
     if (a[i]) out.push(a[i]!);
-    if (b[i] && out.length < 6) out.push(b[i]!);
+    if (b[i] && out.length < LISTINGS) out.push(b[i]!);
   }
   return out;
 });
@@ -75,27 +77,23 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
           <NuxtLink :to="`/${MARKET}`">Everything in Atlanta</NuxtLink>
         </div>
       </div>
-      <p v-if="!featured.length" class="border-border mt-6 rounded-lg border border-dashed p-6 text-center text-sm">
-        The first listings are on their way. Check back soon.
-      </p>
-      <ul v-else-if="market" class="mt-6 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-        <li v-for="item in featured" :key="item.id">
-          <ListingCard :listing="item" :market="market" />
-        </li>
-      </ul>
+      <!-- Listings in the left two columns, the host card the third; on
+           tablets and phones the card follows the listings. -->
+      <div class="mt-6 grid gap-x-6 gap-y-10 lg:grid-cols-3">
+        <p v-if="!featured.length || !market" class="border-border rounded-lg border border-dashed p-6 text-center text-sm lg:col-span-2">
+          The first listings are on their way. Check back soon.
+        </p>
+        <ul v-else class="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:col-span-2">
+          <li v-for="item in featured" :key="item.id">
+            <ListingCard :listing="item" :market="market" />
+          </li>
+        </ul>
+        <HostCard />
+      </div>
     </section>
 
     <HomepageGuidesSection v-if="mainGuide" :cards="cards" :market="mainGuide.market" :market-name="market?.name ?? 'Atlanta'" />
 
-    <section aria-labelledby="providers-heading" class="bg-muted">
-      <div class="mx-auto max-w-6xl px-4 py-12 md:py-16">
-        <h2 id="providers-heading" class="text-xl font-semibold">Offer your Services or host Experiences</h2>
-        <p class="mt-2 max-w-xl">
-          No upfront fees. Set your price, choose where you work, and get paid through Stripe. lokl only takes a
-          commission when you're booked.
-        </p>
-        <UiButton class="mt-6" to="/login">Get started</UiButton>
-      </div>
-    </section>
+    <HostingSection />
   </div>
 </template>

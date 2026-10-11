@@ -57,7 +57,7 @@ async function signOut() {
             </UiDropdownMenuContent>
           </UiDropdownMenu>
           <button v-else type="button" class="hover:bg-accent focus-visible:ring-ring min-h-11 rounded-md px-2 focus-visible:ring-2 focus-visible:outline-none sm:px-3"
-            @click="signIn.open({ title: 'Sign in or sign up', focusAfter: '#account-menu' })">Sign in</button>
+            @click="signIn.open({ title: 'Sign in or sign up', focusAfter: '#account-menu', offerDashboard: true })">Sign in</button>
         </nav>
       </div>
     </header>

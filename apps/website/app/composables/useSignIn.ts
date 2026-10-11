@@ -1,10 +1,11 @@
 // Opens the sign-in dialog (SignInDialog, in app.vue) on the page the person
 // is on (docs/design/sign-in-with-code.md). Used by "Sign in to book", the
-// hearts and the header's "Sign in".
+// hearts, the header's "Sign in" and the homepage's "Get started".
 //
-// Signing in by code keeps them on the page; the emailed link brings them
-// back to it through /confirm (the module's redirect cookie, set when the
-// code is sent).
+// Signing in by code keeps them on the page, unless the request names a
+// destination (goTo): then they go there. The emailed link brings them to
+// the same place through /confirm (the module's redirect cookie, set when
+// the code is sent).
 
 export interface SignInRequest {
   /** "Sign in to book", "Sign in to save Sweet Auburn Food Walk", "Sign in or sign up". */
@@ -13,6 +14,19 @@ export interface SignInRequest {
   beforeSend?: () => void;
   /** Where focus goes after signing in if the opener is gone ("Sign in to book" is replaced by the form). */
   focusAfter?: string;
+  /**
+   * After signing in, go to this page instead of staying ("Get started":
+   * /dashboard). A path on this site only. Focus then goes to the new page's
+   * main content.
+   */
+  goTo?: string;
+  /** After signing in, offer "Go to your dashboard" in the toast, to people who have a business (the header). */
+  offerDashboard?: boolean;
+}
+
+/** A destination on this site, or nothing: never somewhere else ("//other.site"). */
+export function sitePath(path: string | undefined) {
+  return path && path.startsWith("/") && !path.startsWith("//") ? path : undefined;
 }
 
 // Browser only (set on a tap), so one per tab is right.

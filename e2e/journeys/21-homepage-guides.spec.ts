@@ -130,13 +130,23 @@ test("the admin chooses a main guide and two more, and the homepage shows them i
   await homepageWhen(page, async (p) => (await p.getByRole("region", { name: "Featured guide" }).getByText(main.title).count()) > 0, "the main guide shown");
   const body = page.getByRole("main");
   expect(await headings(body)).toEqual([
-    `h1 ${HEADLINE}`, `h2 ${main.title}`, "h2 On lokl now", "h2 Guides to Atlanta", `h3 ${two.title}`, `h3 ${one.title}`,
-    "h2 Offer your Services or host Experiences",
+    `h1 ${HEADLINE}`, `h2 ${main.title}`, "h2 On lokl now", "h3 Offer your Services or host Experiences",
+    "h2 Guides to Atlanta", `h3 ${two.title}`, `h3 ${one.title}`, "h2 Got a skill? Get booked.",
   ]);
   // The Browse links moved into the "On lokl now" header.
   const onLokl = body.getByRole("region", { name: "On lokl now" });
   await expect(onLokl.getByRole("link", { name: "Browse Experiences" })).toHaveAttribute("href", "/atlanta/experiences");
   await expect(onLokl.getByRole("link", { name: "Browse Services" })).toHaveAttribute("href", "/atlanta/services");
+  // The host card is the right-hand column of "On lokl now", and the
+  // hosting section closes the page; both invite people to host.
+  // Signed out, "Get started" and "Start hosting" open sign-in (journey 22 follows them through).
+  await expect(onLokl.getByRole("button", { name: "Get started" })).toHaveAttribute("aria-haspopup", "dialog");
+  const hostCard = await onLokl.getByRole("heading", { name: "Offer your Services or host Experiences" }).boundingBox();
+  const lokl = await onLokl.boundingBox();
+  expect(hostCard!.x, "the host card is in the right-hand column").toBeGreaterThan(lokl!.x + lokl!.width * 0.6);
+  const hosting = body.getByRole("region", { name: "Got a skill? Get booked." });
+  await expect(hosting.getByRole("button", { name: "Start hosting" })).toHaveAttribute("aria-haspopup", "dialog");
+  await expect(hosting.getByRole("listitem")).toHaveText([/^No upfront fees/, /^Your price, your place/, /^Paid through Stripe/]);
   const guides = body.getByRole("region", { name: "Guides to Atlanta" });
   await expect(guides.getByRole("link", { name: "See all guides" })).toHaveAttribute("href", "/atlanta/guides");
 
