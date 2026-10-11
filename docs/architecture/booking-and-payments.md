@@ -1,7 +1,8 @@
 # Booking and payments: as built
 
 How booking Services and Experiences, and the money around them, work in the
-code today. Written from the code and migrations on 2026-10-04.
+code today. Written from the code and migrations on 2026-10-04, and updated
+through 2026-10-11.
 [docs/design/booking-and-checkout.md](../design/booking-and-checkout.md) is
 the original design; where the two differ, this document follows the code
 and lists the differences at the end ([Differences from the design](#12-differences-from-the-design)).
@@ -22,7 +23,7 @@ Source paths are links. Short forms used below:
 | `bookingEmails.ts` | [apps/website/server/utils/bookingEmails.ts](../../apps/website/server/utils/bookingEmails.ts) |
 | `bookingRecords.ts` | [apps/website/server/utils/bookingRecords.ts](../../apps/website/server/utils/bookingRecords.ts) |
 | policy | [packages/types/src/bookings.ts](../../packages/types/src/bookings.ts) |
-| guard | `bookings_guard` in [supabase/migrations/20261003022309_booking_finances.sql](../../supabase/migrations/20261003022309_booking_finances.sql) (its latest version; it was redefined in six migrations) |
+| guard | `bookings_guard` in [supabase/migrations/20261011024704_money_lost_replies.sql](../../supabase/migrations/20261011024704_money_lost_replies.sql) (its latest version; it was redefined in seven migrations) |
 
 ## Contents
 
@@ -112,7 +113,7 @@ flowchart LR
 ## 2. Booking states
 
 A booking's `status`, and every move the database allows
-([guard](../../supabase/migrations/20261003022309_booking_finances.sql)).
+([guard](../../supabase/migrations/20261011024704_money_lost_replies.sql)).
 Each arrow names who can make it: the `status_changed_by` value recorded
 with it, and copied into `booking_events.actor`.
 
