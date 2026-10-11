@@ -1,3 +1,4 @@
+import { marketZone } from "@repo/types";
 import { serverSupabaseClient, serverSupabaseServiceRole } from "#supabase/server";
 import type { ServerEvent } from "./provider";
 
@@ -33,7 +34,7 @@ export async function listingDisplay(event: ServerEvent, listingIds: string[]) {
     const cover = [...(l.photos ?? [])].sort((a: any, b: any) => a.position - b.position)[0];
     return [l.id, {
       kind: l.kind, slug: l.slug, title: l.title, locationMode: l.location_mode, durationMinutes: l.duration_minutes,
-      isLive: l.status === "live", market: l.city?.name ?? "", timezone: l.city?.timezone ?? "America/New_York",
+      isLive: l.status === "live", market: l.city?.name ?? "", timezone: marketZone(l.city, `listing ${l.id}`),
       // The business's public name (the reply to their review is "from" it).
       providerName: l.provider?.display_name ?? "the provider",
       cover: cover ? { path: cover.card_path ?? cover.storage_path, alt: cover.alt_text } : null,

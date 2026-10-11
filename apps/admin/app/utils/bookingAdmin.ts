@@ -1,3 +1,4 @@
+import { marketZone } from "@repo/types";
 // Shared by the admin's booking pages: what to read, and how a booking's
 // payout reads in words. Admins read every booking through RLS
 // (bookings_read_admin); changes go through the website (useWebsiteAdmin).
@@ -76,13 +77,13 @@ export function payoutState(b: AdminBookingRow): string {
   // Cancelled before any hold: a full refund leaves nothing to pay or hold.
   if (b.status === "cancelled") return b.refunded_cents > 0 ? (b.stripe_transfer_id ? "Reversed (refunded)" : "None (refunded)") : "Due (late cancellation)";
   if (b.payout_hold) return `Held: ${HOLD_LABELS[b.payout_hold] ?? b.payout_hold}`;
-  if (b.status === "completed" || b.status === "confirmed") return b.payout_due_at ? `Due ${formatDate(b.payout_due_at)}` : "After it happens";
+  if (b.status === "completed" || b.status === "confirmed") return b.payout_due_at ? `Due ${formatDate(b.payout_due_at, marketZone(b.listing?.city, `booking ${b.id}`))}` : "After it happens";
   return "None";
 }
 
 /** The booking's date and time in its market. */
 export function whenOf(b: Pick<AdminBookingRow, "starts_at" | "listing">): string {
   if (!b.starts_at) return "Not set";
-  const tz = b.listing?.city?.timezone ?? "America/New_York";
+  const tz = marketZone(b.listing?.city, "a booking");
   return `${formatSessionDate(b.starts_at, tz)}, ${formatSessionTime(b.starts_at, tz)}`;
 }

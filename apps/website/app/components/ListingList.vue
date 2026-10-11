@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { marketZone } from "@repo/types";
 import type { Listing, ListingKind } from "@repo/types";
 
 const props = defineProps<{ kind: ListingKind }>();
@@ -32,12 +33,12 @@ const { data: listings, error, pending, refresh } = await useAsyncData(
     // bounded: one provider's own listings of one kind
     const { data, error } = await supabase
       .from("listings")
-      .select("*, category:categories(name)")
+      .select("*, category:categories(name), city:cities(timezone)")
       .eq("provider_id", provider.value.id)
       .eq("kind", props.kind)
       .order("updated_at", { ascending: false });
     if (error) throw error;
-    return data as (Listing & { category: { name: string } | null })[];
+    return data as (Listing & { category: { name: string } | null; city: { timezone: string } | null })[];
   },
   { watch: [provider] },
 );
@@ -93,7 +94,7 @@ useLiveData({ refresh, listings: "any" });
             {{ formatMoney(l.price_cents, l.currency) }}{{ kind === "experience" ? " per person" : "" }}
             <template v-if="l.category"> · {{ l.category.name }}</template>
           </p>
-          <p class="text-muted-foreground mt-1 text-xs">Last changed {{ formatDate(l.updated_at) }}</p>
+          <p class="text-muted-foreground mt-1 text-xs">Last changed {{ formatDate(l.updated_at, marketZone(l.city, `listing ${l.id}`)) }}</p>
         </NuxtLink>
       </li>
     </ul>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { marketZone } from "@repo/types";
 import type { PublicProviderPage } from "@repo/types";
 
 // A provider's public profile, e.g. /providers/peach-tours
@@ -24,7 +25,7 @@ const market = computed(() => data.value!.market);
 
 const photoUrl = useProviderPhotoUrl();
 const since = computed(() =>
-  new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: market.value?.timezone ?? "America/New_York" }).format(new Date(p.value.since)));
+  new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: marketZone(market.value, "a provider's market") }).format(new Date(p.value.since)));
 const facts = computed(() => [p.value.market ? `Based in ${p.value.market}` : null, `On lokl since ${since.value}`].filter(Boolean).join(" · "));
 
 const siteUrl = useRuntimeConfig().public.siteUrl.replace(/\/$/, "");

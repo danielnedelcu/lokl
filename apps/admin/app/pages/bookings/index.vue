@@ -162,7 +162,7 @@ const columns = [
           <ul class="mt-1 space-y-1 text-sm">
             <li v-for="e in attention.failedEmails.items" :key="e.id">
               <NuxtLink :to="`/bookings/${e.booking_id}`" class="font-medium"><code>{{ e.kind }}</code></NuxtLink>
-              · {{ formatDate(e.created_at) }} · {{ e.last_error }}
+              · {{ formatHomeDateTime(e.created_at) }} · {{ e.last_error }}
             </li>
           </ul>
         </div>
@@ -173,7 +173,7 @@ const columns = [
           </p>
           <ul class="mt-1 space-y-1 text-sm">
             <li v-for="r in attention.failedRuns.items" :key="r.id">
-              <code>{{ r.job }}</code> · {{ formatDate(r.finished_at) }} ·
+              <code>{{ r.job }}</code> · {{ formatHomeDateTime(r.finished_at) }} ·
               {{ r.error ? `crashed: ${r.error}` : r.failed ? `${r.failed} failed: ${(r.failures ?? []).slice(0, 2).join("; ")}` : "" }}
               <template v-if="r.more_waiting">{{ r.error || r.failed ? " · " : "" }}a full batch: more were waiting for the next run</template>
             </li>

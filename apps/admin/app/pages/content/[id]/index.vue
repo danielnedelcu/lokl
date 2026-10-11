@@ -584,7 +584,7 @@ const saveLabel = computed(() => {
               <StatusBadge kind="guide" :status="state" />
             </div>
             <p v-if="guide.content_updated_at" class="text-muted-foreground text-sm">
-              Live version last updated {{ formatDate(guide.content_updated_at) }}.
+              Live version last updated {{ formatHomeDateTime(guide.content_updated_at) }}.
             </p>
             <p v-if="nothingToPublish" class="text-muted-foreground text-sm">The live guide matches the draft.</p>
             <UiButton v-if="everPublished" size="sm" variant="ghost" class="-ml-2" @click="versionsOpen = true">

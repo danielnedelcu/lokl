@@ -96,7 +96,21 @@ Every form control in both apps is one of ui-thing's own components, never a nat
 
 - Money is stored in cents and shown with one shared helper (for example `formatMoney(cents)` → `$45.00`). Price inputs use one shared `MoneyInput` that converts to cents.
 - Times of day use the shared `TimeInput` (hour, minutes and AM/PM dropdowns, each a `UiSelect`, holding `"HH:MM"`), never `<input type="time">`: a native time field stays empty until every part is filled, so "6:30" without AM or PM reads as no time at all. Schemas check `isTimeOfDay` so a half-chosen time says "Choose the hour, minutes and AM or PM."
-- Dates and times are shown in the listing's city time zone, using one shared helper. Never use `toISOString()` to get a calendar day, since it shifts to UTC and can land on the wrong date.
+- **Every date and time names its zone** (the time-zone guard, 2026-10-10):
+  - Anything tied to a booking, listing or session is shown in its market's
+    zone: `marketZone(city)` from `@repo/types`, then `formatDate`,
+    `formatDateTime`, `formatSessionDate` or `formatSessionTime`, which all
+    require the zone.
+  - The admin's own record-keeping times (edited, published, logged,
+    reported, joined) use the home zone, labelled: `formatHomeDateTime`
+    ("Oct 3, 2026, 4:03 PM Atlanta time"), or `formatHomeDate` with
+    "(Atlanta time)" in the column or sentence.
+  - Calendar days (`YYYY-MM-DD`, not instants) are read and shown in UTC
+    (`formatDateRange`). "Today" and "this month" come from `todayIn` and
+    `monthStartIn` for a zone, never the device.
+  - Never use `toISOString()` to get a calendar day, local getters such as
+    `getHours()`, or `new Date(y, m, d)`: they follow the device's zone.
+    `npm run check:dates` (CI) enforces it.
 - Statuses (listing, payouts, provider) are shown with one shared `StatusBadge` that maps each status to a label and a style. Pages never write their own status labels.
 - Listing and guide photos are always displayed with `<NuxtImg>` (Nuxt Image, set up in the shared layer), never a plain `<img>`, with `width` and `height` set so the page doesn't jump while they load. The layer's `image.provider` is `none` for now; choosing a provider later then resizes every photo in one place.
 

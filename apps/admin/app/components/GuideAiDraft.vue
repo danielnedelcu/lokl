@@ -237,7 +237,7 @@ const money = (n: number | null) => (n == null ? "" : formatMoney(Math.round(n *
           <p v-if="log.length < logTotal" class="text-muted-foreground mt-2">Showing the latest {{ log.length }}.</p>
           <ul class="mt-2 space-y-1">
             <li v-for="r in log" :key="r.id" class="flex flex-wrap justify-between gap-x-2">
-              <span class="min-w-0 truncate">{{ formatDateTime(r.created_at) }} · {{ outcome(r) }} · {{ r.topic }}</span>
+              <span class="min-w-0 truncate">{{ formatHomeDateTime(r.created_at) }} · {{ outcome(r) }} · {{ r.topic }}</span>
               <span class="text-muted-foreground">{{ money(r.cost_usd) }}</span>
             </li>
           </ul>
@@ -260,7 +260,7 @@ const money = (n: number | null) => (n == null ? "" : formatMoney(Math.round(n *
   </UiAlertDialog>
 
   <UiAlertDialog v-model:open="confirmUndo" title="Put back the draft from before?"
-    :description="`This replaces the current draft with the one from before the AI draft of ${undoable ? formatDateTime(undoable.created_at) : ''}. Changes made since then are lost.`">
+    :description="`This replaces the current draft with the one from before the AI draft of ${undoable ? formatHomeDateTime(undoable.created_at) : ''}. Changes made since then are lost.`">
     <template #footer>
       <UiAlertDialogFooter>
         <UiAlertDialogCancel text="Keep the current draft" />

@@ -78,7 +78,7 @@ const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 2 : 0)}%`;
       <p v-else-if="data.history.items.length < data.history.total" class="mt-1 text-sm text-muted-foreground">Showing the latest {{ data.history.items.length }}.</p>
       <ul v-if="data.history.total" class="mt-1 space-y-1 text-sm">
         <li v-for="h in data.history.items" :key="h.id">
-          {{ formatDate(h.changed_at) }} · {{ h.kind === "service" ? "Services" : "Experiences" }}: {{ pct(h.old_rate_bps) }} → {{ pct(h.new_rate_bps) }}
+          {{ formatHomeDateTime(h.changed_at) }} · {{ h.kind === "service" ? "Services" : "Experiences" }}: {{ pct(h.old_rate_bps) }} → {{ pct(h.new_rate_bps) }}
           · {{ h.changed_by === user?.sub ? "by you" : "by another admin" }}
         </li>
       </ul>

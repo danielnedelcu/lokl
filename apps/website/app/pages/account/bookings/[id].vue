@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { HOME_TIME_ZONE, marketZone } from "@repo/types";
 import { z } from "zod";
 import { canReportProblem, customerCancelOutcome } from "@repo/types";
 // One of the customer's bookings, and the page Stripe Checkout returns to
@@ -56,7 +57,7 @@ onMounted(async () => {
   confirming.value = false;
 });
 
-const tz = computed(() => b.value?.listing?.timezone ?? "America/New_York");
+const tz = computed(() => (b.value ? marketZone(b.value.listing, `booking ${b.value.id}`) : HOME_TIME_ZONE));
 const zone = computed(() => timeZoneLabel(b.value?.listing?.market || "Atlanta", tz.value));
 const at = (t: string) => `${formatSessionDate(t, tz.value)}, ${formatSessionTime(t, tz.value)}`;
 const range = computed(() => {

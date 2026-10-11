@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { HOME_TIME_ZONE } from "@repo/types";
 import {
   citySchema,
   serviceAreaSchema,
@@ -65,7 +66,7 @@ const cityForm = useForm<CityInput>({ validationSchema: zodSchema(citySchema) })
 function openCreateCity() {
   editingCity.value = null;
   citySlugEdited.value = false;
-  cityForm.resetForm({ values: { name: "", slug: "", state: "", timezone: "America/New_York" } });
+  cityForm.resetForm({ values: { name: "", slug: "", state: "", timezone: HOME_TIME_ZONE } });
   cityDialogOpen.value = true;
 }
 function openEditCity(city: City) {

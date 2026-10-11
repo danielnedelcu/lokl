@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { marketZone } from "@repo/types";
 import { HOLD_LABELS, payoutState, whenOf, withFinances } from "~/utils/bookingAdmin";
 
 // One booking, everything about it: the customer's details and no-show note
@@ -29,7 +30,7 @@ useHead({ title: () => `${b.value?.listing?.title ?? "Booking"} · Admin` });
 
 const money = (cents: number) => formatMoney(cents ?? 0, "usd");
 const at = (iso: string) => {
-  const tz = b.value?.listing?.city?.timezone ?? "America/New_York";
+  const tz = marketZone(b.value?.listing?.city, `booking ${id}`);
   return `${formatSessionDate(iso, tz)}, ${formatSessionTime(iso, tz)}`;
 };
 

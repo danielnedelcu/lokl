@@ -42,9 +42,14 @@ export function instantToZoned(instant: string, timeZone: string): LocalDateTime
   return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
 }
 
-/** Today's date in `timeZone`, for the date input's minimum. */
-export function todayIn(timeZone: string): string {
-  return now(timeZone).toString().slice(0, 10);
+/** Today's date in `timeZone`, for the date input's minimum. `at` (an instant) is for tests. */
+export function todayIn(timeZone: string, at?: string): string {
+  return at ? instantToZoned(at, timeZone).date : now(timeZone).toString().slice(0, 10);
+}
+
+/** The instant this month began in `timeZone` (midnight on the 1st there). `at` is for tests. */
+export function monthStartIn(timeZone: string, at?: string): string {
+  return zonedToInstant({ date: `${todayIn(timeZone, at).slice(0, 7)}-01`, time: "00:00" }, timeZone);
 }
 
 /** A local date plus `days`, for the date input's maximum. */

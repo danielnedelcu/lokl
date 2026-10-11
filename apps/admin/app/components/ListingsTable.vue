@@ -66,7 +66,7 @@ const columns = [
   { id: "city", header: "City", meta: { sortKey: "city" } },
   { accessorKey: "status", header: "Status", meta: { sortKey: "status" } },
   { accessorKey: "price_cents", header: props.kind === "experience" ? "Price per person" : "Price", meta: { sortKey: "price" } },
-  { accessorKey: "updated_at", header: "Last changed", meta: { sortKey: "updated" } },
+  { accessorKey: "updated_at", header: "Last changed (Atlanta time)", meta: { sortKey: "updated" } },
 ];
 const plural = props.kind === "experience" ? "Experiences" : "Services";
 </script>
@@ -128,7 +128,7 @@ const plural = props.kind === "experience" ? "Experiences" : "Services";
         </template>
         <template #price_cents-cell="{ row }">{{ formatMoney(row.original.price_cents) }}</template>
         <template #updated_at-cell="{ row }">
-          <span class="text-muted-foreground">{{ formatDate(row.original.updated_at) }}</span>
+          <span class="text-muted-foreground">{{ formatHomeDate(row.original.updated_at) }}</span>
         </template>
       </ServerTable>
     </UiCard>

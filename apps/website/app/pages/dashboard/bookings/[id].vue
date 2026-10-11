@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { HOME_TIME_ZONE } from "@repo/types";
 // One booking on the provider's listings. For a request: the offered times,
 // one of which they accept (the card is charged), or Decline (the hold is
 // released). Overlaps with their confirmed bookings are a warning only
@@ -34,7 +35,7 @@ if (error.value?.statusCode === 404) {
 useSeoMeta({ title: () => b.value?.listing?.title ?? "Booking" });
 useLiveData({ refresh, listings: "any" });
 
-const tz = computed(() => (b.value ? bookingZone(b.value) : "America/New_York"));
+const tz = computed(() => (b.value ? bookingZone(b.value) : HOME_TIME_ZONE));
 // The business's name, for "Reply from …".
 const { data: myProvider } = await useProvider();
 const zone = computed(() => timeZoneLabel(b.value?.listing?.city?.name ?? "Atlanta", tz.value));

@@ -64,7 +64,7 @@ function copy() {
                   <span>
                     <span class="block font-medium">{{ v.title }}</span>
                     <span class="text-muted-foreground block text-sm">
-                      Published {{ formatDateTime(v.published_at) }}<template v-if="i === 0"> · the latest</template>
+                      Published {{ formatHomeDateTime(v.published_at) }}<template v-if="i === 0"> · the latest</template>
                     </span>
                   </span>
                   <Icon name="lucide:chevron-right" aria-hidden="true" />
@@ -80,7 +80,7 @@ function copy() {
               </UiButton>
               <UiButton size="sm" variant="outline" @click="confirmOpen = true">Copy into draft</UiButton>
             </div>
-            <p class="text-muted-foreground text-sm">Published {{ formatDateTime(viewing.published_at) }}</p>
+            <p class="text-muted-foreground text-sm">Published {{ formatHomeDateTime(viewing.published_at) }}</p>
             <article class="space-y-4">
               <h3 class="text-2xl font-semibold tracking-tight">{{ viewing.title }}</h3>
               <p class="text-muted-foreground">{{ viewing.teaser }}</p>

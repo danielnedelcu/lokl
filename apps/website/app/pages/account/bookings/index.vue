@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { marketZone } from "@repo/types";
 // My bookings: anyone's own bookings as a customer (docs/design/booking-and-checkout.md).
 // Bookings of a provider's listings are in their dashboard.
 definePageMeta({ layout: "public" });
@@ -59,7 +60,7 @@ async function showMore(key: "upcoming" | "past") {
 const supabase = useSupabaseClient();
 const photo = (path: string) => supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
 const when = (b: Item) => {
-  const tz = b.listing?.timezone ?? "America/New_York";
+  const tz = marketZone(b.listing, `booking ${b.id}`);
   if (b.starts_at) return `${formatSessionDate(b.starts_at, tz)}, ${formatSessionTime(b.starts_at, tz)}`;
   if (b.preferred_times?.length) return `You offered ${b.preferred_times.length === 1 ? "1 time" : `${b.preferred_times.length} times`}`;
   return "";

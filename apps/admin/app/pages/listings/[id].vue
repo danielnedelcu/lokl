@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { HOME_TIME_ZONE, marketZone } from "@repo/types";
 import {
   listingReasonSchema,
   payoutSetupOf,
@@ -80,7 +81,7 @@ useHead({ title: () => `${listing.value?.title ?? "Listing"} · Admin` });
 
 const kindWord = computed(() => (listing.value?.kind === "experience" ? "Experience" : "Service"));
 const backTo = computed(() => (listing.value?.kind === "experience" ? "/listings/experiences" : "/listings/services"));
-const timeZone = computed(() => listing.value?.city?.timezone ?? "America/New_York");
+const timeZone = computed(() => (listing.value ? marketZone(listing.value.city, `listing ${listing.value.id}`) : HOME_TIME_ZONE));
 const photoUrl = (path: string) => supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
 
 // The same checks the approve and restore routes run, so the buttons say

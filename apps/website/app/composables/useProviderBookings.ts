@@ -1,3 +1,4 @@
+import { marketZone } from "@repo/types";
 // The provider's bookings, as /api/provider/bookings returns them, and the
 // small wording helpers the bookings pages share.
 
@@ -58,7 +59,7 @@ export function useProviderBookings(tab: Ref<ProviderBookingTab>) {
 export const fetchProviderBookingsPage = (tab: ProviderBookingTab, page: number) =>
   $fetch<ProviderBookingsPage>("/api/provider/bookings", { query: { tab, page } });
 
-export const bookingZone = (b: Pick<ProviderBooking, "listing">) => b.listing?.city?.timezone ?? "America/New_York";
+export const bookingZone = (b: Pick<ProviderBooking, "listing">) => marketZone(b.listing?.city, "a provider's booking");
 
 /** "Thu, Oct 9, 2:00 PM". */
 export const bookingAt = (instant: string, timeZone: string) =>

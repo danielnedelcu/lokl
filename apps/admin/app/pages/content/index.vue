@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { HOME_TIME_ZONE } from "@repo/types";
 import { guideState, type Guide } from "@repo/types";
 
 // Every destination guide, drafts included (docs/design/destination-guides.md,
@@ -16,10 +17,10 @@ const { data: markets } = await useAsyncData("admin-guide-markets", async () => 
   return data;
 });
 
-// AI drafting this month (the cost log, guide_ai_drafts), in the viewer's time zone.
+// AI drafting this month (the cost log, guide_ai_drafts): the month in
+// Atlanta time, as the dashboard counts, whatever the admin's device says.
 const { data: aiMonth } = await useAsyncData("admin-guide-ai-month", async () => {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const monthStart = monthStartIn(HOME_TIME_ZONE);
   try {
     return await aiDraftCostSince(supabase, monthStart);
   } catch (error) {
@@ -165,7 +166,7 @@ async function createGuide(marketId: string | undefined) {
 
     <p v-if="aiMonth?.count" class="text-muted-foreground mb-4 flex items-center gap-1 text-sm">
       <Icon name="lucide:sparkles" aria-hidden="true" />
-      AI drafting this month: {{ formatMoney(aiMonth.cents) }} ({{ aiMonth.count }} {{ aiMonth.count === 1 ? "draft" : "drafts" }})
+      AI drafting this month (Atlanta time): {{ formatMoney(aiMonth.cents) }} ({{ aiMonth.count }} {{ aiMonth.count === 1 ? "draft" : "drafts" }})
     </p>
 
     <UiTabs :model-value="tab" @update:model-value="setTab">
@@ -199,7 +200,7 @@ async function createGuide(marketId: string | undefined) {
                   <StatusBadge kind="guide" :status="guideState(r)" class="shrink-0" />
                 </div>
                 <p class="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                  <span>Last edited {{ formatDate(r.updated_at) }}</span>
+                  <span>Last edited {{ formatHomeDateTime(r.updated_at) }}</span>
                   <span>{{ r.market?.name ?? "" }}</span>
                 </p>
               </div>

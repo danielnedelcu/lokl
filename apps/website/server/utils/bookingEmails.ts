@@ -15,6 +15,7 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { marketZone } from "@repo/types";
 import { logText } from "@repo/types";
 import { renderEmail, renderProviderAccountEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
@@ -155,7 +156,7 @@ export async function loadEmailContext(db: SupabaseClient, bookingId: string, si
       categorySlug: r.listing?.category?.slug ?? null,
       marketSlug: r.listing?.city?.slug ?? "atlanta",
       marketName: r.listing?.city?.name ?? "Atlanta",
-      timezone: r.listing?.city?.timezone ?? "America/New_York",
+      timezone: marketZone(r.listing?.city, `booking ${bookingId}`),
     },
     provider: { name: r.provider?.display_name ?? "The provider" },
     review: reviewOf(r.review),

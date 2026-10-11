@@ -52,7 +52,7 @@ const columns = [
   { id: "city", header: "City", meta: { sortKey: "city" } },
   { id: "payouts", header: "Payouts", meta: { sortKey: "payouts" } },
   { accessorKey: "status", header: "Status", meta: { sortKey: "status" } },
-  { accessorKey: "created_at", header: "Joined", meta: { sortKey: "joined" } },
+  { accessorKey: "created_at", header: "Joined (Atlanta time)", meta: { sortKey: "joined" } },
   { id: "actions", header: "" },
 ];
 
@@ -173,7 +173,7 @@ const paidSinceLabel = computed(() =>
           <StatusBadge kind="provider" :status="row.original.status" />
         </template>
         <template #created_at-cell="{ row }">
-          <span class="text-muted-foreground">{{ formatDate(row.original.created_at) }}</span>
+          <span class="text-muted-foreground">{{ formatHomeDate(row.original.created_at) }}</span>
         </template>
         <template #actions-cell="{ row }">
           <UiButton size="sm" variant="ghost" :aria-label="`Profile of ${row.original.display_name}`" @click="openProfile(row.original)">Profile</UiButton>
