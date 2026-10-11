@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { marketZone } from "@repo/types";
 import { whenOf } from "~/utils/bookingAdmin";
 
 // Disputes & refunds (docs/design/booking-and-checkout.md, Admin): disputes
@@ -32,6 +33,8 @@ async function showMore(which: "closed" | "refunds") {
 }
 watch(error, (e) => e && reportProblem("Couldn't load disputes", e), { immediate: true });
 const money = (cents: number) => formatMoney(cents ?? 0, "usd");
+// Every date here belongs to a booking, so it's shown in its market's zone.
+const zoneOf = (b: any) => marketZone(b.listing?.city, `booking ${b.id}`);
 // The Lokl sandbox until launch, so Stripe's test dashboard.
 const stripeLink = (id: string) => `https://dashboard.stripe.com/test/disputes/${id}`;
 const why = (b: any) => b.problem_resolution === "refunded" ? "a reported no-show"
@@ -58,7 +61,8 @@ const why = (b: any) => b.problem_resolution === "refunded" ? "a reported no-sho
             </div>
             <p class="text-muted-foreground">{{ d.provider?.display_name }} · {{ whenOf(d) }} · reason: {{ d.dispute_reason ?? "not given" }}</p>
             <p class="mt-1">
-              <template v-if="d.dispute_evidence_due_by">Evidence due <strong>{{ formatDate(d.dispute_evidence_due_by) }}</strong> · </template>
+              <!-- The deadline in the booking's market zone, with the time and the clock it's on. -->
+              <template v-if="d.dispute_evidence_due_by">Evidence due <strong>{{ formatDateTime(d.dispute_evidence_due_by, zoneOf(d)) }}</strong> {{ timeZoneLabel(d.listing?.city?.name ?? "Atlanta", zoneOf(d)) }} · </template>
               <a :href="stripeLink(d.stripe_dispute_id)" target="_blank" rel="noopener" class="font-medium">Open in Stripe</a>
             </p>
           </li>
@@ -70,7 +74,7 @@ const why = (b: any) => b.problem_resolution === "refunded" ? "a reported no-sho
         <ul class="mt-2 space-y-1 text-sm">
           <li v-for="d in closed" :key="d.id">
             <NuxtLink :to="`/bookings/${d.id}`" class="font-medium">{{ d.listing?.title }}</NuxtLink>
-            · {{ formatDate(d.dispute_closed_at) }} · {{ d.dispute_outcome }} · {{ money(d.dispute_amount_cents ?? d.total_cents) }}
+            · {{ formatDate(d.dispute_closed_at, zoneOf(d)) }} · {{ d.dispute_outcome }} · {{ money(d.dispute_amount_cents ?? d.total_cents) }}
           </li>
         </ul>
         <UiButton v-if="closed.length < data.closed.total" variant="outline" size="sm" class="mt-3" :disabled="!!loadingMore" @click="showMore('closed')">
@@ -84,7 +88,7 @@ const why = (b: any) => b.problem_resolution === "refunded" ? "a reported no-sho
         <ul v-else class="mt-2 space-y-1 text-sm">
           <li v-for="r in refunds" :key="r.id">
             <NuxtLink :to="`/bookings/${r.id}`" class="font-medium">{{ r.listing?.title }}</NuxtLink>
-            · {{ money(r.refunded_cents) }} · {{ r.refunded_at ? formatDate(r.refunded_at) : "" }} · {{ why(r) }}
+            · {{ money(r.refunded_cents) }} · {{ r.refunded_at ? formatDate(r.refunded_at, zoneOf(r)) : "" }} · {{ why(r) }}
           </li>
         </ul>
         <UiButton v-if="refunds.length < data.refunds.total" variant="outline" size="sm" class="mt-3" :disabled="!!loadingMore" @click="showMore('refunds')">

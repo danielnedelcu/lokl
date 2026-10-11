@@ -23,12 +23,17 @@ test("open disputes are all listed; refunds are counted and paged", async ({ pag
     `('${id}', 'experience', '${listing.id}', '${provider}', '${customer.id}', '${session}', 'Sam', 5000, 5000, now() - interval '9 days', now() - interval '9 days' + interval '1 hour', ` +
     `'${refunded ? "cancelled" : "completed"}', ${refunded}, ${refunded ? "now() - interval '1 day'" : "null"}, ${refunded ? "'provider'" : "null"})`;
   const refunds = Array.from({ length: 30 }, () => randomUUID());
+  // The evidence deadline at 03:30 UTC, five days out: still the evening
+  // before in Atlanta (the market), and earlier still in Los Angeles (the
+  // test browser's zone). The page must show it in the market's zone.
+  const due = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate() + 5, 3, 30)).toISOString();
+  const dueInAtlanta = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/New_York" }).format(new Date(due));
   execFileSync("psql", [data.env.dbUrl, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", "-"], { input: `
     set local session_replication_role = replica;
     insert into public.bookings (id, kind, listing_id, provider_id, customer_id, session_id, customer_name, unit_price_cents, total_cents, starts_at, ends_at, status, refunded_cents, refunded_at, cancelled_by)
     values ${[row(disputed, 0), ...refunds.map((id) => row(id, 5000))].join(",")};
     insert into public.booking_finances (booking_id, commission_rate_bps, commission_cents, provider_amount_cents, stripe_dispute_id, disputed_at, dispute_reason, dispute_evidence_due_by)
-    values ('${disputed}', 2000, 1000, 4000, 'dp_e2e_${data.run}', now() - interval '2 days', 'fraudulent', now() + interval '5 days');` });
+    values ('${disputed}', 2000, 1000, 4000, 'dp_e2e_${data.run}', now() - interval '2 days', 'fraudulent', '${due}');` });
   const totalRefunds = Number(execFileSync("psql", [data.env.dbUrl, "-X", "-At", "-c", "select count(*) from public.bookings where refunded_cents > 0"], { encoding: "utf8" }).trim());
 
   await signIn(context, admin.email, admin.password);
@@ -36,6 +41,7 @@ test("open disputes are all listed; refunds are counted and paged", async ({ pag
   const open = page.getByRole("region", { name: /^Open disputes/ }).or(page.locator("section[aria-labelledby='open-heading']"));
   await expect(open.getByRole("link", { name: listing.title })).toBeVisible();
   await expect(open).toContainText("reason: fraudulent");
+  await expect(open).toContainText(`Evidence due ${dueInAtlanta} Atlanta time`);
 
   const refundList = page.locator("section[aria-labelledby='refunds-heading']");
   await expect(page.getByRole("heading", { name: `Refunds (${totalRefunds})` })).toBeVisible();

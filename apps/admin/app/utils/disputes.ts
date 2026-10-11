@@ -10,7 +10,7 @@ import { allRows, type Database } from "@repo/types";
 // runs this same code.
 
 const BOOKING = "id, status, starts_at, total_cents, refunded_cents, refunded_at, cancelled_by, cancel_reason, problem_resolution, " +
-  "listing:listings(title, city:cities(timezone)), provider:providers(display_name)";
+  "listing:listings(title, city:cities(name, timezone)), provider:providers(display_name)";
 const DISPUTE = "stripe_dispute_id, disputed_at, dispute_closed_at, dispute_outcome, dispute_reason, dispute_amount_cents, dispute_evidence_due_by";
 
 export const DISPUTES_PAGE_SIZE = 25;
