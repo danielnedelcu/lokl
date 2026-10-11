@@ -247,6 +247,10 @@ three are done: explicit API grants, the build secrets check, and
   "already done" refusals count as done; pages say done after a lost reply
   when it is. Tests: `money-retries.test.mts`,
   `money_lost_replies.test.sql`, e2e journey 20.
+- [ ] **E2E tests clash on the shared Stripe test account when run on several
+  workers; fix before parallelising.** Found 2026-10-11: on four workers,
+  test providers collided on `providers_stripe_account_id_key`. CI runs one
+  worker today.
 - [ ] **A reload after a lost reply can hide a date.** Within 31 minutes of a
   lost reply, the booking page's spots still count the customer's own unpaid
   attempt as taken, so a date it filled shows as full and can't be chosen,

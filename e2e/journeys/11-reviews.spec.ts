@@ -87,6 +87,33 @@ test("a customer reviews a completed booking with the keyboard; it's on the list
   expect(await reviewRow(data, bookingId)).toBeNull();
 });
 
+test("on a slow device, each instant arrow press selects the star it moves to", async ({ page, context, data }) => {
+  // CI once failed here: the arrow moved focus but nothing was selected.
+  // UiRadioGroup now selects the arrow's target in the keydown itself, so it
+  // doesn't depend on timing; the CPU is slowed 6x from before the page loads.
+  const p = await setup(data, "Slow");
+  const customer = await data.user("slow-reviewer");
+  const bookingId = await data.completedBooking(customer, p.listing.id, { name: "Sam Customer" });
+  await signIn(context, customer.email, customer.password);
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 6 });
+  await page.goto(`/account/bookings/${bookingId}#review`);
+  const group = page.getByRole("region", { name: "Your review" }).getByRole("radiogroup", { name: "Your rating" });
+  await expect(group.getByRole("radio")).toHaveCount(5);
+  await group.getByRole("radio", { name: "1 star: Poor" }).focus();
+  for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
+  await expect(group.getByRole("radio", { name: "4 stars: Very good" })).toBeChecked();
+  await expect(group.getByRole("radio", { name: "4 stars: Very good" })).toBeFocused();
+  // Up and Down don't move a row of stars; Right from the last wraps to the first.
+  await page.keyboard.press("ArrowDown");
+  await expect(group.getByRole("radio", { name: "4 stars: Very good" })).toBeChecked();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await expect(group.getByRole("radio", { name: "1 star: Poor" })).toBeChecked();
+  await expect(group.getByRole("radio", { name: "1 star: Poor" })).toBeFocused();
+  await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+});
+
 test("the rating line and breakdown: none, two reviews, then three", async ({ page, data }) => {
   const p = await setup(data, "Rate");
   const c = await data.user("rater");
