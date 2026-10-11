@@ -247,11 +247,16 @@ three are done: explicit API grants, the build secrets check, and
   journey 19 (11:30 PM Atlanta and the clock-change week, no hydration
   mismatch), unit tests in Tokyo, and a late-night email. `cities.timezone`
   is checked against real zone names (`city_time_zones`).
-- [ ] **Stripe errors without key fragments.** Stripe's error messages
-  include a shortened form of the key, which GitHub doesn't mask. Rethrow
-  Stripe errors in the test gate with only their type, code and status, with
-  a test that no fragment survives. The gate should skip only when no key
-  is set: a key that's present but live, or another account's, fails the job.
+- [x] **Stripe errors without key fragments** (2026-10-11). Stripe's
+  messages quote a key as its prefix and last four, which GitHub doesn't
+  mask. `safeStripe` redacts every Stripe error where it happens (the
+  server's `useStripe()`, the app tests, e2e); `logText` and
+  `stripeErrorSummary` redact anything stored or logged (also emails and
+  phone numbers); `installRedactingOutput` is the backstop on stdout,
+  stderr and uncaught errors, in both apps' servers (production too) and
+  the test runners. `secret-leaks.test.mts` checks each layer with a fake
+  key. (The CI gate already fails a live key; another account's key is
+  refused by the tests' sandbox check, now without printing a fragment.)
 - [ ] **CI that can't quietly skip.** A shared check for scripts that must
   only run against the local stack, a test that reads `ci.yml` and fails if
   such a step runs without it, and command chains that stop at the first

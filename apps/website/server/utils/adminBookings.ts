@@ -1,3 +1,4 @@
+import { logText } from "@repo/types";
 // What the admin does to bookings, emails and providers (docs/design/
 // booking-and-checkout.md, Admin; step 4 part 8). Every action needs a
 // reason (except sending an email again) and is logged in admin_actions;
@@ -74,7 +75,7 @@ async function reverseTransfer(stripe: Stripe, b: Record<string, any>): Promise<
     return { id: reversal.id };
   } catch (e) {
     const err = e as Stripe.errors.StripeError;
-    if (err.type === "StripeInvalidRequestError" || err.type === "StripePermissionError") return { failure: err.message.slice(0, 500) };
+    if (err.type === "StripeInvalidRequestError" || err.type === "StripePermissionError") return { failure: logText(err.message, 500) };
     throw e;
   }
 }

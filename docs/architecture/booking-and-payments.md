@@ -748,6 +748,19 @@ Wording: [notifications.ts](../../packages/types/src/notifications.ts).
 
 ## 11. Idempotency, webhooks and jobs
 
+### Stripe errors
+
+(2026-10-11.) The server's Stripe client is `safeStripe(new Stripe(key))`
+(`useStripe()`): a failed call's error keeps its class, type, code and
+status, but its message, raw message and stack have any key redacted, since
+Stripe quotes a key masked to its prefix and last four. Failures are logged
+with `stripeErrorSummary(e)` (type, status, code, request id, and the
+message without keys, email addresses or phone numbers), and the failure
+text stored in `booking_finances.payout_failure` and `reversal_failure`
+goes through `logText()`. Both apps' servers redact their whole output as a
+backstop. Tested in
+[secret-leaks.test.mts](../../packages/ui/tests/secret-leaks.test.mts).
+
 ### Stripe idempotency keys
 
 | Key | For | Where |

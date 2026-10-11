@@ -1,3 +1,4 @@
+import { stripeErrorSummary } from "@repo/types";
 // A provider answers a Service request: accept one of the offered times
 // (the card hold is captured) or decline (the hold is released)
 // (docs/design/booking-and-checkout.md, step 4 part 4).
@@ -91,7 +92,7 @@ export async function acceptRequest(db: SupabaseClient, stripe: Stripe, bookingI
     });
     if (intent.status !== "succeeded") {
       if (intent.status === "requires_capture") {
-        console.error("[bookings] capture failed", b.id, (error as Error).message);
+        console.error("[bookings] capture failed", b.id, stripeErrorSummary(error));
         throw new BookingError(STRIPE_DOWN, 502);
       }
       // Marked as the provider's doing (they tried to accept), so the

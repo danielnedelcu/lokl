@@ -17,6 +17,7 @@ import fs from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
+import { safeStripe } from "@repo/types";
 import {
   abandonCheckout,
   handlePaymentsEvent,
@@ -47,7 +48,8 @@ if (!/^(sk|rk)_test_/.test(key)) {
   console.error("Refusing to run: the website's Stripe key isn't a test-mode key.");
   process.exit(1);
 }
-const stripe = new Stripe(key);
+// Errors redacted where they happen (no key fragments in test output).
+const stripe = safeStripe(new Stripe(key));
 if ((await stripe.accounts.retrieve()).id !== LOKL_SANDBOX) {
   console.error("Refusing to run: the website's Stripe key isn't the Lokl sandbox's.");
   process.exit(1);

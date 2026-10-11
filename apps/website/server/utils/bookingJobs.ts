@@ -11,7 +11,7 @@
 // a job as if at a later time.
 
 import type Stripe from "stripe";
-import { allRows } from "@repo/types";
+import { allRows, logText, stripeErrorSummary } from "@repo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { abandonCheckout, recordDispute } from "./bookings";
 import { refundInFull } from "./bookingCancellations";
@@ -69,7 +69,7 @@ async function each<T extends { id: string }>(r: JobResult, rows: T[], work: (ro
       const what = await work(row);
       if (what) r.done.push(`${row.id}: ${what}`);
     } catch (e) {
-      console.error(`[jobs] ${r.job} ${row.id}`, e);
+      console.error(`[jobs] ${r.job} ${row.id}`, stripeErrorSummary(e));
       r.failed.push(`${row.id}: ${(e as Error).message}`);
     }
   }
@@ -251,7 +251,7 @@ const PAYOUT_FIELDS =
 async function hold(db: SupabaseClient, b: PayoutBooking, reason: string, failure?: string) {
   const at = new Date().toISOString();
   const update: Record<string, unknown> = { payout_hold: reason, payout_held_at: at };
-  if (failure) Object.assign(update, { payout_failed_at: at, payout_failure: failure.slice(0, 500) });
+  if (failure) Object.assign(update, { payout_failed_at: at, payout_failure: logText(failure, 500) });
   const { error } = await bookingRecords(db).update(update).eq("id", b.id).is("payout_hold", null);
   if (error) throw new Error(error.message);
   return `held for lokl to review: ${reason}${failure ? ` (${failure.slice(0, 120)})` : ""}`;

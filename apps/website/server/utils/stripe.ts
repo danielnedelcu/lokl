@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { safeStripe } from "@repo/types";
 import { serverSupabaseServiceRole } from "#supabase/server";
 import type { ServerEvent } from "./provider";
 
@@ -10,7 +11,9 @@ export function useStripe() {
     if (!stripeSecretKey) {
       throw createError({ statusCode: 500, statusMessage: "Stripe is not configured" });
     }
-    client = new Stripe(stripeSecretKey);
+    // Every Stripe error is redacted where it happens (no key fragments in
+    // messages, logs or stored text): safeStripe in @repo/types.
+    client = safeStripe(new Stripe(stripeSecretKey));
   }
   return client;
 }

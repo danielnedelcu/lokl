@@ -229,6 +229,13 @@ user id is `user.sub`, not `user.id`.
   click can't create a second account.
 - Idempotency keys must not be fixed per record. Include a time window or
   attempt ID, because Stripe replays a stored error for 24 hours.
+- **No key fragments in logs or stored text.** Stripe's errors quote a key
+  masked to its prefix and last four, which GitHub doesn't mask. Make Stripe
+  clients with `safeStripe(new Stripe(key))` (`useStripe()` does; so must
+  tests); log a failure with `stripeErrorSummary(e)`, never the error object
+  or its raw message; store failure text through `logText()`. Both apps'
+  servers and the test runners redact their output too
+  (`installRedactingOutput`); `secret-leaks.test.mts` checks every layer.
 - Return and refresh URLs come from `runtimeConfig.public.siteUrl`, never from
   the request's Host header.
 

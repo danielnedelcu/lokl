@@ -10,6 +10,7 @@
 
 import { createHash } from "node:crypto";
 import type Stripe from "stripe";
+import { stripeErrorSummary } from "@repo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExperienceBookingRequest, ServiceBookingRequest } from "@repo/types";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
@@ -101,7 +102,7 @@ async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: 
     await bookingRecords(ctx.db)
       .update({ status: "cancelled", cancelled_by: "system", cancel_reason: "Checkout couldn't be started.", status_changed_by: "system" })
       .eq("id", booking.id).eq("status", "pending_payment");
-    console.error("[bookings] checkout", e);
+    console.error("[bookings] checkout", stripeErrorSummary(e));
     throw new BookingError("Checkout couldn't be started. Please try again.", 502);
   }
   const { error } = await bookingRecords(ctx.db).update({ stripe_checkout_session_id: session.id }).eq("id", booking.id);
@@ -323,7 +324,7 @@ export async function abandonCheckout(db: SupabaseClient, stripe: Stripe, sessio
       await stripe.checkout.sessions.expire(sessionId);
     } catch (e) {
       // Completed or expired between the read and now: the sync below sorts it.
-      console.warn("[bookings] expire", (e as Error).message);
+      console.warn("[bookings] expire", stripeErrorSummary(e));
     }
   }
   return syncCheckoutSession(db, stripe, sessionId);

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { installRedactingOutput } from "@repo/types";
 
 // End-to-end tests of the booking journeys (docs/TODO.md, Automated checks;
 // plan approved 2026-10-04). Run with `npm run test:e2e`, which starts the
@@ -11,6 +12,9 @@ import { defineConfig, devices } from "@playwright/test";
 //   show Atlanta times.
 // - One test at a time: the journeys share the Lokl sandbox and the local
 //   stack, and each is a few page loads long.
+// No key fragments in the test runner's output, its error reports included.
+installRedactingOutput();
+
 export default defineConfig({
   testDir: "./journeys",
   fullyParallel: false,
