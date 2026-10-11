@@ -137,5 +137,14 @@ check(staleReviewEmail("customer_review_reminder", base9, new Date(SAMPLE_NOW + 
 check(staleReviewEmail("customer_review_removed", { ...base9, review: { rating: 2, status: "published", removedRule: null, replyStatus: null, replyRemovedRule: null } }, now9) !== null,
   "9l. a removal email isn't sent once the review is restored");
 
+// 10. Late at night in Atlanta (already tomorrow in UTC and in this
+//     process, which test:emails runs in Tokyo): the email says the
+//     Atlanta date and time.
+const confirmed = all.find((x) => x.kind === "customer_booking_confirmed")!;
+const lateStart = "2026-10-15T03:30:00Z"; // Wed, Oct 14, 11:30 PM in Atlanta
+const lateMail = renderEmail("customer_booking_confirmed", { ...confirmed.ctx, booking: { ...confirmed.ctx.booking, starts_at: lateStart, ends_at: "2026-10-15T05:00:00Z" } });
+check(lateMail.text.includes("Wed, Oct 14") && lateMail.text.includes("11:30 PM") && !lateMail.text.includes("Oct 15"),
+  "10. a booking at 11:30 PM Atlanta time is Wed, Oct 14, 11:30 PM in the email, not Oct 15");
+
 console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} booking emails, 3 account emails).`);
 process.exit(failures ? 1 : 0);

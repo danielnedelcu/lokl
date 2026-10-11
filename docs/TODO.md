@@ -236,11 +236,17 @@ three are done: explicit API grants, the build secrets check, and
   attempt as taken, so a date it filled shows as full and can't be chosen,
   although the server would accept a new attempt (it ends the earlier one).
   The page would need to know the signed-in customer's own unpaid attempts.
-- [ ] **Business time, with a guard.** Formatting already goes through
-  `zonedTime`, and the end-to-end browser runs in Los Angeles while the
-  market is Atlanta. Add a test that fails on any date formatting that
-  doesn't name a time zone (outside a short allowlist), and one journey
-  with a booking just after midnight in Atlanta.
+- [x] **Business time, with a guard** (2026-10-10). Every date names its
+  zone: a booking's, listing's or session's market zone (`marketZone`), or
+  the home zone, labelled "Atlanta time", for the admin's record-keeping
+  times. `formatDate` and `formatDateTime` require the zone; `npm run
+  check:dates` (CI) catches formatters without one, local getters,
+  `new Date(y, m, d)`, ISO days and date-only strings. The dispute evidence
+  deadline shows its time and clock. Tests: the server of the test apps in
+  Tokyo, browsers in Los Angeles and (the "ahead" project) Auckland,
+  journey 19 (11:30 PM Atlanta and the clock-change week, no hydration
+  mismatch), unit tests in Tokyo, and a late-night email. `cities.timezone`
+  is checked against real zone names (`city_time_zones`).
 - [ ] **Stripe errors without key fragments.** Stripe's error messages
   include a shortened form of the key, which GitHub doesn't mask. Rethrow
   Stripe errors in the test gate with only their type, code and status, with

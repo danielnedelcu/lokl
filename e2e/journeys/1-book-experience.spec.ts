@@ -5,7 +5,7 @@ import { expect, stopAtStripe, test } from "../support/fixtures";
 // Journey 1: a customer books an Experience. Runs at desktop and phone size.
 // The browser is in Los Angeles time; every time shown must be Atlanta's.
 
-test("book an Experience: browse, choose a date, go to payment, come back; a paid booking shows as confirmed @phone", async ({ page, context, data }) => {
+test("book an Experience: browse, choose a date, go to payment, come back; a paid booking shows as confirmed @phone @zones", async ({ page, context, data }) => {
   const customer = await data.user("customer");
   const owner = await data.user("owner");
   const provider = await data.provider(owner);

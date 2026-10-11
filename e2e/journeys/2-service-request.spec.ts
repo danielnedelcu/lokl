@@ -6,7 +6,7 @@ import { expect, stopAtStripe, test } from "../support/fixtures";
 // provider accepts one (the held card is charged) or declines (the hold is
 // released).
 
-test("request a Service: offer a time and go to payment", async ({ page, context, data }) => {
+test("request a Service: offer a time and go to payment @zones", async ({ page, context, data }) => {
   const customer = await data.user("customer");
   const owner = await data.user("owner");
   const provider = await data.provider(owner);

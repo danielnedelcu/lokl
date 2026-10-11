@@ -98,7 +98,10 @@ for (const app of apps) {
   }
   const log = fs.openSync(new URL(`apps/${app.name}/.output-check/server.log`, root), "w");
   const child = spawn(process.execPath, [server.pathname], {
-    env: { ...process.env, ...app.env, PORT: String(app.port), HOST: "127.0.0.1", NODE_ENV: "production" },
+    // The server runs in Tokyo, ahead of Atlanta (the market) and of the
+    // test browser (Los Angeles, or Auckland in the "ahead" project), so a
+    // date that followed the server's zone shows up as wrong.
+    env: { ...process.env, ...app.env, PORT: String(app.port), HOST: "127.0.0.1", NODE_ENV: "production", TZ: "Asia/Tokyo" },
     stdio: ["ignore", log, log],
     detached: true,
   });

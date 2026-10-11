@@ -31,5 +31,8 @@ export default defineConfig({
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "phone", use: { ...devices["Pixel 7"] }, grep: /@phone/ },
+    // The time-zone journeys again, with the browser ahead of Atlanta, in a
+    // zone whose clock changes fall in the opposite season.
+    { name: "ahead", use: { ...devices["Desktop Chrome"], timezoneId: "Pacific/Auckland" }, grep: /@zones/ },
   ],
 });
