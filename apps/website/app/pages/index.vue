@@ -13,9 +13,14 @@ const [{ data: experiences }, { data: services }, { data: homeGuides }] = await 
   useFetch<PublicBrowseResult>("/api/public/browse", { key: "home-services", query: { market: MARKET, kind: "service" } }),
   useFetch<HomepageGuide[]>("/api/public/homepage-guides", { key: "home-guides" }),
 ]);
-// Featured guides come first (docs/design/destination-guides.md, The
-// homepage); without any, the page is as it was, headline first.
+// The homepage's guides (docs/design/destination-guides.md, The homepage;
+// three places since 2026-10-11): the main guide alone at the top, under a
+// slim headline, then "On lokl now", then the guides section with up to two
+// cards. Without a main guide (the list is empty then), the page is as it
+// was: the headline first, and no guides.
 const guides = computed(() => homeGuides.value ?? []);
+const mainGuide = computed(() => guides.value[0]);
+const cards = computed(() => guides.value.slice(1, 3));
 const headline = "Book local Experiences and Services in Atlanta";
 
 // Up to six live listings, alternating Experiences and Services.
@@ -41,18 +46,13 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
 
 <template>
   <div>
-    <!-- With guides first, the page's main heading still comes first for screen
-         readers (hidden), and the visible headline below the guides is styled
-         the same but isn't a heading (decided 2026-10-03). -->
-    <template v-if="guides.length">
-      <h1 class="sr-only">{{ headline }}</h1>
-      <HomepageGuides :guides="guides" />
-    </template>
-    <section class="border-border border-b">
+    <!-- With a main guide: a slim, visible h1 says what lokl is, then the
+         guide alone (decided 2026-10-11). Without one, the headline block
+         comes first, as before. -->
+    <HomepageHero v-if="mainGuide" :guide="mainGuide" :headline="headline" />
+    <section v-else class="border-border border-b">
       <div class="mx-auto max-w-6xl px-4 py-14 md:py-20">
-        <component :is="guides.length ? 'p' : 'h1'" class="max-w-2xl text-3xl font-semibold tracking-tight md:text-5xl">
-          {{ headline }}
-        </component>
+        <h1 class="max-w-2xl text-3xl font-semibold tracking-tight md:text-5xl">{{ headline }}</h1>
         <p class="text-muted-foreground mt-4 max-w-xl text-lg">
           Tours, classes and outings hosted by local people, and services at your place or theirs, across the metro.
         </p>
@@ -64,9 +64,16 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
     </section>
 
     <section aria-labelledby="featured-heading" class="mx-auto max-w-6xl px-4 py-12">
-      <div class="flex flex-wrap items-end justify-between gap-2">
+      <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <h2 id="featured-heading" class="text-xl font-semibold">On lokl now</h2>
-        <NuxtLink :to="`/${MARKET}`" class="font-medium text-sm">Everything in Atlanta</NuxtLink>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium">
+          <!-- With a main guide, the Browse links live here instead of the headline block. -->
+          <template v-if="mainGuide">
+            <NuxtLink :to="`/${MARKET}/experiences`">Browse Experiences</NuxtLink>
+            <NuxtLink :to="`/${MARKET}/services`">Browse Services</NuxtLink>
+          </template>
+          <NuxtLink :to="`/${MARKET}`">Everything in Atlanta</NuxtLink>
+        </div>
       </div>
       <p v-if="!featured.length" class="border-border mt-6 rounded-lg border border-dashed p-6 text-center text-sm">
         The first listings are on their way. Check back soon.
@@ -77,6 +84,8 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
         </li>
       </ul>
     </section>
+
+    <HomepageGuidesSection v-if="mainGuide" :cards="cards" :market="mainGuide.market" :market-name="market?.name ?? 'Atlanta'" />
 
     <section aria-labelledby="providers-heading" class="bg-muted">
       <div class="mx-auto max-w-6xl px-4 py-12 md:py-16">

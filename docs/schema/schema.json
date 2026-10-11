@@ -5896,13 +5896,13 @@
     {
       "name": "public.homepage_features",
       "type": "BASE TABLE",
-      "comment": "The guides at the top of the homepage: position 1 is the hero, 2 to 5 the smaller cards. Chosen by the admin; only published guides. Unpublishing a guide removes it.",
+      "comment": "The guides on the homepage: position 1 is the main guide (the hero), 2 and 3 the guides section's cards. Chosen by the admin; only published guides. Unpublishing or deleting a guide removes it; without a main guide, the cards aren't shown.",
       "columns": [
         {
           "name": "position",
           "type": "smallint",
           "nullable": false,
-          "comment": "1 is the hero; 2 to 5 are the four smaller cards."
+          "comment": "1 is the main guide (the hero); 2 and 3 are the guides section's two cards."
         },
         {
           "name": "guide_id",
@@ -5938,7 +5938,7 @@
         {
           "name": "homepage_features_position_check",
           "type": "CHECK",
-          "def": "CHECK (((\"position\" \u003e= 1) AND (\"position\" \u003c= 5)))",
+          "def": "CHECK (((\"position\" \u003e= 1) AND (\"position\" \u003c= 3)))",
           "table": "public.homepage_features",
           "referenced_table": "",
           "columns": [

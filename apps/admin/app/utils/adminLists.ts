@@ -67,7 +67,7 @@ export async function guideDraftLog(supabase: Db, guideId: string): Promise<Capp
 export async function publishedGuides(supabase: Db): Promise<any[]> {
   // A page of 1,000 at a time (allRows), ordered by id last so none repeats.
   return allRows((from, to) => supabase.from("guides")
-    .select("id, slug, title, teaser, market:cities(slug), cover:guide_photos!guides_cover_fk(id, storage_path, card_path, width, height, alt_text, source, credit_name, credit_url, source_url, licence)")
+    .select("id, slug, title, teaser, market:cities(slug, name, active), cover:guide_photos!guides_cover_fk(id, storage_path, card_path, width, height, alt_text, source, credit_name, credit_url, source_url, licence)")
     .eq("status", "published")
     .order("content_updated_at", { ascending: false })
     .order("id")

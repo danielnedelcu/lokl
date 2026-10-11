@@ -108,6 +108,11 @@ Each step depends on the ones before it.
      in Atlanta" unpublished and republished on the hosted database
      (gone from the page, index, homepage and sitemap within a minute,
      after the cache fix; back on republish, re-featured as the hero).
+   - [x] The homepage's three guide places (2026-10-11, migration
+     `homepage_three_guides`): a slim headline and the main guide on top,
+     then "On lokl now", then the guides section with up to two cards; the
+     admin's Main guide and More guides. E2e journey 21. The hosted
+     homepage's fourth guide came off with the migration.
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
 ## Next features (in this order)

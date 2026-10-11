@@ -454,29 +454,29 @@
 <!-- public.homepage_features -->
 <g id="node5" class="node">
 <title>public.homepage_features</title>
-<polygon fill="#efefef" stroke="none" points="4657.36,-1910.6 4657.36,-1956.6 5695.54,-1956.6 5695.54,-1910.6 4657.36,-1910.6"/>
-<polygon fill="none" stroke="black" points="4657.36,-1910.6 4657.36,-1956.6 5695.54,-1956.6 5695.54,-1910.6 4657.36,-1910.6"/>
-<text text-anchor="start" x="5019.49" y="-1934.4" font-family="Arial Bold" font-size="18.00">public.homepage_features</text>
-<text text-anchor="start" x="5208.92" y="-1934.4" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="5240.03" y="-1934.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="4664.36" y="-1920" font-family="Arial" font-size="14.00" fill="#333333">The guides at the top of the homepage: position 1 is the hero, 2 to 5 the smaller cards. Chosen by the admin; only published guides. Unpublishing a guide removes it.</text>
-<polygon fill="none" stroke="black" points="4657.36,-1879.8 4657.36,-1910.6 5695.54,-1910.6 5695.54,-1879.8 4657.36,-1879.8"/>
-<text text-anchor="start" x="4664.36" y="-1892" font-family="Arial" font-size="14.00">position </text>
-<text text-anchor="start" x="4716.5" y="-1892" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
-<text text-anchor="start" x="4771.74" y="-1892" font-family="Arial" font-size="14.00"> 1 is the hero; 2 to 5 are the four smaller cards.</text>
-<polygon fill="none" stroke="black" points="4657.36,-1849 4657.36,-1879.8 5695.54,-1879.8 5695.54,-1849 4657.36,-1849"/>
-<text text-anchor="start" x="4664.36" y="-1861.2" font-family="Arial" font-size="14.00">guide_id </text>
-<text text-anchor="start" x="4721.19" y="-1861.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="4657.36,-1818.2 4657.36,-1849 5695.54,-1849 5695.54,-1818.2 4657.36,-1818.2"/>
-<text text-anchor="start" x="4664.36" y="-1830.4" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="4734.41" y="-1830.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="4657.32,-1910.6 4657.32,-1956.6 6161.58,-1956.6 6161.58,-1910.6 4657.32,-1910.6"/>
+<polygon fill="none" stroke="black" points="4657.32,-1910.6 4657.32,-1956.6 6161.58,-1956.6 6161.58,-1910.6 4657.32,-1910.6"/>
+<text text-anchor="start" x="5252.49" y="-1934.4" font-family="Arial Bold" font-size="18.00">public.homepage_features</text>
+<text text-anchor="start" x="5441.92" y="-1934.4" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="5473.03" y="-1934.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="4664.32" y="-1920" font-family="Arial" font-size="14.00" fill="#333333">The guides on the homepage: position 1 is the main guide (the hero), 2 and 3 the guides section&#39;s cards. Chosen by the admin; only published guides. Unpublishing or deleting a guide removes it; without a main guide, the cards aren&#39;t shown.</text>
+<polygon fill="none" stroke="black" points="4657.32,-1879.8 4657.32,-1910.6 6161.58,-1910.6 6161.58,-1879.8 4657.32,-1879.8"/>
+<text text-anchor="start" x="4664.32" y="-1892" font-family="Arial" font-size="14.00">position </text>
+<text text-anchor="start" x="4716.46" y="-1892" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
+<text text-anchor="start" x="4771.7" y="-1892" font-family="Arial" font-size="14.00"> 1 is the main guide (the hero); 2 and 3 are the guides section&#39;s two cards.</text>
+<polygon fill="none" stroke="black" points="4657.32,-1849 4657.32,-1879.8 6161.58,-1879.8 6161.58,-1849 4657.32,-1849"/>
+<text text-anchor="start" x="4664.32" y="-1861.2" font-family="Arial" font-size="14.00">guide_id </text>
+<text text-anchor="start" x="4721.15" y="-1861.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="4657.32,-1818.2 4657.32,-1849 6161.58,-1849 6161.58,-1818.2 4657.32,-1818.2"/>
+<text text-anchor="start" x="4664.32" y="-1830.4" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="4734.37" y="-1830.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.homepage_features&#45;&gt;public.guides -->
 <g id="edge4" class="edge">
 <title>public.homepage_features:guide_id&#45;&gt;public.guides:id</title>
-<path fill="none" stroke="black" d="M4646.16,-1864C4469.61,-1849.3 5031.49,-1431.2 4828.03,-1431.2"/>
-<polygon fill="black" stroke="black" points="4646.03,-1864 4655.85,-1868.88 4651.36,-1864.21 4655.69,-1864.37 4655.69,-1864.37 4655.69,-1864.37 4651.36,-1864.21 4656.2,-1859.89 4646.03,-1864"/>
-<text text-anchor="start" x="4663.36" y="-1874.4" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M4646.12,-1864C4469.56,-1849.3 5031.5,-1431.2 4828.03,-1431.2"/>
+<polygon fill="black" stroke="black" points="4645.99,-1864 4655.81,-1868.88 4651.32,-1864.21 4655.65,-1864.37 4655.65,-1864.37 4655.65,-1864.37 4651.32,-1864.21 4656.16,-1859.89 4645.99,-1864"/>
+<text text-anchor="start" x="4663.32" y="-1874.4" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE CASCADE</text>
 </g>
 </g>
 </svg>

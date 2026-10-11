@@ -141,7 +141,7 @@ insert into guides (market_id, slug, draft_title) values (:'atl', 'food-tours-in
 select throws_ok(format($$ insert into homepage_features (position, guide_id) values (2, %L) $$, :'g3'),
   '23514', 'Only a published guide can be on the homepage.', '6a. only a published guide can be featured');
 select lives_ok(format($$ insert into homepage_features (position, guide_id) values (1, %L) $$, :'g'), '6b. a published guide is featured as the hero');
-select throws_ok(format($$ insert into homepage_features (position, guide_id) values (6, %L) $$, :'g'), '23514', NULL, '6c. there are five places at most (hero and four cards)');
+select throws_ok(format($$ insert into homepage_features (position, guide_id) values (4, %L) $$, :'g'), '23514', NULL, '6c. there are three places at most (the main guide and two cards)');
 select tests.authenticate_as_anon();
 select is((select count(*)::int from homepage_features), 1, '6d. a signed-out visitor reads the homepage features');
 select tests.authenticate_as(:'cust');

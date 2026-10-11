@@ -91,11 +91,13 @@ app's server. It's the record of what came from the AI, and the cost log.
 
 | Column | Notes |
 | --- | --- |
-| `position` | 1 to 5; **1 is the hero**, 2 to 5 are the smaller cards. Unique |
+| `position` | 1 to 3 (since 2026-10-11; 1 to 5 before); **1 is the main guide** (the hero), 2 and 3 the guides section's cards. Unique |
 | `guide_id` | Unique; a published guide |
 
 Read by everyone (the homepage); written by admins. Unpublishing a guide
 removes its row (trigger), so the homepage never links to a guide that's gone.
+Without a main guide that can be shown (published, with an open market and
+a cover), `public_homepage_guides()` returns none: the cards aren't promoted.
 
 ### Access, in one table
 
@@ -319,45 +321,54 @@ Following the blog's pattern, with its gaps closed:
 
 ## The homepage
 
-When at least one guide is featured (`homepage_features` has a row whose guide
-is published), the top of the homepage is:
+**Three places, since 2026-10-11** (migration `homepage_three_guides`; the
+first layout, a hero and four cards above the headline, is in the history).
+With a main guide, the homepage is, top to bottom:
 
-1. **The hero guide** (position 1): its cover large, full width of the content
-   area, and **underneath it** the title (large) and the teaser, all one link
-   to the guide.
-2. **Four smaller guide cards** (positions 2 to 5; settled): cover photo, then
-   the title and teaser underneath. Four in a row on wide screens, two on
-   tablets, stacked on phones. Fewer chosen, fewer shown.
-3. **Then the headline and the browse links** ("Browse Experiences", "Browse
-   Services"), just below the guides (settled), then "On lokl now".
+1. **A slim headline**, "Book local Experiences and Services in Atlanta", the
+   page's visible `h1`, so first-time visitors see what lokl is straight away.
+2. **The main guide** (position 1), alone: its cover large, full width of the
+   content area, and **underneath it** the title (an `h2`) and the teaser, all
+   one link (`HomepageHero`, in a section named "Featured guide").
+3. **"On lokl now"**, with "Browse Experiences", "Browse Services" and
+   "Everything in Atlanta" in its header.
+4. **The guides section** (`HomepageGuidesSection`): "Guides to Atlanta" (an
+   `h2`), the fixed text "Ideas for what to see, eat and do around the city,
+   with Experiences and Services to book along the way." and "See all guides"
+   on the left; the two cards (positions 2 and 3, titles as `h3`) on the
+   right. Three columns on wide screens; on tablets the text sits above two
+   cards side by side; on phones everything stacks, text first. With one
+   card, the text takes two columns; with none, it's a slim row with the
+   text and the link.
+5. The provider section, as before.
 
-**Without a featured, published guide**, the homepage is exactly as today,
-headline first.
+**Without a main guide**, the homepage is exactly as before: the large
+headline with the Browse buttons first, then "On lokl now", and no guides.
 
-**Headings (decided 2026-10-03):** with guides first, the page's `h1` is
-still the headline ("Book local Experiences and Services in Atlanta"),
-first in the page and visually hidden; the guides follow under a visible
-"Guides to Atlanta" heading, and the visible headline below them keeps its
-look but isn't a heading.
-
-**Choosing them:** the admin app's Content › Homepage page: up to five
-published guides, reordered with up and down buttons (the first is the
-hero), with a preview drawn by the website's own component. Saved in one
-step (`admin_set_homepage_features`), so the homepage is never half-changed.
+**Choosing them:** the admin app's Content › Homepage page: a "Main guide"
+area (choose, replace or clear one) and "More guides" (up to two, reordered
+with up and down buttons named for where they move a guide, "Move *title*
+up, to card 1"; focus stays on the moved row, and each change is announced).
+Never the same guide twice, and no cards without a main guide: Save is off
+until there's one, and says why. The page says when the saved main guide was
+unpublished, or its market is closed (visitors then see no guides). The
+preview draws the homepage's real order with the website's own components,
+with a placeholder for "On lokl now". Saved in one step
+(`admin_set_homepage_features`, the main guide first, at most three), so the
+homepage is never half-changed.
 
 Text is never over the photo. Images get proper `alt` text, sizes (`srcset`)
-so phones download the smaller copy, and the hero loads first (high priority,
-no lazy loading); the other cards lazy-load.
+so phones download the smaller copy, and the main guide loads first (high
+priority, no lazy loading); the cards lazy-load.
 
 ## What the admin app needs
 
 - **Guides** (`/content`, replacing the placeholder): every guide with its
   status, last updated, whether it's featured, and "New guide".
 - **The editor** (`/content/<id>`): as above.
-- **Homepage** (a new page, or a section on Guides): choose up to five published
-  guides, order them with up and down buttons (keyboard-friendly, no
-  drag-and-drop needed), position 1 being the hero; a live preview of the top
-  of the homepage.
+- **Homepage** (Content › Homepage): a main guide and up to two more,
+  ordered with up and down buttons (keyboard-friendly, no drag-and-drop
+  needed); a preview of the homepage in its real order (The homepage, above).
 - **Server routes**, each behind `requireAdmin`: `POST /api/guides/:id/draft`
   (the AI draft), `POST /api/guides/:id/publish` (also "Publish changes") and
   `POST /api/guides/:id/unpublish`. Everything else (the draft text, photos,

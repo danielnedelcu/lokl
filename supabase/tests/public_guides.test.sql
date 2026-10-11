@@ -2,10 +2,12 @@
 -- (20261003162751_public_guides): published guides only, their live copy
 -- only (never a draft, the AI review fields or who wrote it), only the
 -- photos the live copy uses; nothing for drafts, unpublished guides or
--- inactive markets. The homepage list is set by admins only, in one step.
+-- inactive markets. The homepage list is set by admins only, in one step:
+-- a main guide and up to two cards (20261011171614_homepage_three_guides),
+-- and without a main guide to show, visitors get none.
 begin;
 \ir _helpers/users.psql
-select plan(31);
+select plan(37);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -127,15 +129,44 @@ select is((select array_agg(guide_id order by position) from homepage_features),
   '3g. ...and the refused change left the homepage as it was (one step: all or nothing)');
 select throws_ok(format($$ select admin_set_homepage_features(array[%L, %L]::uuid[]) $$, :'g1', :'g1'), '23514', 'Each guide can be on the homepage once.',
   '3h. a guide can''t be featured twice');
-select throws_ok($$ select admin_set_homepage_features(array[gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid()]) $$,
-  '23514', 'The homepage shows up to 5 guides.', '3i. at most five');
+select throws_ok($$ select admin_set_homepage_features(array[gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid()]) $$,
+  '23514', 'The homepage shows a main guide and up to two more.', '3i. at most three: a main guide and two cards');
+
+-- A third published guide, for a main guide and two cards.
+select tests.clear_authentication();
+select pg_temp.guide(:'atl', 'third-guide', 'Third guide') as g6 \gset
+select tests.authenticate_as_service_role();
+select publish_guide(:'g6', :'admin');
+select tests.authenticate_as_admin(:'admin');
+select lives_ok(format($$ select admin_set_homepage_features(array[%L, %L, %L]::uuid[]) $$, :'g4', :'g1', :'g6'),
+  '3j. the admin chooses a main guide and two cards');
+select tests.authenticate_as_anon();
+select is((select array_agg(x ->> 'slug' order by (x ->> 'position')::int) from jsonb_array_elements(public_homepage_guides()) x),
+  array['second-guide', 'murals-of-the-trail', 'third-guide'], '3k. visitors see the main guide, then the two cards, in order');
+
+-- Unpublishing a card takes it off; the main guide and the other card stay.
+select tests.authenticate_as_service_role();
+select unpublish_guide(:'g1', :'admin');
+select tests.authenticate_as_anon();
+select is((select array_agg(x ->> 'slug' order by (x ->> 'position')::int) from jsonb_array_elements(public_homepage_guides()) x),
+  array['second-guide', 'third-guide'], '3l. unpublishing a card takes it off the homepage at once');
+
+-- Unpublishing the main guide hides the cards: none is promoted.
 select tests.authenticate_as_service_role();
 select unpublish_guide(:'g4', :'admin');
 select tests.authenticate_as_anon();
-select is((select array_agg(x ->> 'slug') from jsonb_array_elements(public_homepage_guides()) x), array['murals-of-the-trail'],
-  '3j. unpublishing a guide takes it off the homepage at once');
+select is(public_homepage_guides(), '[]'::jsonb, '3m. without a main guide, visitors get no guides (the first card isn''t promoted)');
+select is((select array_agg(guide_id) from homepage_features), array[:'g6'::uuid], '3n. ...while the card stays saved, for the admin to see');
+
+-- A main guide in a closed market is no main guide either.
+select tests.authenticate_as_service_role();
+select publish_guide(:'g4', :'admin');
 select tests.authenticate_as_admin(:'admin');
-select lives_ok($$ select admin_set_homepage_features('{}'::uuid[]) $$, '3k. the admin can clear the homepage (it shows the headline again)');
+select lives_ok(format($$ select admin_set_homepage_features(array[%L, %L]::uuid[]) $$, :'g5', :'g4'), '3o. a main guide from a closed market can be saved');
+select tests.authenticate_as_anon();
+select is(public_homepage_guides(), '[]'::jsonb, '3p. ...but visitors get no guides while its market is closed');
+select tests.authenticate_as_admin(:'admin');
+select lives_ok($$ select admin_set_homepage_features('{}'::uuid[]) $$, '3q. the admin can clear the homepage (it shows the headline again)');
 
 select * from finish();
 rollback;

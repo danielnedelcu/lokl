@@ -51,6 +51,9 @@ export class TestData {
   private categories: string[] = [];
   private areas: string[] = [];
   private guides: string[] = [];
+  private publishedGuides: string[] = [];
+  private cities: string[] = [];
+  private guideCategory: Promise<{ id: string }> | null = null;
 
   private constructor(readonly env: TestEnv, readonly cityId: string) {}
 
@@ -216,6 +219,41 @@ export class TestData {
     }
     return { id, slug };
   }
+  /**
+   * A published guide with a cover, in Atlanta or the given market, as the
+   * admin publishes it (publish_guide). Removed afterwards with its homepage
+   * place and its versions (test-only: the versions log's guard is switched
+   * off for that, as in guides-public.test.mts).
+   */
+  async publishedGuide(title: string, admin: TestUser, marketId = this.cityId) {
+    const slug = `e2e-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${this.run}`;
+    const area = (await must(this.env.db.from("service_areas").insert({ city_id: marketId, kind: "neighborhood", name: `E2E ${title} ${this.run}` }).select("id").single())).id as string;
+    this.areas.push(area);
+    const g = (await must(this.env.db.from("guides").insert({
+      market_id: marketId, slug, draft_title: title, draft_teaser: `A walk around ${title}, and who to book for it.`,
+      draft_category_id: (await (this.guideCategory ??= this.category("experience"))).id, draft_area_id: area,
+      draft_body: { blocks: [{ type: "paragraph", data: { text: "The live words." } }] },
+    }).select("id").single())).id as string;
+    this.publishedGuides.push(g);
+    const photo = (await must(this.env.db.from("guide_photos").insert({
+      guide_id: g, storage_path: `${g}/${randomUUID()}.webp`, width: 2400, height: 1350, alt_text: `The cover of ${title}`, source: "own",
+    }).select("id").single())).id as string;
+    await must(this.env.db.from("guides").update({ draft_cover_photo_id: photo }).eq("id", g));
+    await must(this.env.db.rpc("publish_guide", { p_guide_id: g, p_admin_id: admin.id }));
+    return { id: g, slug, title };
+  }
+  /** A market of its own (for closing it in a test); removed afterwards. */
+  async market(name: string) {
+    const id = (await must(this.env.db.from("cities").insert({ slug: `e2e-${this.run}-${randomBytes(2).toString("hex")}`, name, state: "GA", timezone: "America/New_York" }).select("id").single())).id as string;
+    this.cities.push(id);
+    return id;
+  }
+  /** Sets the homepage's guides directly: the first is the main guide (position 1), or none with `{ main: false }`. */
+  async setHomepage(ids: string[], { main = true } = {}) {
+    await must(this.env.db.from("homepage_features").delete().gte("position", 1));
+    if (ids.length) await must(this.env.db.from("homepage_features").insert(ids.map((guide_id, i) => ({ position: i + (main ? 1 : 2), guide_id }))));
+  }
+
   trackGuide(id: string) {
     this.guides.push(id);
   }
@@ -226,6 +264,18 @@ export class TestData {
 
   async cleanup() {
     for (const id of this.guides) await this.env.db.from("guides").delete().eq("id", id).is("published_at", null);
+    if (this.publishedGuides.length) {
+      const ids = this.publishedGuides.map((i) => `'${i}'`).join(",");
+      execFileSync("psql", [this.env.dbUrl, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-c", `
+        alter table public.guides disable trigger guides_guard;
+        alter table public.guide_versions disable trigger guide_versions_append_only;
+        delete from public.homepage_features where guide_id in (${ids});
+        delete from public.guide_versions where guide_id in (${ids});
+        update public.guides set cover_photo_id = null, status = 'draft' where id in (${ids});
+        delete from public.guides where id in (${ids});
+        alter table public.guide_versions enable trigger guide_versions_append_only;
+        alter table public.guides enable trigger guides_guard;`]);
+    }
     // Bookings are never deleted in real use; the tests remove their own rows directly.
     if (this.listings.length) {
       const ids = this.listings.map((i) => `'${i}'`).join(",");
@@ -266,5 +316,6 @@ export class TestData {
     for (const id of this.users) await this.env.db.auth.admin.deleteUser(id);
     for (const id of this.areas) await this.env.db.from("service_areas").delete().eq("id", id);
     for (const id of this.categories) await this.env.db.from("categories").delete().eq("id", id);
+    for (const id of this.cities) await this.env.db.from("cities").delete().eq("id", id);
   }
 }

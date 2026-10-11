@@ -2,21 +2,21 @@
 
 ## Description
 
-The guides at the top of the homepage: position 1 is the hero, 2 to 5 the smaller cards. Chosen by the admin; only published guides. Unpublishing a guide removes it.
+The guides on the homepage: position 1 is the main guide (the hero), 2 and 3 the guides section's cards. Chosen by the admin; only published guides. Unpublishing or deleting a guide removes it; without a main guide, the cards aren't shown.
 
 ## Columns
 
-| Name       | Type                     | Default | Nullable | Children | Parents                           | Comment                                           |
-| ---------- | ------------------------ | ------- | -------- | -------- | --------------------------------- | ------------------------------------------------- |
-| position   | smallint                 |         | false    |          |                                   | 1 is the hero; 2 to 5 are the four smaller cards. |
-| guide_id   | uuid                     |         | false    |          | [public.guides](public.guides.md) |                                                   |
-| created_at | timestamp with time zone | now()   | false    |          |                                   |                                                   |
+| Name       | Type                     | Default | Nullable | Children | Parents                           | Comment                                                                     |
+| ---------- | ------------------------ | ------- | -------- | -------- | --------------------------------- | --------------------------------------------------------------------------- |
+| position   | smallint                 |         | false    |          |                                   | 1 is the main guide (the hero); 2 and 3 are the guides section's two cards. |
+| guide_id   | uuid                     |         | false    |          | [public.guides](public.guides.md) |                                                                             |
+| created_at | timestamp with time zone | now()   | false    |          |                                   |                                                                             |
 
 ## Constraints
 
 | Name                             | Type        | Definition                                                     |
 | -------------------------------- | ----------- | -------------------------------------------------------------- |
-| homepage_features_position_check | CHECK       | CHECK ((("position" >= 1) AND ("position" <= 5)))              |
+| homepage_features_position_check | CHECK       | CHECK ((("position" >= 1) AND ("position" <= 3)))              |
 | homepage_features_guide_id_fkey  | FOREIGN KEY | FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE CASCADE |
 | homepage_features_pkey           | PRIMARY KEY | PRIMARY KEY ("position")                                       |
 | homepage_features_guide_id_key   | UNIQUE      | UNIQUE (guide_id)                                              |
