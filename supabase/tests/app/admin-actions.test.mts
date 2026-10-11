@@ -147,7 +147,9 @@ try {
   check(ns1.problem_resolution === "paid_provider" && !ns1.payout_hold && (await emails(ns.id)).includes("provider_problem_paid"), "4c. ...the hold is cleared and the provider is told");
   await payOut(db, stripe, { bookingId: ns.id, now: await dueAfter(ns.id) });
   check((await row(ns.id)).status === "paid_out", "4d. ...and it's paid out when due");
-  check((await refused(() => resolveProblemPaid(db, stripe, ns.id, admin.id, "Again, by mistake."))).includes("no open report"), "4e. a report is resolved once");
+  // A repeat (a retry after a lost reply) answers that it's done; it's resolved and logged once.
+  check((await resolveProblemPaid(db, stripe, ns.id, admin.id, "Again, by mistake.")) === "already resolved"
+    && (await actions(ns.id)).filter((a) => a.action === "resolve_problem_paid").length === 1, "4e. a report is resolved once; a repeat answers that it's done");
 
   // 5. A no-show report resolved with a refund: cancelled, refunded, the report's own emails.
   const nr = await paid();
@@ -160,6 +162,8 @@ try {
   check(nrEmails.includes("customer_problem_refunded") && nrEmails.includes("provider_problem_refunded") && !nrEmails.includes("customer_booking_cancelled"),
     "5b. ...both hear the report's outcome, not a plain cancellation");
   check((await actions(nr.id))[0]?.action === "resolve_problem_refunded", "5c. ...logged as a report resolved with a refund");
+  check((await refused(() => resolveProblemPaid(db, stripe, nr.id, admin.id, "Pay them after all."))).includes("no open report"),
+    "5c2. a report resolved with a refund can't then be resolved for the provider");
 
   // 6. Releasing a held payout: paid when due; not while a dispute is open.
   const held = await paid();

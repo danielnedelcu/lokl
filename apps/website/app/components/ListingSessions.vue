@@ -205,6 +205,14 @@ function askCancel(s: SessionRow) {
   if (bookingsOf(s).rows > 0) cancelBookedOpen.value = true;
   else cancelOpen.value = true;
 }
+// After a lost reply: cancelled, with nobody left on a confirmed booking.
+async function sessionCancelled(sessionId: string) {
+  const [{ data: s }, { count }] = await Promise.all([
+    supabase.from("experience_sessions").select("status").eq("id", sessionId).maybeSingle(),
+    supabase.from("bookings").select("id", { count: "exact", head: true }).eq("session_id", sessionId).eq("status", "confirmed"),
+  ]);
+  return s?.status === "cancelled" && count === 0;
+}
 async function confirmCancelBooked(reason: string) {
   if (!cancelling.value) return;
   busy.value = true;
@@ -213,7 +221,14 @@ async function confirmCancelBooked(reason: string) {
     cancelBookedOpen.value = false;
     useSonner.success("Session cancelled. Everyone booked is refunded in full.");
   } catch (e) {
-    cancelError.value = (e as { statusMessage?: string }).statusMessage ?? "The session wasn't cancelled. Please try again.";
+    if (isLostReply(e) && (await sessionCancelled(cancelling.value.id))) {
+      cancelBookedOpen.value = false;
+      useSonner.success("Session cancelled. Everyone booked is refunded in full.");
+    } else if (isLostReply(e)) {
+      cancelError.value = LOST_REPLY_TRY_AGAIN;
+    } else {
+      cancelError.value = (e as { statusMessage?: string }).statusMessage ?? "The session wasn't cancelled. Please try again.";
+    }
   } finally {
     busy.value = false;
     await reload();

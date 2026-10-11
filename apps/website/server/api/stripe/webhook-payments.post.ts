@@ -9,7 +9,7 @@ import { serverSupabaseServiceRole } from "#supabase/server";
 // event handlePaymentsEvent handles (server/utils/bookings.ts):
 //   checkout.session.completed, checkout.session.expired,
 //   checkout.session.async_payment_succeeded, checkout.session.async_payment_failed,
-//   payment_intent.canceled, charge.refunded,
+//   payment_intent.succeeded, payment_intent.canceled, charge.refunded,
 //   charge.dispute.created, charge.dispute.updated, charge.dispute.closed,
 //   transfer.reversed.
 // Anything else is answered "ignored".

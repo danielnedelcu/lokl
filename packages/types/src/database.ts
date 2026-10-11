@@ -1911,6 +1911,20 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_cancel_booking: {
+        Args: {
+          p_admin_id: string
+          p_booking_id: string
+          p_cancelled_at: string
+          p_from: string
+          p_reason: string
+          p_refunded_cents: number
+          p_resolve_problem: boolean
+          p_reversal_failure: string
+          p_reversal_id: string
+        }
+        Returns: string
+      }
       admin_dashboard: { Args: never; Returns: Json }
       admin_listings_page: {
         Args: {
@@ -1951,6 +1965,15 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_release_payout: {
+        Args: {
+          p_admin_id: string
+          p_booking_id: string
+          p_hold: string
+          p_reason: string
+        }
+        Returns: boolean
+      }
       admin_remove_provider_profile_content: {
         Args: {
           p_admin_id: string
@@ -1961,6 +1984,10 @@ export type Database = {
           p_rule: string
         }
         Returns: string[]
+      }
+      admin_resolve_problem_paid: {
+        Args: { p_admin_id: string; p_booking_id: string; p_reason: string }
+        Returns: boolean
       }
       admin_reviews_page: {
         Args: {

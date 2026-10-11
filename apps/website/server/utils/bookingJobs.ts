@@ -13,7 +13,8 @@
 import type Stripe from "stripe";
 import { allRows, logText, stripeErrorSummary } from "@repo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { abandonCheckout, recordDispute } from "./bookings";
+import { abandonCheckout, BookingError, recordDispute } from "./bookings";
+import { finishAccept } from "./bookingAnswers";
 import { refundInFull } from "./bookingCancellations";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
@@ -78,14 +79,32 @@ async function each<T extends { id: string }>(r: JobResult, rows: T[], work: (ro
 
 // Release a Service request's card hold. Already released counts as done; a
 // hold that was captured meanwhile (accepted at the same moment) is left alone.
-async function releaseHold(stripe: Stripe, bookingId: string, paymentIntentId: string): Promise<"released" | "captured"> {
+async function releaseHold(
+  stripe: Stripe, bookingId: string, paymentIntentId: string, meaning?: Record<string, string>,
+): Promise<"released" | "captured"> {
   try {
+    if (meaning) await stripe.paymentIntents.update(paymentIntentId, { metadata: meaning });
     await stripe.paymentIntents.cancel(paymentIntentId, {}, { idempotencyKey: jobKey(bookingId, "release") });
     return "released";
   } catch (e) {
     const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (pi.status === "canceled") return "released";
     if (pi.status === "succeeded") return "captured";
+    throw e;
+  }
+}
+
+// A request whose hold was captured (the provider accepted) but never
+// confirmed: finished from the capture's meaning (finishAccept).
+async function finishCaptured(db: SupabaseClient, stripe: Stripe, bookingId: string, paymentIntentId: string): Promise<string | null> {
+  const { data, error } = await bookingRecords(db).select("*").eq("id", bookingId).single();
+  if (error) throw new Error(error.message);
+  const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  try {
+    const done = await finishAccept(db, stripe, data as never, intent);
+    return done === "accepted" ? "confirmed: accepted before the answer-by time" : null;
+  } catch (e) {
+    if (e instanceof BookingError) return `refunded and ended: ${e.message}`;
     throw e;
   }
 }
@@ -105,7 +124,9 @@ export async function expireRequests(db: SupabaseClient, stripe: Stripe, opts: J
   r.moreWaiting = full(data);
   return each(r, data ?? [], async (b) => {
     if (b.stripe_payment_intent_id && (await releaseHold(stripe, b.id, b.stripe_payment_intent_id)) === "captured") {
-      return null; // accepted at the last moment; the accept route confirms it
+      // Accepted in time, but never recorded (the reply was lost): confirm
+      // it as of the accept, or refund it if the chosen time has passed.
+      return finishCaptured(db, stripe, b.id, b.stripe_payment_intent_id);
     }
     return (await move(db, b.id, "requested", { status: "expired", status_changed_by: "system" })) ? "expired, hold released" : null;
   });
@@ -182,7 +203,9 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
       const what = await abandonCheckout(db, stripe, b.stripe_checkout_session_id);
       return what.startsWith("ignored") ? null : `${what} (${why})`;
     }
-    if (b.stripe_payment_intent_id && (await releaseHold(stripe, b.id, b.stripe_payment_intent_id)) === "captured") return null;
+    if (b.stripe_payment_intent_id && (await releaseHold(stripe, b.id, b.stripe_payment_intent_id, { lokl_release: "withdraw" })) === "captured") {
+      return finishCaptured(db, stripe, b.id, b.stripe_payment_intent_id);
+    }
     return (await move(db, b.id, "requested", { status: "declined", status_changed_by: "system" }))
       ? `declined, hold released: ${why}`
       : null;

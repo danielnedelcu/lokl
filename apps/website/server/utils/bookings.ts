@@ -14,6 +14,10 @@ import { stripeErrorSummary } from "@repo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExperienceBookingRequest, ServiceBookingRequest } from "@repo/types";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
+// Finishing money actions whose reply was lost (used by the webhook only, at
+// call time, so the circular import is safe).
+import { finishAccept } from "./bookingAnswers";
+import { finishLostCancel, recordAdminCancel } from "./bookingCancellations";
 
 /** Checkout's shortest allowed expiry, and how long spots or a request are held. */
 export const CHECKOUT_WINDOW_MS = 30 * 60 * 1000 + 60 * 1000; // 31 minutes, safely over Stripe's 30
@@ -378,13 +382,46 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
     case "checkout.session.async_payment_failed":
       return syncCheckoutSession(db, stripe, (event.data.object as Stripe.Checkout.Session).id);
 
+    // A request's hold captured: the provider accepted. Normally the accept
+    // route records it; if its reply was lost and nobody retried, this
+    // finishes it from what the capture means (finishAccept).
+    case "payment_intent.succeeded": {
+      const pi = await stripe.paymentIntents.retrieve((event.data.object as Stripe.PaymentIntent).id);
+      const booking = await bookingBy(db, "stripe_payment_intent_id", pi.id);
+      if (!booking) return "ignored: no booking for this payment";
+      if (booking.kind !== "service" || booking.status !== "requested") return `ignored: the booking is ${booking.status}`;
+      try {
+        const done = await finishAccept(db, stripe, booking as never, pi);
+        return done ? `${done}: finished from Stripe` : "ignored: not an accept lokl made";
+      } catch (e) {
+        if (e instanceof BookingError) return `refunded: ${e.message}`;
+        throw e;
+      }
+    }
+
+    // A request's hold released: by lokl (the meaning is on the
+    // PaymentIntent's lokl_release: a decline, a cancellation, a withdrawal), or lapsed or
+    // cancelled outside the app (expired).
     case "payment_intent.canceled": {
       const pi = await stripe.paymentIntents.retrieve((event.data.object as Stripe.PaymentIntent).id);
       const booking = await bookingBy(db, "stripe_payment_intent_id", pi.id);
       if (!booking) return "ignored: no booking for this payment";
       if (pi.status !== "canceled") return `ignored: payment is ${pi.status}`;
       if (booking.status !== "requested") return `ignored: the booking is ${booking.status}`;
-      return (await move(db, booking, { status: "expired", status_changed_by: "stripe" })) ? "expired: hold released" : "ignored: changed meanwhile";
+      const meta = pi.metadata ?? {};
+      if (meta.lokl_release === "cancel" && meta.cancelled_by === "admin" && meta.admin_id) {
+        const done = await recordAdminCancel(db, {
+          bookingId: booking.id, adminId: meta.admin_id, from: "requested", resolveProblem: false, refundedCents: null,
+          reason: (booking.cancel_reason as string | null) ?? "Cancelled by lokl (the reason wasn't saved).",
+        });
+        return done === "changed" ? "ignored: changed meanwhile" : "cancelled by lokl: hold released";
+      }
+      const update =
+        meta.lokl_release === "decline" ? { status: "declined", status_changed_by: "provider" }
+        : meta.lokl_release === "withdraw" ? { status: "declined", status_changed_by: "system" }
+        : meta.lokl_release === "cancel" && meta.cancelled_by === "customer" ? { status: "cancelled", cancelled_by: "customer", status_changed_by: "customer" }
+        : { status: "expired", status_changed_by: "stripe" };
+      return (await move(db, booking, update)) ? `${update.status}: hold released` : "ignored: changed meanwhile";
     }
 
     case "charge.refunded": {
@@ -393,6 +430,9 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
       const piId = typeof fresh.payment_intent === "string" ? fresh.payment_intent : fresh.payment_intent?.id;
       const booking = piId ? await bookingBy(db, "stripe_payment_intent_id", piId) : null;
       if (!booking) return "ignored: no booking for this charge";
+      // A cancellation refunded but never recorded (its reply lost): finish it.
+      const finished = await finishLostCancel(db, stripe, booking as never);
+      if (finished) return `${finished}: finished from Stripe`;
       const refunded = Math.min(fresh.amount_refunded, booking.total_cents);
       const { error } = await bookingRecords(db)
         .update({ refunded_cents: refunded, refunded_at: new Date().toISOString() })

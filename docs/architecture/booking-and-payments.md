@@ -146,11 +146,11 @@ What the guard checks on each move, and where the code makes it:
 | `pending_payment` → `requested` | `syncCheckoutSession` | Services only; sets `respond_by` = now + 48h |
 | `pending_payment` → `expired` | `syncCheckoutSession`; jobs `release-reservations`, `withdraw-unavailable` | |
 | `pending_payment` → `cancelled` | `createCheckout` when Stripe fails | `cancelled_by` = system |
-| `requested` → `confirmed` | `acceptRequest` in `bookingAnswers.ts` | now ≤ `respond_by`; the time is one the customer offered, and still ahead |
-| `requested` → `declined` | `declineRequest`; job `withdraw-unavailable` | |
-| `requested` → `expired` | job `expire-requests`; `acceptRequest` (card failed); webhook `payment_intent.canceled` | |
-| `requested` → `cancelled` | `customerCancel` (release), `adminCancelBooking` | |
-| `confirmed` → `cancelled` | `customerCancel`, `providerCancel`, `cancelSession`, `adminCancelBooking`, job `withdraw-unavailable` | customer or provider: not after the start; provider: a reason of 5+ characters; a full refund unless it's a customer's late cancel (within 48h of the start and over 1h after confirming) |
+| `requested` → `confirmed` | `finishAccept` in `bookingAnswers.ts` (from `acceptRequest`, the `payment_intent.succeeded` webhook and the jobs) | accepted (now, or the `confirmed_at` the server passes: when the provider accepted, between the request and now) ≤ `respond_by`; the time is one the customer offered, and still ahead |
+| `requested` → `declined` | `declineRequest`; job `withdraw-unavailable`; webhook `payment_intent.canceled` (a decline or withdrawal whose reply was lost) | |
+| `requested` → `expired` | job `expire-requests`; `acceptRequest` (card failed); `finishAccept` (captured, but the chosen time passed: refunded); webhook `payment_intent.canceled` | |
+| `requested` → `cancelled` | `customerCancel` (release), `adminCancelBooking` (`admin_cancel_booking`); webhook `payment_intent.canceled` | |
+| `confirmed` → `cancelled` | `customerCancel`, `providerCancel`, `cancelSession`, `adminCancelBooking` (`admin_cancel_booking`), `finishLostCancel` (retries and the `charge.refunded` webhook), job `withdraw-unavailable` | judged at `cancelled_at` (now, or the time Stripe refunded, which the server passes; between the booking and now): customer or provider: not after the start; provider: a reason of 5+ characters; a full refund unless it's a customer's late cancel (within 48h of the start and over 1h after confirming) |
 | `confirmed` → `completed` | job `pay-out`, once `ends_at` has passed | |
 | `completed` → `paid_out`, `cancelled` → `paid_out` | job `pay-out` (`payOne`) | a transfer recorded, no hold, no open dispute, no unresolved report. From `cancelled`: only a customer's late cancel with no refund |
 | `completed` → `cancelled` | `adminCancelBooking` | admin or system only |
@@ -391,17 +391,26 @@ sequenceDiagram
       Note over W,DB: if Stripe refuses: reversal_failed_at, money owed
     end
   end
-  W->>DB: cancelled (admin), admin_actions row
+  W->>DB: admin_cancel_booking: cancelled (admin) and the admin_actions row, together
 
-  S-->>W: charge.refunded (a refund made anywhere, e.g. Stripe's dashboard)
-  W->>DB: refunded_cents raised to Stripe's amount (never lowered, status unchanged)
+  S-->>W: charge.refunded
+  alt a lokl cancellation whose reply was lost (the refund's metadata)
+    W->>DB: cancelled, as of the refund (finishLostCancel)
+  else a refund made anywhere else, e.g. Stripe's dashboard
+    W->>DB: refunded_cents raised to Stripe's amount (never lowered, status unchanged)
+  end
 ```
 
 - A booking cancelled with a full refund has its payout hold cleared
   (trigger `bookings_clear_hold_when_refunded`,
   [20261003031256](../../supabase/migrations/20261003031256_cancelled_bookings_hold_nothing.sql)).
 - `refundInFull` refunds `min(total, charged) − already refunded`, so a
-  repeat can't refund twice.
+  repeat can't refund twice; Stripe's "already refunded" refusal counts as
+  done once the charge, read again, is refunded.
+- Before each refund the reason is saved on the booking (`cancel_reason`),
+  and the refund carries what it means (`lokl_action`, `cancelled_by`, and
+  for lokl `admin_id`), so a cancellation whose reply was lost is finished
+  from Stripe (section 11, A lost reply).
 - Code: `customerCancel`, `providerCancel`, `cancelSession` in
   `bookingCancellations.ts`; `adminCancelBooking` in `adminBookings.ts`;
   routes [cancel.post.ts](../../apps/website/server/api/bookings/[id]/cancel.post.ts),
@@ -499,22 +508,32 @@ sequenceDiagram
   AA->>W: POST with Authorization: Bearer (the admin's session token)
   W->>W: Origin is exactly NUXT_ADMIN_ORIGIN? (else 403)<br/>token valid? (else 401) admin role? (else 403)
   alt cancel, or refund after a report
+    W->>DB: the reason saved on the booking
     W->>S: release the hold, or refund, and reverse a transfer if paid out
-    W->>DB: cancelled (admin)
+    W->>DB: admin_cancel_booking: cancelled (admin) and logged, together
   else release a payout hold
-    W->>DB: clear the hold, remember the released reason
+    W->>DB: admin_release_payout: hold cleared and remembered, and logged, together
     W->>S: pay out now if due
   else pay the provider after a report
-    W->>DB: problem_resolution = paid_provider
+    W->>DB: admin_resolve_problem_paid: resolved and logged, together
     W->>S: pay out now if due
   else suspend or reinstate a provider
     W->>DB: admin_set_provider_status (status, log and email in one transaction)
     Note over W: suspending runs withdraw-unavailable
   else retry an email
-    W->>DB: the email back to pending
+    W->>DB: the email back to pending, then its admin_actions row
   end
-  W->>DB: admin_actions row (who, what, why)
 ```
+
+- **The money actions write the booking and its log together**
+  (2026-10-11): `admin_cancel_booking`, `admin_release_payout` and
+  `admin_resolve_problem_paid`
+  ([migration](../../supabase/migrations/20261011024704_money_lost_replies.sql)),
+  server only, each refusing an id that isn't an admin's. The Stripe step
+  comes first, in the server. A retry of a finished cancel answers that
+  it's done, and writes the log if an earlier attempt didn't; it counts as
+  done only if it's the same action (a plain cancel, or a report resolved
+  with a refund), otherwise it's "already changed".
 
 | Route | Body | Logged as |
 | --- | --- | --- |
@@ -768,11 +787,10 @@ backstop. Tested in
 | `booking:<id>:checkout:1` | creating the Checkout Session (a retried checkout attempt sends the identical request, `expires_at` from `reserved_until`) | `createCheckout`, `bookings.ts` |
 | `booking:<id>:late-refund:1` | refunding a payment that arrived after the booking ended | `syncCheckoutSession` |
 | `booking:<id>:capture:<w>` | accepting a request | `acceptRequest` |
-| `booking:<id>:release:<w>` | releasing a card hold | `declineRequest`, cancellations, jobs |
-| `booking:<id>:refund-unconfirmed:<w>` | refunding a capture the database refused | `acceptRequest` |
-| `booking:<id>:refund-<cents left>:<w>` | a full refund | `refundInFull` |
+| `booking:<id>:release:<w>` | releasing a card hold | `declineRequest`, cancellations (lokl's too), jobs |
+| `booking:<id>:refund-<cents left>:<w>` | a full refund, including a capture that can't be confirmed | `refundInFull` |
+| `booking:<id>:reverse:<w>` | reversing the provider's transfer when lokl cancels after a payout | `reverseTransfer` |
 | `booking:<id>:transfer:<w>` | the payout | `payOne` |
-| `admin:<id>:release:<w>`, `admin:<id>:reverse:<w>` | the admin's release and transfer reversal | `adminBookings.ts` |
 
 `<w>` is a 10-minute window (`floor(now / 10 min)`): a retry within it is the
 same request, and a later retry is a new one, because Stripe replays a stored
@@ -783,7 +801,7 @@ each happens at most once per booking.
 
 | Route | Secret | Events |
 | --- | --- | --- |
-| [/api/stripe/webhook-payments](../../apps/website/server/api/stripe/webhook-payments.post.ts) (lokl's own account) | `NUXT_STRIPE_PAYMENTS_WEBHOOK_SECRET` | `checkout.session.completed`, `.expired`, `.async_payment_succeeded`, `.async_payment_failed`; `payment_intent.canceled`; `charge.refunded`; `charge.dispute.created`, `.updated`, `.closed`; `transfer.reversed` |
+| [/api/stripe/webhook-payments](../../apps/website/server/api/stripe/webhook-payments.post.ts) (lokl's own account) | `NUXT_STRIPE_PAYMENTS_WEBHOOK_SECRET` | `checkout.session.completed`, `.expired`, `.async_payment_succeeded`, `.async_payment_failed`; `payment_intent.succeeded`, `.canceled`; `charge.refunded`; `charge.dispute.created`, `.updated`, `.closed`; `transfer.reversed` |
 | [/api/stripe/webhook](../../apps/website/server/api/stripe/webhook.post.ts) (connected accounts) | `NUXT_STRIPE_WEBHOOK_SECRET` | `account.updated` (copies charges, payouts and details-submitted to `providers`) |
 
 The signature is checked on the raw body before anything else. Handling
@@ -810,8 +828,8 @@ Locally: `npm run job -- <name>` ([scripts/job.mjs](../../scripts/job.mjs)).
 | Job | Does | Safe to repeat because |
 | --- | --- | --- |
 | `release-reservations` | ends checkouts past `reserved_until` (expiring Stripe's session first, so a last-moment payment still confirms) | moves only from `pending_payment`; Stripe is re-read |
-| `expire-requests` | expires requests past `respond_by` and releases the hold | skips a hold that was captured meanwhile; moves only from `requested` |
-| `withdraw-unavailable` | declines requests, and ends checkouts, whose listing, provider, category or city went away; refunds and cancels bookings on cancelled sessions | conditional moves; refunds count what's already refunded |
+| `expire-requests` | expires requests past `respond_by` and releases the hold; a hold that was captured (accepted, the reply lost) is confirmed as of the accept, or refunded if the chosen time has passed (`finishAccept`) | moves only from `requested`; the capture is read from Stripe |
+| `withdraw-unavailable` | declines requests (the hold marked `withdraw`), and ends checkouts, whose listing, provider, category or city went away; finishes a captured request like `expire-requests`; refunds and cancels bookings on cancelled sessions | conditional moves; refunds count what's already refunded |
 | `pay-out` | completes ended bookings, then pays out or holds each due one | looks for an existing transfer in the booking's group first; holds only where none is set |
 | `review-reminders` | queues the one review reminder per booking, 10 to 14 days after its end (`queue_review_reminders`); not limited to one booking | the outbox sends each kind once per booking |
 | `send-emails` | sends queued emails | rows are claimed; Resend keys are per row |
@@ -831,7 +849,32 @@ page, `allRows`, or a `// bounded:` reason such as "one session's
 bookings"), which `npm run check:reads` checks in CI.
 
 **No scheduler runs these yet.** Until hosting is chosen they're run by hand
-or by tests ([docs/TODO.md](../TODO.md)).
+or by tests. Setting one up is the first item of the staging checklist
+([docs/TODO.md](../TODO.md)): request expiry, finishing a lost accept, and
+payouts all depend on it.
+
+### A lost reply
+
+(2026-10-11.) A money action's reply can be lost after Stripe acted (a
+dropped connection, a crash before the database write). Each action is
+finished the same way whether the person retries, Stripe's webhook
+arrives, or a job runs:
+
+| Action | Written to Stripe first | Finished by |
+| --- | --- | --- |
+| Accept | the capture's metadata: `lokl_action: accept`, `accepted_starts_at`, `accepted_at` | a retry (even after the answer-by time); the `payment_intent.succeeded` webhook; `expire-requests` and `withdraw-unavailable`. `finishAccept` confirms as of `accepted_at`, or refunds and ends the request if the chosen time has passed |
+| Decline, a customer's or lokl's cancelled request, a withdrawal | the PaymentIntent's metadata before the release: `lokl_release` `decline`, `cancel` (with `cancelled_by`, `admin_id`) or `withdraw`; its own key, so a release tried after a lost accept can't erase the capture's meaning | a retry; the `payment_intent.canceled` webhook records it as what it was (no metadata: expired, actor `stripe`) |
+| A customer's, provider's, session's or lokl's cancellation | the reason on the booking; the refund's metadata: `lokl_action` `cancel` or `cancel_session`, `cancelled_by`, `admin_id`, `resolve_problem` | a retry, even after the 48-hour line or the start; the `charge.refunded` webhook. `finishLostCancel` cancels as of the refund (`cancelled_at`), so the policy is judged when Stripe refunded; lokl's goes through `admin_cancel_booking` with its log |
+
+Stripe's "already done" refusals (a refund of a refunded charge, a
+reversal of a reversed transfer) count as done once Stripe, read again,
+agrees. Pages treat a request with no reply the same way
+(`isLostReply` in the shared layer): they re-read the booking and say
+it's done if it is, or that it's safe to try again, never "it didn't go
+through" for something that did. Tested in
+[money-retries.test.mts](../../supabase/tests/app/money-retries.test.mts),
+[money_lost_replies.test.sql](../../supabase/tests/money_lost_replies.test.sql)
+and e2e journey 20.
 
 ## 12. Differences from the design
 

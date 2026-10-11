@@ -1,4 +1,3 @@
-import { logText } from "@repo/types";
 // What the admin does to bookings, emails and providers (docs/design/
 // booking-and-checkout.md, Admin; step 4 part 8). Every action needs a
 // reason (except sending an email again) and is logged in admin_actions;
@@ -14,7 +13,7 @@ import { logText } from "@repo/types";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BookingError } from "./bookings";
-import { refundInFull } from "./bookingCancellations";
+import { type CancelMeaning, recordAdminCancel, refundInFull, releaseHold, reverseTransfer, saveCancelReason } from "./bookingCancellations";
 import { payOut, withdrawUnavailable } from "./bookingJobs";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
@@ -47,44 +46,16 @@ async function read(db: SupabaseClient, id: string) {
   return data as Record<string, any>;
 }
 
-async function move(db: SupabaseClient, id: string, from: string, update: Record<string, unknown>) {
-  const { data, error } = await bookingRecords(db).update(update).eq("id", id).eq("status", from).select("id");
-  if (error) {
-    if (error.code === "23514") throw new BookingError(error.message, 409);
-    throw new Error(error.message);
-  }
-  return (data ?? []).length > 0;
-}
-
-// Takes the provider's share back after a payout. Reads the transfer first,
-// so a retry reverses nothing more. A failure (usually an empty balance) is
-// returned, to be recorded as money owed, not thrown.
-async function reverseTransfer(stripe: Stripe, b: Record<string, any>): Promise<{ id: string } | { failure: string }> {
-  const transfer = await stripe.transfers.retrieve(b.stripe_transfer_id);
-  const left = transfer.amount - transfer.amount_reversed;
-  if (left <= 0) {
-    const existing = (await stripe.transfers.listReversals(transfer.id, { limit: 1 })).data[0];
-    return { id: existing?.id ?? `${transfer.id}:reversed` };
-  }
-  try {
-    const reversal = await stripe.transfers.createReversal(
-      transfer.id,
-      { amount: left, metadata: { booking_id: b.id } },
-      { idempotencyKey: key(b.id, "reverse") },
-    );
-    return { id: reversal.id };
-  } catch (e) {
-    const err = e as Stripe.errors.StripeError;
-    if (err.type === "StripeInvalidRequestError" || err.type === "StripePermissionError") return { failure: logText(err.message, 500) };
-    throw e;
-  }
-}
-
 /**
  * lokl cancels a booking, with a reason: a request's hold is released; a
  * confirmed, completed or paid-out booking is refunded in full, and after a
  * payout the provider's transfer is reversed (a failed reversal is recorded
  * as owed). With resolveProblem, it's the refund outcome of a no-show report.
+ * Stripe first, with what the step means (CancelMeaning) and the reason
+ * saved on the booking, so a lost reply is finished by a retry or by
+ * Stripe's webhook; then the booking and the admin log together
+ * (admin_cancel_booking). A retry of a finished cancel answers that it's
+ * done, and writes the log if it's missing.
  */
 export async function adminCancelBooking(
   db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string,
@@ -92,41 +63,39 @@ export async function adminCancelBooking(
 ) {
   const reason = requireReason(reasonIn);
   const b = await read(db, bookingId);
-  const action: AdminAction = opts.resolveProblem ? "resolve_problem_refunded" : "cancel_booking";
-  if (b.status === "cancelled" && b.cancelled_by === "admin") return "already cancelled";
-  if (opts.resolveProblem && (!b.problem_reported_at || b.problem_resolution)) {
+  const resolveProblem = !!opts.resolveProblem;
+  const outcome = (done: Awaited<ReturnType<typeof recordAdminCancel>>, owed = false) =>
+    done === "changed" ? "already changed"
+    : done !== "cancelled" ? "already cancelled"
+    : owed ? "cancelled and refunded; the provider's share is owed (the reversal failed)" : "cancelled and refunded";
+  if (b.status === "cancelled" && b.cancelled_by === "admin") {
+    return outcome(await recordAdminCancel(db, { bookingId: b.id, adminId, reason, from: "cancelled", resolveProblem, refundedCents: null }));
+  }
+  if (resolveProblem && (!b.problem_reported_at || b.problem_resolution)) {
     throw new BookingError("There's no open report on this booking.", 409);
   }
+  const meaning: CancelMeaning = { lokl_action: "cancel", cancelled_by: "admin", admin_id: adminId, ...(resolveProblem ? { resolve_problem: "true" as const } : {}) };
 
-  let update: Record<string, unknown> = { status: "cancelled", cancelled_by: "admin", cancel_reason: reason, status_changed_by: "admin" };
   if (b.status === "requested") {
-    if (b.stripe_payment_intent_id) {
-      try {
-        await stripe.paymentIntents.cancel(b.stripe_payment_intent_id, {}, { idempotencyKey: key(b.id, "release") });
-      } catch (e) {
-        if ((await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id)).status !== "canceled") throw e;
-      }
-    }
-  } else if (["confirmed", "completed", "paid_out"].includes(b.status)) {
-    const refunded = await refundInFull(stripe, b as any);
-    update = { ...update, refunded_cents: refunded, refunded_at: new Date().toISOString() };
-    if (b.status === "paid_out") {
-      const r = await reverseTransfer(stripe, b);
-      update = "id" in r
-        ? { ...update, stripe_transfer_reversal_id: r.id }
-        : { ...update, reversal_failed_at: new Date().toISOString(), reversal_failure: r.failure };
-    }
-  } else {
+    await saveCancelReason(db, b.id, "requested", reason);
+    await releaseHold(stripe, b as any, { lokl_release: "cancel", cancelled_by: "admin", admin_id: adminId });
+    return outcome(await recordAdminCancel(db, { bookingId: b.id, adminId, reason, from: "requested", resolveProblem, refundedCents: null }));
+  }
+  if (!["confirmed", "completed", "paid_out"].includes(b.status)) {
     throw new BookingError(
       b.status === "pending_payment" ? "This booking is still in checkout; it will lapse on its own." : `A ${b.status} booking can't be cancelled.`,
       409,
     );
   }
-  if (opts.resolveProblem) update = { ...update, problem_resolution: "refunded", problem_resolved_at: new Date().toISOString() };
-
-  if (!(await move(db, b.id, b.status, update))) return "already changed";
-  await logAdminAction(db, { adminId, target: "booking", targetId: b.id, action, reason });
-  return update.reversal_failed_at ? "cancelled and refunded; the provider's share is owed (the reversal failed)" : "cancelled and refunded";
+  await saveCancelReason(db, b.id, b.status, reason);
+  const refunded = await refundInFull(stripe, b as any, meaning);
+  const reversal = b.status === "paid_out" ? await reverseTransfer(stripe, b) : null;
+  const done = await recordAdminCancel(db, {
+    bookingId: b.id, adminId, reason, from: b.status, resolveProblem, refundedCents: refunded,
+    reversalId: reversal && "id" in reversal ? reversal.id : null,
+    reversalFailure: reversal && "failure" in reversal ? reversal.failure : null,
+  });
+  return outcome(done, !!reversal && "failure" in reversal);
 }
 
 /**
@@ -134,7 +103,8 @@ export async function adminCancelBooking(
  * due. A reported no-show is resolved with resolveProblemPaid instead; an
  * open dispute can't be released. The release is remembered
  * (payout_holds_released), so the pay-out job doesn't hold the payout again
- * for the same judgement (a lost dispute, a refund, a suspension).
+ * for the same judgement (a lost dispute, a refund, a suspension). The
+ * release and its admin log are written together (admin_release_payout).
  */
 export async function releasePayout(db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string) {
   const reason = requireReason(reasonIn);
@@ -142,31 +112,28 @@ export async function releasePayout(db: SupabaseClient, stripe: Stripe, bookingI
   if (!b.payout_hold) return "nothing held";
   if (b.payout_hold === "problem_reported") throw new BookingError("A customer reported a problem: resolve the report instead.", 409);
   if (b.disputed_at && !b.dispute_closed_at) throw new BookingError("The dispute is still open, so the payout stays held.", 409);
-  const released = [...new Set([...((b.payout_holds_released as string[] | null) ?? []), b.payout_hold as string])];
-  const { error } = await bookingRecords(db)
-    .update({ payout_hold: null, payout_held_at: null, payout_holds_released: released })
-    .eq("id", b.id)
-    .eq("payout_hold", b.payout_hold);
+  const { error } = await db.rpc("admin_release_payout", { p_booking_id: b.id, p_admin_id: adminId, p_reason: reason, p_hold: b.payout_hold });
   if (error) throw new Error(error.message);
-  await logAdminAction(db, { adminId, target: "booking", targetId: b.id, action: "release_payout", reason });
   const run = await payOut(db, stripe, { bookingId: b.id });
   return run.done.at(-1)?.split(": ").slice(1).join(": ") || "released; it's paid out when due";
 }
 
-/** Resolves a no-show report in the provider's favour: the payout goes ahead (now, if it's due). */
+/**
+ * Resolves a no-show report in the provider's favour: the payout goes ahead
+ * (now, if it's due). The resolution and its admin log are written together
+ * (admin_resolve_problem_paid).
+ */
 export async function resolveProblemPaid(db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string) {
   const reason = requireReason(reasonIn);
   const b = await read(db, bookingId);
+  if (b.problem_resolution === "paid_provider") return "already resolved";
   if (!b.problem_reported_at || b.problem_resolution) throw new BookingError("There's no open report on this booking.", 409);
-  const update: Record<string, unknown> = { problem_resolution: "paid_provider", problem_resolved_at: new Date().toISOString() };
-  if (b.payout_hold === "problem_reported") Object.assign(update, { payout_hold: null, payout_held_at: null });
-  const { data, error } = await bookingRecords(db).update(update).eq("id", b.id).is("problem_resolution", null).select("id");
+  const { data, error } = await db.rpc("admin_resolve_problem_paid", { p_booking_id: b.id, p_admin_id: adminId, p_reason: reason });
   if (error) {
     if (error.code === "23514") throw new BookingError(error.message, 409);
     throw new Error(error.message);
   }
-  if (!data?.length) return "already resolved";
-  await logAdminAction(db, { adminId, target: "booking", targetId: b.id, action: "resolve_problem_paid", reason });
+  if (!data) return "already resolved";
   await payOut(db, stripe, { bookingId: b.id });
   return "resolved: the provider will be paid";
 }

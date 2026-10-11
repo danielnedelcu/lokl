@@ -8482,6 +8482,24 @@
       "return_type": "bool",
       "arguments": "p_name text",
       "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_cancel_booking",
+      "return_type": "text",
+      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text, p_from text, p_resolve_problem boolean, p_refunded_cents integer, p_cancelled_at timestamp with time zone, p_reversal_id text, p_reversal_failure text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_release_payout",
+      "return_type": "bool",
+      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text, p_hold text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_resolve_problem_paid",
+      "return_type": "bool",
+      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text",
+      "type": "FUNCTION"
     }
   ],
   "enums": [

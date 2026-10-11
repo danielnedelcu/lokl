@@ -64,7 +64,16 @@ async function answer(action: "accept" | "decline") {
     });
     useSonner.success(action === "accept" ? "Accepted. The customer's card was charged." : "Declined. The hold on the customer's card was released.");
   } catch (e) {
-    problem.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+    if (isLostReply(e)) {
+      await refresh();
+      if (b.value?.status === (action === "accept" ? "confirmed" : "declined")) {
+        useSonner.success(action === "accept" ? "Accepted. The customer's card was charged." : "Declined. The hold on the customer's card was released.");
+      } else {
+        problem.value = LOST_REPLY_TRY_AGAIN;
+      }
+    } else {
+      problem.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+    }
   } finally {
     busy.value = false;
     confirmAccept.value = false;
@@ -117,7 +126,17 @@ const sendCancel = handleCancel(async (v) => {
     cancelOpen.value = false;
     useSonner.success("Cancelled. The customer is refunded in full.");
   } catch (e) {
-    cancelError.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+    if (isLostReply(e)) {
+      await refresh();
+      if (b.value?.status === "cancelled") {
+        cancelOpen.value = false;
+        useSonner.success("Cancelled. The customer is refunded in full.");
+      } else {
+        cancelError.value = LOST_REPLY_TRY_AGAIN;
+      }
+    } else {
+      cancelError.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+    }
   } finally {
     busy.value = false;
     await Promise.all([refresh(), refreshNuxtData("provider-bookings")]);

@@ -92,7 +92,24 @@ async function act(reason: string) {
     done.value = r.result.charAt(0).toUpperCase() + r.result.slice(1) + ".";
     dialog.value = null;
   } catch (e) {
-    problem.value = (e as Error).message;
+    if (isLostReply(e)) {
+      // The reply was lost: check whether it went through.
+      const action = dialog.value;
+      await refresh();
+      const x = b.value;
+      const through = !!x && (
+        action === "cancel" || action === "refund" ? x.status === "cancelled" && x.cancelled_by === "admin"
+        : action === "release" ? !x.payout_hold
+        : !!x.problem_resolution);
+      if (through) {
+        done.value = "Done.";
+        dialog.value = null;
+      } else {
+        problem.value = LOST_REPLY_TRY_AGAIN;
+      }
+    } else {
+      problem.value = (e as Error).message;
+    }
   } finally {
     busy.value = false;
     await refresh();

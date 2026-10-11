@@ -115,7 +115,13 @@ async function cancelBooking() {
     await $fetch(`/api/bookings/${id}/cancel`, { method: "POST", body: {} });
     useSonner.success("Your booking is cancelled.");
   } catch (e) {
-    problem.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+    if (isLostReply(e)) {
+      await refresh();
+      if (b.value?.status === "cancelled") useSonner.success("Your booking is cancelled.");
+      else problem.value = LOST_REPLY_TRY_AGAIN;
+    } else {
+      problem.value = (e as { statusMessage?: string }).statusMessage ?? "That didn't go through. Please try again.";
+    }
   } finally {
     busy.value = false;
     confirmCancel.value = false;

@@ -224,6 +224,10 @@ three are done: explicit API grants, the build secrets check, and
   response followed by a retry could write twice. One database function per
   money change, an idempotency key checked against what was asked for, and
   checks at commit (the finances add up to the booking's total).
+  Covered for the admin's money actions (2026-10-11): cancel or refund,
+  release a payout, resolve a report for the provider each write the
+  booking and its `admin_actions` row in one function, after the Stripe
+  step. Still to check: the rest (checkout, payouts, the finances totals).
 - [x] **A lost-response journey: booking creation** (`checkout_keys`,
   2026-10-10). The booking form sends a key per checkout attempt; a retry
   after a lost reply returns the same booking and Checkout, the same key
@@ -231,6 +235,18 @@ three are done: explicit API grants, the build secrets check, and
   session ends the customer's earlier unpaid one. E2e journey 18 drops the
   reply after the server commits. Other payment actions (accepting a
   request, cancelling, the admin's refunds) still to check the same way.
+- [x] **A lost-reply check: the money actions** (`money_lost_replies`,
+  2026-10-11). Accepting, declining, cancelling (customer, provider,
+  session, lokl) and lokl's refunds record what they mean in Stripe before
+  each call; a retry, the webhooks (`payment_intent.succeeded`,
+  `.canceled`, `charge.refunded`) and the jobs finish an action from it,
+  judged at the time Stripe acted (a capture before the answer-by time
+  confirms after it; a refund before the 48-hour line or the start counts
+  as made then). A request captured in time whose chosen time has passed
+  is refunded. Retries of a finished action answer success; Stripe's
+  "already done" refusals count as done; pages say done after a lost reply
+  when it is. Tests: `money-retries.test.mts`,
+  `money_lost_replies.test.sql`, e2e journey 20.
 - [ ] **A reload after a lost reply can hide a date.** Within 31 minutes of a
   lost reply, the booking page's spots still count the customer's own unpaid
   attempt as taken, so a date it filled shows as full and can't be chosen,
@@ -321,6 +337,11 @@ A real address before the live one: `staging.hilokl.com` (website) and
 `admin-staging.hilokl.com` (admin), on the testing Supabase project and the
 Lokl Stripe sandbox. Test there first what needs a real address:
 
+- [ ] **First: the job scheduler** (`pg_cron` + `pg_net` calling
+  `/api/jobs/*`, including `send-emails` and, daily, `review-reminders`).
+  Request expiry, finishing an accept whose reply was lost, withdrawals and
+  payouts all depend on it; until then jobs run with `npm run job`
+  (docs/design/booking-and-checkout.md; moved to the top 2026-10-11).
 - [ ] Switch to branches and pull requests, with `checks` and `database` required to merge.
 - [ ] Run the end-to-end tests in WebKit (Safari's engine) too, against the
   staging site: it needs HTTPS. Production cookies are Secure, and WebKit
@@ -345,11 +366,10 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   `/api/stripe/webhook-payments`. (The connected-accounts listener hasn't
   been tested locally yet either.)
 - [ ] Production payments webhook must subscribe to every event the route
-  handles, including disputes and transfer.reversed (the list is in the
-  route's header comment and docs/architecture/booking-and-payments.md).
-- [ ] The job scheduler (`pg_cron` + `pg_net` calling `/api/jobs/*`,
-  including `send-emails` and, daily, `review-reminders`); until then jobs run with `npm run job`
-  (docs/design/booking-and-checkout.md).
+  handles, including disputes, transfer.reversed and (since 2026-10-11)
+  `payment_intent.succeeded`, which finishes an accept whose reply was lost
+  (the list is in the route's header comment and
+  docs/architecture/booking-and-payments.md).
 - [ ] The Nuxt Image provider (`image.provider` in the shared layer, `none`
   today): the host's image service, or Supabase image transformations
   (docs/design/browse-and-listing-pages.md, Images).

@@ -14,7 +14,8 @@ export function useWebsiteAdmin() {
       return await $fetch<T>(`${base}/api/admin/${path}`, { method: "POST", body, headers: { Authorization: `Bearer ${token}` } });
     } catch (e) {
       const err = e as { data?: { statusMessage?: string }; statusMessage?: string };
-      throw new Error(err.data?.statusMessage ?? err.statusMessage ?? "The website didn't answer. Is it running?");
+      // A lost reply is marked (isLostReply), so the page can check whether it went through.
+      throw Object.assign(new Error(err.data?.statusMessage ?? err.statusMessage ?? "The website didn't answer. Is it running?"), { lost: isLostReply(e) });
     }
   };
 }
