@@ -256,7 +256,7 @@
 <polygon fill="none" stroke="black" points="8225.15,-305 8225.15,-335.8 9695.09,-335.8 9695.09,-305 8225.15,-305"/>
 <text text-anchor="start" x="8232.15" y="-317.2" font-family="Arial" font-size="14.00">timezone </text>
 <text text-anchor="start" x="8292.84" y="-317.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="8323.19" y="-317.2" font-family="Arial" font-size="14.00"> IANA time zone name, e.g. America/New_York. Experience session times are entered and shown in it.</text>
+<text text-anchor="start" x="8323.19" y="-317.2" font-family="Arial" font-size="14.00"> The market&#39;s time zone, a real IANA name (America/New_York): every booking, session and listing time in this market is shown in it. Required; checked against the database&#39;s zone names.</text>
 <polygon fill="none" stroke="black" points="8225.15,-274.2 8225.15,-305 9695.09,-305 9695.09,-274.2 8225.15,-274.2"/>
 <text text-anchor="start" x="8232.15" y="-286.4" font-family="Arial" font-size="14.00">active </text>
 <text text-anchor="start" x="8272.61" y="-286.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>

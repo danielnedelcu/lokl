@@ -390,7 +390,7 @@
           "name": "timezone",
           "type": "text",
           "nullable": false,
-          "comment": "IANA time zone name, e.g. America/New_York. Experience session times are entered and shown in it."
+          "comment": "The market's time zone, a real IANA name (America/New_York): every booking, session and listing time in this market is shown in it. Required; checked against the database's zone names."
         },
         {
           "name": "active",
@@ -472,6 +472,16 @@
           "name": "cities_timezone_check",
           "type": "CHECK",
           "def": "CHECK ((timezone ~ '^[A-Za-z_]+(/[A-Za-z0-9_+-]+)+$'::text))",
+          "table": "public.cities",
+          "referenced_table": "",
+          "columns": [
+            "timezone"
+          ]
+        },
+        {
+          "name": "cities_timezone_real",
+          "type": "CHECK",
+          "def": "CHECK (is_time_zone(timezone))",
           "table": "public.cities",
           "referenced_table": "",
           "columns": [
@@ -8465,6 +8475,12 @@
       "name": "public.create_service_request",
       "return_type": "bookings",
       "arguments": "p_listing_id uuid, p_customer_id uuid, p_preferred_times timestamp with time zone[], p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_address jsonb, p_reserved_until timestamp with time zone, p_checkout_key uuid DEFAULT NULL::uuid, p_request_hash text DEFAULT NULL::text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.is_time_zone",
+      "return_type": "bool",
+      "arguments": "p_name text",
       "type": "FUNCTION"
     }
   ],

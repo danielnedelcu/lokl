@@ -2063,6 +2063,7 @@ export type Database = {
       current_provider_id: { Args: never; Returns: string }
       has_contact_details: { Args: { p_text: string }; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      is_time_zone: { Args: { p_name: string }; Returns: boolean }
       listing_parents_active: {
         Args: {
           p_category_id: string
