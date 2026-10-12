@@ -402,6 +402,11 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   with its bookings and saved items, and again for an email that asked for
   a code but never used it. Also a keyboard-only and a VoiceOver pass over
   Google's real button in the dialog.
+- [ ] **Clear a session whose user no longer exists.** A browser still
+  signed in as a deleted account (as when the hilokl.help test account
+  was deleted, 2026-10-11) keeps its session until the token expires.
+  When Supabase answers that the user doesn't exist (`user_not_found`),
+  sign out in that browser and show the page signed out, with a test.
 
 ## Launch prep
 
@@ -445,10 +450,14 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     and photo with lokl. Then a production client listing only
     `https://hilokl.com`, the production Supabase project's Google provider,
     and the consent screen published to "In production".
-  - [ ] In the production Supabase project: the sign-in email templates
-    (Magic link and Confirm signup, from `supabase/templates/`), Email OTP
-    length 6 and expiration 600 seconds, and "Token verifications" at 30
-    per 5 minutes (docs/design/sign-in-with-code.md).
+  - [ ] In the production Supabase project: set **both** sign-in email
+    templates from `supabase/templates/sign-in.html`: Magic link (an
+    address that already has an account) and Confirm signup (a first-time
+    address). With only one set, the other kind of person gets Supabase's
+    default email instead of lokl's code email.
+  - [ ] In the production Supabase project: Email OTP length 6 and
+    expiration 600 seconds, and "Token verifications" at 30 per 5 minutes
+    (docs/design/sign-in-with-code.md).
 - **Anthropic**
   - [ ] Create a separate production Anthropic API key for the admin app
     (`NUXT_ANTHROPIC_API_KEY`), apart from the development one.
