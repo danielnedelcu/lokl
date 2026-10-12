@@ -109,3 +109,19 @@ test("the header's Sign in offers no dashboard to someone without a business", a
   await expect(page.locator("#account-menu")).toBeFocused();
   await expect(page).toHaveURL(/\/atlanta\/experiences$/);
 });
+
+test("the header fits a 320px phone, signed out and signed in", async ({ page, context, data }) => {
+  // The logo links home, named by its alt text; Sign in is an icon named "Sign in".
+  const overflow = () => page.locator("header nav[aria-label=Main]").evaluate((nav) => nav.parentElement!.scrollWidth - nav.parentElement!.clientWidth);
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto("/");
+  await expect(page.getByRole("banner").getByRole("link", { name: "lokl", exact: true })).toHaveAttribute("href", "/");
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
+  expect(await overflow(), "signed out, nothing spills over").toBe(0);
+
+  const person = await data.user("narrow");
+  await signIn(context, person.email, person.password);
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+  expect(await overflow(), "signed in, nothing spills over").toBe(0);
+});

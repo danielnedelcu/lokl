@@ -22,13 +22,19 @@ async function signOut() {
 
 <template>
   <div class="bg-background text-foreground flex min-h-screen flex-col">
-    <header class="border-border border-b">
+    <header>
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4">
-        <NuxtLink to="/" class="text-lg font-semibold tracking-tight">lokl</NuxtLink>
-        <!-- The menu: tertiary links, no border (docs/frontend.md, Links). -->
-        <nav aria-label="Main" class="flex items-center gap-1.5 sm:gap-2">
-          <NuxtLink to="/experiences" class="link-tertiary px-3 sm:px-4">Experiences</NuxtLink>
-          <NuxtLink to="/services" class="link-tertiary px-3 sm:px-4">Services</NuxtLink>
+        <!-- The logo (2026-10-11): "hi" in an orange bubble, then "lokl".
+             The link is named by the image's alt text. -->
+        <NuxtLink to="/" class="focus-visible:ring-ring shrink-0 rounded-md outline-none focus-visible:ring-2">
+          <img src="/hilokl-logo.svg" alt="lokl" width="200" height="76" class="h-6 w-auto max-[359px]:h-5 sm:h-8">
+        </NuxtLink>
+        <!-- The menu: tertiary links, no border (docs/frontend.md, Links). Below 360px
+             wide, a little tighter (the logo, gaps, padding, 13px text), so
+             it fits at 320px signed in or out. -->
+        <nav aria-label="Main" class="flex items-center gap-1.5 max-[359px]:gap-1 sm:gap-2">
+          <NuxtLink to="/experiences" class="link-tertiary px-3 max-[359px]:px-2 max-[359px]:text-[13px] sm:px-4">Experiences</NuxtLink>
+          <NuxtLink to="/services" class="link-tertiary px-3 max-[359px]:px-2 max-[359px]:text-[13px] sm:px-4">Services</NuxtLink>
           <!-- Account menu (Reka): opens with Enter, Space or a tap; arrow keys
                move through it, Escape closes it and focus returns to the button. -->
           <UiDropdownMenu v-if="user">
