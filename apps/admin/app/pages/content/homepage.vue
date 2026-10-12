@@ -13,7 +13,6 @@ useHead({ title: "Homepage · Admin" });
 const supabase = useSupabaseClient();
 const websiteUrl = useRuntimeConfig().public.websiteUrl.replace(/\/$/, "");
 const MAX_CARDS = 2;
-const HEADLINE = "Book local Experiences and Services in Atlanta";
 
 interface Choice {
   id: string;
@@ -249,7 +248,7 @@ const previewCards = computed(() => cardRows.value.map((g, i) => asHomepage(g, i
         <p class="text-muted-foreground text-sm">The homepage, top to bottom, as visitors will see it after saving.</p>
         <div class="border-border bg-background mt-3 overflow-hidden rounded-lg border">
           <template v-if="previewMain">
-            <HomepageHero :guide="previewMain" :headline="HEADLINE" headline-as="p" :link-base="websiteUrl" />
+            <HomepageHero :guide="previewMain" :link-base="websiteUrl" />
             <div class="mx-auto max-w-6xl px-4 py-8">
               <div class="border-border text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
                 On lokl now: listings show here

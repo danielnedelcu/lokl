@@ -325,8 +325,8 @@ Following the blog's pattern, with its gaps closed:
 first layout, a hero and four cards above the headline, is in the history).
 With a main guide, the homepage is, top to bottom:
 
-1. **A slim headline**, "Book local Experiences and Services in Atlanta", the
-   page's visible `h1`, so first-time visitors see what lokl is straight away.
+1. The page's `h1`, "Book local Experiences and Services in Atlanta", for
+   screen readers only (visible at first; removed from view 2026-10-11).
 2. **The main guide** (position 1), alone: its cover large, full width of the
    content area, and **underneath it** the title (an `h2`) and the teaser, all
    one link (`HomepageHero`, in a section named "Featured guide").

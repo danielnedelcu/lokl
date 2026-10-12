@@ -133,6 +133,8 @@ test("the admin chooses a main guide and two more, and the homepage shows them i
     `h1 ${HEADLINE}`, `h2 ${main.title}`, "h2 On lokl now", "h3 Offer your Services or host Experiences",
     "h2 Guides to Atlanta", `h3 ${two.title}`, `h3 ${one.title}`, "h2 Got a skill? Get booked.",
   ]);
+  // The h1 says what lokl is, for screen readers only: no visible headline above the guide.
+  await expect(body.getByRole("heading", { level: 1, name: HEADLINE })).toHaveClass(/\bsr-only\b/);
   // "On lokl now" has one link in its header: "Everything in Atlanta" (no Browse links).
   const onLokl = body.getByRole("region", { name: "On lokl now" });
   const everything = onLokl.getByRole("link", { name: "Everything in Atlanta" });

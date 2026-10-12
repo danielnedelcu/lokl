@@ -48,9 +48,9 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
 
 <template>
   <div>
-    <!-- With a main guide: a slim, visible h1 says what lokl is, then the
-         guide alone (decided 2026-10-11). Without one, the headline block
-         comes first, as before. -->
+    <!-- With a main guide: the guide alone, with the page's h1 for screen
+         readers only (no visible headline, 2026-10-11). Without one, the
+         headline block comes first, as before. -->
     <HomepageHero v-if="mainGuide" :guide="mainGuide" :headline="headline" />
     <section v-else class="border-border border-b">
       <div class="mx-auto max-w-6xl px-4 py-14 md:py-20">
