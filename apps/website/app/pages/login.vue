@@ -23,6 +23,7 @@ function signedIn(email: string) {
       </UiCardHeader>
       <UiCardContent>
         <SignInForm :create-user="true" new-account-hint id-prefix="login" @signed-in="signedIn" />
+        <GoogleSignIn @signed-in="signedIn" />
       </UiCardContent>
     </UiCard>
   </div>

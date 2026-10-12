@@ -61,6 +61,9 @@ export default defineNuxtConfig({
       // NUXT_PUBLIC_SUPPORT_EMAIL: where providers and customers can write
       // to lokl (the same address booking emails reply to, for now).
       supportEmail: "",
+      // NUXT_PUBLIC_GOOGLE_CLIENT_ID: the Google sign-in client (a public
+      // value). Empty: no "Continue with Google" (GoogleSignIn).
+      googleClientId: "",
     },
   },
 

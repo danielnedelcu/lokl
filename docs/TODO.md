@@ -387,6 +387,22 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   `NUXT_PUBLIC_WEBSITE_URL=https://staging.hilokl.com` on the admin; rerun
   the admin request checks against it.
 
+- [x] **Google sign-in, local** (the Testing-mode client, 2026-10-11):
+  linking checked on localhost with a real Gmail account. Code first (a
+  listing saved), then "Continue with Google": one account, with an email
+  and a Google sign-in, and the saved listing still there (read-only
+  check, counts only). Google first, then a code: one account too, with
+  only the Google sign-in attached (Supabase signs a code in by the
+  account's email without adding an email sign-in), so "both attached" is
+  only expected when the code came first.
+- [ ] **Google sign-in, staging** (the same client): add the staging origin
+  to the client and `NUXT_PUBLIC_GOOGLE_CLIENT_ID` to staging's settings,
+  then repeat the linking check there with a real Google account (yours:
+  it can't be done from a test): code first, then Google, the same account
+  with its bookings and saved items, and again for an email that asked for
+  a code but never used it. Also a keyboard-only and a VoiceOver pass over
+  Google's real button in the dialog.
+
 ## Launch prep
 
 On hilokl.com: the website at `https://hilokl.com`, the admin at
@@ -422,6 +438,13 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [ ] Once the terms and privacy policy exist, show "By continuing, you
     agree to lokl's Terms and Privacy Policy" in the sign-in dialog, with
     links.
+  - [ ] **Google sign-in in production** (built 2026-10-11, hidden until a
+    client is set): needs the privacy policy (and terms) at public
+    hilokl.com addresses first, which Google's branding verification asks
+    for, and the policy must say Google sign-in shares the person's name
+    and photo with lokl. Then a production client listing only
+    `https://hilokl.com`, the production Supabase project's Google provider,
+    and the consent screen published to "In production".
   - [ ] In the production Supabase project: the sign-in email templates
     (Magic link and Confirm signup, from `supabase/templates/`), Email OTP
     length 6 and expiration 600 seconds, and "Token verifications" at 30

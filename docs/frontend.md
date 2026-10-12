@@ -48,6 +48,7 @@ Never hand-copy a component from the ui-thing website or another project.
 - Light mode only at launch. The tokens are structured so dark mode can be added later without touching components.
 - Typography and spacing use Tailwind's scale; no arbitrary pixel values without a reason.
 - The font is Roboto, served from our own site by `@nuxt/fonts` (configured in `packages/ui/nuxt.config.ts`, used through `--font-sans` in `tailwind.css`), so visitors' browsers never contact Google. No `<link>` to Google Fonts or other font CDNs. Only weights 400, 500 and 700 are loaded: use `font-normal`, `font-medium` and `font-bold`. Any other weight is drawn with the nearest loaded one (`font-semibold` draws as 700). `font-display: swap`, with system fonts (and a size-matched Arial fallback) until Roboto loads. To add a weight, add it in both places it's named: the config and this line. Display headings (`font-display`, used with `font-extrabold`) are Bricolage Grotesque 800, self-hosted the same way, the only weight loaded (2026-10-11: the homepage's hosting section).
+- Nothing from other sites loads with a page. The one exception is Google's sign-in script (`https://accounts.google.com/gsi/client`, website only), loaded when the sign-in dialog or `/login` is shown and a Google client is set, never with a page (2026-10-11; docs/design/sign-in-with-code.md, Google).
 
 ## Links
 

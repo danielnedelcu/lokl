@@ -254,6 +254,43 @@ the terms line in the dialog once the terms exist.
   signed in; the header with and without a business; the dialog's focus
   in and back out).
 
+## Google (2026-10-11)
+
+"Continue with Google", on the website only (the admin app's sign-in never
+creates accounts, so it stays code-only).
+
+- **Google's own button** (Google Identity Services) with Supabase's
+  `signInWithIdToken`, not Supabase's redirect flow: a Google pop-up, so
+  the person stays on the page, and Google's screen names lokl and its
+  address rather than the Supabase project's. Decided 2026-10-11.
+- `GoogleSignIn` (website), **below the code form** in the dialog and on
+  `/login`, after an "or" line: the email field keeps first focus, and the
+  button's space is kept from the start, so nothing moves when it appears.
+  Google draws the button (in a frame) and names it "Continue with Google".
+- **Only with a client:** `NUXT_PUBLIC_GOOGLE_CLIENT_ID` (public). Empty,
+  there's no button and Google's script never loads. Set, the script loads
+  when the dialog or `/login` is shown, never with a page; if it's blocked,
+  there's no Google button and the code still works.
+- **The nonce** (`googleNonce`): new each time; Google gets its SHA-256
+  fingerprint, Supabase the value, and checks they match. "Skip nonce
+  check" stays off. A refused sign-in gets a new nonce for the next try.
+- **After signing in**, the same as a code sign-in (`signedIn`): the
+  page, "Get started" to `/dashboard`, the header's dashboard offer, focus.
+  A heart's intent is written just before signing in (Google's button is
+  in a frame, so its click isn't seen). `/login` goes to the saved address.
+- **A refusal** says "Google sign-in didn't work. Try again, or use a
+  code." (an alert); closing Google's pop-up does nothing.
+- **Same email, same account:** Supabase links a Google sign-in to the
+  account with the same verified email. Entering a code verifies it. Not
+  testable locally (Supabase checks Google's tokens with Google): checked
+  on staging with a real Google account (docs/TODO.md).
+- **Clients:** one for local and staging (kept in Testing mode), one for
+  production listing only `https://hilokl.com`.
+- Tests: `google-nonce.test.mts`; end-to-end journey 23, with Google's
+  script and Supabase's answer stood in for (the header, "Get started", a
+  heart, `/login`, the nonce, a refusal, the admin app, the script loading
+  only with sign-in).
+
 ## Open questions (resolved: see Decisions)
 
 1. **Header "Sign in":** open the dialog in place (recommended, it's the

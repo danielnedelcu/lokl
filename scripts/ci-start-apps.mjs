@@ -78,6 +78,9 @@ const apps = [
     env: {
       ...shared,
       NUXT_PUBLIC_SITE_URL: websiteUrl,
+      // A stand-in Google client, so the Google button is there to test; the
+      // journeys stand in for Google's script and Supabase's answer (journey 23).
+      NUXT_PUBLIC_GOOGLE_CLIENT_ID: "e2e-test-client.apps.googleusercontent.com",
       NUXT_ADMIN_ORIGIN: adminUrl,
       NUXT_EMAIL_MODE: "off",
       NUXT_STRIPE_SECRET_KEY: stripeKey,
