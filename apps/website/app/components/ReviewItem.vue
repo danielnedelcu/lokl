@@ -18,7 +18,7 @@ const listingHref = computed(() => props.review.listing
       <p class="text-muted-foreground text-sm">{{ bookedLabel(review.bookingMonth) }}<template v-if="review.editedAt"> · Edited</template></p>
     </div>
     <p v-if="showListing && review.listing" class="text-sm">
-      For <NuxtLink :to="listingHref!" class="font-medium">{{ review.listing.title }}</NuxtLink>
+      For <NuxtLink :to="listingHref!" class="link-text">{{ review.listing.title }}</NuxtLink>
     </p>
     <p class="leading-relaxed whitespace-pre-line">{{ review.body }}</p>
     <button type="button" class="text-muted-foreground hover:text-foreground -mx-1 min-h-11 rounded px-1 text-sm"

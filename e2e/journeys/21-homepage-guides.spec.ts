@@ -133,10 +133,11 @@ test("the admin chooses a main guide and two more, and the homepage shows them i
     `h1 ${HEADLINE}`, `h2 ${main.title}`, "h2 On lokl now", "h3 Offer your Services or host Experiences",
     "h2 Guides to Atlanta", `h3 ${two.title}`, `h3 ${one.title}`, "h2 Got a skill? Get booked.",
   ]);
-  // The Browse links moved into the "On lokl now" header.
+  // "On lokl now" has one link in its header: "Everything in Atlanta" (no Browse links).
   const onLokl = body.getByRole("region", { name: "On lokl now" });
-  await expect(onLokl.getByRole("link", { name: "Browse Experiences" })).toHaveAttribute("href", "/atlanta/experiences");
-  await expect(onLokl.getByRole("link", { name: "Browse Services" })).toHaveAttribute("href", "/atlanta/services");
+  const everything = onLokl.getByRole("link", { name: "Everything in Atlanta" });
+  await expect(everything).toHaveAttribute("href", "/atlanta");
+  await expect(onLokl.getByRole("link", { name: /^Browse / })).toHaveCount(0);
   // The host card is the right-hand column of "On lokl now", and the
   // hosting section closes the page; both invite people to host.
   // Signed out, "Get started" and "Start hosting" open sign-in (journey 22 follows them through).
@@ -149,6 +150,32 @@ test("the admin chooses a main guide and two more, and the homepage shows them i
   await expect(hosting.getByRole("listitem")).toHaveText([/^No upfront fees/, /^Your price, your place/, /^Paid through Stripe/]);
   const guides = body.getByRole("region", { name: "Guides to Atlanta" });
   await expect(guides.getByRole("link", { name: "See all guides" })).toHaveAttribute("href", "/atlanta/guides");
+
+  // The link styles (docs/frontend.md, Links): secondary links are lighter
+  // than primary ones, 36px against 44px, and still 44px to tap.
+  const seeAll = guides.getByRole("link", { name: "See all guides" });
+  for (const secondary of [everything, seeAll]) {
+    await expect(secondary).toHaveClass(/\blink-secondary\b/);
+    expect((await secondary.boundingBox())!.height, "a secondary link is 36px tall").toBe(36);
+  }
+  // The header's menu: tertiary links, the same size without a border.
+  const menuLink = page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Experiences" });
+  await expect(menuLink).toHaveClass(/\blink-tertiary\b/);
+  expect((await menuLink.boundingBox())!.height, "a tertiary link is 36px tall").toBe(36);
+  expect(await menuLink.evaluate((e) => getComputedStyle(e).borderTopWidth), "...with no border").toBe("0px");
+  for (const primary of [onLokl.getByRole("button", { name: "Get started" }), hosting.getByRole("button", { name: "Start hosting" })]) {
+    await expect(primary).toHaveClass(/\blink-primary\b/);
+    expect((await primary.boundingBox())!.height, "a primary link is 44px tall").toBe(44);
+  }
+  await seeAll.scrollIntoViewIfNeeded(); // elementFromPoint only finds what's on screen
+  const seeAllBox = (await seeAll.boundingBox())!;
+  const tapped = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("a")?.textContent?.trim(), [seeAllBox.x + seeAllBox.width / 2, seeAllBox.y - 3]);
+  expect(tapped, "a tap just above a secondary link still reaches it").toBe("See all guides");
+
+  // The hosting section lines up with the other sections.
+  const panel = (await hosting.locator("> div").boundingBox())!;
+  const loklHeading = (await onLokl.getByRole("heading", { name: "On lokl now" }).boundingBox())!;
+  expect(Math.abs(panel.x - loklHeading.x), "the hosting section starts where the others do").toBeLessThan(1);
 
   // Wide: the text on the left of the cards, level with them.
   const text = await guides.getByRole("heading", { name: "Guides to Atlanta" }).boundingBox();

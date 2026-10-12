@@ -34,8 +34,8 @@ const seeAll = computed(() => {
   <section v-if="listings.total" aria-labelledby="guide-listings-heading" class="border-border mt-12 border-t pt-10">
     <div class="flex flex-wrap items-end justify-between gap-2">
       <h2 id="guide-listings-heading" class="text-xl font-semibold">{{ heading }}</h2>
-      <p class="flex flex-wrap gap-x-4 text-sm">
-        <NuxtLink v-for="l in seeAll" :key="l.to" :to="l.to" class="font-medium">{{ l.label }}</NuxtLink>
+      <p class="flex flex-wrap gap-2">
+        <NuxtLink v-for="l in seeAll" :key="l.to" :to="l.to" class="link-secondary">{{ l.label }}</NuxtLink>
       </p>
     </div>
     <ul class="mt-6 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">

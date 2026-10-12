@@ -49,6 +49,40 @@ Never hand-copy a component from the ui-thing website or another project.
 - Typography and spacing use Tailwind's scale; no arbitrary pixel values without a reason.
 - The font is Roboto, served from our own site by `@nuxt/fonts` (configured in `packages/ui/nuxt.config.ts`, used through `--font-sans` in `tailwind.css`), so visitors' browsers never contact Google. No `<link>` to Google Fonts or other font CDNs. Only weights 400, 500 and 700 are loaded: use `font-normal`, `font-medium` and `font-bold`. Any other weight is drawn with the nearest loaded one (`font-semibold` draws as 700). `font-display: swap`, with system fonts (and a size-matched Arial fallback) until Roboto loads. To add a weight, add it in both places it's named: the config and this line. Display headings (`font-display`, used with `font-extrabold`) are Bricolage Grotesque 800, self-hosted the same way, the only weight loaded (2026-10-11: the homepage's hosting section).
 
+## Links
+
+Every link, and every button that looks like one, uses one of four
+classes (defined once, in `packages/ui/app/assets/css/tailwind.css`;
+decided 2026-10-11), so links look the same everywhere:
+
+| Class | Looks like | Height | For |
+| --- | --- | --- | --- |
+| `link-primary` | A black button, white text, fully rounded | 44px | The main thing to do in a section: "Get started", "Start hosting", "Browse Experiences" |
+| `link-secondary` | White, a black border, fully rounded | 36px to look at, 44px to tap (an invisible 4px above and below) | Everything else that looks like a button: "Everything in Atlanta", "See all guides", "Browse Services" |
+| `link-tertiary` | Like `link-secondary` with no border: just the text, a light grey background on hover | 36px to look at, 44px to tap | The header's menu (Experiences, Services), the back links, and other quiet links that still look like buttons |
+| `link-text` | Plain text, underlined, `font-medium` | The line's | Links in a sentence or a list |
+
+- Add spacing and placement classes beside them (`mt-6`, `self-start`),
+  not new colours, sizes or radii. A new kind of link is a change to this
+  table and the CSS, not a one-off.
+- Use at most one `link-primary` in a section, so the main action is clear.
+- They work on `<NuxtLink>`, `<a>` and `<button>` alike. A button that
+  opens a dialog keeps `aria-haspopup="dialog"`.
+- A `link-secondary` marked as the current page (`aria-current="page"`:
+  the browse category pills, page numbers) is filled black, so the
+  selection isn't shown by colour alone: it's announced as the current page.
+- Not converted, on purpose: whole-card and whole-row links (listing and
+  guide cards, booking rows), whose look is the card; menus with their own
+  item style (the dashboard sidebar, shared with the admin app, the account
+  dropdown's items); and the logo. Links that open in a sentence are
+  `link-text`, including email and phone links.
+- The header's Sign in and Account are icon buttons, not link styles: a
+  person icon in a 44px light grey circle (`bg-muted`), no text, named
+  "Sign in" or "Account" by `aria-label` (2026-10-11).
+- Every website link uses them (converted 2026-10-11; the admin app's links
+  move over as its pages are next changed). `UiButton` is for actions that
+  aren't links: never give it `to` or `href`.
+
 ## Forms
 
 - Every form uses vee-validate with a zod schema, passed through the layer's `zodSchema()` adapter: `useForm({ validationSchema: zodSchema(schema) })`. The official `@vee-validate/zod` only supports zod 3, and vee-validate 4.15 can't take zod 4 schemas directly. Switch to the official adapter once one supports zod 4.
@@ -120,7 +154,7 @@ Every form control in both apps is one of ui-thing's own components, never a nat
 Target WCAG 2.2 AA in both apps.
 
 - Never use colour alone to carry meaning. Every status badge has text; every error has words.
-- Links are never underlined (a global rule in `packages/ui/app/assets/css/tailwind.css` enforces it). A link inside a sentence is `font-medium` so it stands out by weight, not colour alone; a standalone link reads as one from its wording ("See all guides", "← My bookings").
+- Links aren't underlined unless they're text links (`link-text`, underlined and `font-medium`); a global rule in `packages/ui/app/assets/css/tailwind.css` removes underlines from every other link (since 2026-10-11; before, no link was underlined). A link inside a sentence uses `link-text`, so it's told apart by its underline and weight, not colour alone; see Links.
 - Icon-only buttons have an `aria-label`. Decorative icons are hidden from screen readers.
 - Everything works with a keyboard, and focus is always visible. Dialogs and sheets trap and return focus (ui-thing's Reka components do this; don't break it with custom wrappers).
 - Photos need alt text; the listing editor requires it.

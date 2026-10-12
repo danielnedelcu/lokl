@@ -51,7 +51,7 @@ async function send() {
       <UiDialogHeader>
         <UiDialogTitle>Report {{ target === "reply" ? `the reply to ${name}'s review` : `${name}'s review` }}</UiDialogTitle>
         <UiDialogDescription>
-          It stays up while we look at it against our <NuxtLink to="/review-rules" class="font-medium" target="_blank">review rules</NuxtLink>.
+          It stays up while we look at it against our <NuxtLink to="/review-rules" class="link-text" target="_blank">review rules</NuxtLink>.
           We never remove a review for being negative.
         </UiDialogDescription>
       </UiDialogHeader>

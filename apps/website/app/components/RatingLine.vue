@@ -13,7 +13,7 @@ const line = computed(() => ratingLine(props.rating));
 <template>
   <p class="flex items-center gap-1.5 text-sm">
     <component :is="rating.count ? 'a' : 'span'" :href="rating.count ? href : undefined"
-      class="inline-flex items-center gap-1.5" :class="rating.count && 'font-medium'">
+      class="inline-flex items-center gap-1.5" :class="rating.count && 'link-text'">
       <ReviewStars v-if="line.showAverage" :value="rating.average ?? 0" spoken="" />
       <span aria-hidden="true">{{ line.text }}</span>
       <span class="sr-only">{{ line.spoken }}</span>

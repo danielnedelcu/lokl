@@ -22,7 +22,7 @@ const { failed } = useSignInConfirm("/dashboard");
             This link didn't work in this browser. Sign-in links only work in the browser you asked from.
             Sign in again here: you'll get a new code, which you can type into this browser.
           </p>
-          <UiButton to="/login" class="w-full">Sign in again</UiButton>
+          <NuxtLink to="/login" class="link-primary w-full">Sign in again</NuxtLink>
         </UiCardContent>
       </UiCard>
     </div>

@@ -27,7 +27,7 @@ const facts = computed(() => [props.provider.market ? `Based in ${props.provider
         <!-- The provider's combined rating beside the name (docs/design/reviews.md). -->
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
           <p class="text-lg font-semibold">
-            <NuxtLink :to="profileUrl">{{ provider.name }}</NuxtLink>
+            <NuxtLink :to="profileUrl" class="link-text">{{ provider.name }}</NuxtLink>
           </p>
           <RatingLine :rating="provider.rating" :href="`${profileUrl}#reviews`" />
         </div>
@@ -36,7 +36,7 @@ const facts = computed(() => [props.provider.market ? `Based in ${props.provider
       </div>
     </div>
     <p v-if="provider.bio" class="mt-4 line-clamp-2 leading-relaxed whitespace-pre-line">{{ provider.bio }}</p>
-    <NuxtLink :to="profileUrl" class="mt-3 inline-flex min-h-11 items-center gap-1 text-sm font-medium">
+    <NuxtLink :to="profileUrl" class="link-secondary mt-3">
       View {{ provider.name }}'s profile<Icon name="lucide:arrow-right" class="size-4" aria-hidden="true" />
     </NuxtLink>
   </section>
@@ -44,7 +44,7 @@ const facts = computed(() => [props.provider.market ? `Based in ${props.provider
   <section v-if="more.items.length" aria-labelledby="more-heading">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
       <h2 id="more-heading" class="text-lg font-semibold">More from {{ provider.name }}</h2>
-      <NuxtLink v-if="more.total > more.items.length" :to="profileUrl" class="text-sm font-medium">See all ({{ more.total }})</NuxtLink>
+      <NuxtLink v-if="more.total > more.items.length" :to="profileUrl" class="link-secondary">See all ({{ more.total }})</NuxtLink>
     </div>
     <ul class="mt-3 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
       <li v-for="item in more.items" :key="item.id">

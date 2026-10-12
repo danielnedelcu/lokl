@@ -387,14 +387,14 @@ const statusNote = computed(() => {
       <UiAlertTitle>We couldn't find that listing</UiAlertTitle>
       <UiAlertDescription>
         It may have been deleted.
-        <NuxtLink to="/dashboard" class="font-medium">Back to your dashboard</NuxtLink>
+        <NuxtLink to="/dashboard" class="link-text">Back to your dashboard</NuxtLink>
       </UiAlertDescription>
     </UiAlert>
 
     <UiAlert v-else-if="!provider" class="max-w-lg">
       <UiAlertTitle>Set up your business profile first</UiAlertTitle>
       <UiAlertDescription>
-        <NuxtLink to="/dashboard/settings" class="font-medium">Go to your business profile</NuxtLink>
+        <NuxtLink to="/dashboard/settings" class="link-text">Go to your business profile</NuxtLink>
       </UiAlertDescription>
     </UiAlert>
 
@@ -555,7 +555,7 @@ const statusNote = computed(() => {
                 <Icon :name="item.done ? 'lucide:circle-check' : 'lucide:circle'" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>
                   <span class="sr-only">{{ item.done ? "Done:" : "To do:" }}</span>
-                  <NuxtLink v-if="!item.done && item.key === 'payouts'" to="/dashboard/payouts" class="font-medium">{{ item.label }}</NuxtLink>
+                  <NuxtLink v-if="!item.done && item.key === 'payouts'" to="/dashboard/payouts" class="link-text">{{ item.label }}</NuxtLink>
                   <template v-else>{{ item.label }}</template>
                 </span>
               </li>

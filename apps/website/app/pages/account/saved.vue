@@ -42,8 +42,8 @@ const profileHref = (slug: string) => `/providers/${slug}`;
       <p class="font-medium">Nothing saved yet.</p>
       <p class="text-muted-foreground mt-1 text-sm">Tap the heart on a listing or a provider to keep it here.</p>
       <div class="mt-4 flex flex-wrap justify-center gap-3">
-        <UiButton to="/atlanta/experiences">Browse Experiences</UiButton>
-        <UiButton variant="outline" to="/atlanta/services">Browse Services</UiButton>
+        <NuxtLink to="/atlanta/experiences" class="link-primary">Browse Experiences</NuxtLink>
+        <NuxtLink to="/atlanta/services" class="link-secondary">Browse Services</NuxtLink>
       </div>
     </div>
     <template v-else>
@@ -81,7 +81,7 @@ const profileHref = (slug: string) => `/providers/${slug}`;
             <div class="border-border flex items-start gap-3 rounded-lg border p-3" :class="removed('provider', s.id) && 'opacity-60'">
               <ProviderAvatar :name="s.provider!.name" :path="s.provider!.avatarSmallPath ?? s.provider!.avatarPath" :size="48" />
               <div class="min-w-0 flex-1">
-                <NuxtLink :to="profileHref(s.provider!.slug)" class="font-medium">{{ s.provider!.name }}</NuxtLink>
+                <NuxtLink :to="profileHref(s.provider!.slug)" class="link-text">{{ s.provider!.name }}</NuxtLink>
                 <p v-if="s.provider!.headline" class="text-muted-foreground mt-0.5 text-sm">{{ s.provider!.headline }}</p>
               </div>
               <SaveButton kind="provider" :id="s.id" :name="s.provider!.name" :provider-id="s.id" />

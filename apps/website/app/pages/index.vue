@@ -58,9 +58,9 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
         <p class="text-muted-foreground mt-4 max-w-xl text-lg">
           Tours, classes and outings hosted by local people, and services at your place or theirs, across the metro.
         </p>
-        <div class="mt-8 flex flex-wrap gap-3">
-          <UiButton :to="`/${MARKET}/experiences`">Browse Experiences</UiButton>
-          <UiButton variant="outline" :to="`/${MARKET}/services`">Browse Services</UiButton>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <NuxtLink :to="`/${MARKET}/experiences`" class="link-primary">Browse Experiences</NuxtLink>
+          <NuxtLink :to="`/${MARKET}/services`" class="link-secondary">Browse Services</NuxtLink>
         </div>
       </div>
     </section>
@@ -68,14 +68,7 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
     <section aria-labelledby="featured-heading" class="mx-auto max-w-6xl px-4 py-12">
       <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <h2 id="featured-heading" class="text-xl font-semibold">On lokl now</h2>
-        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium">
-          <!-- With a main guide, the Browse links live here instead of the headline block. -->
-          <template v-if="mainGuide">
-            <NuxtLink :to="`/${MARKET}/experiences`">Browse Experiences</NuxtLink>
-            <NuxtLink :to="`/${MARKET}/services`">Browse Services</NuxtLink>
-          </template>
-          <NuxtLink :to="`/${MARKET}`">Everything in Atlanta</NuxtLink>
-        </div>
+        <NuxtLink :to="`/${MARKET}`" class="link-secondary">Everything in Atlanta</NuxtLink>
       </div>
       <!-- Listings in the left two columns, the host card the third; on
            tablets and phones the card follows the listings. -->

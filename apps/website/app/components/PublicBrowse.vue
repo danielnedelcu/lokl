@@ -120,7 +120,7 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
     <nav aria-label="Breadcrumb" class="text-muted-foreground mb-4 text-sm">
       <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
         <li v-for="(c, i) in crumbs" :key="c.to" class="flex items-center gap-1.5">
-          <NuxtLink v-if="i < crumbs.length - 1" :to="c.to" class="hover:text-foreground">{{ c.name }}</NuxtLink>
+          <NuxtLink v-if="i < crumbs.length - 1" :to="c.to" class="link-text">{{ c.name }}</NuxtLink>
           <span v-else aria-current="page" class="text-foreground">{{ c.name }}</span>
           <Icon v-if="i < crumbs.length - 1" name="lucide:chevron-right" class="size-3.5" aria-hidden="true" />
         </li>
@@ -137,14 +137,12 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
     <nav v-if="categories.length" aria-label="Categories" class="mt-6">
       <ul class="flex flex-wrap gap-2">
         <li>
-          <NuxtLink :to="basePath" class="border-border hover:bg-accent inline-flex min-h-11 items-center rounded-full border px-4 text-sm"
-            :class="!categorySlug && 'bg-primary text-primary-foreground hover:bg-primary border-primary'" :aria-current="!categorySlug ? 'page' : undefined">
+          <NuxtLink :to="basePath" class="link-secondary" :aria-current="!categorySlug ? 'page' : undefined">
             All
           </NuxtLink>
         </li>
         <li v-for="c in categories" :key="c.slug">
-          <NuxtLink :to="`${basePath}/${c.slug}`" class="border-border hover:bg-accent inline-flex min-h-11 items-center rounded-full border px-4 text-sm"
-            :class="c.slug === categorySlug && 'bg-primary text-primary-foreground hover:bg-primary border-primary'" :aria-current="c.slug === categorySlug ? 'page' : undefined">
+          <NuxtLink :to="`${basePath}/${c.slug}`" class="link-secondary" :aria-current="c.slug === categorySlug ? 'page' : undefined">
             {{ c.name }}<span class="opacity-70">&nbsp;({{ c.count }})</span>
           </NuxtLink>
         </li>
@@ -169,12 +167,12 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
         </div>
       </template>
       <UiButton type="submit" variant="outline">Show results</UiButton>
-      <UiButton v-if="filtering" variant="link" :to="pagePath">Clear filters</UiButton>
+      <NuxtLink v-if="filtering" :to="pagePath" class="link-text text-sm">Clear filters</NuxtLink>
     </form>
     <p v-if="kind === 'experience'" class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
       <span class="text-muted-foreground">Quick dates:</span>
-      <NuxtLink :to="withQuery(weekend)" class="font-medium">This weekend</NuxtLink>
-      <NuxtLink :to="withQuery(next7)" class="font-medium">Next 7 days</NuxtLink>
+      <NuxtLink :to="withQuery(weekend)" class="link-text">This weekend</NuxtLink>
+      <NuxtLink :to="withQuery(next7)" class="link-text">Next 7 days</NuxtLink>
     </p>
 
     <section aria-labelledby="results-heading" class="mt-8">
@@ -189,7 +187,7 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
         <div v-if="!pending && !result?.items.length" class="border-border rounded-lg border border-dashed p-8 text-center">
           <template v-if="filtering">
             <p class="font-medium">Nothing matches these filters.</p>
-            <UiButton class="mt-4" variant="outline" :to="pagePath">Clear filters</UiButton>
+            <NuxtLink :to="pagePath" class="link-secondary mt-4">Clear filters</NuxtLink>
           </template>
           <template v-else>
             <p class="font-medium">There are no {{ kindWord }} {{ category ? `in ${category.name} ` : "" }}in {{ market.name }} yet.</p>
@@ -206,8 +204,7 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
         <nav v-if="pages > 1" aria-label="Pages" class="mt-10">
           <ul class="flex flex-wrap justify-center gap-2">
             <li v-for="n in pages" :key="n">
-              <NuxtLink :to="pageLink(n)" class="border-border hover:bg-accent inline-flex size-11 items-center justify-center rounded-md border text-sm"
-                :class="n === filters.page && 'bg-primary text-primary-foreground border-primary hover:bg-primary'"
+              <NuxtLink :to="pageLink(n)" class="link-secondary min-w-9 px-3"
                 :aria-current="n === filters.page ? 'page' : undefined" :aria-label="`Page ${n}`">
                 {{ n }}
               </NuxtLink>

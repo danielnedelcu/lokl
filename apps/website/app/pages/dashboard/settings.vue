@@ -101,7 +101,7 @@ const save = handleSubmit(async (values) => {
     </UiCard>
 
     <p v-if="provider" class="mt-6 text-sm">
-      <NuxtLink v-if="profilePublic" :to="`/providers/${provider.slug}`" class="font-medium">See your public profile</NuxtLink>
+      <NuxtLink v-if="profilePublic" :to="`/providers/${provider.slug}`" class="link-secondary">See your public profile</NuxtLink>
       <span v-else class="text-muted-foreground">Your public profile appears once one of your listings is live.</span>
     </p>
   </div>

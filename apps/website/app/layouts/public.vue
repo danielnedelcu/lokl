@@ -25,17 +25,19 @@ async function signOut() {
     <header class="border-border border-b">
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4">
         <NuxtLink to="/" class="text-lg font-semibold tracking-tight">lokl</NuxtLink>
-        <nav aria-label="Main" class="flex items-center text-sm sm:gap-1">
-          <NuxtLink to="/experiences" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">Experiences</NuxtLink>
-          <NuxtLink to="/services" class="hover:bg-accent rounded-md px-2 py-2.5 sm:px-3">Services</NuxtLink>
+        <!-- The menu: tertiary links, no border (docs/frontend.md, Links). -->
+        <nav aria-label="Main" class="flex items-center gap-1.5 sm:gap-2">
+          <NuxtLink to="/experiences" class="link-tertiary px-3 sm:px-4">Experiences</NuxtLink>
+          <NuxtLink to="/services" class="link-tertiary px-3 sm:px-4">Services</NuxtLink>
           <!-- Account menu (Reka): opens with Enter, Space or a tap; arrow keys
                move through it, Escape closes it and focus returns to the button. -->
           <UiDropdownMenu v-if="user">
             <UiDropdownMenuTrigger as-child>
-              <button id="account-menu" type="button" class="hover:bg-accent focus-visible:ring-ring flex min-h-11 items-center gap-1 rounded-md px-2 focus-visible:ring-2 focus-visible:outline-none sm:px-3">
-                <Icon name="lucide:circle-user" class="size-4" aria-hidden="true" />
-                Account
-                <Icon name="lucide:chevron-down" class="size-3.5" aria-hidden="true" />
+              <!-- Account: the same grey circle as Sign in (2026-10-11), named
+                   "Account"; the dropdown says it's a menu. -->
+              <button id="account-menu" type="button" aria-label="Account"
+                class="bg-muted text-foreground hover:bg-border focus-visible:ring-ring inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2">
+                <Icon name="lucide:circle-user-round" class="size-6" aria-hidden="true" />
               </button>
             </UiDropdownMenuTrigger>
             <UiDropdownMenuContent align="end" class="w-56">
@@ -56,8 +58,13 @@ async function signOut() {
               </UiDropdownMenuItem>
             </UiDropdownMenuContent>
           </UiDropdownMenu>
-          <button v-else type="button" class="hover:bg-accent focus-visible:ring-ring min-h-11 rounded-md px-2 focus-visible:ring-2 focus-visible:outline-none sm:px-3"
-            @click="signIn.open({ title: 'Sign in or sign up', focusAfter: '#account-menu', offerDashboard: true })">Sign in</button>
+          <!-- Sign in: an icon in a grey circle, no text (2026-10-11); named by
+               aria-label, 44px to tap (docs/frontend.md, Links). -->
+          <button v-else type="button" aria-label="Sign in" aria-haspopup="dialog"
+            class="bg-muted text-foreground hover:bg-border focus-visible:ring-ring inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            @click="signIn.open({ title: 'Sign in or sign up', focusAfter: '#account-menu', offerDashboard: true })">
+            <Icon name="lucide:circle-user-round" class="size-6" aria-hidden="true" />
+          </button>
         </nav>
       </div>
     </header>

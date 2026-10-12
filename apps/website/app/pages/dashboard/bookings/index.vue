@@ -96,7 +96,7 @@ const money = (cents: number) => formatMoney(cents, "usd");
             <p v-if="b.customer_notes" class="mt-3 line-clamp-3 whitespace-pre-line text-sm">“{{ b.customer_notes }}”</p>
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
               <p class="text-sm text-muted-foreground">You'd receive {{ money(b.provider_amount_cents) }}</p>
-              <UiButton :to="`/dashboard/bookings/${b.id}`">Answer this request</UiButton>
+              <NuxtLink :to="`/dashboard/bookings/${b.id}`" class="link-primary">Answer this request</NuxtLink>
             </div>
           </li>
         </ul>
@@ -116,10 +116,10 @@ const money = (cents: number) => formatMoney(cents, "usd");
               <dd>{{ b.customer_name }}<template v-if="b.kind === 'experience'"> · {{ b.party_size }} {{ b.party_size === 1 ? "person" : "people" }}</template></dd>
               <template v-if="b.contact">
                 <dt class="text-muted-foreground">Email</dt>
-                <dd><a :href="`mailto:${b.contact.email}`" class="font-medium">{{ b.contact.email }}</a></dd>
+                <dd><a :href="`mailto:${b.contact.email}`" class="link-text">{{ b.contact.email }}</a></dd>
                 <template v-if="b.contact.phone">
                   <dt class="text-muted-foreground">Phone</dt>
-                  <dd><a :href="`tel:${b.contact.phone}`" class="font-medium">{{ b.contact.phone }}</a></dd>
+                  <dd><a :href="`tel:${b.contact.phone}`" class="link-text">{{ b.contact.phone }}</a></dd>
                 </template>
               </template>
               <template v-if="b.address">
@@ -128,7 +128,7 @@ const money = (cents: number) => formatMoney(cents, "usd");
               </template>
             </dl>
             <p v-if="b.customer_notes" class="mt-2 line-clamp-3 whitespace-pre-line text-sm">“{{ b.customer_notes }}”</p>
-            <NuxtLink :to="`/dashboard/bookings/${b.id}`" class="mt-3 inline-flex min-h-11 items-center text-sm font-medium">
+            <NuxtLink :to="`/dashboard/bookings/${b.id}`" class="link-secondary mt-3">
               See details
             </NuxtLink>
           </li>

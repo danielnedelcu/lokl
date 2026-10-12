@@ -20,7 +20,7 @@ const { data, error, pending } = await useFetch<Row[]>("/api/provider/reviews", 
     <h1 class="text-2xl font-semibold tracking-tight">Reviews</h1>
     <p class="text-muted-foreground mt-1 text-sm">
       Customers can review a booking for 14 days after it ends. You can post one public reply to each.
-      <NuxtLink to="/review-rules" class="font-medium">Review rules</NuxtLink>
+      <NuxtLink to="/review-rules" class="link-text">Review rules</NuxtLink>
     </p>
 
     <UiAlert v-if="error" variant="destructive" class="mt-6">
@@ -41,9 +41,9 @@ const { data, error, pending } = await useFetch<Row[]>("/api/provider/reviews", 
         <p v-if="r.status === 'removed'" class="text-sm">lokl removed this review because it {{ r.removedRule ? REVIEW_RULES[r.removedRule].title.toLowerCase() : "broke a review rule" }}.</p>
         <p v-else class="line-clamp-3 whitespace-pre-line">{{ r.body }}</p>
         <div class="flex flex-wrap items-center gap-3">
-          <UiButton :to="`/dashboard/bookings/${r.bookingId}#review`" variant="outline" size="sm" class="min-h-11">
+          <NuxtLink :to="`/dashboard/bookings/${r.bookingId}#review`" class="link-secondary">
             {{ r.status === "published" && !r.replied ? "Reply" : "See the booking" }}<span class="sr-only"> to {{ r.reviewerName }}'s review</span>
-          </UiButton>
+          </NuxtLink>
           <p v-if="r.status === 'published' && !r.replied" class="text-muted-foreground flex items-center gap-1.5 text-sm">
             <Icon name="lucide:message-circle" class="size-4" aria-hidden="true" />Not replied yet
           </p>

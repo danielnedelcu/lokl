@@ -96,7 +96,7 @@ watch(() => user.value?.sub, (id) => {
         <p v-if="moreError" role="alert" class="text-destructive mt-2 text-sm">{{ moreError }}</p>
       </div>
       <p class="text-muted-foreground mt-4 text-sm">
-        Reviews are from customers whose booking took place. <NuxtLink to="/review-rules" class="font-medium">Our review rules</NuxtLink>
+        Reviews are from customers whose booking took place. <NuxtLink to="/review-rules" class="link-text">Our review rules</NuxtLink>
       </p>
     </template>
     <ReportReviewDialog v-if="reporting" v-model:open="reportOpen" :review-id="reporting.reviewId" :target="reporting.target" :name="reporting.name" />

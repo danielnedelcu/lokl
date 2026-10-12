@@ -3,7 +3,8 @@
 // (2026-10-11), on the hosts' orange with black text. On tablets and phones
 // it comes after the listings, full width.
 // "Get started" goes to the dashboard (StartHostingButton).
-const button = "bg-hosts-ink text-hosts-ink-foreground focus-visible:ring-hosts-ink mt-6 self-start rounded-full px-5 py-3 text-sm font-bold outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-hosts lg:mt-auto";
+// A primary link (docs/frontend.md, Links), at the bottom of the card on wide screens.
+const button = "link-primary mt-6 self-start lg:mt-auto";
 </script>
 
 <template>

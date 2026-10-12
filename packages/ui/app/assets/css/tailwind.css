@@ -281,7 +281,8 @@
   }
 }
 
-/* Links are never underlined, anywhere in either app (decided 2026-10-03).
+/* Links aren't underlined unless they're text links (link-text, below):
+   no underline by default, anywhere in either app (decided 2026-10-03).
    Outside any layer on purpose, so it wins over Tailwind's utilities too
    (an `underline` or `group-hover:underline` class, on a link or on
    anything inside one). Links inside sentences are font-medium instead, so
@@ -289,4 +290,47 @@
 a,
 a * {
   text-decoration-line: none;
+}
+
+/* The four link styles (docs/frontend.md, Links; 2026-10-11). Every link
+   or link-like button gets one, so links look the same everywhere:
+   - link-primary: a black button with white text, for the main thing to
+     do ("Get started", "Start hosting"). 44px tall.
+   - link-secondary: white with a black border, for everything else that
+     looks like a button (the header's menu, "Everything in Atlanta", "See
+     all guides"). 36px tall, so it reads as lighter than a primary link,
+     with an invisible 4px above and below so it's still 44px to tap.
+   - link-tertiary: the same as link-secondary without the border (a light
+     grey background on hover), for quieter links beside a secondary one.
+   - link-text: plain text, underlined, for links in a sentence or a list. */
+@utility link-primary {
+  @apply bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-bold whitespace-nowrap transition-colors outline-none hover:bg-primary/85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+@utility link-secondary {
+  @apply bg-background text-foreground border-foreground relative inline-flex h-9 items-center justify-center gap-1.5 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  /* The current page among several (category pills, page numbers): filled. */
+  &[aria-current="page"] {
+    @apply bg-primary text-primary-foreground border-primary hover:bg-primary;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+}
+@utility link-tertiary {
+  @apply text-foreground relative inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+}
+@utility link-text {
+  @apply font-medium underline-offset-4 hover:decoration-2;
+}
+/* A text link's underline: a class beats the element rule above (and an
+   underline drawn on the link can't be removed by what's inside it). */
+.link-text {
+  text-decoration-line: underline;
 }

@@ -80,8 +80,8 @@ const when = (b: Item) => {
       <p class="font-medium">No bookings yet.</p>
       <p class="text-muted-foreground mt-1 text-sm">When you book something, it shows up here.</p>
       <div class="mt-4 flex flex-wrap justify-center gap-3">
-        <UiButton to="/atlanta/experiences">Browse Experiences</UiButton>
-        <UiButton variant="outline" to="/atlanta/services">Browse Services</UiButton>
+        <NuxtLink to="/atlanta/experiences" class="link-primary">Browse Experiences</NuxtLink>
+        <NuxtLink to="/atlanta/services" class="link-secondary">Browse Services</NuxtLink>
       </div>
     </div>
     <template v-else>

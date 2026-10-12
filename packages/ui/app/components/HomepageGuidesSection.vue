@@ -34,7 +34,7 @@ const listSpan = computed(() => (shown.value.length === 2 ? "lg:col-span-2" : "l
           Ideas for what to see, eat and do around the city, with Experiences and Services to book along the way.
         </p>
         <NuxtLink :to="`${linkBase}/${market}/guides`" :target="linkBase ? '_blank' : undefined" :external="!!linkBase"
-          class="mt-4 inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline">
+          class="link-secondary mt-4">
           See all guides <Icon name="lucide:arrow-right" aria-hidden="true" />
         </NuxtLink>
       </div>

@@ -172,7 +172,7 @@ async function deleteReply() {
       <p v-if="error" role="alert" class="text-destructive text-sm">{{ error }}</p>
       <p class="text-sm">
         Your review will show as <strong>{{ state.reviewer_name }}</strong>. You can edit or delete it until {{ until }}.
-        <NuxtLink to="/review-rules" class="font-medium">Our review rules</NuxtLink>
+        <NuxtLink to="/review-rules" class="link-text">Our review rules</NuxtLink>
       </p>
       <div class="flex flex-wrap gap-3">
         <UiButton type="submit" :disabled="busy">{{ busy ? "Posting…" : editing ? "Save changes" : "Post review" }}</UiButton>
@@ -185,7 +185,7 @@ async function deleteReply() {
       <div v-if="state.review.status === 'removed'" class="mt-3 text-sm">
         <p>
           lokl removed {{ state.role === "customer" ? "your" : "this" }} review because it {{ ruleTitle(state.review.removed_rule) }}.
-          <NuxtLink to="/review-rules" class="font-medium">Our review rules</NuxtLink>
+          <NuxtLink to="/review-rules" class="link-text">Our review rules</NuxtLink>
         </p>
       </div>
       <div v-else class="mt-3 space-y-2">
@@ -193,7 +193,7 @@ async function deleteReply() {
         <p class="leading-relaxed whitespace-pre-line">{{ state.review.body }}</p>
         <p class="text-muted-foreground text-sm">
           {{ state.reviewer_name }} · {{ formatSessionDate(state.review.created_at, timezone) }}<template v-if="state.review.edited_at"> · Edited</template>
-          <template v-if="listingPath"> · <NuxtLink :to="`${listingPath}#reviews`" class="font-medium">See it on the listing</NuxtLink></template>
+          <template v-if="listingPath"> · <NuxtLink :to="`${listingPath}#reviews`" class="link-text">See it on the listing</NuxtLink></template>
         </p>
         <div v-if="state.review.can_change" class="flex flex-wrap gap-3 pt-1">
           <UiButton variant="outline" size="sm" class="min-h-11" @click="startEdit">Edit</UiButton>

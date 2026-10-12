@@ -55,14 +55,14 @@ useLiveData({ refresh, listings: "any" });
         <h1 class="text-2xl font-semibold tracking-tight">{{ copy.title }}</h1>
         <p class="text-muted-foreground mt-1 text-sm">{{ copy.intro }}</p>
       </div>
-      <UiButton v-if="provider" :to="`/dashboard/listings/new?kind=${kind}`">{{ copy.create }}</UiButton>
+      <NuxtLink v-if="provider" :to="`/dashboard/listings/new?kind=${kind}`" class="link-primary">{{ copy.create }}</NuxtLink>
     </div>
 
     <UiAlert v-if="!provider" class="mt-6">
       <UiAlertTitle>Set up your business profile first</UiAlertTitle>
       <UiAlertDescription>
         Listings belong to your business.
-        <NuxtLink to="/dashboard/settings" class="font-medium">Go to your business profile</NuxtLink>
+        <NuxtLink to="/dashboard/settings" class="link-text">Go to your business profile</NuxtLink>
       </UiAlertDescription>
     </UiAlert>
 

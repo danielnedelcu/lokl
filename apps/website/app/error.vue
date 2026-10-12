@@ -24,8 +24,8 @@ useSeoMeta({ title: () => (notFound.value ? "Not found" : "Something went wrong"
       </h1>
       <p class="text-muted-foreground mt-3">{{ message }}</p>
       <div class="mt-8 flex flex-wrap justify-center gap-3">
-        <UiButton to="/experiences" @click="clearError({ redirect: '/experiences' })">Browse Experiences</UiButton>
-        <UiButton variant="outline" to="/services" @click="clearError({ redirect: '/services' })">Browse Services</UiButton>
+        <NuxtLink to="/experiences" class="link-primary" @click="clearError({ redirect: '/experiences' })">Browse Experiences</NuxtLink>
+        <NuxtLink to="/services" class="link-secondary" @click="clearError({ redirect: '/services' })">Browse Services</NuxtLink>
       </div>
     </div>
   </NuxtLayout>

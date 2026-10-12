@@ -60,7 +60,7 @@ async function signOut() {
           <UiAlertDescription>
             Your listings are hidden, so customers can't find or book them. Requests you hadn't answered have been
             withdrawn, and your payouts are on hold. Bookings that were already confirmed still go ahead.
-            <template v-if="supportEmail">Questions? Email <a :href="`mailto:${supportEmail}`" class="font-medium">{{ supportEmail }}</a>.</template>
+            <template v-if="supportEmail">Questions? Email <a :href="`mailto:${supportEmail}`" class="link-text">{{ supportEmail }}</a>.</template>
             <template v-else>Questions? Reply to the email we sent you.</template>
           </UiAlertDescription>
         </UiAlert>
