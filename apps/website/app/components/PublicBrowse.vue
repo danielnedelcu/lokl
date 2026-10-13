@@ -81,13 +81,8 @@ const countLine = computed(() => {
 
 // Date shortcuts, in the market's time zone.
 const today = computed(() => todayIn(market.value.timezone));
-const weekday = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay(); // 0 = Sunday
-const weekend = computed(() => {
-  const d = weekday(today.value);
-  if (d === 0) return { from: today.value, to: today.value };
-  const saturday = addDays(today.value, 6 - d);
-  return { from: d === 6 ? today.value : saturday, to: addDays(saturday, 1) };
-});
+// The same "this weekend" as the header search (quickDates).
+const weekend = computed(() => quickDates(market.value.timezone).weekend);
 const next7 = computed(() => ({ from: today.value, to: addDays(today.value, 6) }));
 const withQuery = (extra: Record<string, string | undefined>) => ({
   path: pagePath,

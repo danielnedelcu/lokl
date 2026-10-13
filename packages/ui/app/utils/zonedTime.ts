@@ -3,7 +3,7 @@
 // Built on @internationalized/date (also used by Reka UI), which handles
 // daylight saving: a weekly 10:00 AM series stays at 10:00 AM local time when
 // the clocks change, even though its UTC time moves by an hour.
-import { parseDate, parseDateTime, toZoned, now } from "@internationalized/date";
+import { getDayOfWeek, parseDate, parseDateTime, toZoned, now } from "@internationalized/date";
 
 /** A wall-clock date and time in a city: "2026-10-24" and "10:00". */
 export interface LocalDateTime {
@@ -50,6 +50,34 @@ export function todayIn(timeZone: string, at?: string): string {
 /** The instant this month began in `timeZone` (midnight on the 1st there). `at` is for tests. */
 export function monthStartIn(timeZone: string, at?: string): string {
   return zonedToInstant({ date: `${todayIn(timeZone, at).slice(0, 7)}-01`, time: "00:00" }, timeZone);
+}
+
+/** A calendar date ("2026-10-14") as "Wed, Oct 14": the day itself, in no zone. */
+export function formatCalendarDay(date: string): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(parseDate(date).toDate("UTC"));
+}
+
+/**
+ * The search bar's quick dates in `timeZone` (docs/design/search.md), with
+ * the dates shown under each. "This weekend" is Saturday and Sunday: Monday
+ * to Friday, the coming Saturday and Sunday; on Saturday, today and Sunday;
+ * on Sunday, today only. `at` is for tests.
+ */
+export function quickDates(timeZone: string, at?: string) {
+  const today = todayIn(timeZone, at);
+  const day = getDayOfWeek(parseDate(today), "en-US"); // 0 is Sunday
+  const weekend = day === 0 ? { from: today, to: today } : { from: addDays(today, 6 - day), to: addDays(today, 7 - day) };
+  const tomorrow = addDays(today, 1);
+  return {
+    today,
+    tomorrow,
+    weekend,
+    labels: {
+      today: formatCalendarDay(today),
+      tomorrow: formatCalendarDay(tomorrow),
+      weekend: weekend.from === weekend.to ? formatCalendarDay(weekend.from) : `${formatCalendarDay(weekend.from)} – ${formatCalendarDay(weekend.to)}`,
+    },
+  };
 }
 
 /** A local date plus `days`, for the date input's maximum. */

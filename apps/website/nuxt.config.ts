@@ -138,6 +138,8 @@ export default defineNuxtConfig({
     "/api/public/homepage-guides": { cache: { maxAge: 60, swr: false } },
     // "On lokl now"'s two random listings: picked again at most once a minute.
     "/api/public/homepage-listings": { cache: { maxAge: 60, swr: false } },
+    // The header search's results, like browse.
+    "/api/public/search": { cache: { maxAge: 60, swr: false } },
     "/api/public/providers/**": { cache: { maxAge: 60, swr: false } },
     "/dashboard/**": { robots: false },
     "/account/**": { robots: false },

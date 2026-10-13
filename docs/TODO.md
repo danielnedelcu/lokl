@@ -116,6 +116,11 @@ Each step depends on the ones before it.
    - [x] Listing carousels on the homepage (2026-10-12, `ScrollCarousel`):
      an Experiences and a Services carousel below "On lokl now", 10 each
      and "See all"; docs/frontend.md, Carousels. E2e journey 24.
+   - [x] The header search (2026-10-12, docs/design/search.md): Where,
+     When and What on an adapted Navigation Menu, the results page at
+     `/<market>/search`, a full-screen panel on phones, and a sticky
+     header. E2e journey 26. Later: several areas or categories at once;
+     a column per market.
    - [x] "On lokl now" shows one random Experience and one random Service
      beside the host card, picked on the server and cached for a minute
      (2026-10-12, `/api/public/homepage-listings`). E2e journey 24.

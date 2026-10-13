@@ -125,6 +125,21 @@ to its start, about 1.2 cards on phones, 3 on tablets and 5 on desktop.
   hosted test database; `--remove` takes them out (tested locally by
   `seed-carousel.test.mts`).
 
+## Search bar
+
+`SearchBar` (tablets and wider) and `SearchPhone` (phones) in the website's
+header, sharing `useSearch()` and the panels `SearchWhere`, `SearchWhen` and
+`SearchWhat` (docs/design/search.md).
+
+- **Built on Reka's Navigation Menu**, adapted for a form: plain divs inside
+  `<form role="search">`, opened by click or keyboard only, with one shared
+  panel that resizes.
+- **Choices are `search-pill` buttons** with `aria-pressed` and a check
+  icon, not radios, so the panel's arrow keys aren't fought.
+- **Dates are the market's**, via `quickDates()`, never the device's.
+- **The public header is sticky.** `scroll-padding-top` keeps focused
+  elements visible below it. A new sticky element must do the same.
+
 ## Forms
 
 - Every form uses vee-validate with a zod schema, passed through the layer's `zodSchema()` adapter: `useForm({ validationSchema: zodSchema(schema) })`. The official `@vee-validate/zod` only supports zod 3, and vee-validate 4.15 can't take zod 4 schemas directly. Switch to the official adapter once one supports zod 4.

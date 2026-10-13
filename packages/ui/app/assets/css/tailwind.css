@@ -336,3 +336,17 @@ a * {
 .link-text {
   text-decoration-line: underline;
 }
+
+/* The header search's choices (docs/design/search.md): a pill button, 44px
+   tall, pressed shown by a filled pill and aria-pressed, never colour alone
+   (the filled pill also inverts the text). */
+@utility search-pill {
+  @apply border-border hover:border-foreground focus-visible:ring-ring/50 aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background inline-flex min-h-11 items-center rounded-full border px-4 text-left text-sm outline-none focus-visible:ring-[3px];
+}
+
+/* A sticky header's height (the website's public layout sets it), so
+   scrolling to a focused element or an anchor never leaves it hidden under
+   the header (WCAG 2.4.11). */
+html {
+  scroll-padding-top: var(--header-height, 0px);
+}
