@@ -176,7 +176,10 @@ useSchemaOrg([
           <div class="min-w-0 flex-1">
             <p class="text-muted-foreground text-sm">{{ l.category.name }}</p>
             <h1 class="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">{{ l.title }}</h1>
-            <RatingLine :rating="l.rating" class="mt-1.5" />
+            <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <RatingLine :rating="l.rating" />
+              <TopRatedChip v-if="l.topRated" />
+            </div>
             <p class="mt-2 flex items-center gap-1.5 text-sm">
               <Icon name="lucide:map-pin" class="size-4 shrink-0" aria-hidden="true" />
               {{ where }}

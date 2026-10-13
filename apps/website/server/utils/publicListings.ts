@@ -14,7 +14,7 @@
 // read with visitors' own rules), then loads only that page's cards.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { allRows } from "@repo/types";
+import { allRows, isTopRated } from "@repo/types";
 import type {
   AreaKind,
   ListingKind,
@@ -132,6 +132,7 @@ function toCard(r: Row): PublicListingCard & { areaIds: string[]; sessionTimes: 
     nextSessionAt: sessionTimes[0] ? new Date(sessionTimes[0]).toISOString() : null,
     providerId: r.hostedBy?.id ?? "",
     rating: toRating(r.ratings),
+    topRated: isTopRated(toStars(r.ratings)),
     // For filtering and sorting only; not sent to pages.
     areaIds: [r.area?.id, ...travel.map((a) => a.id)].filter((id): id is string => !!id),
     sessionTimes,

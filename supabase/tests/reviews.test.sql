@@ -5,7 +5,7 @@
 -- review kept when its booking is cancelled afterwards.
 begin;
 \ir _helpers/users.psql
-select plan(117);
+select plan(120);
 
 select tests.create_user('admin@test.local') as admin \gset
 select tests.create_user('peach@test.local') as owner1 \gset
@@ -285,6 +285,14 @@ select is((select rating_average from listing_ratings where listing_id = :'le1')
 select throws_ok($$ select rating_total from listing_ratings $$, '42501', null, '7d. ...but not the raw total');
 select is((select stars_5 from listing_ratings where listing_id = :'le1'), 3, '7d2. visitors read the star counts, for the breakdown');
 reset role;
+-- "Top rated" comes from these counts (isTopRated), so nobody but the
+-- database's own recount may change them: not even the listing's provider.
+select tests.authenticate_as(:'owner1');
+select throws_ok(format($$ update listing_ratings set stars_5 = 99 where listing_id = %L $$, :'le1'), '42501', null,
+  '7d3. a provider can''t change their listing''s star counts (Top rated can''t be set)');
+select throws_ok(format($$ insert into listing_ratings (listing_id) values (%L) $$, :'le2'), '42501', null, '7d4. ...or add a rating row');
+select throws_ok(format($$ select recount_ratings(%L, %L) $$, :'le1', :'p1'), '42501', null, '7d5. ...or run the recount');
+select tests.clear_authentication();
 select tests.authenticate_as(:'stranger');
 select is((select rating_average from provider_ratings where provider_id = :'p1'), 4.2::numeric, '7e. signed-in people read a public provider''s rating');
 select tests.clear_authentication();

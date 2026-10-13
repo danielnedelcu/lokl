@@ -97,6 +97,25 @@ export function ratingLine(r: RatingSummary | null | undefined) {
   return { showAverage: true, text: `${avg} · ${reviewsWord(count)}`, spoken: `Rated ${avg} out of 5 from ${reviewsWord(count)}` };
 }
 
+/**
+ * "Top rated" (2026-10-12): an average of 4.8 or higher from at least 5
+ * published reviews. The one place the thresholds live; the review rules
+ * page states them.
+ */
+export const TOP_RATED = { minAverage: 4.8, minReviews: 5 } as const;
+
+/**
+ * Whether a listing is top rated, from its published reviews' counts at each
+ * star level (1 to 5; kept by the database, removed reviews never counted).
+ * Exact, in whole numbers: never from the stored average, which is rounded
+ * to one decimal, so 4.75 to 4.79 would pass as 4.8.
+ */
+export function isTopRated(stars: readonly [number, number, number, number, number]): boolean {
+  const count = stars.reduce((n, s) => n + s, 0);
+  const total = stars.reduce((n, s, i) => n + s * (i + 1), 0);
+  return count >= TOP_RATED.minReviews && total * 10 >= Math.round(TOP_RATED.minAverage * 10) * count;
+}
+
 /** A listing card's "★ 4.8 (12)", from 3 reviews; null below. */
 export function cardRating(r: RatingSummary | null | undefined) {
   if (!r || r.count < RATING_MIN_REVIEWS || r.average == null) return null;

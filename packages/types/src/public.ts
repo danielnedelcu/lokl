@@ -48,6 +48,8 @@ export interface PublicListingCard {
   providerId: string;
   /** Its published reviews' count and average (docs/design/reviews.md); kept by the database. */
   rating: RatingSummary;
+  /** 4.8 or higher from at least 5 published reviews (isTopRated); worked out, never stored. */
+  topRated: boolean;
 }
 
 /** A provider's public profile: what signed-out visitors may read. */

@@ -145,6 +145,9 @@ Each step depends on the ones before it.
    from 3; one public reply; Report and the admin's Reviews queue under the
    written rules at `/review-rules`. Later: a "reply to your review" email
    to the customer; ratings on browse sorting; category ratings.
+   "Top rated" (2026-10-12): 4.8 or higher from at least 5 reviews,
+   worked out from the exact star counts (`isTopRated`), on cards and the
+   listing page, explained at `/review-rules`.
 
 ## Admin dashboard
 

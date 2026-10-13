@@ -34,6 +34,12 @@ const next = computed(() =>
     <div class="mt-3 space-y-0.5">
       <div class="flex items-start justify-between gap-2">
         <h3 class="font-medium">{{ listing.title }}</h3>
+        <!-- Drawn at the top left of the photo, on the heart's line (the same
+             32px height and 8px inset, so both are centred on it), but read
+             right after the title, inside the link. Never wider than the
+             photo less both insets, the heart and an 8px gap, so it can't
+             overlap the heart. -->
+        <TopRatedChip v-if="listing.topRated" class="absolute top-2 left-2 h-8 max-w-[calc(100%-3.5rem)]" />
         <p v-if="rating" class="flex shrink-0 items-center gap-1 text-sm">
           <Icon name="lucide:star" class="size-3.5 fill-yellow-400 text-yellow-400" aria-hidden="true" />
           <span aria-hidden="true">{{ rating.text }}</span>

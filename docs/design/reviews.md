@@ -473,6 +473,29 @@ rounding and display text (`test:ui`).
   star counts swapped, breakdown shares wrong, the report not carried on
   after signing in, the stars without names.
 
+## Top rated (2026-10-12)
+
+- **The rule:** an average of 4.8 or higher from at least 5 published
+  reviews (`TOP_RATED` and `isTopRated` in `@repo/types`, the one place the
+  thresholds live). Worked out from the listing's counts at each star level
+  (`stars_1`…`stars_5`, kept by `recount_ratings`, published reviews only),
+  in whole numbers: never from `rating_average`, which is rounded to one
+  decimal, so 4.75 to 4.79 would pass as 4.8. A removed review drops out of
+  the counts, so it no longer counts.
+- **Nothing stores it:** the server works it out when it builds each card
+  and listing page (`topRated`). Nobody but the database's recount can write
+  the counts (pgTAP: not even the listing's provider), and a review needs a
+  completed booking, which a provider can't make on their own listing.
+- **Shown** as the words "Top rated" with a decorative award icon (not a
+  star, so it isn't confused with the rating): on listing cards at the top
+  left of the photo, inside the link and right after the title, so screen
+  readers read it with the card; and on the listing page beside the rating
+  line. The review rules page states the rule from the same constant.
+- Tests: `top-rated.test.mts` (unit: 4.8 from 5 yes, 4.79 no, 4 reviews
+  no), `supabase/tests/app/top-rated.test.mts` (cards and listing page; a
+  removed review takes it away), `reviews.test.sql` (providers can't write
+  the counts or run the recount), e2e journey 11.
+
 ## Decisions on the open questions (2026-10-04)
 
 1. **The reviewer's name:** "Sam T.", from the booking's name, by the rules

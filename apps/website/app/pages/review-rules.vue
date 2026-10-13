@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { REVIEW_RULES, REVIEW_RULE_KEYS } from "@repo/types";
+import { REVIEW_RULES, REVIEW_RULE_KEYS, TOP_RATED } from "@repo/types";
 
 // The written review rules (docs/design/reviews.md): linked from the review
 // form, the reply box, the report dialog and the review emails. The list is
@@ -37,6 +37,13 @@ useSeoMeta({
       lokl never offers anything for a review, and businesses on lokl must not either: no discounts, refunds,
       gifts or favours for writing, changing or removing one, and no asking only happy customers. If you're
       offered something, report the review or tell us.
+    </p>
+
+    <h2 class="mt-8 text-lg font-semibold">Top rated</h2>
+    <p class="mt-3">
+      A listing is marked <strong>Top rated</strong> when it has an average of {{ TOP_RATED.minAverage }} or higher
+      from at least {{ TOP_RATED.minReviews }} published reviews. It's worked out from reviews alone: providers
+      can't pay for it or turn it on, and a review we remove under these rules no longer counts.
     </p>
 
     <h2 class="mt-8 text-lg font-semibold">Reporting</h2>

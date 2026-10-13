@@ -85,6 +85,14 @@ decided 2026-10-11), so links look the same everywhere:
   move over as its pages are next changed). `UiButton` is for actions that
   aren't links: never give it `to` or `href`.
 
+## Chips
+
+- **Top rated** (`TopRatedChip`): the words "Top rated" with a decorative
+  award icon, a white pill with dark text and a border, never colour alone.
+  On a listing card it's drawn at the top left of the photo but sits inside
+  the card's link right after the title, so it's part of what screen readers
+  read for the card. The rule is `isTopRated` (docs/design/reviews.md).
+
 ## Carousels
 
 `ScrollCarousel` (shared layer, 2026-10-12) is the one horizontal carousel:

@@ -114,6 +114,47 @@ test("on a slow device, each instant arrow press selects the star it moves to", 
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
 });
 
+test("a listing with 4.8 from 5 reviews is marked Top rated, on its card and its page", async ({ page, data }) => {
+  // "Top rated" (2026-10-12): 4.8 or higher from at least 5 published reviews.
+  const owner = await data.user("top-owner");
+  const providerId = await data.provider(owner, `E2E Top ${data.run}`);
+  const category = await data.category("experience");
+  const listing = await data.listing(providerId, "experience", category.id, await data.area());
+  const customer = await data.user("top-reviewer");
+  for (const stars of [5, 5, 5, 5, 4]) await data.review(await data.completedBooking(customer, listing.id), stars, "A lovely walk with a guide who knew every corner.");
+
+  // The card, on its category's browse page: the words, in what the link says.
+  await page.goto(`/atlanta/experiences/${category.slug}`);
+  const card = page.getByRole("link", { name: new RegExp(listing.title) });
+  await expect(card.getByText("Top rated", { exact: true })).toBeVisible();
+  await expect(card).toHaveAccessibleName(/Top rated/);
+  // On the heart's line: the chip at the top left, the heart at the top right,
+  // centred on the same line, with the same inset; never overlapping, at
+  // desktop and at phone width.
+  const heart = page.getByRole("button", { name: `Save ${listing.title}`, exact: true });
+  const photo = card.locator("> div").first();
+  const onOneLine = async () => {
+    await expect(heart).toBeVisible();
+    const [c, h, p] = [(await card.getByText("Top rated", { exact: true }).locator("xpath=..").boundingBox())!, (await heart.boundingBox())!, (await photo.boundingBox())!];
+    expect(Math.abs((c.y + c.height / 2) - (h.y + h.height / 2)), "centred on the same line").toBeLessThan(1);
+    expect(Math.abs((c.x - p.x) - (p.x + p.width - (h.x + h.width))), "the same inset from each side").toBeLessThan(1);
+    expect(Math.abs((c.y - p.y) - (h.y - p.y)), "the same inset from the top").toBeLessThan(1);
+    expect(c.x + c.width, "not overlapping the heart").toBeLessThanOrEqual(h.x - 4);
+  };
+  await onOneLine();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.reload();
+  await onOneLine();
+  await expect(card).toHaveAccessibleName(/Top rated/);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  // And on the listing page, beside the rating line.
+  await page.goto(`/experiences/${listing.slug}`);
+  await expect(page.getByText("Top rated", { exact: true })).toBeVisible();
+  // The rule, on the review rules page.
+  await page.goto("/review-rules");
+  await expect(page.getByText("4.8 or higher from at least 5 published reviews")).toBeVisible();
+});
+
 test("the rating line and breakdown: none, two reviews, then three", async ({ page, data }) => {
   const p = await setup(data, "Rate");
   const c = await data.user("rater");
