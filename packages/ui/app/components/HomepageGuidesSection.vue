@@ -27,21 +27,23 @@ const listSpan = computed(() => (shown.value.length === 2 ? "lg:col-span-2" : "l
 
 <template>
   <section aria-labelledby="home-guides-heading" class="border-border border-t">
-    <div :class="['mx-auto grid max-w-6xl gap-x-6 gap-y-8 px-4 lg:grid-cols-3', shown.length ? 'py-12 md:py-16' : 'py-8']">
+    <div :class="['mx-auto grid max-w-6xl gap-x-6 gap-y-8 px-4 lg:grid-cols-3', shown.length ? 'py-20 md:py-28' : 'py-16']">
       <div :class="['max-w-xl', textSpan]">
-        <h2 id="home-guides-heading" class="text-xl font-semibold">Guides to {{ marketName }}</h2>
-        <p class="text-muted-foreground mt-2">
+        <h2 id="home-guides-heading" class="text-2xl font-semibold">Guides to {{ marketName }}</h2>
+        <p class="mt-2">
           Ideas for what to see, eat and do around the city, with Experiences and Services to book along the way.
         </p>
         <NuxtLink :to="`${linkBase}/${market}/guides`" :target="linkBase ? '_blank' : undefined" :external="!!linkBase"
-          class="link-secondary mt-4">
+          class="link-primary mt-4">
           See all guides <Icon name="lucide:arrow-right" aria-hidden="true" />
         </NuxtLink>
       </div>
       <ul v-if="shown.length" :class="['grid gap-x-6 gap-y-10 sm:grid-cols-2', listSpan]">
-        <li v-for="g in shown" :key="g.slug">
+        <!-- With two cards, the first is the feature card: the photo fills it,
+             as tall as the section, with its title over it in white. -->
+        <li v-for="(g, i) in shown" :key="g.slug">
           <GuideCard :href="href(g)" :title="g.title" :teaser="g.teaser" :cover="g.cover" :external="!!linkBase"
-            sizes="100vw sm:50vw lg:33vw" />
+            :feature="shown.length === 2 && i === 0" sizes="100vw sm:50vw lg:33vw" />
         </li>
       </ul>
     </div>

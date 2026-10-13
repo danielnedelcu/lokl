@@ -22,7 +22,7 @@ async function signOut() {
 
 <template>
   <div class="bg-background text-foreground flex min-h-screen flex-col">
-    <header>
+    <header class="mt-6">
       <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4">
         <!-- The logo (2026-10-11): "hi" in an orange bubble, then "lokl".
              The link is named by the image's alt text. -->

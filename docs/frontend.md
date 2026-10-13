@@ -43,24 +43,25 @@ Never hand-copy a component from the ui-thing website or another project.
 
 - All colours come from CSS variables defined once in `packages/ui` (background, foreground, primary, muted, border, destructive and so on). No hex or rgb values in components or pages.
 - Neutral greys until lokl's brand is set. The brand should then be a change to the token file only.
-- The hosts' orange (`bg-hosts`, black text `text-hosts-foreground`; buttons and rules in `hosts-ink`) marks what invites people to host: the homepage's host card and hosting section (2026-10-11).
+- The hosts' orange (`bg-hosts`, #c93f14, white text `text-hosts-foreground` at 4.99:1; its buttons are `link-white` and its rules white; darker than the logo's orange, on which white text fails AA) marks what invites people to host: the homepage's host card and hosting section (2026-10-11).
 - Backdrops behind dialogs, alert dialogs and sheets are `bg-overlay` (the `--overlay` token: black at 40%), never blurred. Any new overlay component uses the same token.
 - Light mode only at launch. The tokens are structured so dark mode can be added later without touching components.
 - Typography and spacing use Tailwind's scale; no arbitrary pixel values without a reason.
-- The font is Roboto, served from our own site by `@nuxt/fonts` (configured in `packages/ui/nuxt.config.ts`, used through `--font-sans` in `tailwind.css`), so visitors' browsers never contact Google. No `<link>` to Google Fonts or other font CDNs. Only weights 400, 500 and 700 are loaded: use `font-normal`, `font-medium` and `font-bold`. Any other weight is drawn with the nearest loaded one (`font-semibold` draws as 700). `font-display: swap`, with system fonts (and a size-matched Arial fallback) until Roboto loads. To add a weight, add it in both places it's named: the config and this line. Display headings (`font-display`, used with `font-extrabold`) are Bricolage Grotesque 800, self-hosted the same way, the only weight loaded (2026-10-11: the homepage's hosting section).
+- The font is Roboto, served from our own site by `@nuxt/fonts` (configured in `packages/ui/nuxt.config.ts`, used through `--font-sans` in `tailwind.css`), so visitors' browsers never contact Google. No `<link>` to Google Fonts or other font CDNs. Only weights 400, 500 and 700 are loaded: use `font-normal`, `font-medium` and `font-bold`. Any other weight is drawn with the nearest loaded one (`font-semibold` draws as 700). `font-display: swap`, with system fonts (and a size-matched Arial fallback) until Roboto loads. To add a weight, add it in both places it's named: the config and this line. (Bricolage Grotesque, briefly the hosting section's heading font, was removed on 2026-10-12: Roboto everywhere.)
 - Nothing from other sites loads with a page. The one exception is Google's sign-in script (`https://accounts.google.com/gsi/client`, website only), loaded when the sign-in dialog or `/login` is shown and a Google client is set, never with a page (2026-10-11; docs/design/sign-in-with-code.md, Google).
 
 ## Links
 
-Every link, and every button that looks like one, uses one of four
+Every link, and every button that looks like one, uses one of five
 classes (defined once, in `packages/ui/app/assets/css/tailwind.css`;
 decided 2026-10-11), so links look the same everywhere:
 
 | Class | Looks like | Height | For |
 | --- | --- | --- | --- |
-| `link-primary` | A black button, white text, fully rounded | 44px | The main thing to do in a section: "Get started", "Start hosting", "Browse Experiences" |
-| `link-secondary` | White, a black border, fully rounded | 36px to look at, 44px to tap (an invisible 4px above and below) | Everything else that looks like a button: "Everything in Atlanta", "See all guides", "Browse Services" |
-| `link-tertiary` | Like `link-secondary` with no border: just the text, a light grey background on hover | 36px to look at, 44px to tap | The header's menu (Experiences, Services), the back links, and other quiet links that still look like buttons |
+| `link-primary` | A black button, white text, fully rounded | 44px | The main thing to do in a section: "See all guides" on the homepage, "Browse Experiences" |
+| `link-secondary` | White, a black border, fully rounded | 36px to look at, 44px to tap (an invisible 4px above and below) | Everything else that looks like a button: "Browse Services", "View [provider]'s profile", "See details" |
+| `link-tertiary` | Like `link-secondary` with no border: just the text, a light grey background on hover | 36px to look at, 44px to tap | The header's menu (Experiences, Services), "Everything in Atlanta", the back links, and other quiet links that still look like buttons |
+| `link-white` | White, black text, no border, fully rounded | 36px to look at, 44px to tap | Links on a coloured background: "Get started" and "Start hosting" on the hosts' orange (2026-10-12) |
 | `link-text` | Plain text, underlined, `font-medium` | The line's | Links in a sentence or a list |
 
 - Add spacing and placement classes beside them (`mt-6`, `self-start`),

@@ -229,8 +229,9 @@ export class TestData {
     const slug = `e2e-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${this.run}`;
     const area = (await must(this.env.db.from("service_areas").insert({ city_id: marketId, kind: "neighborhood", name: `E2E ${title} ${this.run}` }).select("id").single())).id as string;
     this.areas.push(area);
+    const teaser = `A walk around ${title}, and who to book for it.`;
     const g = (await must(this.env.db.from("guides").insert({
-      market_id: marketId, slug, draft_title: title, draft_teaser: `A walk around ${title}, and who to book for it.`,
+      market_id: marketId, slug, draft_title: title, draft_teaser: teaser,
       draft_category_id: (await (this.guideCategory ??= this.category("experience"))).id, draft_area_id: area,
       draft_body: { blocks: [{ type: "paragraph", data: { text: "The live words." } }] },
     }).select("id").single())).id as string;
@@ -240,7 +241,7 @@ export class TestData {
     }).select("id").single())).id as string;
     await must(this.env.db.from("guides").update({ draft_cover_photo_id: photo }).eq("id", g));
     await must(this.env.db.rpc("publish_guide", { p_guide_id: g, p_admin_id: admin.id }));
-    return { id: g, slug, title };
+    return { id: g, slug, title, teaser };
   }
   /** A market of its own (for closing it in a test); removed afterwards. */
   async market(name: string) {

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // The host card: the right-hand column of the homepage's "On lokl now"
-// (2026-10-11), on the hosts' orange with black text. On tablets and phones
+// (2026-10-11), on the hosts' orange with white text. On tablets and phones
 // it comes after the listings, full width.
 // "Get started" goes to the dashboard (StartHostingButton).
-// A primary link (docs/frontend.md, Links), at the bottom of the card on wide screens.
-const button = "link-primary mt-6 self-start lg:mt-auto";
+// A white link (docs/frontend.md, Links): white on the orange, no border,
+// at the bottom of the card on wide screens.
+const button = "link-white mt-6 self-start lg:mt-auto";
 </script>
 
 <template>

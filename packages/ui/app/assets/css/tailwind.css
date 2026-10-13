@@ -15,9 +15,6 @@
      700); system fonts until it loads or if it can't. */
   --font-sans: "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  /* Bricolage Grotesque 800, self-hosted the same way: display headings only
-     (font-display font-extrabold), such as the homepage's hosting section. */
-  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
 
@@ -110,8 +107,6 @@
   --color-overlay: var(--overlay);
   --color-hosts: var(--hosts);
   --color-hosts-foreground: var(--hosts-foreground);
-  --color-hosts-ink: var(--hosts-ink);
-  --color-hosts-ink-foreground: var(--hosts-ink-foreground);
 
   --color-sidebar-background: var(--sidebar-background);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -165,13 +160,12 @@
   /* lokl: the backdrop behind dialogs, alert dialogs and sheets (bg-overlay):
      black at 40%, no blur (2026-10-04). Defined here only. */
   --overlay: oklch(0 0 0 / 40%);
-  /* lokl: the hosts' orange (2026-10-11), behind everything that invites
-     people to host: #ff6a3d with black text is 7.4:1 (AA for small text).
-     The ink is the near-black of its buttons and rules, with white text. */
-  --hosts: #ff6a3d;
-  --hosts-foreground: #000000;
-  --hosts-ink: #121212;
-  --hosts-ink-foreground: #ffffff;
+  /* lokl: the hosts' orange, behind everything that invites people to
+     host: #c93f14 with white text is 4.99:1 (AA for small text; 2026-10-12,
+     darker than the logo's #ff6a3d, on which white was only 2.85:1). Its
+     buttons are white secondary links, and its rules white. */
+  --hosts: #c93f14;
+  --hosts-foreground: #ffffff;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -210,10 +204,8 @@
   --ring: oklch(0.556 0 0);
   --overlay: oklch(0 0 0 / 40%);
   /* The hosts' colours stay the same in dark mode. */
-  --hosts: #ff6a3d;
-  --hosts-foreground: #000000;
-  --hosts-ink: #121212;
-  --hosts-ink-foreground: #ffffff;
+  --hosts: #c93f14;
+  --hosts-foreground: #ffffff;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -292,7 +284,7 @@ a * {
   text-decoration-line: none;
 }
 
-/* The four link styles (docs/frontend.md, Links; 2026-10-11). Every link
+/* The five link styles (docs/frontend.md, Links; 2026-10-11). Every link
    or link-like button gets one, so links look the same everywhere:
    - link-primary: a black button with white text, for the main thing to
      do ("Get started", "Start hosting"). 44px tall.
@@ -302,6 +294,8 @@ a * {
      with an invisible 4px above and below so it's still 44px to tap.
    - link-tertiary: the same as link-secondary without the border (a light
      grey background on hover), for quieter links beside a secondary one.
+   - link-white: a white button with black text and no border, the size of
+     link-secondary, for links on a coloured background (the hosts' orange).
    - link-text: plain text, underlined, for links in a sentence or a list. */
 @utility link-primary {
   @apply bg-primary text-primary-foreground inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-bold whitespace-nowrap transition-colors outline-none hover:bg-primary/85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
@@ -320,6 +314,14 @@ a * {
 }
 @utility link-tertiary {
   @apply text-foreground relative inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+}
+@utility link-white {
+  @apply bg-white text-black relative inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-white/85 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black;
   &::after {
     content: "";
     position: absolute;

@@ -83,12 +83,6 @@ export default defineNuxtConfig({
       weights: [400, 500, 700],
       styles: ["normal", "italic"],
       subsets: ["latin", "latin-ext"],
-    }, {
-      // Display headings only (--font-display): the one weight they use.
-      name: "Bricolage Grotesque",
-      weights: [800],
-      styles: ["normal"],
-      subsets: ["latin"],
     }],
   },
 

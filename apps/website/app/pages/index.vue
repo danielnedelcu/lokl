@@ -65,10 +65,10 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
       </div>
     </section>
 
-    <section aria-labelledby="featured-heading" class="mx-auto max-w-6xl px-4 py-12">
+    <section aria-labelledby="featured-heading" class="mx-auto max-w-6xl px-4 py-20 md:py-28">
       <div class="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <h2 id="featured-heading" class="text-xl font-semibold">On lokl now</h2>
-        <NuxtLink :to="`/${MARKET}`" class="link-secondary">Everything in Atlanta</NuxtLink>
+        <NuxtLink :to="`/${MARKET}`" class="link-tertiary">Everything in Atlanta <Icon name="lucide:arrow-right" aria-hidden="true" /></NuxtLink>
       </div>
       <!-- Listings in the left two columns, the host card the third; on
            tablets and phones the card follows the listings. -->

@@ -336,7 +336,10 @@ With a main guide, the homepage is, top to bottom:
    `h2`), the fixed text "Ideas for what to see, eat and do around the city,
    with Experiences and Services to book along the way." and "See all guides"
    on the left; the two cards (positions 2 and 3, titles as `h3`) on the
-   right. Three columns on wide screens; on tablets the text sits above two
+   right. With two cards, the first is a feature card (2026-10-12): its
+   photo fills it, as tall as the section, under a 60% black overlay, with
+   the title over it in white at `text-2xl` and no teaser; the second is a
+   plain card. Three columns on wide screens; on tablets the text sits above two
    cards side by side; on phones everything stacks, text first. With one
    card, the text takes two columns; with none, it's a slim row with the
    text and the link.
@@ -357,7 +360,9 @@ with a placeholder for "On lokl now". Saved in one step
 (`admin_set_homepage_features`, the main guide first, at most three), so the
 homepage is never half-changed.
 
-Text is never over the photo. Images get proper `alt` text, sizes (`srcset`)
+Text is never over the photo, except on the guides section's feature card,
+whose 60% black overlay keeps the white title at 5.7:1 or better over any
+photo. Images get proper `alt` text, sizes (`srcset`)
 so phones download the smaller copy, and the main guide loads first (high
 priority, no lazy loading); the cards lazy-load.
 

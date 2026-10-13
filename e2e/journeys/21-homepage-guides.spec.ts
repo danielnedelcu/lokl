@@ -156,28 +156,39 @@ test("the admin chooses a main guide and two more, and the homepage shows them i
   // The link styles (docs/frontend.md, Links): secondary links are lighter
   // than primary ones, 36px against 44px, and still 44px to tap.
   const seeAll = guides.getByRole("link", { name: "See all guides" });
-  for (const secondary of [everything, seeAll]) {
-    await expect(secondary).toHaveClass(/\blink-secondary\b/);
-    expect((await secondary.boundingBox())!.height, "a secondary link is 36px tall").toBe(36);
+  // "See all guides" is primary; "Get started" and "Start hosting" are white, with no border (2026-10-12).
+  await expect(seeAll).toHaveClass(/\blink-primary\b/);
+  expect((await seeAll.boundingBox())!.height, "a primary link is 44px tall").toBe(44);
+  const getStarted = onLokl.getByRole("button", { name: "Get started" });
+  for (const white of [getStarted, hosting.getByRole("button", { name: "Start hosting" })]) {
+    await expect(white).toHaveClass(/\blink-white\b/);
+    expect((await white.boundingBox())!.height, "a white link is 36px tall").toBe(36);
+    expect(await white.evaluate((e) => [getComputedStyle(e).backgroundColor, getComputedStyle(e).borderTopWidth]), "...white, with no border").toEqual(["rgb(255, 255, 255)", "0px"]);
   }
+  // "Everything in Atlanta" is tertiary, like the header's menu (2026-10-12).
+  await expect(everything).toHaveClass(/\blink-tertiary\b/);
   // The header's menu: tertiary links, the same size without a border.
   const menuLink = page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Experiences" });
   await expect(menuLink).toHaveClass(/\blink-tertiary\b/);
   expect((await menuLink.boundingBox())!.height, "a tertiary link is 36px tall").toBe(36);
   expect(await menuLink.evaluate((e) => getComputedStyle(e).borderTopWidth), "...with no border").toBe("0px");
-  for (const primary of [onLokl.getByRole("button", { name: "Get started" }), hosting.getByRole("button", { name: "Start hosting" })]) {
-    await expect(primary).toHaveClass(/\blink-primary\b/);
-    expect((await primary.boundingBox())!.height, "a primary link is 44px tall").toBe(44);
-  }
-  await seeAll.scrollIntoViewIfNeeded(); // elementFromPoint only finds what's on screen
-  const seeAllBox = (await seeAll.boundingBox())!;
-  const tapped = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("a")?.textContent?.trim(), [seeAllBox.x + seeAllBox.width / 2, seeAllBox.y - 3]);
-  expect(tapped, "a tap just above a secondary link still reaches it").toBe("See all guides");
+  await getStarted.scrollIntoViewIfNeeded(); // elementFromPoint only finds what's on screen
+  const startBox = (await getStarted.boundingBox())!;
+  const tapped = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("a, button")?.textContent?.trim(), [startBox.x + startBox.width / 2, startBox.y - 3]);
+  expect(tapped, "a tap just above a 36px link still reaches it").toBe("Get started");
 
   // The hosting section lines up with the other sections.
   const panel = (await hosting.locator("> div").boundingBox())!;
   const loklHeading = (await onLokl.getByRole("heading", { name: "On lokl now" }).boundingBox())!;
   expect(Math.abs(panel.x - loklHeading.x), "the hosting section starts where the others do").toBeLessThan(1);
+
+  // The first card is the feature card: as tall as the section, the title over the photo in white, no teaser.
+  const [feature, plain] = [guides.getByRole("listitem").nth(0), guides.getByRole("listitem").nth(1)];
+  await expect(feature.getByRole("heading", { level: 3, name: two.title })).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(feature.getByRole("heading", { level: 3 })).toHaveCSS("font-size", "24px");
+  await expect(feature.getByText(two.teaser, { exact: true })).toHaveCount(0);
+  await expect(plain.getByRole("paragraph")).toHaveCount(1);
+  expect((await feature.getByRole("link").boundingBox())!.height, "as tall as the row").toBeCloseTo((await plain.boundingBox())!.height, 0);
 
   // Wide: the text on the left of the cards, level with them.
   const text = await guides.getByRole("heading", { name: "Guides to Atlanta" }).boundingBox();
