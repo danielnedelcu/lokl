@@ -411,11 +411,12 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   with its bookings and saved items, and again for an email that asked for
   a code but never used it. Also a keyboard-only and a VoiceOver pass over
   Google's real button in the dialog.
-- [ ] **Clear a session whose user no longer exists.** A browser still
-  signed in as a deleted account (as when the hilokl.help test account
-  was deleted, 2026-10-11) keeps its session until the token expires.
-  When Supabase answers that the user doesn't exist (`user_not_found`),
-  sign out in that browser and show the page signed out, with a test.
+- [x] **Clear a session whose user no longer exists** (2026-10-12). Once
+  per page load, while signed in, the website asks Supabase for the user;
+  if the user or session is gone, it signs out in that browser and shows
+  the page signed out (`plugins/clear-stale-session.client.ts`). Journey 25
+  checks it, a deleted user's expired session, and a signed-in provider
+  whose own listings are in the homepage's carousels.
 
 ## Launch prep
 
