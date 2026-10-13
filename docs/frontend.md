@@ -85,6 +85,34 @@ decided 2026-10-11), so links look the same everywhere:
   move over as its pages are next changed). `UiButton` is for actions that
   aren't links: never give it `to` or `href`.
 
+## Carousels
+
+`ScrollCarousel` (shared layer, 2026-10-12) is the one horizontal carousel:
+a CSS grid track with `scroll-snap-type: x mandatory` and each card snapping
+to its start, about 1.2 cards on phones, 3 on tablets and 5 on desktop.
+
+- **Width:** on phones and tablets the track runs to both screen edges, with
+  the page's 16px added back as padding and `scroll-padding-inline`, so the
+  first card and snapping line up with the page; on desktop it stays within
+  the content width. A 4px margin added and taken back on every side keeps
+  focus rings from being clipped. The last card scrolls fully into view.
+- **Not `scroll-snap-stop: always`**: every flick would stop at the next
+  card, which on a phone means a dozen swipes to the end.
+- **Previous and Next** scroll one page of visible cards, smoothly unless
+  "reduce motion" is set; a quick second press goes a page on from where the
+  first was heading. They're named for the carousel ("Scroll Services
+  left"), point at the track (`aria-controls`), show at every width, and at
+  the ends are `aria-disabled` (dimmed), not `disabled`, so they keep focus.
+- **Every card stays reachable:** the cards are a list in a section named
+  by its heading, nothing off screen is `aria-hidden`, and a card focused
+  with Tab is scrolled into view.
+- **"See all"** is the last card, linking to the browse page.
+- **Lenis** (the page's smooth scrolling) would take a slightly diagonal
+  trackpad swipe for page scrolling; the track has
+  `data-lenis-prevent-horizontal`, so a mostly sideways gesture scrolls it.
+- Used on the homepage: an Experiences and a Services carousel below "On
+  lokl now", 10 listings each and "See all". Tested in e2e journey 24.
+
 ## Forms
 
 - Every form uses vee-validate with a zod schema, passed through the layer's `zodSchema()` adapter: `useForm({ validationSchema: zodSchema(schema) })`. The official `@vee-validate/zod` only supports zod 3, and vee-validate 4.15 can't take zod 4 schemas directly. Switch to the official adapter once one supports zod 4.

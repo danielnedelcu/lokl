@@ -345,6 +345,9 @@ With a main guide, the homepage is, top to bottom:
    text and the link.
 5. The provider section, as before.
 
+(2026-10-12: below "On lokl now", an Experiences and a Services carousel
+come before the guides section; docs/frontend.md, Carousels.)
+
 **Without a main guide**, the homepage is exactly as before: the large
 headline with the Browse buttons first, then "On lokl now", and no guides.
 

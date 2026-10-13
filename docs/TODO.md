@@ -113,6 +113,9 @@ Each step depends on the ones before it.
      then "On lokl now", then the guides section with up to two cards; the
      admin's Main guide and More guides. E2e journey 21. The hosted
      homepage's fourth guide came off with the migration.
+   - [x] Listing carousels on the homepage (2026-10-12, `ScrollCarousel`):
+     an Experiences and a Services carousel below "On lokl now", 10 each
+     and "See all"; docs/frontend.md, Carousels. E2e journey 24.
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
 ## Next features (in this order)

@@ -100,9 +100,9 @@ export class TestData {
   }
 
   /** A live listing at $50: an Experience, or a Service at the provider's own place (no address to give). */
-  async listing(providerId: string, kind: "service" | "experience", categoryId: string, areaId: string): Promise<TestListing> {
+  async listing(providerId: string, kind: "service" | "experience", categoryId: string, areaId: string, titled?: string): Promise<TestListing> {
     const id = randomUUID();
-    const title = `E2E ${kind === "service" ? "Haircut" : "Food walk"} ${this.run}`;
+    const title = titled ?? `E2E ${kind === "service" ? "Haircut" : "Food walk"} ${this.run}`;
     this.listings.push(id);
     await must(this.env.db.from("listings").insert({
       id, provider_id: providerId, city_id: this.cityId, area_id: areaId, status: "submitted", kind, category_id: categoryId, title,

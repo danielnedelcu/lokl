@@ -38,6 +38,19 @@ const featured = computed(() => {
 });
 const market = computed(() => experiences.value?.market ?? services.value?.market ?? null);
 
+// Below the invitation to host: a carousel each of Experiences and Services,
+// up to 10 listings and then "See all" (2026-10-12; ScrollCarousel). A kind
+// with no live listings has no carousel.
+const PER_ROW = 10;
+const rows = computed(() => [
+  { label: "Experiences", path: `/${MARKET}/experiences`, result: experiences.value },
+  { label: "Services", path: `/${MARKET}/services`, result: services.value },
+].filter((r) => r.result?.items.length).map((r) => ({
+  label: r.label,
+  items: r.result!.items.slice(0, PER_ROW) as PublicListingCard[],
+  seeAll: { href: r.path, label: r.result!.total > PER_ROW ? `See all ${r.label} (${r.result!.total})` : `See all ${r.label}` },
+})));
+
 const siteUrl = useRuntimeConfig().public.siteUrl.replace(/\/$/, "");
 useSeoMeta({
   title: "Book local Experiences and Services in Atlanta",
@@ -84,6 +97,16 @@ useHead({ link: [{ rel: "canonical", href: `${siteUrl}/` }] });
         <HostCard />
       </div>
     </section>
+
+    <!-- A carousel each of Experiences and Services (2026-10-12). -->
+    <div v-if="rows.length && market" class="mx-auto mb-20 max-w-6xl space-y-16 px-4 md:mb-28">
+      <ScrollCarousel v-for="row in rows" :key="row.label" :label="row.label" :items="row.items" :item-key="(l) => l.id"
+        :see-all="row.seeAll">
+        <template #item="{ item }">
+          <ListingCard :listing="item" :market="market" />
+        </template>
+      </ScrollCarousel>
+    </div>
 
     <HomepageGuidesSection v-if="mainGuide" :cards="cards" :market="mainGuide.market" :market-name="market?.name ?? 'Atlanta'" />
 

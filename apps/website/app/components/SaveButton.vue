@@ -35,17 +35,21 @@ const ready = computed(() => !user.value || loaded.value);
         <button type="button" :aria-label="`Save ${name}`" :aria-pressed="pressed" :aria-disabled="!ready || undefined"
           :aria-busy="isSending(kind, id) || undefined"
           :class="[
-            'focus-visible:ring-ring/50 inline-flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-[3px]',
-            variant === 'overlay' ? 'bg-background/90 shadow-sm backdrop-blur hover:bg-background' : 'hover:bg-accent',
+            'focus-visible:ring-ring/50 inline-flex shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-[3px]',
+            // Over a photo: a 32px circle (2026-10-12), still 44px to tap (the
+            // invisible 6px around it); beside a heading: 44px.
+            variant === 'overlay'
+              ? 'bg-background/90 hover:bg-background relative size-8 shadow-sm backdrop-blur after:absolute after:-inset-1.5 after:content-[\'\']'
+              : 'hover:bg-accent size-11',
           ]"
           @click="ready && toggle(kind, id, name)">
-          <Icon name="lucide:heart" :class="['size-6', pressed ? 'fill-rose-600 text-rose-600' : 'text-foreground']" aria-hidden="true" />
+          <Icon name="lucide:heart" :class="[variant === 'overlay' ? 'size-[18px]' : 'size-6', pressed ? 'fill-rose-600 text-rose-600' : 'text-foreground']" aria-hidden="true" />
         </button>
       </UiTooltipTrigger>
       <UiTooltipContent>{{ pressed ? "Saved" : "Save" }}</UiTooltipContent>
     </UiTooltip>
     <template #fallback>
-      <span v-if="variant === 'overlay'" class="inline-block size-11" aria-hidden="true" />
+      <span v-if="variant === 'overlay'" class="inline-block size-8" aria-hidden="true" />
     </template>
   </ClientOnly>
 </template>
