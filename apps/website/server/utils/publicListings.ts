@@ -295,6 +295,22 @@ export interface BrowseQuery {
   pageSize?: number;
 }
 
+/**
+ * One visible listing of a kind, chosen at random (the homepage's "On lokl
+ * now", 2026-10-12): the browse order's count, then the listing at a random
+ * position, so it follows exactly the rules browse does. Null if there's none.
+ * `random` is for tests.
+ */
+export async function pickPublicListing(db: SupabaseClient, market: string, kind: ListingKind, random = Math.random) {
+  const first = await browsePublicListings(db, { market, kind, pageSize: 1 });
+  if (!first) return { market: null, card: null };
+  if (!first.total) return { market: first.market, card: null };
+  const position = Math.min(first.total, Math.floor(random() * first.total) + 1);
+  if (position === 1) return { market: first.market, card: first.items[0] ?? null };
+  const picked = await browsePublicListings(db, { market, kind, page: position, pageSize: 1 });
+  return { market: first.market, card: picked?.items[0] ?? first.items[0] ?? null };
+}
+
 /** A market's visible listings of one kind, filtered and paged; null if the market or category isn't public. */
 export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): Promise<PublicBrowseResult | null> {
   const { data: market, error: marketError } = await db

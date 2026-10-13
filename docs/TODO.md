@@ -116,6 +116,9 @@ Each step depends on the ones before it.
    - [x] Listing carousels on the homepage (2026-10-12, `ScrollCarousel`):
      an Experiences and a Services carousel below "On lokl now", 10 each
      and "See all"; docs/frontend.md, Carousels. E2e journey 24.
+   - [x] "On lokl now" shows one random Experience and one random Service
+     beside the host card, picked on the server and cached for a minute
+     (2026-10-12, `/api/public/homepage-listings`). E2e journey 24.
 8. [ ] **Launch.** See "Staging site" and "Launch prep" below.
 
 ## Next features (in this order)

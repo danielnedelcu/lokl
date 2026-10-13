@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HomepageGuide, PublicBrowseResult, PublicListingCard } from "@repo/types";
+import type { HomepageGuide, PublicBrowseResult, PublicListingCard, PublicMarket } from "@repo/types";
 
 // The homepage: our own markup and components only, nothing loaded from
 // other sites. Deliberately simple; the design comes in the UX polish pass
@@ -8,10 +8,12 @@ definePageMeta({ layout: "public" });
 
 const MARKET = "atlanta";
 
-const [{ data: experiences }, { data: services }, { data: homeGuides }] = await Promise.all([
+const [{ data: experiences }, { data: services }, { data: homeGuides }, { data: picks }] = await Promise.all([
   useFetch<PublicBrowseResult>("/api/public/browse", { key: "home-experiences", query: { market: MARKET, kind: "experience" } }),
   useFetch<PublicBrowseResult>("/api/public/browse", { key: "home-services", query: { market: MARKET, kind: "service" } }),
   useFetch<HomepageGuide[]>("/api/public/homepage-guides", { key: "home-guides" }),
+  useFetch<{ market: PublicMarket | null; experience: PublicListingCard | null; service: PublicListingCard | null }>(
+    "/api/public/homepage-listings", { key: "home-picks", query: { market: MARKET } }),
 ]);
 // The homepage's guides (docs/design/destination-guides.md, The homepage;
 // three places since 2026-10-11): the main guide alone at the top, under a
@@ -23,20 +25,12 @@ const mainGuide = computed(() => guides.value[0]);
 const cards = computed(() => guides.value.slice(1, 3));
 const headline = "Book local Experiences and Services in Atlanta";
 
-// Up to four live listings, alternating Experiences and Services: two rows
-// of two beside the host card (2026-10-11; six, in rows of three, before).
-const LISTINGS = 4;
-const featured = computed(() => {
-  const a = experiences.value?.items ?? [];
-  const b = services.value?.items ?? [];
-  const out: PublicListingCard[] = [];
-  for (let i = 0; out.length < LISTINGS && (i < a.length || i < b.length); i++) {
-    if (a[i]) out.push(a[i]!);
-    if (b[i] && out.length < LISTINGS) out.push(b[i]!);
-  }
-  return out;
-});
-const market = computed(() => experiences.value?.market ?? services.value?.market ?? null);
+// "On lokl now": one Experience and one Service beside the host card, each
+// chosen at random on the server (homepage-listings, cached for a minute),
+// so the server and the browser show the same two (2026-10-12; four in turn
+// before). A kind with none shows just the other.
+const featured = computed(() => [picks.value?.experience, picks.value?.service].filter((c): c is PublicListingCard => !!c));
+const market = computed(() => picks.value?.market ?? experiences.value?.market ?? services.value?.market ?? null);
 
 // Below the invitation to host: a carousel each of Experiences and Services,
 // up to 10 listings and then "See all" (2026-10-12; ScrollCarousel). A kind

@@ -67,6 +67,19 @@ test("desktop: arrows, ends, snapping, keyboard, screen readers, focus rings, re
   await twelveServices(data, { experiences: true });
   const { row, track, prev, next } = await servicesRow(page, data.run);
 
+  // "On lokl now", above the carousels, is unchanged: exactly two listings,
+  // one Experience and one Service (picked at random on the server), beside
+  // the host card. Its picks are cached for a minute, so it's polled for too.
+  const onLokl = page.getByRole("region", { name: "On lokl now" });
+  const picked = () => onLokl.getByRole("listitem").getByRole("link").evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
+  await expect.poll(async () => {
+    await page.goto("/");
+    const hrefs = await picked();
+    return [hrefs.length, hrefs.filter((h) => h.startsWith("/experiences/")).length, hrefs.filter((h) => h.startsWith("/services/")).length,
+      hrefs.every((h) => h.includes(data.run))].join(" ");
+  }, { message: "one Experience and one Service from this test's listings", timeout: 80_000, intervals: [3_000, 5_000] }).toBe("2 1 1 true");
+  await expect(onLokl.getByRole("heading", { name: "Offer your Services or host Experiences" })).toBeVisible();
+
   // A labelled section, the cards as a list: 10 and "See all", none hidden.
   const items = track.getByRole("listitem");
   await expect(items).toHaveCount(11);
