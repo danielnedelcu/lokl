@@ -120,6 +120,10 @@ to its start, about 1.2 cards on phones, 3 on tablets and 5 on desktop.
   `data-lenis-prevent-horizontal`, so a mostly sideways gesture scrolls it.
 - Used on the homepage: an Experiences and a Services carousel below "On
   lokl now", 10 listings each and "See all". Tested in e2e journey 24.
+- Test listings to look at: `node scripts/seed-carousel-test.mjs --provider
+  <slug>` adds 24 tagged listings to one of your test providers on the
+  hosted test database; `--remove` takes them out (tested locally by
+  `seed-carousel.test.mts`).
 
 ## Forms
 
