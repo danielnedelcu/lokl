@@ -17,7 +17,7 @@ export interface ProviderBooking {
   status: string;
   starts_at: string | null;
   ends_at: string | null;
-  preferred_times: string[] | null;
+  service_mode: "instant" | "approve" | null;
   party_size: number;
   total_cents: number;
   provider_amount_cents: number;
@@ -71,6 +71,20 @@ export function bookingRange(b: Pick<ProviderBooking, "starts_at" | "ends_at" | 
   const tz = bookingZone(b);
   const end = b.ends_at && b.ends_at !== b.starts_at ? ` – ${formatSessionTime(b.ends_at, tz)}` : "";
   return `${bookingAt(b.starts_at, tz)}${end}`;
+}
+
+/**
+ * A past booking's time. A declined or expired one never took place, so it
+ * leads with that ("Declined · was requested for Thu, Oct 9, 2:00 PM"),
+ * never with the time alone, as a done booking does.
+ */
+export function pastWhen(b: Pick<ProviderBooking, "status" | "kind" | "starts_at" | "ends_at" | "listing">) {
+  if (b.status === "declined" || b.status === "expired") {
+    const word = b.status === "declined" ? "Declined" : "Expired";
+    if (!b.starts_at) return word;
+    return `${word} · was ${b.kind === "service" ? "requested" : "booked"} for ${bookingAt(b.starts_at, bookingZone(b))}`;
+  }
+  return bookingRange(b);
 }
 
 /** "31 hours left", "45 minutes left", or "No time left". */

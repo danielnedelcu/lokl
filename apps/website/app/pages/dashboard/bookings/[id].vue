@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { HOME_TIME_ZONE } from "@repo/types";
-// One booking on the provider's listings. For a request: the offered times,
-// one of which they accept (the card is charged), or Decline (the hold is
-// released). Overlaps with their confirmed bookings are a warning only
-// (decided 2026-10-02).
+// One booking on the provider's listings. For a request: the time the
+// customer booked (held for them, so it can't clash), which the provider
+// accepts (the card is charged) or declines (the hold is released). A
+// declined or expired request never took place, and says so.
 import { z } from "zod";
 import type { ProviderBooking } from "~/composables/useProviderBookings";
 
@@ -19,8 +19,6 @@ interface Detail extends ProviderBooking {
   cancel_reason: string | null;
   problem_reported_at: string | null;
   events: { to_status: string; actor: string; created_at: string }[];
-  /** For each offered time, the confirmed bookings it overlaps. */
-  clashes: { id: string; starts_at: string; ends_at: string | null; title: string }[][];
 }
 
 const route = useRoute();
@@ -43,25 +41,16 @@ const money = (cents: number) => formatMoney(cents, "usd");
 const at = (t: string) => bookingAt(t, tz.value);
 
 // Answering.
-const chosen = ref<string | null>(null);
-const chooseError = ref("");
 const problem = ref("");
 const busy = ref(false);
 const confirmAccept = ref(false);
 const confirmDecline = ref(false);
 
-function askAccept() {
-  chooseError.value = chosen.value ? "" : "Choose one of the times first.";
-  if (chosen.value) confirmAccept.value = true;
-}
 async function answer(action: "accept" | "decline") {
   busy.value = true;
   problem.value = "";
   try {
-    await $fetch(`/api/bookings/${id}/${action}`, {
-      method: "POST",
-      body: action === "accept" ? { startsAt: chosen.value } : undefined,
-    });
+    await $fetch(`/api/bookings/${id}/${action}`, { method: "POST" });
     useSonner.success(action === "accept" ? "Accepted. The customer's card was charged." : "Declined. The hold on the customer's card was released.");
   } catch (e) {
     if (isLostReply(e)) {
@@ -88,7 +77,7 @@ const summary = computed(() => {
   if (!s) return "";
   switch (s.status) {
     case "requested": return `Answer by ${at(s.respond_by!)} (${timeLeft(s.respond_by!).toLowerCase()}). The customer's card is on hold for ${money(s.total_cents)}, not charged, until you accept.`;
-    case "confirmed": return s.kind === "service" ? `You accepted. The customer was charged ${money(s.total_cents)}.` : `Booked and paid: ${money(s.total_cents)}.`;
+    case "confirmed": return s.service_mode === "approve" ? `You accepted. The customer was charged ${money(s.total_cents)}.` : `Booked and paid: ${money(s.total_cents)}.`;
     case "declined": return "You declined this request. The customer wasn't charged.";
     case "expired": return s.refunded_cents > 0
       ? "This request ended and the customer was refunded."
@@ -153,8 +142,8 @@ function historyLine(e: { to_status: string; actor: string }): string {
     case "confirmed": return e.actor === "provider" ? "Accepted by you" : "Booked and paid by the customer";
     case "declined": return e.actor === "provider" ? "Declined by you" : "Withdrawn by lokl (the listing wasn't available)";
     case "expired":
-      return e.actor === "provider" ? "Ended: the customer's card couldn't be charged"
-        : e.actor === "stripe" ? "Ended: the hold on the customer's card lapsed" : "Ended: not answered in time";
+      return e.actor === "provider" ? "Expired: the customer's card couldn't be charged"
+        : e.actor === "stripe" ? "Expired: the hold on the customer's card lapsed" : "Expired: not answered in time";
     case "cancelled": return `Cancelled by ${who}`;
     case "completed": return "Took place";
     case "paid_out": return "Paid out to you";
@@ -183,40 +172,23 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
       </UiAlertDescription>
     </UiAlert>
 
-    <!-- Answer a request: choose a time, then accept; or decline. -->
+    <!-- Answer a request: accept the time booked, or decline. -->
     <section v-if="b.status === 'requested'" class="mt-6 rounded-lg border border-border bg-card p-4" aria-labelledby="answer-heading">
-      <h2 id="answer-heading" class="font-medium">Choose a time to accept</h2>
-      <p class="mt-1 text-xs text-muted-foreground">Times are {{ zone }}.</p>
-      <fieldset class="mt-3">
-        <legend class="sr-only">Times the customer offered</legend>
-        <UiRadioGroup v-model="chosen" class="gap-2" :aria-describedby="chooseError ? 'choose-error' : undefined"
-          :aria-invalid="!!chooseError || undefined">
-          <template v-for="(t, i) in b.preferred_times" :key="t">
-            <label class="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-border px-3 py-2 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-primary/30">
-              <UiRadioGroupItem :value="t" class="mt-1" />
-              <span class="flex-1">
-                <span class="block text-sm font-medium">{{ at(t) }}</span>
-                <span class="block text-xs text-muted-foreground">{{ i === 0 ? "First choice" : i === 1 ? "Second choice" : "Third choice" }}</span>
-                <span v-for="c in b.clashes[i] ?? []" :key="c.id" class="mt-1 flex items-start gap-1 text-xs">
-                  <Icon name="lucide:triangle-alert" class="mt-px size-3.5 shrink-0" aria-hidden="true" />
-                  <span>Overlaps another booking: {{ c.title }}, {{ at(c.starts_at) }}</span>
-                </span>
-              </span>
-            </label>
-          </template>
-        </UiRadioGroup>
-        <p v-if="chooseError" id="choose-error" class="mt-2 text-sm text-destructive">{{ chooseError }}</p>
-      </fieldset>
+      <h2 id="answer-heading" class="font-medium">Accept or decline this request</h2>
+      <p class="mt-1 text-sm">{{ bookingRange(b) }} <span class="text-muted-foreground">({{ zone }})</span></p>
+      <p class="mt-1 text-xs text-muted-foreground">This time is kept for the customer until you answer.</p>
       <div class="mt-4 flex flex-wrap gap-3">
-        <UiButton :disabled="busy" @click="askAccept">Accept this time</UiButton>
+        <UiButton :disabled="busy" @click="confirmAccept = true">Accept</UiButton>
         <UiButton variant="outline" :disabled="busy" @click="confirmDecline = true">Decline</UiButton>
       </div>
     </section>
 
     <dl class="mt-8 space-y-6">
       <div v-if="b.starts_at">
-        <dt class="text-sm text-muted-foreground">When</dt>
+        <!-- A declined or expired request never took place. -->
+        <dt class="text-sm text-muted-foreground">{{ ['declined', 'expired'].includes(b.status) ? "Requested for" : "When" }}</dt>
         <dd class="mt-1">{{ bookingRange(b) }}</dd>
+        <dd v-if="['declined', 'expired'].includes(b.status)" class="text-sm">This didn't take place.</dd>
         <dd class="text-xs text-muted-foreground">Times are {{ zone }}.</dd>
       </div>
       <div>
@@ -297,8 +269,8 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
       </UiDialogContent>
     </UiDialog>
 
-    <UiAlertDialog v-model:open="confirmAccept" title="Accept this time?"
-      :description="chosen ? `${at(chosen)}. The customer's card is charged ${money(b.total_cents)}, and you'll see their contact details.` : ''">
+    <UiAlertDialog v-model:open="confirmAccept" title="Accept this request?"
+      :description="`${bookingRange(b)} (${zone}). The customer's card is charged ${money(b.total_cents)}, and you'll see their contact details.`">
       <template #footer>
         <UiAlertDialogFooter>
           <UiAlertDialogCancel text="Not yet" />

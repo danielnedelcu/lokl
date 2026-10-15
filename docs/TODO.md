@@ -154,10 +154,18 @@ Each step depends on the ones before it.
      provider's Availability page, each Service's mode, duration and buffer,
      the slot preview (page and sidebar), and "every Service has a mode",
      with every fixture that makes a Service; e2e journey 27.
-   - [ ] Phase 3: the customer's scheduling panel, both modes on the
-     website, emails, the admin view; remove the request flow
-     (`create_service_request`, `preferred_times`) and expire any request
-     still open, in one migration.
+   - [x] Phase 3 (2026-10-15, migration `service_slots_only`): the
+     customer's scheduling panel, both modes on the website, emails, the
+     admin view (booking mode, time and hold; the provider's availability
+     summary), "Not taking bookings yet", and the request flow removed with
+     the test data converted; e2e journey 2 rewritten.
+   - [ ] Later in the admin: a read-only link to the provider's calendar
+     view (once there is one).
+   - [ ] Measure listing pages: every Service listing page view calls
+     `service_next_slot` (up to six 31-day `service_slots_core` passes when
+     a Service has no free time). Time a page with a busy provider and an
+     empty window; cache or precompute (phase 4's `service_open_days`) if
+     it slows pages down.
    - [ ] Phase 4: search filters Services by availability.
    - [ ] Later: Google Calendar sync; team members.
 3. [x] **Reviews and star ratings** (docs/design/reviews.md, built

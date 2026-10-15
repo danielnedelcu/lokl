@@ -14,9 +14,11 @@ test("the bookings tabs count everything and show more on request", async ({ pag
   const experience = await data.listing(provider, "experience", (await data.category("experience")).id, area);
   const service = await data.listing(provider, "service", (await data.category("service")).id, area);
 
-  await data.heldRequest(customer, service.id, [daysFromNow(5)]);
   await data.paidBooking(customer, await data.session(experience.id, daysFromNow(6)));
   for (let i = 0; i < 21; i++) await data.completedBooking(customer, experience.id, { endedDaysAgo: 2 + i });
+  // Last: the request takes a time the sessions above left free.
+  await data.hours(provider);
+  await data.heldRequest(customer, service.id);
 
   await signIn(context, owner.email, owner.password);
   await page.goto("/dashboard/bookings");

@@ -144,13 +144,34 @@ export class TestData {
     return { id: b.id, pi: pi.id, charge: pi.latest_charge as string };
   }
 
-  /** A Service request with the card held (manual capture), waiting for the provider. */
-  async heldRequest(customer: TestUser, listingId: string, times: string[]) {
-    const b = await must(this.env.db.rpc("create_service_request", {
-      p_listing_id: listingId, p_customer_id: customer.id, p_preferred_times: times, p_customer_name: "Sam Customer",
+  /**
+   * Opens a provider for bookings (docs/design/service-availability.md):
+   * the same hours every day, in Atlanta time, 9:00 AM to 5:00 PM unless
+   * said. Services are booked from these times only.
+   */
+  async hours(providerId: string, starts = "09:00", ends = "17:00") {
+    await must(this.env.db.from("provider_weekly_hours").insert(
+      [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ provider_id: providerId, weekday, starts, ends })),
+    ));
+  }
+
+  /** The first free time of a Service at least `afterDays` from now (its provider must have hours). */
+  async slot(listingId: string, afterDays = 3): Promise<string> {
+    const from = new Date(Date.now() + afterDays * DAY);
+    const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(d);
+    const slots = await must(this.env.db.rpc("service_slots", { p_listing_id: listingId, p_from: day(from), p_to: day(new Date(from.getTime() + 6 * DAY)) })) as { starts_at: string }[];
+    const slot = slots.map((s) => s.starts_at).find((s) => Date.parse(s) >= from.getTime());
+    if (!slot) throw new Error("No free time: give the provider hours (data.hours) first.");
+    return new Date(slot).toISOString();
+  }
+
+  /** A Service request for one of its times, with the card held (manual capture), waiting for the provider. */
+  async heldRequest(customer: TestUser, listingId: string, startsAt?: string) {
+    const b = await must(this.env.db.rpc("create_service_booking", {
+      p_listing_id: listingId, p_customer_id: customer.id, p_starts_at: startsAt ?? await this.slot(listingId), p_customer_name: "Sam Customer",
       p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null,
       p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
-    })) as { id: string };
+    })) as { id: string; starts_at: string };
     const pi = await this.env.stripe.paymentIntents.create({
       amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true,
       payment_method_types: ["card"], metadata: { booking_id: b.id, test: "e2e" },
@@ -158,7 +179,7 @@ export class TestData {
     await must(this.env.db.schema("private").from("booking_records").update({
       status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: pi.id, respond_by: new Date(Date.now() + 2 * DAY).toISOString(),
     }).eq("id", b.id));
-    return { id: b.id, pi: pi.id };
+    return { id: b.id, pi: pi.id, startsAt: new Date(b.starts_at).toISOString() };
   }
 
   async booking(id: string) {

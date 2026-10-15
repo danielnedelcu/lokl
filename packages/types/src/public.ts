@@ -112,6 +112,10 @@ export interface PublicReviewPage {
 export interface PublicListing extends PublicListingCard {
   description: string;
   locationMode: LocationMode | null;
+  /** Services: book at once ("instant") or the provider approves each booking. */
+  bookingMode: "instant" | "approve" | null;
+  /** Services: the first time free to book (service_next_slot), or null when none is. */
+  nextSlotAt: string | null;
   market: PublicMarket;
   hostedBy: string;
   /** Public: lets the page tell a provider "this is your listing". */

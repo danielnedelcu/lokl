@@ -11,7 +11,7 @@ interface Item {
   status: string;
   starts_at: string | null;
   ends_at: string | null;
-  preferred_times: string[] | null;
+  service_mode: "instant" | "approve" | null;
   party_size: number;
   total_cents: number;
   respond_by: string | null;
@@ -59,11 +59,16 @@ async function showMore(key: "upcoming" | "past") {
 
 const supabase = useSupabaseClient();
 const photo = (path: string) => supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+// A declined or expired booking never took place: it leads with that, and
+// the time is what was asked for, not when something happened.
 const when = (b: Item) => {
   const tz = marketZone(b.listing, `booking ${b.id}`);
-  if (b.starts_at) return `${formatSessionDate(b.starts_at, tz)}, ${formatSessionTime(b.starts_at, tz)}`;
-  if (b.preferred_times?.length) return `You offered ${b.preferred_times.length === 1 ? "1 time" : `${b.preferred_times.length} times`}`;
-  return "";
+  const at = b.starts_at ? `${formatSessionDate(b.starts_at, tz)}, ${formatSessionTime(b.starts_at, tz)}` : "";
+  if (b.status === "declined" || b.status === "expired") {
+    const word = b.status === "declined" ? "Declined" : "Expired";
+    return at ? `${word} · you asked for ${at}` : word;
+  }
+  return at;
 };
 </script>
 

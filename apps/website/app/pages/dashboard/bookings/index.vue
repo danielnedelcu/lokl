@@ -89,10 +89,7 @@ const money = (cents: number) => formatMoney(cents, "usd");
               </p>
             </div>
             <p class="mt-2 text-sm text-muted-foreground">Answer by {{ bookingAt(b.respond_by!, bookingZone(b)) }}.</p>
-            <p class="mt-3 text-sm font-medium">Times offered</p>
-            <ol class="mt-1 list-inside list-decimal text-sm">
-              <li v-for="t in b.preferred_times" :key="t">{{ bookingAt(t, bookingZone(b)) }}</li>
-            </ol>
+            <p class="mt-3 text-sm font-medium">{{ bookingRange(b) }}</p>
             <p v-if="b.customer_notes" class="mt-3 line-clamp-3 whitespace-pre-line text-sm">“{{ b.customer_notes }}”</p>
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
               <p class="text-sm text-muted-foreground">You'd receive {{ money(b.provider_amount_cents) }}</p>
@@ -146,7 +143,7 @@ const money = (cents: number) => formatMoney(cents, "usd");
               <span>
                 <span class="block font-medium">{{ b.listing?.title }}</span>
                 <span class="block text-sm text-muted-foreground">
-                  {{ b.starts_at ? bookingRange(b) : `Requested for ${b.preferred_times?.length ?? 0} ${b.preferred_times?.length === 1 ? "time" : "times"}` }}
+                  {{ pastWhen(b) }}
                   · {{ b.customer_name }}
                 </span>
               </span>

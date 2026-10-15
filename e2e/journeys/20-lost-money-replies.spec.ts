@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { atlantaDate, atlantaTime, daysFromNow } from "../support/data";
+import { daysFromNow } from "../support/data";
 import { signIn } from "../support/auth";
 import { ADMIN } from "../support/env";
 import { expect, test } from "../support/fixtures";
@@ -38,20 +38,19 @@ test("accepting a request: the reply is lost, the page says it's accepted", asyn
   const owner = await data.user("owner");
   const provider = await data.provider(owner);
   const listing = await data.listing(provider, "service", (await data.category("service")).id, await data.area());
-  const time = daysFromNow(4);
-  const request = await data.heldRequest(customer, listing.id, [time]);
+  await data.hours(provider);
+  const request = await data.heldRequest(customer, listing.id);
 
   await signIn(context, owner.email, owner.password);
   await page.goto(`/dashboard/bookings/${request.id}`);
-  await page.locator("label").filter({ hasText: atlantaDate(time) }).filter({ hasText: atlantaTime(time) }).click();
   await dropFirstReply(page, `/api/bookings/${request.id}/accept`);
-  await page.getByRole("button", { name: "Accept this time" }).click();
+  await page.getByRole("button", { name: "Accept", exact: true }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Accept", exact: true }).click();
   await expect(page.getByText("Accepted. The customer's card was charged.")).toBeVisible();
   await expect(page.getByText("Confirmed", { exact: true })).toBeVisible();
   await expect(page.getByText(/try again/i)).toHaveCount(0);
 
-  const retry = await again(page, `/api/bookings/${request.id}/accept`, { startsAt: time });
+  const retry = await again(page, `/api/bookings/${request.id}/accept`, {});
   expect(retry, "pressing again answers success").toEqual({ status: 200, body: { result: "already accepted" } });
   const pi = await data.env.stripe.paymentIntents.retrieve(request.pi);
   expect([pi.status, pi.amount_received], "charged once").toEqual(["succeeded", pi.amount]);

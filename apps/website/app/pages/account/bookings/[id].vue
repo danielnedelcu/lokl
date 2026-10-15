@@ -14,7 +14,7 @@ interface Detail {
   status: string;
   starts_at: string | null;
   ends_at: string | null;
-  preferred_times: string[] | null;
+  service_mode: "instant" | "approve" | null;
   party_size: number;
   unit_price_cents: number;
   total_cents: number;
@@ -66,6 +66,7 @@ const range = computed(() => {
   return `${formatSessionDate(b.value.starts_at, tz.value)}, ${formatSessionTime(b.value.starts_at, tz.value)}${end}`;
 });
 const money = (cents: number) => formatMoney(cents, "usd");
+const didntHappen = computed(() => ["declined", "expired"].includes(b.value?.status ?? ""));
 const listingPath = computed(() => (b.value?.listing ? `/${b.value.listing.kind === "experience" ? "experiences" : "services"}/${b.value.listing.slug}` : null));
 
 // One plain sentence for where the booking stands.
@@ -74,12 +75,12 @@ const summary = computed(() => {
   if (!s) return "";
   switch (s.status) {
     case "pending_payment": return confirming.value ? "Payment received. Confirming your booking…" : "This booking isn't paid yet.";
-    case "requested": return `We've sent your request. The provider has until ${s.respond_by ? at(s.respond_by) : "48 hours from now"} to accept one of your times. Your card is held for ${money(s.total_cents)}, not charged.`;
-    case "confirmed": return s.kind === "experience" ? `You're booked. You paid ${money(s.total_cents)}.` : `Accepted. You were charged ${money(s.total_cents)}.`;
+    case "requested": return `We've sent your request. The provider has until ${s.respond_by ? at(s.respond_by) : "48 hours from now"} to accept it. Your card is held for ${money(s.total_cents)}, not charged.`;
+    case "confirmed": return s.service_mode === "approve" ? `Accepted. You were charged ${money(s.total_cents)}.` : `You're booked. You paid ${money(s.total_cents)}.`;
     case "declined": return s.status_changed_by === "system"
       ? "This listing isn't available any more, so your request was cancelled. The hold on your card was released, so nothing was charged."
       : "The provider couldn't take this one. The hold on your card was released, so nothing was charged.";
-    case "expired": return s.kind === "service" && s.preferred_times ? "This request didn't go through, so nothing was charged." : "This booking didn't go through, so nothing was charged.";
+    case "expired": return s.service_mode === "approve" ? "This request didn't go through, so nothing was charged." : "This booking didn't go through, so nothing was charged.";
     case "cancelled": {
       const refund = s.refunded_cents > 0 ? ` ${money(s.refunded_cents)} was refunded to your card.` : s.confirmed_at ? " There was no refund." : " Nothing was charged.";
       if (s.cancelled_by === "provider") return `The provider cancelled: “${s.cancel_reason}”.${refund}`;
@@ -173,18 +174,11 @@ const address = computed(() => b.value?.listing?.locationMode === "customer_loca
 
     <dl class="mt-8 space-y-6">
       <div v-if="b.starts_at">
-        <dt class="text-muted-foreground text-sm">When</dt>
+        <!-- A declined or expired booking never took place, and says so. -->
+        <dt class="text-muted-foreground text-sm">{{ didntHappen ? (b.service_mode === "approve" ? "You asked for" : "It was for") : "When" }}</dt>
         <dd class="mt-1">{{ range }}</dd>
+        <dd v-if="didntHappen" class="text-sm">This didn't take place.</dd>
         <dd class="text-muted-foreground text-xs">Times are {{ zone }}.</dd>
-      </div>
-      <div v-else-if="b.preferred_times?.length">
-        <dt class="text-muted-foreground text-sm">The times you offered</dt>
-        <dd class="mt-1">
-          <ol class="list-inside list-decimal space-y-0.5">
-            <li v-for="t in b.preferred_times" :key="t">{{ at(t) }}</li>
-          </ol>
-        </dd>
-        <dd class="text-muted-foreground text-xs">Times are {{ zone }}. The provider accepts one of them.</dd>
       </div>
 
       <div v-if="b.kind === 'experience'">

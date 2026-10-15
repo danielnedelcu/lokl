@@ -78,7 +78,7 @@ const toProvider = (p: ProviderRow): PublicProvider => ({
 // The two service_areas embeds name their relationship: the listing's own
 // area (area_id) and its travel areas (through listing_service_areas).
 const LISTING_SELECT = `
-  id, kind, slug, title, description, price_cents, currency, duration_minutes, location_mode, created_at,
+  id, kind, slug, title, description, price_cents, currency, duration_minutes, location_mode, booking_mode, created_at,
   category:categories!inner(name, slug),
   city:cities!inner(name, slug, state, timezone),
   area:service_areas!listings_area_id_fkey(id, name, kind),
@@ -99,6 +99,7 @@ interface Row {
   currency: string;
   duration_minutes: number | null;
   location_mode: LocationMode | null;
+  booking_mode: "instant" | "approve" | null;
   created_at: string;
   category: { name: string; slug: string };
   city: PublicMarket;
@@ -165,10 +166,20 @@ export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, s
     const { data: left } = await db.rpc("session_spots_left", { p_session_id: s.id });
     return { id: s.id, startsAt: new Date(s.starts_at).toISOString(), spotsLeft: (left as number | null) ?? 0 };
   }));
+  // A Service's first free time anywhere in its booking window, or none
+  // ("Not taking bookings yet": no hours, or every time taken).
+  let nextSlotAt: string | null = null;
+  if (r.kind === "service") {
+    const { data: next, error: nextError } = await db.rpc("service_next_slot", { p_listing_id: r.id });
+    if (nextError) throw new Error(nextError.message);
+    nextSlotAt = next ? new Date(next as string).toISOString() : null;
+  }
   return {
     ...stripInternal(card),
     description: r.description,
     locationMode: r.location_mode,
+    bookingMode: r.booking_mode,
+    nextSlotAt,
     market: r.city,
     hostedBy: r.hostedBy?.display_name ?? "",
     providerId: r.hostedBy?.id ?? "",

@@ -358,6 +358,37 @@ title>", built from ui-thing's Dialog and Reka's Calendar.
 - **The listing form shows every problem at once** (zod's `when`), so a
   new Service's missing mode is reported with its other empty fields.
 
+## As built in phase 3 (2026-10-15)
+
+- **Migration `service_slots_only`:** drops `create_service_request` and
+  `bookings.preferred_times`; converts the test data with the booking
+  triggers off (open old requests expired, each old request given its first
+  offered time, every old Service booking made Approve), then proves every
+  booking trigger and log guard is back on, failing the migration if not.
+  Every Service booking has its mode, start and end (a check), and
+  `private.booking_records` is recreated without the column.
+- **`service_next_slot(listing, from)`:** the first free time anywhere in
+  the booking window (31 days at a time, up to 180), for the listing page
+  and the panel's "Next available". Visitors and signed-in users.
+- **"Not taking bookings yet":** a live Service with no free time in its
+  whole window (no hours, or every time taken) says so on its listing page,
+  with no "Check availability" or "Sign in to book" button.
+- **The panel** (`ServiceScheduler.vue`) is two steps in one dialog: the
+  day and time, then the customer's details (and the address for "I come to
+  you"), so a phone screen isn't one long form. The month calendar is the
+  shared `DatePicker` ("Go to a date"). Times are radios, three a row on
+  phones and six on wider screens.
+- **Accepting** takes no time any more: the provider accepts or declines
+  the time booked, which the hold kept for the customer.
+- **Declined and expired** bookings say so first, with the time as asked
+  for ("Declined · was requested for …", "This didn't take place."), and
+  the status labels say "Expired", never "Ended", which read as if the
+  time had happened.
+- **Admin:** the booking page shows the mode, the time and its hold; the
+  provider sheet shows weekly hours, time off to come and the next time
+  customers can book. The calendar view link comes later (decided
+  2026-10-15).
+
 ## The provider's availability editor
 
 A new dashboard page, **Availability** (`/dashboard/availability`), with

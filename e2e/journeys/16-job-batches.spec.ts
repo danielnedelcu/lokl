@@ -18,8 +18,8 @@ test("a full batch is logged as more waiting, and the next run clears it", async
   // time, with their finances rows.
   const psql = (sql: string) => execFileSync("psql", [data.env.dbUrl, "-X", "-At", "-v", "ON_ERROR_STOP=1", "-f", "-"], { input: sql, encoding: "utf8" }).trim();
   psql(`begin; set local session_replication_role = replica;
-    insert into public.bookings (kind, listing_id, provider_id, customer_id, customer_name, unit_price_cents, total_cents, preferred_times, status, respond_by)
-    select 'service', '${listing.id}', '${provider}', '${customer.id}', 'Sam', 5000, 5000, array[now() + interval '20 days'], 'requested', now() - g * interval '1 minute'
+    insert into public.bookings (kind, listing_id, provider_id, customer_id, customer_name, unit_price_cents, total_cents, service_mode, starts_at, ends_at, status, respond_by)
+    select 'service', '${listing.id}', '${provider}', '${customer.id}', 'Sam', 5000, 5000, 'approve', now() + interval '20 days', now() + interval '20 days 1 hour', 'requested', now() - g * interval '1 minute'
     from generate_series(1, 201) g;
     insert into public.booking_finances (booking_id, commission_rate_bps, commission_cents, provider_amount_cents)
     select id, 1200, 600, 4400 from public.bookings where listing_id = '${listing.id}';

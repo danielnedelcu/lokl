@@ -168,6 +168,27 @@ The provider's `/dashboard/availability` (docs/design/service-availability.md):
   not set up), each with where to fix it, and treats a not-yet-started
   fetch as loading, never as "No times".
 
+## Scheduling panel
+
+`ServiceScheduler` (docs/design/service-availability.md): a Service's
+"Check availability" dialog, full screen on phones.
+
+- **Days are buttons** named with the full date and the count ("Friday,
+  October 16, 24 times"), `aria-pressed` for the chosen one, and days with
+  none struck through and `aria-disabled`, never colour alone. Market days
+  only (`todayIn`, `weekStartOf`).
+- **Times are a radio group** named with the day and the zone ("Times on
+  Friday, October 16, Atlanta time (ET)"), 44px each; a polite live region
+  says the count when the day changes. It's a `grid` group: all four arrow
+  keys move, since the times sit in rows and columns (other radio groups
+  stay vertical: Up and Down).
+- **States:** skeleton times while loading, "Times didn't load" with Try
+  again, "No times this week" with "Next available", and a time taken
+  meanwhile sends the customer back to the times ("That time was just
+  taken. Pick another.").
+- **A Service with no free time at all** shows "Not taking bookings yet" on
+  its listing page, with no button.
+
 ## Forms
 
 - Every form uses vee-validate with a zod schema, passed through the layer's `zodSchema()` adapter: `useForm({ validationSchema: zodSchema(schema) })`. The official `@vee-validate/zod` only supports zod 3, and vee-validate 4.15 can't take zod 4 schemas directly. Switch to the official adapter once one supports zod 4.

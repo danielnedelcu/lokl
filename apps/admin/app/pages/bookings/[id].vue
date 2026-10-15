@@ -13,7 +13,7 @@ const call = useWebsiteAdmin();
 
 const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async () => {
   const [b, events, emails, actions] = await Promise.all([
-    supabase.from("bookings").select("*, listing:listings(id, title, kind, status, city:cities(name, timezone)), provider:providers(id, display_name, status), contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), finances:booking_finances(*), report:booking_reports(note)").eq("id", id).maybeSingle(),
+    supabase.from("bookings").select("*, listing:listings(id, title, kind, status, city:cities(name, timezone)), provider:providers(id, display_name, status), contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), finances:booking_finances(*), report:booking_reports(note), hold:provider_holds(during)").eq("id", id).maybeSingle(),
     // bounded: one booking's history
     supabase.from("booking_events").select("from_status, to_status, actor, created_at").eq("booking_id", id).order("created_at"),
     // bounded: one booking's history
@@ -29,6 +29,17 @@ const b = computed(() => data.value?.b ?? null);
 useHead({ title: () => `${b.value?.listing?.title ?? "Booking"} · Admin` });
 
 const money = (cents: number) => formatMoney(cents ?? 0, "usd");
+// A Service's mode, and the time its hold keeps for it (docs/design/service-availability.md):
+// [start, end + the time between bookings). No hold once it's declined,
+// expired or cancelled: the time is free again.
+const MODES: Record<string, string> = { instant: "Instant: charged when booked", approve: "Approve: the provider accepts each booking" };
+const holdText = computed(() => {
+  const during = (b.value?.hold as { during: string } | null)?.during;
+  if (!during) return "None: the time is free for other bookings";
+  // Postgres writes each end as "2026-10-10 15:00:00+00": made ISO before parsing.
+  const [from, to] = during.replace(/[[\]()"]/g, "").split(",").map((t) => t.trim().replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00"));
+  return `${at(from!)} – ${formatSessionTime(to!, marketZone(b.value?.listing?.city, `booking ${id}`))}`;
+});
 const at = (iso: string) => {
   const tz = marketZone(b.value?.listing?.city, `booking ${id}`);
   return `${formatSessionDate(iso, tz)}, ${formatSessionTime(iso, tz)}`;
@@ -186,6 +197,11 @@ const actionLabels: Record<string, string> = {
           <dd>{{ b.customer_name }}<template v-if="b.kind === 'experience'"> · {{ b.party_size }} {{ b.party_size === 1 ? "person" : "people" }}</template></dd>
           <dd v-if="b.contact" class="text-sm">{{ b.contact.email }}<template v-if="b.contact.phone"> · {{ b.contact.phone }}</template></dd>
           <dd v-if="b.address" class="text-sm">{{ b.address.line1 }}, {{ b.address.city }}, {{ b.address.state }} {{ b.address.postal_code }}</dd>
+        </div>
+        <div v-if="b.kind === 'service'"><dt class="text-sm text-muted-foreground">Booking mode</dt>
+          <dd>{{ MODES[b.service_mode] ?? "Not set" }}</dd>
+          <dd class="text-sm">{{ ['declined', 'expired'].includes(b.status) ? "Asked for" : "Time" }}: {{ whenOf(b as any) }}<template v-if="b.ends_at"> – {{ formatSessionTime(b.ends_at, marketZone(b.listing?.city, `booking ${id}`)) }}</template> ({{ b.listing?.city?.name ?? "Atlanta" }} time)</dd>
+          <dd class="text-sm">Held: {{ holdText }}</dd>
         </div>
         <div><dt class="text-sm text-muted-foreground">Money</dt>
           <dd v-if="b.confirmed_at">Charged {{ money(b.total_cents) }} · commission {{ money(b.commission_cents) }} ({{ (b.commission_rate_bps / 100).toFixed(1) }}%) · provider {{ money(b.provider_amount_cents) }}</dd>

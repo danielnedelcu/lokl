@@ -111,6 +111,8 @@ async function remove() {
               Open the public profile (if it's public)
             </a>
 
+            <ProviderAvailability :key="profile.id" :provider-id="profile.id" />
+
             <form v-if="present.length" class="border-border space-y-4 border-t pt-4" novalidate @submit.prevent="remove">
               <h3 class="font-medium">Remove something that breaks the profile rules</h3>
               <fieldset class="space-y-1">

@@ -56,24 +56,22 @@ test("a Service: the reply is lost, the customer presses again, one request", as
   const customer = await data.user("customer");
   const owner = await data.user("owner");
   const provider = await data.provider(owner);
+  await data.hours(provider);
   const listing = await data.listing(provider, "service", (await data.category("service")).id, await data.area());
   await signIn(context, customer.email, customer.password);
 
   await page.goto(`/services/${listing.slug}`);
-  const day = new Date(Date.now() + 5 * 864e5);
-  await page.getByRole("group", { name: "Date" }).getByRole("spinbutton").first().click();
-  await page.keyboard.type(`${String(day.getMonth() + 1).padStart(2, "0")}${String(day.getDate()).padStart(2, "0")}${day.getFullYear()}`);
-  for (const [label, value] of [["Hour", "10"], ["Minutes", "30"], ["AM or PM", "AM"]] as const) {
-    await page.getByLabel(label, { exact: true }).click();
-    await page.getByRole("option", { name: value, exact: true }).click();
-  }
-  await page.getByLabel("Your name").fill("Sam Customer");
+  await page.getByRole("button", { name: "Check availability" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("radiogroup", { name: /^Times on / }).locator("label").first().click();
+  await dialog.getByRole("button", { name: "Continue" }).click();
+  await dialog.getByLabel("Your name").fill("Sam Customer");
   await dropFirstReply(page, "/api/bookings/service");
   const sentToStripe = await stopAtStripe(page);
-  await page.getByRole("button", { name: "Continue to payment" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Checkout couldn't be started. Please try again.");
+  await dialog.getByRole("button", { name: "Request to book" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText("Checkout couldn't be started. Please try again.");
 
-  await page.getByRole("button", { name: "Continue to payment" }).click();
+  await dialog.getByRole("button", { name: "Request to book" }).click();
   const stripeUrl = await sentToStripe();
   const { data: rows } = await data.env.db.schema("private").from("booking_records").select("*").eq("customer_id", customer.id);
   expect(rows, "exactly one request").toHaveLength(1);

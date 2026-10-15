@@ -10,12 +10,16 @@
   (2026-10-11: it used to wait a tick and select whatever had focus, which
   depended on Reka having moved focus by then, and failed in CI.)
   Keep it if the component is re-added with the ui-thing CLI.
+  lokl change (2026-10-15): `grid` lets all four arrow keys move, for radios
+  laid out in rows and columns (the scheduling panel's times): Reka is given
+  no orientation, which its roving focus reads as both.
 -->
 <template>
   <RadioGroupRoot
     ref="root"
     data-slot="radio-group"
     v-bind="forwarded"
+    :orientation="grid ? undefined : orientation"
     @keydown="selectTarget"
     :class="styles({ class: normalizeClass(props.class) || undefined })"
   >
@@ -34,6 +38,8 @@
       RadioGroupRootProps & {
         /** Custom class(es) to add to the parent. */
         class?: HTMLAttributes["class"];
+        /** Radios in rows and columns: every arrow key moves (lokl change). */
+        grid?: boolean;
       }
     >(),
     {
@@ -43,7 +49,7 @@
   );
 
   const emits = defineEmits<RadioGroupRootEmits>();
-  const forwarded = useForwardPropsEmits(reactiveOmit(props, "class"), emits);
+  const forwarded = useForwardPropsEmits(reactiveOmit(props, "class", "grid", "orientation"), emits);
 
   const styles = tv({ base: "grid gap-3" });
 
@@ -54,8 +60,8 @@
     if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return undefined;
     const rtl = (props.dir ?? getComputedStyle(from).direction) === "rtl";
     const key = rtl && event.key === "ArrowLeft" ? "ArrowRight" : rtl && event.key === "ArrowRight" ? "ArrowLeft" : event.key;
-    if (props.orientation === "vertical" && (key === "ArrowLeft" || key === "ArrowRight")) return undefined;
-    if (props.orientation === "horizontal" && (key === "ArrowUp" || key === "ArrowDown")) return undefined;
+    if (!props.grid && props.orientation === "vertical" && (key === "ArrowLeft" || key === "ArrowRight")) return undefined;
+    if (!props.grid && props.orientation === "horizontal" && (key === "ArrowUp" || key === "ArrowDown")) return undefined;
     const step = key === "ArrowUp" || key === "ArrowLeft" ? -1 : key === "ArrowDown" || key === "ArrowRight" ? 1 : 0;
     if (!step) return undefined;
     const enabled = radios.filter((r) => r === from || !r.hasAttribute("data-disabled"));

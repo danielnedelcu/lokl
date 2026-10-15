@@ -80,6 +80,16 @@ export function quickDates(timeZone: string, at?: string) {
   };
 }
 
+/** A calendar date as "Friday, October 16": the day itself, in no zone. */
+export function formatCalendarDayLong(date: string): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" }).format(parseDate(date).toDate("UTC"));
+}
+
+/** The Sunday on or before a calendar date: the start of its week in a date strip. */
+export function weekStartOf(date: string): string {
+  return parseDate(date).subtract({ days: getDayOfWeek(parseDate(date), "en-US") }).toString();
+}
+
 /** A local date plus `days`, for the date input's maximum. */
 export function addDays(date: string, days: number): string {
   return parseDate(date).add({ days }).toString();
