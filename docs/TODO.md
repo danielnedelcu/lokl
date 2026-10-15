@@ -354,6 +354,14 @@ three are done: explicit API grants, the build secrets check, and
   - Signing in: a password sign-in in the test code, its cookies given to
     the browser. Nothing test-only in the apps.
 
+- [x] **Journey 9's "leave the page at once" made reliable** (2026-10-13).
+  It failed once in CI, after the header search commit (passed on re-run):
+  the unsave was held with `page.route`, and a request still held by
+  Playwright's interception when the page left could lose the keepalive
+  re-save the page sends as it goes. The unsave is now slowed with Chrome's
+  network throttling instead, so nothing intercepts the page's last
+  request. Checked with a deliberate break (no keepalive: the test fails).
+
 ## Staging site
 
 A real address before the live one: `staging.hilokl.com` (website) and

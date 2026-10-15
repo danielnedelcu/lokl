@@ -160,20 +160,20 @@ test("tap twice and leave the page at once: the last tap is still saved", async 
   expect((await savedRows(data, customer.id)).listings).toEqual([p.listing.id]);
 
   // Unsave, then save again while the unsave's answer is still on its way
-  // (held back here: the database has already done it), then leave at once.
+  // (slowed here: the database has already done it), then leave at once.
   // The re-save hasn't been sent yet; leaving sends it (keepalive).
-  await page.route(/\/rest\/v1\/saved_listings/, async (route) => {
-    if (route.request().method() !== "DELETE") return route.continue();
-    const response = await route.fetch();
-    await new Promise((r) => setTimeout(r, 5000));
-    await route.fulfill({ response }).catch(() => {}); // the page has gone
-  });
+  // Slowed by Chrome's network throttling, not by holding the request with
+  // page.route: a request still held by Playwright's interception when the
+  // page leaves can lose the keepalive request the page sends as it goes
+  // (failed once in CI, 2026-10-13).
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Network.enable");
+  await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 4000, downloadThroughput: -1, uploadThroughput: -1 });
   await button.click();
   await expect.poll(async () => (await savedRows(data, customer.id)).listings, { message: "the unsave reached the database" }).toEqual([]);
   await button.click();
   await expect(button).toHaveAttribute("aria-pressed", "true");
   await expect(button).toHaveAttribute("aria-busy", "true");
-  await page.unroute(/\/rest\/v1\/saved_listings/);
   // Leave at once: a blank page replaces this one straight away (following a
   // link within the site would keep this page alive until the next arrives).
   await page.goto("about:blank");
