@@ -65,7 +65,7 @@ try {
     await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
     return id;
   };
-  const serviceId = await listing({ kind: "service", category_id: svcCat, title: `Routes cut ${run}`, description: "A Service made by the routes test.", price_cents: 3000, location_mode: "provider_location" });
+  const serviceId = await listing({ kind: "service", booking_mode: "approve", category_id: svcCat, title: `Routes cut ${run}`, description: "A Service made by the routes test.", price_cents: 3000, location_mode: "provider_location", duration_minutes: 60 });
   const experienceId = await listing({ kind: "experience", category_id: expCat, title: `Routes walk ${run}`, description: "An Experience made by the routes test.", price_cents: 2000, duration_minutes: 60 });
   const s1 = (await must(db.from("experience_sessions").insert({ listing_id: experienceId, starts_at: new Date(Date.now() + 5 * 864e5).toISOString(), capacity: 2 }).select("id").single())).id;
   const ctx = { db, stripe, siteUrl: "http://localhost:3100", customer };

@@ -1,6 +1,6 @@
 # Service availability and slots
 
-Status: approved 2026-10-14 (answers below) · phase 1 in progress
+Status: approved 2026-10-14 (answers below) · phase 1 built 2026-10-14 · phase 2 built 2026-10-15
 
 Services are booked today by request: the customer suggests up to three
 times, the card is held, and the provider accepts one within 48 hours
@@ -338,6 +338,25 @@ title>", built from ui-thing's Dialog and Reka's Calendar.
   "Check availability".
 - **States:** loading shows skeleton times, not blank space. A failed load
   says "Times didn't load. Try again" with a retry button.
+
+## As built in phase 2 (2026-10-15)
+
+- **Migration `service_settings_required`:** every Service has a mode and
+  a duration of 15 to 720 minutes (constraints); `replace_weekly_hours` and
+  `replace_date_hours` save a section in one step under the provider's row
+  rules; `my_service_slots_preview` (the provider's own Services, even a
+  draft or before payouts) and `service_slots_at` share one core,
+  `service_slots_core`.
+- **Approval notice in the slots:** a Service the provider approves never
+  offers a slot under 4 hours ahead, whatever the provider's notice, so
+  customers aren't offered times `create_service_booking` refuses. The
+  notice setting says "Services you approve need at least 4 hours."
+- **Mode and buffer** can change while a Service is live; bookings keep
+  their mode and holds their buffer. Duration stays locked while live.
+- **The preview** is on the Availability page (choose a Service) and in a
+  Service's sidebar.
+- **The listing form shows every problem at once** (zod's `when`), so a
+  new Service's missing mode is reported with its other empty fields.
 
 ## The provider's availability editor
 

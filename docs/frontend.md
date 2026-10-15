@@ -140,6 +140,34 @@ header, sharing `useSearch()` and the panels `SearchWhere`, `SearchWhen` and
 - **The public header is sticky.** `scroll-padding-top` keeps focused
   elements visible below it. A new sticky element must do the same.
 
+## Availability page
+
+The provider's `/dashboard/availability` (docs/design/service-availability.md):
+`AvailabilityWeekly`, `AvailabilityDates`, `AvailabilityTimeOff`,
+`AvailabilitySettings` and `SlotPreview` (also in a Service's sidebar).
+
+- **Times are TimeInput, in market time,** with the zone named once at the
+  top ("All times are Atlanta time (ET)"). An end of 12:00 AM means
+  midnight (stored as 24:00).
+- **Intervals:** a day is an "Open on …" checkbox plus its sets of hours,
+  with Add hours, Remove (named with the hours and day) and Copy to every
+  day. The rules (`weeklyHoursSchema`, `dateHoursSchema`) say what's wrong
+  in words: "Overlaps 9:00 AM – 12:00 PM.", "Ends before it starts."
+- **Each section saves on its own,** in one step where it's several rows
+  (`replace_weekly_hours`, `replace_date_hours`), and says so in a toast.
+- **Fresh data never overwrites unsaved changes:** a form resets to what
+  was saved only when it has none (`meta.dirty`).
+- **An unticked day is simply closed:** its hours stay in the form
+  (`keepValuesOnUnmount`), aren't checked or saved, and come back when it's
+  ticked again. "Check the hours marked above" appears only for an error on
+  a field that's on screen.
+- **No raw validation messages:** every rule on the page says what to do in
+  plain words, wrong types included (`availability-forms.test.mts` checks
+  none of zod's own "Invalid input…" reach the page).
+- **The preview says why it's empty** (no hours, no mode, not live, payouts
+  not set up), each with where to fix it, and treats a not-yet-started
+  fetch as loading, never as "No times".
+
 ## Forms
 
 - Every form uses vee-validate with a zod schema, passed through the layer's `zodSchema()` adapter: `useForm({ validationSchema: zodSchema(schema) })`. The official `@vee-validate/zod` only supports zod 3, and vee-validate 4.15 can't take zod 4 schemas directly. Switch to the official adapter once one supports zod 4.
@@ -148,6 +176,7 @@ header, sharing `useSearch()` and the panels `SearchWhere`, `SearchWhen` and
 - Errors appear next to the field, in words, and say how to fix the problem ("Enter a price above $0"), not just what's wrong.
 - Submit buttons show a loading state and are disabled while submitting, so a double click can't send twice.
 - Success and failure of an action are confirmed with a toast; errors that need the user to act stay on the page.
+- **Checkboxes (`UiVeeCheckbox`):** a yes/no checkbox is `false` when unticked, never `undefined` (`uncheckedValue`, 2026-10-15; Reka sends true or false, and vee-validate stored undefined, which a boolean rule refused). A checkbox with a `value` belongs to a group and keeps vee-validate's group behaviour.
 
 ### Form controls (decided 2026-10-03)
 

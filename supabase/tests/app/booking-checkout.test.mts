@@ -109,7 +109,7 @@ try {
     await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
     return id;
   };
-  const serviceId = await listing({ kind: "service", category_id: svcCat, title: `Checkout test cut ${run}`, description: "A Service made by the checkout test.", price_cents: 4500, location_mode: "provider_location", duration_minutes: 60 });
+  const serviceId = await listing({ kind: "service", booking_mode: "approve", category_id: svcCat, title: `Checkout test cut ${run}`, description: "A Service made by the checkout test.", price_cents: 4500, location_mode: "provider_location", duration_minutes: 60 });
   const experienceId = await listing({ kind: "experience", category_id: expCat, title: `Checkout test walk ${run}`, description: "An Experience made by the checkout test.", price_cents: 2500, duration_minutes: 90 });
   const s1 = (await must(db.from("experience_sessions").insert({ listing_id: experienceId, starts_at: new Date(Date.now() + 5 * 864e5).toISOString(), capacity: 1 }).select("id").single())).id;
   const s2 = (await must(db.from("experience_sessions").insert({ listing_id: experienceId, starts_at: new Date(Date.now() + 6 * 864e5).toISOString(), capacity: 1 }).select("id").single())).id;

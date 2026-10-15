@@ -150,9 +150,10 @@ Each step depends on the ones before it.
      schedules, holds and the exclusion constraint, `service_slots` /
      `service_slots_at`, `create_service_booking`, the guard's new rules;
      pgTAP `service_availability.test.sql` (clock changes included).
-   - [ ] Phase 2: the provider's Availability page and per-Service mode,
-     duration and buffer; the constraint "a Service has a mode", with every
-     test fixture that makes a Service.
+   - [x] Phase 2 (2026-10-15, migration `service_settings_required`): the
+     provider's Availability page, each Service's mode, duration and buffer,
+     the slot preview (page and sidebar), and "every Service has a mode",
+     with every fixture that makes a Service; e2e journey 27.
    - [ ] Phase 3: the customer's scheduling panel, both modes on the
      website, emails, the admin view; remove the request flow
      (`create_service_request`, `preferred_times`) and expire any request

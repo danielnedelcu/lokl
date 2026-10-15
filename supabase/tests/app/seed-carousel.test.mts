@@ -56,7 +56,7 @@ try {
   await must(db.from("listings").insert({
     id: created.listing, provider_id: provider.id, city_id: atl.id, area_id: created.area, status: "draft", kind: "service",
     category_id: created.category[0], title: `Seed source ${run}`, description: "The provider's own listing, to copy a photo from.",
-    price_cents: 5000, duration_minutes: 60, location_mode: "provider_location",
+    price_cents: 5000, duration_minutes: 60, location_mode: "provider_location", booking_mode: "approve",
   }));
   created.file = `${provider.id}/${created.listing}/${randomUUID()}.jpg`;
   await must(db.storage.from("listing-photos").upload(created.file, new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: "image/jpeg" })));

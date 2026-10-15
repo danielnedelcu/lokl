@@ -81,7 +81,7 @@ try {
     await must(db.from("listings").insert({
       id, provider_id: provider, city_id: atl.id, area_id: created.area, status: "submitted", kind,
       category_id: kind === "service" ? svcCat : expCat, title: `Admin ${kind} ${run}`, description: "A listing made by the admin actions test.",
-      price_cents: 5000, duration_minutes: 60, location_mode: kind === "service" ? "provider_location" : null,
+      price_cents: 5000, duration_minutes: 60, location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? "approve" : null,
     }));
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${provider}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
     await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));

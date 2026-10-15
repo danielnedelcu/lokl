@@ -77,7 +77,7 @@ try {
   await must(db.from("listings").insert({
     id: listingId, provider_id: providerId, city_id: atl.id, kind: "service", category_id: cat, title: `Answers cut ${run}`,
     description: "A Service made by the provider bookings test.", price_cents: 4500, duration_minutes: 60,
-    location_mode: "customer_location", status: "submitted",
+    location_mode: "customer_location", booking_mode: "approve", status: "submitted",
   }));
   await must(db.from("listing_service_areas").insert({ listing_id: listingId, service_area_id: created.area }));
   await must(db.from("listing_photos").insert({ listing_id: listingId, storage_path: `${providerId}/${listingId}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));

@@ -10,6 +10,7 @@ import {
   type ListingKind,
   type Listing,
   type ListingAddress,
+  type BookingMode,
 } from "@repo/types";
 
 // Create (no listingId) or edit a Service or Experience. Listing fields,
@@ -68,6 +69,29 @@ const kindWord = computed(() => (kind.value === "service" ? "Service" : "Experie
 const editable = computed(() => status.value === "draft" || status.value === "rejected");
 const priceAndDescriptionEditable = computed(() => editable.value || status.value === "live");
 const travelAreasEditable = computed(() => editable.value || status.value === "live");
+// A Service's mode and buffer can change while it's live (bookings keep the
+// mode they were made under, holds their buffer; decided 2026-10-15).
+const bookingSettingsEditable = computed(() => editable.value || status.value === "live");
+
+// The provider's default buffer, named in the buffer choice ("Use my
+// default"), and whether they've set any hours (for the slot preview).
+const { data: schedule } = await useAsyncData("listing-editor-schedule", async () => {
+  if (!provider.value) return null;
+  const pid = provider.value.id;
+  const [s, weekly, dated] = await Promise.all([
+    supabase.from("provider_schedules").select("default_buffer_minutes").eq("provider_id", pid).maybeSingle(),
+    supabase.from("provider_weekly_hours").select("id", { count: "exact", head: true }).eq("provider_id", pid),
+    supabase.from("provider_date_hours").select("id", { count: "exact", head: true }).eq("provider_id", pid),
+  ]);
+  return { default_buffer_minutes: s.data?.default_buffer_minutes ?? 0, hasHours: (weekly.count ?? 0) + (dated.count ?? 0) > 0 };
+});
+const defaultBuffer = computed(() => schedule.value?.default_buffer_minutes ?? 0);
+const canBePaid = computed(() => !!provider.value && payoutSetupOf(provider.value) === "ready");
+const minutesWord = (n: number) => (n === 0 ? "none" : n < 60 ? `${n} minutes` : n % 60 === 0 ? `${n / 60} hour${n === 60 ? "" : "s"}` : `${Math.floor(n / 60)} hour ${n % 60} minutes`);
+const bufferOptions = computed(() => [
+  { value: "", label: `Use my default (${minutesWord(defaultBuffer.value)})` },
+  ...[0, 15, 30, 45, 60, 90, 120].map((n) => ({ value: String(n), label: n === 0 ? "None" : minutesWord(n) })),
+]);
 
 // Only this listing's kind, filtered in the query. Loaded after the listing,
 // since an edited listing's kind comes from the listing itself.
@@ -107,6 +131,8 @@ function formValues(): ListingInput {
     price_cents: l?.price_cents ?? (undefined as unknown as number),
     duration_minutes: l?.duration_minutes ?? null,
     location_mode: l?.location_mode ?? null,
+    booking_mode: (l?.booking_mode as BookingMode | null | undefined) ?? null,
+    buffer_minutes: (l?.buffer_minutes == null ? "" : String(l.buffer_minutes)) as unknown as number,
     area_id: l?.area_id ?? null,
     travel_area_ids: saved.value?.travelAreaIds ?? [],
     address: a
@@ -242,6 +268,8 @@ const save = handleSubmit(async (v) => {
       price_cents: v.price_cents,
       duration_minutes: v.duration_minutes ?? null,
       location_mode: kind.value === "service" ? v.location_mode : null,
+      booking_mode: kind.value === "service" ? v.booking_mode ?? null : null,
+      buffer_minutes: kind.value === "service" ? v.buffer_minutes ?? null : null,
       area_id: showAddress.value ? v.area_id : null,
     };
 
@@ -257,7 +285,10 @@ const save = handleSubmit(async (v) => {
       );
       id = (created as { id: string }).id;
     } else if (status.value === "live") {
-      await runChanged(supabase.from("listings").update({ price_cents: fields.price_cents, description: fields.description }).eq("id", id).select("id"));
+      await runChanged(supabase.from("listings").update({
+        price_cents: fields.price_cents, description: fields.description,
+        ...(kind.value === "service" ? { booking_mode: fields.booking_mode, buffer_minutes: fields.buffer_minutes } : {}),
+      }).eq("id", id).select("id"));
     } else if (editable.value) {
       await runChanged(supabase.from("listings").update(fields).eq("id", id).select("id"));
     }
@@ -470,9 +501,32 @@ const statusNote = computed(() => {
               <MoneyInput name="price_cents" :label="kind === 'experience' ? 'Price per person' : 'Price'" required
                 :disabled="!priceAndDescriptionEditable"
                 hint="The full price the customer pays." />
-              <UiVeeNumberField name="duration_minutes" :min="5" :max="1440" :step="5" touch
-                :label="kind === 'experience' ? 'How long it lasts, in minutes' : 'How long it takes, in minutes (optional)'"
-                :required="kind === 'experience'" :disabled="!editable" />
+              <UiVeeNumberField name="duration_minutes" :min="kind === 'service' ? 15 : 5" :max="kind === 'service' ? 720 : 1440" :step="5" touch
+                :label="kind === 'experience' ? 'How long it lasts, in minutes' : 'How long it takes, in minutes'"
+                :hint="kind === 'service' ? '15 to 720 minutes (12 hours). Customers book a slot this long.' : undefined"
+                required :disabled="!editable" />
+            </UiCardContent>
+          </UiCard>
+
+          <!-- How customers book a Service (docs/design/service-availability.md):
+               a choice the provider makes, nothing preselected; it can change
+               while live. -->
+          <UiCard v-if="kind === 'service'">
+            <UiCardHeader><UiCardTitle as="h2">How customers book</UiCardTitle></UiCardHeader>
+            <UiCardContent class="space-y-5">
+              <UiVeeRadioGroup name="booking_mode" label="How customers book" required :disabled="!bookingSettingsEditable">
+                <label v-for="opt in [
+                  { value: 'instant', label: 'Customers book instantly', hint: 'They pay when they book, and it\'s confirmed.' },
+                  { value: 'approve', label: 'I approve each booking', hint: 'Their card is held until you accept. You answer at least 2 hours before it starts.' },
+                ]" :key="opt.value" class="flex min-h-11 cursor-pointer items-center gap-3 rounded-md py-1">
+                  <UiRadioGroupItem :value="opt.value" />
+                  <span><span class="block text-sm font-medium">{{ opt.label }}</span>
+                    <span class="text-muted-foreground block text-sm">{{ opt.hint }}</span></span>
+                </label>
+              </UiVeeRadioGroup>
+              <UiVeeSelect name="buffer_minutes" label="Time after each booking" touch :disabled="!bookingSettingsEditable"
+                hint="Free time before your next booking, for travel or tidying up."
+                :options="bufferOptions" />
             </UiCardContent>
           </UiCard>
 
@@ -538,8 +592,10 @@ const statusNote = computed(() => {
         </form>
 
         <!-- Readiness and actions. After the form in the page, so on phones it
-             sits right above the Publish or Submit button; a sidebar on desktop. -->
-        <UiCard class="lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1">
+             sits right above the Publish or Submit button; a sidebar on desktop,
+             with a Service's times under it. -->
+        <div class="space-y-6 self-start lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1">
+        <UiCard>
           <UiCardHeader>
             <UiCardTitle as="h2">
               {{ readiness.action === "publish" ? "Ready to publish?" : "Ready to send for review?" }}
@@ -582,6 +638,17 @@ const statusNote = computed(() => {
             </UiButton>
           </UiCardContent>
         </UiCard>
+
+        <!-- The times customers will see (docs/design/service-availability.md). -->
+        <UiCard v-if="kind === 'service' && listing && savedCity">
+          <UiCardHeader><UiCardTitle as="h2">Times customers will see</UiCardTitle></UiCardHeader>
+          <UiCardContent>
+            <SlotPreview :services="[{ id: listing.id, title: listing.title, status: listing.status, booking_mode: listing.booking_mode }]"
+              :listing-id="listing.id" :time-zone="savedCity.timezone" :zone-label="timeZoneLabel(savedCity.name, savedCity.timezone)"
+              :today="todayIn(savedCity.timezone)" :has-hours="!!schedule?.hasHours" :can-be-paid="canBePaid" />
+          </UiCardContent>
+        </UiCard>
+        </div>
       </div>
 
       <!-- Save, always in reach on phones -->

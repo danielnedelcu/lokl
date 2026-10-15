@@ -96,7 +96,7 @@ select u.id,
 from (select id, row_number() over (order by email) as n from auth.users where email like 'owner%@load.test.local') u;
 
 -- 1,000 listings: 600 Experiences and 400 Services, mostly live.
-insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, location_mode, status, published_at, unpublished_reason)
+insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, location_mode, booking_mode, status, published_at, unpublished_reason)
 select p.id, k.kind,
   (select id from public.categories where slug = case when k.kind = 'experience' then 'load-tours' else 'load-hair' end),
   p.city_id,
@@ -106,6 +106,7 @@ select p.id, k.kind,
   1500 + (n % 40) * 250, 60 + (n % 4) * 30,
   (select id from public.service_areas where city_id = p.city_id and name like 'Load %'),
   case when k.kind = 'service' then 'provider_location' end,
+  case when k.kind = 'service' then 'approve' end,
   case when n % 12 = 0 then 'draft' when n % 17 = 0 then 'unpublished' else 'live' end,
   case when n % 12 = 0 then null else now() - interval '200 days' end,
   case when n % 12 <> 0 and n % 17 = 0 then 'Taken down by the load seed.' end
@@ -113,9 +114,12 @@ from generate_series(1, 1000) n
 cross join lateral (select case when n <= 600 then 'experience' else 'service' end as kind) k
 cross join lateral (select id, city_id from public.providers where display_name like '% ' || (1 + n % 200)) p;
 
--- One session per Experience, which its bookings hang off.
+-- One session per Experience, which its bookings hang off; a provider's
+-- 3 hours apart (one provider's sessions can't overlap, and these run up to
+-- 150 minutes).
 insert into public.experience_sessions (listing_id, starts_at, capacity)
-select id, now() + interval '10 days', 500 from public.listings where kind = 'experience' and category_id = (select id from public.categories where slug = 'load-tours');
+select id, now() + interval '10 days' + (row_number() over (partition by provider_id order by id)) * interval '3 hours', 500
+  from public.listings where kind = 'experience' and category_id = (select id from public.categories where slug = 'load-tours');
 
 -- 10,000 bookings across a year, every status, by 2,000 customers.
 create temp table load_bookings on commit drop as

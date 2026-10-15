@@ -25,14 +25,14 @@ insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 
 
 -- A 60-minute studio Service, a 150-minute Experience, and the other
 -- provider's 60-minute Service.
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, location_mode, area_id)
-values (:'p', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 60, 'provider_location', :'area')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, location_mode, area_id, booking_mode)
+values (:'p', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 60, 'provider_location', :'area', 'approve')
 returning id as ls \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id)
 values (:'p', 'experience', :'exp', :'atl', 'Neighbourhood walk', 'A walk around the neighbourhood, with stories.', 3000, 150, :'area')
 returning id as le \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, location_mode, area_id)
-values (:'p2', 'service', :'svc', :'atl', 'Another studio cut', 'Another classic cut, with a wash.', 4000, 60, 'provider_location', :'area')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, location_mode, area_id, booking_mode)
+values (:'p2', 'service', :'svc', :'atl', 'Another studio cut', 'Another classic cut, with a wash.', 4000, 60, 'provider_location', :'area', 'approve')
 returning id as ls2 \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'ls', :'le', :'ls2');
@@ -90,7 +90,7 @@ select throws_ok($$ select count(*) from provider_weekly_hours $$, '42501', 'per
 -- ---------------------------------------------------------------------------
 
 -- No mode yet: no slots, even with hours.
-select is(pg_temp.slots(:'ls'), 0, '2a. a Service without a booking mode has no slots');
+select is(pg_temp.slots(:'ls'), 15, '2a. a live Service with a mode and hours has slots (every Service has a mode since phase 2)');
 select tests.authenticate_as(:'owner');
 select lives_ok(format($$ update listings set booking_mode = 'approve' where id = %L $$, :'ls'), '2b. the provider sets its mode');
 select throws_ok(format($$ update listings set booking_mode = 'instant' where id = %L $$, :'le'),
@@ -189,9 +189,10 @@ update provider_schedules set min_notice_minutes = 60 where provider_id = :'p';
 insert into provider_date_hours (provider_id, on_date, starts, ends)
 values (:'p', (now() at time zone 'America/New_York')::date, '00:00', '24:00'), (:'p', (now() at time zone 'America/New_York')::date + 1, '00:00', '24:00');
 select tests.authenticate_as_service_role();
-select throws_ok(format($$ select create_service_booking(%L, %L,
-    (select min(starts_at) from service_slots(%L, (now() at time zone 'America/New_York')::date, (now() at time zone 'America/New_York')::date + 1)),
-    'Jo', 'jo@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'cust2', :'ls'),
+-- (service_slots no longer offers it, since phase 2; the booking function
+-- refuses it anyway.)
+select throws_ok(format($$ select create_service_booking(%L, %L, date_trunc('hour', now()) + interval '2 hours',
+    'Jo', 'jo@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'cust2'),
   '23514', 'This Service needs at least 4 hours'' notice, so the provider has time to answer.', '3t. an approval booking less than 4 hours ahead is refused');
 
 -- ---------------------------------------------------------------------------

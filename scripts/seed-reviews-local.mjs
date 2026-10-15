@@ -141,6 +141,7 @@ async function add() {
     await must(db.from("listings").insert({
       id, provider_id: provider.id, city_id: atl.id, area_id: area, status: "submitted", kind, category_id: categories[kind], title,
       description: MARKER, price_cents: 4000 + (n % 8) * 500, duration_minutes: 60, location_mode: kind === "service" ? "provider_location" : null,
+      booking_mode: kind === "service" ? "approve" : null,
     }), "add a listing");
     const path = `${provider.id}/${id}/${randomUUID()}.jpg`;
     await must(db.storage.from(BUCKET).upload(path, photos[n++ % photos.length], { contentType: "image/jpeg" }), "upload a photo");

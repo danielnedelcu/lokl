@@ -13,6 +13,14 @@ export type ListingKind = (typeof LISTING_KINDS)[number];
 export type ListingStatus = (typeof LISTING_STATUSES)[number];
 export type LocationMode = (typeof LOCATION_MODES)[number];
 
+/**
+ * How customers book a Service (docs/design/service-availability.md):
+ * instant (they pay when they book, and it's confirmed) or approve (the card
+ * is held until the provider accepts). Every Service has one; no default.
+ */
+export const BOOKING_MODES = ["instant", "approve"] as const;
+export type BookingMode = (typeof BOOKING_MODES)[number];
+
 // Generated row types, with the text + check columns narrowed.
 export type Listing = Omit<Tables<"listings">, "kind" | "status" | "location_mode"> & {
   kind: ListingKind;
@@ -158,6 +166,13 @@ export const listingSchema = z
         .nullable(),
     ),
     location_mode: z.enum(LOCATION_MODES).nullable().optional(),
+    // Services: how customers book (no default: the provider chooses), and
+    // the free time after each booking (empty: the provider's default).
+    booking_mode: z.enum(BOOKING_MODES).nullable().optional(),
+    buffer_minutes: z.preprocess(
+      (v) => (v === "" || v == null || (typeof v === "number" && Number.isNaN(v)) ? null : Number(v)),
+      z.number().int("Enter whole minutes.").min(0, "Enter 0 minutes or more.").max(120, "Enter at most 120 minutes (2 hours).").nullable(),
+    ).optional(),
     area_id: z.uuid().nullable().optional(),
     travel_area_ids: z.array(z.uuid()).default([]),
     address: listingAddressSchema.nullable().optional(),
@@ -165,6 +180,14 @@ export const listingSchema = z
   .superRefine((l, ctx) => {
     if (l.kind === "experience" && l.duration_minutes == null) {
       ctx.addIssue({ code: "custom", path: ["duration_minutes"], message: "Enter how long the Experience lasts." });
+    }
+    if (l.kind === "service" && l.duration_minutes == null) {
+      ctx.addIssue({ code: "custom", path: ["duration_minutes"], message: "Enter how long the Service takes." });
+    } else if (l.kind === "service" && l.duration_minutes != null && (l.duration_minutes < 15 || l.duration_minutes > 720)) {
+      ctx.addIssue({ code: "custom", path: ["duration_minutes"], message: "Enter 15 to 720 minutes (up to 12 hours) for a Service." });
+    }
+    if (l.kind === "service" && !l.booking_mode) {
+      ctx.addIssue({ code: "custom", path: ["booking_mode"], message: "Choose how customers book this Service." });
     }
     if (l.kind === "service" && !l.location_mode) {
       ctx.addIssue({ code: "custom", path: ["location_mode"], message: "Choose where the Service happens." });
@@ -179,7 +202,9 @@ export const listingSchema = z
         message: "Choose the area customers will see, like the neighborhood.",
       });
     }
-  });
+    // Run with the other fields' errors, not only once they're fixed, so an
+    // empty form shows every problem at once (a Service's mode included).
+  }, { when: (payload) => typeof payload.value === "object" && payload.value !== null });
 export type ListingInput = z.input<typeof listingSchema>;
 export type ListingOutput = z.output<typeof listingSchema>;
 

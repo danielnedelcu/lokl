@@ -105,6 +105,7 @@ async function add() {
         id, provider_id: provider.id, city_id: provider.city_id, area_id: area.id, status: "submitted", kind,
         category_id: categories[kind].id, title: `Test carousel ${label} ${String(n).padStart(2, "0")}`, description: MARKER,
         price_cents: 4000 + n * 250, duration_minutes: 60, location_mode: kind === "service" ? "provider_location" : null,
+        booking_mode: kind === "service" ? "approve" : null,
       }), "add a listing");
       const name = randomUUID();
       const path = `${provider.id}/${id}/${name}${ext}`;

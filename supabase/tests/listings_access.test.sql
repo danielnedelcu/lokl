@@ -37,16 +37,16 @@ select tests.authenticate_as(:'a');
 
 -- 1. A provider can create a draft under their own provider record.
 select lives_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-            values (%L, 'service', %L, %L, 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', %L) $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', %L, 'approve', 60) $$,
          :'pa', :'svc', :'atl', :'o4w'),
   '1. a provider can create a listing under their own provider'
 );
 
 -- 2. ...but not under someone else's.
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-            values (%L, 'service', %L, %L, 'Fake listing here', 'Pretending to be another provider.', 100, 'provider_location', %L) $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Fake listing here', 'Pretending to be another provider.', 100, 'provider_location', %L, 'approve', 60) $$,
          :'pb', :'svc', :'atl', :'o4w'),
   '42501', 'new row violates row-level security policy for table "listings"',
   '2. a provider cannot create a listing under another provider'
@@ -54,8 +54,8 @@ select throws_ok(
 
 -- 3. A listing can't be created as live: status isn't writable at all.
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, status)
-            values (%L, 'service', %L, %L, 'Instant live listing', 'Trying to skip the publish checks.', 100, 'provider_location', %L, 'live') $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, status, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Instant live listing', 'Trying to skip the publish checks.', 100, 'provider_location', %L, 'live', 'approve', 60) $$,
          :'pa', :'svc', :'atl', :'o4w'),
   '42501', 'permission denied for table listings',
   '3. a provider cannot create a listing with a status'
@@ -64,8 +64,8 @@ select throws_ok(
 -- 4. A signed-out visitor can't create a listing.
 select tests.authenticate_as_anon();
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-            values (%L, 'service', %L, %L, 'Anonymous listing', 'Nobody signed in wrote this one.', 100, 'provider_location', %L) $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Anonymous listing', 'Nobody signed in wrote this one.', 100, 'provider_location', %L, 'approve', 60) $$,
          :'pa', :'svc', :'atl', :'o4w'),
   '42501', 'permission denied for table listings',
   '4. a signed-out visitor cannot create a listing'
@@ -88,8 +88,8 @@ select tests.authenticate_as(:'a');
 
 -- 6. A Service can't use an Experience category, and the reverse.
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-            values (%L, 'service', %L, %L, 'Wrong category', 'A Service filed under Experiences.', 100, 'provider_location', %L) $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Wrong category', 'A Service filed under Experiences.', 100, 'provider_location', %L, 'approve', 60) $$,
          :'pa', :'exp', :'atl', :'o4w'),
   '23503', 'insert or update on table "listings" violates foreign key constraint "listings_category_id_kind_fkey"',
   '6a. a Service cannot use an Experience category'
@@ -120,8 +120,8 @@ select throws_ok(
 
 -- 8. A Service needs a location mode.
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, area_id)
-            values (%L, 'service', %L, %L, 'Haircut, somewhere', 'A service with no location mode.', 100, %L) $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, area_id, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Haircut, somewhere', 'A service with no location mode.', 100, %L, 'approve', 60) $$,
          :'pa', :'svc', :'atl', :'o4w'),
   '23514', 'new row for relation "listings" violates check constraint "listings_service_shape"',
   '8. a Service needs a location mode'
@@ -130,15 +130,15 @@ select throws_ok(
 -- 9. Provider-location Services and Experiences need an area; "I come to
 --    you" Services don't (they list travel areas instead).
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode)
-            values (%L, 'service', %L, %L, 'Studio cut, no area', 'A studio service with no area.', 100, 'provider_location') $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Studio cut, no area', 'A studio service with no area.', 100, 'provider_location', 'approve', 60) $$,
          :'pa', :'svc', :'atl'),
   '23514', 'new row for relation "listings" violates check constraint "listings_area_required"',
   '9a. a provider-location Service needs an area'
 );
 select lives_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode)
-            values (%L, 'service', %L, %L, 'Haircut at your home', 'A mobile cut, wherever you are.', 6000, 'customer_location') $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Haircut at your home', 'A mobile cut, wherever you are.', 6000, 'customer_location', 'approve', 60) $$,
          :'pa', :'svc', :'atl'),
   '9b. an "I come to you" Service needs no area'
 );
@@ -149,22 +149,22 @@ select lives_ok(
 
 -- 10. Inactive category, inactive area, or an area in another city: blocked.
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-            values (%L, 'service', %L, %L, 'Dog wash at the shop', 'Filed under an inactive category.', 100, 'provider_location', %L) $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Dog wash at the shop', 'Filed under an inactive category.', 100, 'provider_location', %L, 'approve', 60) $$,
          :'pa', :'svc_off', :'atl', :'o4w'),
   '23514', 'Choose one of the listed categories.',
   '10a. a listing cannot use an inactive category'
 );
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-            values (%L, 'service', %L, %L, 'Haircut in Inman Park', 'Placed in an inactive area.', 100, 'provider_location', %L) $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Haircut in Inman Park', 'Placed in an inactive area.', 100, 'provider_location', %L, 'approve', 60) $$,
          :'pa', :'svc', :'atl', :'inman'),
   '23514', 'Choose one of the listed areas.',
   '10b. a listing cannot use an inactive area'
 );
 select throws_ok(
-  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-            values (%L, 'service', %L, %L, 'Haircut, wrong city', 'An Atlanta listing in a Decatur area.', 100, 'provider_location', %L) $$,
+  format($$ insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+            values (%L, 'service', %L, %L, 'Haircut, wrong city', 'An Atlanta listing in a Decatur area.', 100, 'provider_location', %L, 'approve', 60) $$,
          :'pa', :'svc', :'atl', :'decsq'),
   '23514', 'Choose an area in the listing''s city.',
   '10c. a listing''s area must be in its city'

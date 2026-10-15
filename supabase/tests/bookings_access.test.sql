@@ -23,12 +23,12 @@ insert into categories (kind, name, slug) values ('service', 'Hair and beauty', 
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old Fourth Ward') returning id as o4w \gset
 
 -- A live studio Service with its address, and a live "I come to you" Service.
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-values (:'p', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+values (:'p', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w', 'approve', 60)
 returning id as ls \gset
 insert into listing_addresses (listing_id, line1, city, state, postal_code) values (:'ls', '5 Studio Lane', 'Atlanta', 'GA', '30312');
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode)
-values (:'p', 'service', :'svc', :'atl', 'Haircut at home', 'A classic cut wherever you are.', 8000, 'customer_location')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, booking_mode, duration_minutes)
+values (:'p', 'service', :'svc', :'atl', 'Haircut at home', 'A classic cut wherever you are.', 8000, 'customer_location', 'approve', 60)
 returning id as lh \gset
 insert into listing_service_areas (listing_id, service_area_id) values (:'lh', :'o4w');
 insert into listing_photos (listing_id, storage_path, position, alt_text)

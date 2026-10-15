@@ -20,15 +20,15 @@ insert into service_areas (city_id, kind, name) values (:'sav', 'neighborhood', 
 
 -- Listings written with the guards off; visitors' read rules still apply.
 set local session_replication_role = replica;
-insert into listings (id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, location_mode, created_at) values
-  ('00000000-0000-4000-8000-0000000000e1', 'browse-e1', :'p', 'experience', :'food', :'atl', 'B walk', 'A browse test listing, long enough.', 5000, 60, :'o4w', 'live', null, now()),
-  ('00000000-0000-4000-8000-0000000000e2', 'browse-e2', :'p', 'experience', :'hist', :'atl', 'A walk', 'A browse test listing, long enough.', 5000, 60, :'midtown', 'live', null, now()),
-  ('00000000-0000-4000-8000-0000000000e3', 'browse-e3', :'p', 'experience', :'food', :'atl', 'C walk', 'A browse test listing, long enough.', 5000, 60, :'o4w', 'live', null, now()),
-  ('00000000-0000-4000-8000-0000000000e4', 'browse-e4', :'p', 'experience', :'food', :'atl', 'Draft walk', 'A browse test listing, long enough.', 5000, 60, :'o4w', 'draft', null, now()),
-  ('00000000-0000-4000-8000-0000000000e5', 'browse-e5', :'paused', 'experience', :'food', :'atl', 'Paused walk', 'A browse test listing, long enough.', 5000, 60, :'o4w', 'live', null, now()),
-  ('00000000-0000-4000-8000-0000000000e6', 'browse-e6', :'p', 'experience', :'food', :'sav', 'Savannah walk', 'A browse test listing, long enough.', 5000, 60, :'savarea', 'live', null, now()),
-  ('00000000-0000-4000-8000-0000000000a1', 'browse-a1', :'p', 'service', :'hair', :'atl', 'Old cut', 'A browse test listing, long enough.', 4500, 60, :'o4w', 'live', 'customer_location', now() - interval '2 days'),
-  ('00000000-0000-4000-8000-0000000000a2', 'browse-a2', :'p', 'service', :'hair', :'atl', 'New cut', 'A browse test listing, long enough.', 4500, 60, :'o4w', 'live', 'customer_location', now() - interval '1 day');
+insert into listings (id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, location_mode, created_at, booking_mode) values
+  ('00000000-0000-4000-8000-0000000000e1', 'browse-e1', :'p', 'experience', :'food', :'atl', 'B walk', 'A browse test listing, long enough.', 5000, 60, :'o4w', 'live', null, now(), null),
+  ('00000000-0000-4000-8000-0000000000e2', 'browse-e2', :'p', 'experience', :'hist', :'atl', 'A walk', 'A browse test listing, long enough.', 5000, 60, :'midtown', 'live', null, now(), null),
+  ('00000000-0000-4000-8000-0000000000e3', 'browse-e3', :'p', 'experience', :'food', :'atl', 'C walk', 'A browse test listing, long enough.', 5000, 60, :'o4w', 'live', null, now(), null),
+  ('00000000-0000-4000-8000-0000000000e4', 'browse-e4', :'p', 'experience', :'food', :'atl', 'Draft walk', 'A browse test listing, long enough.', 5000, 60, :'o4w', 'draft', null, now(), null),
+  ('00000000-0000-4000-8000-0000000000e5', 'browse-e5', :'paused', 'experience', :'food', :'atl', 'Paused walk', 'A browse test listing, long enough.', 5000, 60, :'o4w', 'live', null, now(), null),
+  ('00000000-0000-4000-8000-0000000000e6', 'browse-e6', :'p', 'experience', :'food', :'sav', 'Savannah walk', 'A browse test listing, long enough.', 5000, 60, :'savarea', 'live', null, now(), null),
+  ('00000000-0000-4000-8000-0000000000a1', 'browse-a1', :'p', 'service', :'hair', :'atl', 'Old cut', 'A browse test listing, long enough.', 4500, 60, :'o4w', 'live', 'customer_location', now() - interval '2 days', 'approve'),
+  ('00000000-0000-4000-8000-0000000000a2', 'browse-a2', :'p', 'service', :'hair', :'atl', 'New cut', 'A browse test listing, long enough.', 4500, 60, :'o4w', 'live', 'customer_location', now() - interval '1 day', 'approve');
 -- Sessions: e1 in 2 days, e2 in 1 day, e3 none upcoming (only a past one,
 -- and a cancelled one tomorrow).
 insert into experience_sessions (listing_id, starts_at, capacity, status) values

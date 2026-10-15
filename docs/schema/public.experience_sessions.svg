@@ -47,100 +47,100 @@
 <!-- public.listings -->
 <g id="node4" class="node">
 <title>public.listings</title>
-<polygon fill="#efefef" stroke="none" points="1941.25,-751.6 1941.25,-797.6 3371.15,-797.6 3371.15,-751.6 1941.25,-751.6"/>
-<polygon fill="none" stroke="black" points="1941.25,-751.6 1941.25,-797.6 3371.15,-797.6 3371.15,-751.6 1941.25,-751.6"/>
+<polygon fill="#efefef" stroke="none" points="1709.52,-751.6 1709.52,-797.6 3602.89,-797.6 3602.89,-751.6 1709.52,-751.6"/>
+<polygon fill="none" stroke="black" points="1709.52,-751.6 1709.52,-797.6 3602.89,-797.6 3602.89,-751.6 1709.52,-751.6"/>
 <text text-anchor="start" x="2543.21" y="-775.4" font-family="Arial Bold" font-size="18.00">public.listings</text>
 <text text-anchor="start" x="2644.71" y="-775.4" font-family="Arial" font-size="14.00">    </text>
 <text text-anchor="start" x="2675.83" y="-775.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
 <text text-anchor="start" x="2065.15" y="-761" font-family="Arial" font-size="14.00" fill="#333333">A Service or Experience a provider offers. Deleted only while it has never been live (published_at is null); after that it is unlisted or unpublished, never deleted, because bookings will point at it.</text>
-<polygon fill="none" stroke="black" points="1941.25,-720.8 1941.25,-751.6 3371.15,-751.6 3371.15,-720.8 1941.25,-720.8"/>
-<text text-anchor="start" x="1948.25" y="-733" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="1963.04" y="-733" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1941.25,-690 1941.25,-720.8 3371.15,-720.8 3371.15,-690 1941.25,-690"/>
-<text text-anchor="start" x="1948.25" y="-702.2" font-family="Arial" font-size="14.00">provider_id </text>
-<text text-anchor="start" x="2021.41" y="-702.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1941.25,-659.2 1941.25,-690 3371.15,-690 3371.15,-659.2 1941.25,-659.2"/>
-<text text-anchor="start" x="1948.25" y="-671.4" font-family="Arial" font-size="14.00">kind </text>
-<text text-anchor="start" x="1977.83" y="-671.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="2008.17" y="-671.4" font-family="Arial" font-size="14.00"> service or experience. Fixed at creation.</text>
-<polygon fill="none" stroke="black" points="1941.25,-628.4 1941.25,-659.2 3371.15,-659.2 3371.15,-628.4 1941.25,-628.4"/>
-<text text-anchor="start" x="1948.25" y="-640.6" font-family="Arial" font-size="14.00">category_id </text>
-<text text-anchor="start" x="2024.52" y="-640.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="2058.77" y="-640.6" font-family="Arial" font-size="14.00"> A category of the same kind, enforced by the (category_id, kind) reference.</text>
-<polygon fill="none" stroke="black" points="1941.25,-597.6 1941.25,-628.4 3371.15,-628.4 3371.15,-597.6 1941.25,-597.6"/>
-<text text-anchor="start" x="1948.25" y="-609.8" font-family="Arial" font-size="14.00">city_id </text>
-<text text-anchor="start" x="1991.83" y="-609.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1941.25,-566.8 1941.25,-597.6 3371.15,-597.6 3371.15,-566.8 1941.25,-566.8"/>
-<text text-anchor="start" x="1948.25" y="-579" font-family="Arial" font-size="14.00">title </text>
-<text text-anchor="start" x="1973.93" y="-579" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1941.25,-536 1941.25,-566.8 3371.15,-566.8 3371.15,-536 1941.25,-536"/>
-<text text-anchor="start" x="1948.25" y="-548.2" font-family="Arial" font-size="14.00">slug </text>
-<text text-anchor="start" x="1977.83" y="-548.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="2008.17" y="-548.2" font-family="Arial" font-size="14.00"> Generated from the title with a short random suffix when the listing is created. Used by public listing pages; not changed afterwards.</text>
-<polygon fill="none" stroke="black" points="1941.25,-505.2 1941.25,-536 3371.15,-536 3371.15,-505.2 1941.25,-505.2"/>
-<text text-anchor="start" x="1948.25" y="-517.4" font-family="Arial" font-size="14.00">description </text>
-<text text-anchor="start" x="2019.85" y="-517.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1941.25,-474.4 1941.25,-505.2 3371.15,-505.2 3371.15,-474.4 1941.25,-474.4"/>
-<text text-anchor="start" x="1948.25" y="-486.6" font-family="Arial" font-size="14.00">price_cents </text>
-<text text-anchor="start" x="2023.74" y="-486.6" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="2074.32" y="-486.6" font-family="Arial" font-size="14.00"> Whole price in cents for a Service; per person for an Experience.</text>
-<polygon fill="none" stroke="black" points="1941.25,-443.6 1941.25,-474.4 3371.15,-474.4 3371.15,-443.6 1941.25,-443.6"/>
-<text text-anchor="start" x="1948.25" y="-455.8" font-family="Arial" font-size="14.00">currency </text>
-<text text-anchor="start" x="2005.83" y="-455.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1941.25,-412.8 1941.25,-443.6 3371.15,-443.6 3371.15,-412.8 1941.25,-412.8"/>
-<text text-anchor="start" x="1948.25" y="-425" font-family="Arial" font-size="14.00">duration_minutes </text>
-<text text-anchor="start" x="2059.54" y="-425" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="2110.13" y="-425" font-family="Arial" font-size="14.00"> Required for Experiences; optional for Services.</text>
-<polygon fill="none" stroke="black" points="1941.25,-382 1941.25,-412.8 3371.15,-412.8 3371.15,-382 1941.25,-382"/>
-<text text-anchor="start" x="1948.25" y="-394.2" font-family="Arial" font-size="14.00">location_mode </text>
-<text text-anchor="start" x="2043.21" y="-394.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="2073.55" y="-394.2" font-family="Arial" font-size="14.00"> Services only: provider_location (customer comes to the provider) or customer_location (provider travels, within listing_service_areas). Null for Experiences.</text>
-<polygon fill="none" stroke="black" points="1941.25,-351.2 1941.25,-382 3371.15,-382 3371.15,-351.2 1941.25,-351.2"/>
-<text text-anchor="start" x="1948.25" y="-363.4" font-family="Arial" font-size="14.00">area_id </text>
-<text text-anchor="start" x="1998.85" y="-363.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="2033.1" y="-363.4" font-family="Arial" font-size="14.00"> The public location label, e.g. Old Fourth Ward. Required for provider&#45;location Services and Experiences. Must be in the listing&#39;s city.</text>
-<polygon fill="none" stroke="black" points="1941.25,-320.4 1941.25,-351.2 3371.15,-351.2 3371.15,-320.4 1941.25,-320.4"/>
-<text text-anchor="start" x="1948.25" y="-332.6" font-family="Arial" font-size="14.00">status </text>
-<text text-anchor="start" x="1989.5" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="2019.84" y="-332.6" font-family="Arial" font-size="14.00"> draft, submitted, live, rejected or unpublished. Changed only by server routes.</text>
-<polygon fill="none" stroke="black" points="1941.25,-289.6 1941.25,-320.4 3371.15,-320.4 3371.15,-289.6 1941.25,-289.6"/>
-<text text-anchor="start" x="1948.25" y="-301.8" font-family="Arial" font-size="14.00">rejection_reason </text>
-<text text-anchor="start" x="2055.65" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="2086" y="-301.8" font-family="Arial" font-size="14.00"> Why an Experience was sent back. Set on rejection; cleared on resubmission.</text>
-<polygon fill="none" stroke="black" points="1941.25,-258.8 1941.25,-289.6 3371.15,-289.6 3371.15,-258.8 1941.25,-258.8"/>
-<text text-anchor="start" x="1948.25" y="-271" font-family="Arial" font-size="14.00">submitted_at </text>
-<text text-anchor="start" x="2032.3" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1941.25,-228 1941.25,-258.8 3371.15,-258.8 3371.15,-228 1941.25,-228"/>
-<text text-anchor="start" x="1948.25" y="-240.2" font-family="Arial" font-size="14.00">reviewed_at </text>
-<text text-anchor="start" x="2027.63" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1941.25,-197.2 1941.25,-228 3371.15,-228 3371.15,-197.2 1941.25,-197.2"/>
-<text text-anchor="start" x="1948.25" y="-209.4" font-family="Arial" font-size="14.00">published_at </text>
-<text text-anchor="start" x="2031.54" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<text text-anchor="start" x="2197.27" y="-209.4" font-family="Arial" font-size="14.00"> Set the first time the listing goes live and never cleared.</text>
-<polygon fill="none" stroke="black" points="1941.25,-166.4 1941.25,-197.2 3371.15,-197.2 3371.15,-166.4 1941.25,-166.4"/>
-<text text-anchor="start" x="1948.25" y="-178.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="2018.3" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1941.25,-135.6 1941.25,-166.4 3371.15,-166.4 3371.15,-135.6 1941.25,-135.6"/>
-<text text-anchor="start" x="1948.25" y="-147.8" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="2022.21" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1941.25,-104.8 1941.25,-135.6 3371.15,-135.6 3371.15,-104.8 1941.25,-104.8"/>
-<text text-anchor="start" x="1948.25" y="-117" font-family="Arial" font-size="14.00">unpublished_reason </text>
-<text text-anchor="start" x="2078.25" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="2108.59" y="-117" font-family="Arial" font-size="14.00"> Why the owner took the listing down, 10 to 1,000 characters; shown to the provider. Set when unpublished; cleared on restore. Server&#45;only.</text>
-<polygon fill="none" stroke="black" points="1941.25,-74 1941.25,-104.8 3371.15,-104.8 3371.15,-74 1941.25,-74"/>
-<text text-anchor="start" x="1948.25" y="-86.2" font-family="Arial" font-size="14.00">booking_mode </text>
-<text text-anchor="start" x="2043.99" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="2074.34" y="-86.2" font-family="Arial" font-size="14.00"> Services: instant (booked and paid from a slot) or approve (a slot requested, the card held, the provider accepts or declines). Chosen by the provider; a Service without one isn&#39;t bookable. Null on Experiences.</text>
-<polygon fill="none" stroke="black" points="1941.25,-43.2 1941.25,-74 3371.15,-74 3371.15,-43.2 1941.25,-43.2"/>
-<text text-anchor="start" x="1948.25" y="-55.4" font-family="Arial" font-size="14.00">buffer_minutes </text>
-<text text-anchor="start" x="2044.75" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
-<text text-anchor="start" x="2099.98" y="-55.4" font-family="Arial" font-size="14.00"> Services: free time after each booking (for travel), 0 to 120 minutes; null uses the provider&#39;s default.</text>
+<polygon fill="none" stroke="black" points="1709.52,-720.8 1709.52,-751.6 3602.89,-751.6 3602.89,-720.8 1709.52,-720.8"/>
+<text text-anchor="start" x="1716.52" y="-733" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="1731.31" y="-733" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1709.52,-690 1709.52,-720.8 3602.89,-720.8 3602.89,-690 1709.52,-690"/>
+<text text-anchor="start" x="1716.52" y="-702.2" font-family="Arial" font-size="14.00">provider_id </text>
+<text text-anchor="start" x="1789.67" y="-702.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1709.52,-659.2 1709.52,-690 3602.89,-690 3602.89,-659.2 1709.52,-659.2"/>
+<text text-anchor="start" x="1716.52" y="-671.4" font-family="Arial" font-size="14.00">kind </text>
+<text text-anchor="start" x="1746.09" y="-671.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1776.44" y="-671.4" font-family="Arial" font-size="14.00"> service or experience. Fixed at creation.</text>
+<polygon fill="none" stroke="black" points="1709.52,-628.4 1709.52,-659.2 3602.89,-659.2 3602.89,-628.4 1709.52,-628.4"/>
+<text text-anchor="start" x="1716.52" y="-640.6" font-family="Arial" font-size="14.00">category_id </text>
+<text text-anchor="start" x="1792.79" y="-640.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="1827.04" y="-640.6" font-family="Arial" font-size="14.00"> A category of the same kind, enforced by the (category_id, kind) reference.</text>
+<polygon fill="none" stroke="black" points="1709.52,-597.6 1709.52,-628.4 3602.89,-628.4 3602.89,-597.6 1709.52,-597.6"/>
+<text text-anchor="start" x="1716.52" y="-609.8" font-family="Arial" font-size="14.00">city_id </text>
+<text text-anchor="start" x="1760.09" y="-609.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1709.52,-566.8 1709.52,-597.6 3602.89,-597.6 3602.89,-566.8 1709.52,-566.8"/>
+<text text-anchor="start" x="1716.52" y="-579" font-family="Arial" font-size="14.00">title </text>
+<text text-anchor="start" x="1742.2" y="-579" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1709.52,-536 1709.52,-566.8 3602.89,-566.8 3602.89,-536 1709.52,-536"/>
+<text text-anchor="start" x="1716.52" y="-548.2" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="1746.09" y="-548.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1776.44" y="-548.2" font-family="Arial" font-size="14.00"> Generated from the title with a short random suffix when the listing is created. Used by public listing pages; not changed afterwards.</text>
+<polygon fill="none" stroke="black" points="1709.52,-505.2 1709.52,-536 3602.89,-536 3602.89,-505.2 1709.52,-505.2"/>
+<text text-anchor="start" x="1716.52" y="-517.4" font-family="Arial" font-size="14.00">description </text>
+<text text-anchor="start" x="1788.11" y="-517.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1709.52,-474.4 1709.52,-505.2 3602.89,-505.2 3602.89,-474.4 1709.52,-474.4"/>
+<text text-anchor="start" x="1716.52" y="-486.6" font-family="Arial" font-size="14.00">price_cents </text>
+<text text-anchor="start" x="1792" y="-486.6" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="1842.59" y="-486.6" font-family="Arial" font-size="14.00"> Whole price in cents for a Service; per person for an Experience.</text>
+<polygon fill="none" stroke="black" points="1709.52,-443.6 1709.52,-474.4 3602.89,-474.4 3602.89,-443.6 1709.52,-443.6"/>
+<text text-anchor="start" x="1716.52" y="-455.8" font-family="Arial" font-size="14.00">currency </text>
+<text text-anchor="start" x="1774.09" y="-455.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1709.52,-412.8 1709.52,-443.6 3602.89,-443.6 3602.89,-412.8 1709.52,-412.8"/>
+<text text-anchor="start" x="1716.52" y="-425" font-family="Arial" font-size="14.00">duration_minutes </text>
+<text text-anchor="start" x="1827.81" y="-425" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="1878.39" y="-425" font-family="Arial" font-size="14.00"> Required for Experiences; optional for Services.</text>
+<polygon fill="none" stroke="black" points="1709.52,-382 1709.52,-412.8 3602.89,-412.8 3602.89,-382 1709.52,-382"/>
+<text text-anchor="start" x="1716.52" y="-394.2" font-family="Arial" font-size="14.00">location_mode </text>
+<text text-anchor="start" x="1811.47" y="-394.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1841.82" y="-394.2" font-family="Arial" font-size="14.00"> Services only: provider_location (customer comes to the provider) or customer_location (provider travels, within listing_service_areas). Null for Experiences.</text>
+<polygon fill="none" stroke="black" points="1709.52,-351.2 1709.52,-382 3602.89,-382 3602.89,-351.2 1709.52,-351.2"/>
+<text text-anchor="start" x="1716.52" y="-363.4" font-family="Arial" font-size="14.00">area_id </text>
+<text text-anchor="start" x="1767.11" y="-363.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="1801.36" y="-363.4" font-family="Arial" font-size="14.00"> The public location label, e.g. Old Fourth Ward. Required for provider&#45;location Services and Experiences. Must be in the listing&#39;s city.</text>
+<polygon fill="none" stroke="black" points="1709.52,-320.4 1709.52,-351.2 3602.89,-351.2 3602.89,-320.4 1709.52,-320.4"/>
+<text text-anchor="start" x="1716.52" y="-332.6" font-family="Arial" font-size="14.00">status </text>
+<text text-anchor="start" x="1757.76" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1788.11" y="-332.6" font-family="Arial" font-size="14.00"> draft, submitted, live, rejected or unpublished. Changed only by server routes.</text>
+<polygon fill="none" stroke="black" points="1709.52,-289.6 1709.52,-320.4 3602.89,-320.4 3602.89,-289.6 1709.52,-289.6"/>
+<text text-anchor="start" x="1716.52" y="-301.8" font-family="Arial" font-size="14.00">rejection_reason </text>
+<text text-anchor="start" x="1823.92" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1854.26" y="-301.8" font-family="Arial" font-size="14.00"> Why an Experience was sent back. Set on rejection; cleared on resubmission.</text>
+<polygon fill="none" stroke="black" points="1709.52,-258.8 1709.52,-289.6 3602.89,-289.6 3602.89,-258.8 1709.52,-258.8"/>
+<text text-anchor="start" x="1716.52" y="-271" font-family="Arial" font-size="14.00">submitted_at </text>
+<text text-anchor="start" x="1800.57" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1709.52,-228 1709.52,-258.8 3602.89,-258.8 3602.89,-228 1709.52,-228"/>
+<text text-anchor="start" x="1716.52" y="-240.2" font-family="Arial" font-size="14.00">reviewed_at </text>
+<text text-anchor="start" x="1795.9" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1709.52,-197.2 1709.52,-228 3602.89,-228 3602.89,-197.2 1709.52,-197.2"/>
+<text text-anchor="start" x="1716.52" y="-209.4" font-family="Arial" font-size="14.00">published_at </text>
+<text text-anchor="start" x="1799.81" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="1965.53" y="-209.4" font-family="Arial" font-size="14.00"> Set the first time the listing goes live and never cleared.</text>
+<polygon fill="none" stroke="black" points="1709.52,-166.4 1709.52,-197.2 3602.89,-197.2 3602.89,-166.4 1709.52,-166.4"/>
+<text text-anchor="start" x="1716.52" y="-178.6" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="1786.57" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1709.52,-135.6 1709.52,-166.4 3602.89,-166.4 3602.89,-135.6 1709.52,-135.6"/>
+<text text-anchor="start" x="1716.52" y="-147.8" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="1790.48" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1709.52,-104.8 1709.52,-135.6 3602.89,-135.6 3602.89,-104.8 1709.52,-104.8"/>
+<text text-anchor="start" x="1716.52" y="-117" font-family="Arial" font-size="14.00">unpublished_reason </text>
+<text text-anchor="start" x="1846.51" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1876.86" y="-117" font-family="Arial" font-size="14.00"> Why the owner took the listing down, 10 to 1,000 characters; shown to the provider. Set when unpublished; cleared on restore. Server&#45;only.</text>
+<polygon fill="none" stroke="black" points="1709.52,-74 1709.52,-104.8 3602.89,-104.8 3602.89,-74 1709.52,-74"/>
+<text text-anchor="start" x="1716.52" y="-86.2" font-family="Arial" font-size="14.00">booking_mode </text>
+<text text-anchor="start" x="1812.26" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1842.6" y="-86.2" font-family="Arial" font-size="14.00"> Services: instant (booked and paid from a slot) or approve (a slot requested, the card held, the provider accepts or declines). Required on every Service, chosen by the provider (no default); can change while live (bookings keep the mode they were made under). Null on Experiences.</text>
+<polygon fill="none" stroke="black" points="1709.52,-43.2 1709.52,-74 3602.89,-74 3602.89,-43.2 1709.52,-43.2"/>
+<text text-anchor="start" x="1716.52" y="-55.4" font-family="Arial" font-size="14.00">buffer_minutes </text>
+<text text-anchor="start" x="1813.02" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
+<text text-anchor="start" x="1868.25" y="-55.4" font-family="Arial" font-size="14.00"> Services: free time after each booking (for travel), 0 to 120 minutes; null uses the provider&#39;s default.</text>
 </g>
 <!-- public.experience_sessions&#45;&gt;public.listings -->
 <g id="edge3" class="edge">
 <title>public.experience_sessions:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M3680.37,-1091.82C3762.38,-1082.21 3718.5,-954.57 3669.02,-876.8 3590.67,-753.62 3518.15,-736.2 3372.15,-736.2"/>
-<polygon fill="black" stroke="black" points="3680.34,-1091.83 3670.11,-1087.89 3675.02,-1092.12 3670.69,-1092.36 3670.69,-1092.36 3670.69,-1092.36 3675.02,-1092.12 3670.61,-1096.87 3680.34,-1091.83"/>
+<path fill="none" stroke="black" d="M3680.09,-1091.91C3828.15,-1077.26 3761.45,-736.2 3603.89,-736.2"/>
+<polygon fill="black" stroke="black" points="3680.35,-1091.9 3670.14,-1087.89 3675.02,-1092.16 3670.69,-1092.37 3670.69,-1092.37 3670.69,-1092.37 3675.02,-1092.16 3670.57,-1096.88 3680.35,-1091.9"/>
 <text text-anchor="start" x="3677.02" y="-1102.4" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.bookings -->

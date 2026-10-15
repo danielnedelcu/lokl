@@ -25,17 +25,17 @@ insert into service_areas (city_id, kind, name) values (:'dec', 'neighborhood', 
 
 -- A's studio Service and A's mobile Service start as drafts. B has a draft
 -- studio Service and a live mobile Service.
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-values (:'pa', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+values (:'pa', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w', 'approve', 60)
 returning id as studio \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode)
-values (:'pa', 'service', :'svc', :'atl', 'Haircut at your home', 'A mobile cut, wherever you are.', 6000, 'customer_location')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, booking_mode, duration_minutes)
+values (:'pa', 'service', :'svc', :'atl', 'Haircut at your home', 'A mobile cut, wherever you are.', 6000, 'customer_location', 'approve', 60)
 returning id as mobile \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-values (:'pb', 'service', :'svc', :'atl', 'B studio haircut', 'Another provider''s studio service.', 5000, 'provider_location', :'o4w')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+values (:'pb', 'service', :'svc', :'atl', 'B studio haircut', 'Another provider''s studio service.', 5000, 'provider_location', :'o4w', 'approve', 60)
 returning id as b_studio \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, status, published_at)
-values (:'pb', 'service', :'svc', :'atl', 'B mobile haircut', 'Another provider''s mobile service.', 5500, 'customer_location', 'live', now())
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, status, published_at, booking_mode, duration_minutes)
+values (:'pb', 'service', :'svc', :'atl', 'B mobile haircut', 'Another provider''s mobile service.', 5500, 'customer_location', 'live', now(), 'approve', 60)
 returning id as b_mobile \gset
 
 -- ---------------------------------------------------------------------------
@@ -104,8 +104,8 @@ select throws_ok(
 );
 
 -- 8. An address goes with its listing when a draft is deleted.
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-values (:'pa', 'service', :'svc', :'atl', 'Draft with an address', 'A draft that will be deleted.', 1000, 'provider_location', :'o4w')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+values (:'pa', 'service', :'svc', :'atl', 'Draft with an address', 'A draft that will be deleted.', 1000, 'provider_location', :'o4w', 'approve', 60)
 returning id as draft \gset
 insert into listing_addresses (listing_id, line1, city, state, postal_code) values (:'draft', '5 Draft St', 'Atlanta', 'GA', '30312');
 select tests.authenticate_as(:'a');

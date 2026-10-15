@@ -105,6 +105,12 @@
       validateOnMount: props.validateOnMount,
       type: "checkbox",
       checkedValue: props.value || true,
+      // lokl change (2026-10-15): a yes/no checkbox (no `value`) is false when
+      // unticked, not undefined. Reka's checkbox sends true or false through
+      // modelValue, and without this vee-validate stored undefined, which a
+      // boolean rule refused ("expected boolean, received undefined"). A
+      // checkbox with a `value` belongs to a group, and stays as it was.
+      uncheckedValue: props.value === undefined ? false : undefined,
       syncVModel: true,
     }
   );

@@ -27,11 +27,11 @@ create function pg_temp.live_listing(p_provider uuid, p_kind text, p_title text,
 language plpgsql as $$
 declare v uuid;
 begin
-  insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, location_mode)
+  insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, location_mode, booking_mode)
   values (p_provider, p_kind, (select id from public.categories where slug = case when p_kind = 'service' then 'hair' else 'food' end),
           (select id from public.cities where slug = 'atlanta'), p_title, 'A listing made for the dashboard tests, long enough.',
           p_price, 60, (select id from public.service_areas where name = 'Old Fourth Ward'), 'submitted',
-          case when p_kind = 'service' then 'provider_location' end)
+          case when p_kind = 'service' then 'provider_location' end, case when p_kind = 'service' then 'approve' end)
   returning id into v;
   insert into public.listing_photos (listing_id, storage_path, position, alt_text)
   values (v, p_provider || '/' || v || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');

@@ -2374,6 +2374,13 @@ export type Database = {
         Returns: Json
       }
       my_saved: { Args: never; Returns: Json }
+      my_service_slots_preview: {
+        Args: { p_from: string; p_listing_id: string; p_to: string }
+        Returns: {
+          ends_at: string
+          starts_at: string
+        }[]
+      }
       provider_is_public: { Args: { p_provider_id: string }; Returns: boolean }
       provider_payout_setup: {
         Args: { p_account_id: string; p_charges: boolean; p_payouts: boolean }
@@ -2418,6 +2425,11 @@ export type Database = {
         Args: { p_listing_id: string; p_photo_ids: string[] }
         Returns: undefined
       }
+      replace_date_hours: {
+        Args: { p_date: string; p_hours: Json }
+        Returns: number
+      }
+      replace_weekly_hours: { Args: { p_hours: Json }; Returns: number }
       reserve_experience_booking: {
         Args: {
           p_checkout_key?: string
@@ -2495,6 +2507,19 @@ export type Database = {
           p_from: string
           p_listing_id: string
           p_now: string
+          p_to: string
+        }
+        Returns: {
+          ends_at: string
+          starts_at: string
+        }[]
+      }
+      service_slots_core: {
+        Args: {
+          p_from: string
+          p_listing_id: string
+          p_now: string
+          p_require_bookable: boolean
           p_to: string
         }
         Returns: {

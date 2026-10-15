@@ -18,11 +18,11 @@ insert into categories (kind, name, slug) values ('service', 'Hair and beauty', 
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old Fourth Ward') returning id as o4w \gset
 
 -- A's studio Service (draft) and B's studio Service (draft).
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-values (:'pa', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+values (:'pa', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w', 'approve', 60)
 returning id as la \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-values (:'pb', 'service', :'svc', :'atl', 'B studio haircut', 'Another provider''s studio service.', 5000, 'provider_location', :'o4w')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+values (:'pb', 'service', :'svc', :'atl', 'B studio haircut', 'Another provider''s studio service.', 5000, 'provider_location', :'o4w', 'approve', 60)
 returning id as lb \gset
 
 -- Paths: <provider>/<listing>/<uuid>.jpg

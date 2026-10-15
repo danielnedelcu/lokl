@@ -41,8 +41,8 @@ end;
 $$;
 select pg_temp.live_experience(:'p1', :'atl', :'o4w', 'Taco crawl', 6500) as le1 \gset
 select pg_temp.live_experience(:'p2', :'sav', :'hist', 'Ghost walk', 3000) as le2 \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode)
-values (:'p1', 'service', :'hair', :'atl', 'Silk press', 'A silk press made for the search tests.', 9000, 'customer_location') returning id as ls1 \gset
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, booking_mode, duration_minutes)
+values (:'p1', 'service', :'hair', :'atl', 'Silk press', 'A silk press made for the search tests.', 9000, 'customer_location', 'approve', 60) returning id as ls1 \gset
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le1', now() + interval '7 days', 50) returning id as s1 \gset
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le2', now() + interval '20 days', 50) returning id as s2 \gset
 

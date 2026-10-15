@@ -99,15 +99,20 @@ export class TestData {
     return id;
   }
 
-  /** A live listing at $50: an Experience, or a Service at the provider's own place (no address to give). */
-  async listing(providerId: string, kind: "service" | "experience", categoryId: string, areaId: string, titled?: string): Promise<TestListing> {
+  /**
+   * A live listing at $50: an Experience, or a Service at the provider's own
+   * place (no address to give), booked Instant or by approval (`mode`, a
+   * choice the database requires of every Service; approve unless said).
+   */
+  async listing(providerId: string, kind: "service" | "experience", categoryId: string, areaId: string, titled?: string,
+    mode: "instant" | "approve" = "approve"): Promise<TestListing> {
     const id = randomUUID();
     const title = titled ?? `E2E ${kind === "service" ? "Haircut" : "Food walk"} ${this.run}`;
     this.listings.push(id);
     await must(this.env.db.from("listings").insert({
       id, provider_id: providerId, city_id: this.cityId, area_id: areaId, status: "submitted", kind, category_id: categoryId, title,
       description: "A listing made by the end-to-end tests.", price_cents: 5000, duration_minutes: 60,
-      location_mode: kind === "service" ? "provider_location" : null,
+      location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? mode : null,
     }));
     await must(this.env.db.from("listing_photos").insert({ listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
     const row = await must(this.env.db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id).select("slug").single());

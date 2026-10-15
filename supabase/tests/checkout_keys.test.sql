@@ -17,8 +17,8 @@ insert into categories (kind, name, slug) values ('service', 'Hair', 'hair') ret
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old Fourth Ward') returning id as o4w \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
 values (:'p', 'experience', :'exp', :'atl', 'Taco crawl', 'A listing made for the checkout key tests.', 5000, 60, :'o4w', 'submitted') returning id as le \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, location_mode)
-values (:'p', 'service', :'svc', :'atl', 'Haircut', 'A listing made for the checkout key tests.', 4500, 60, :'o4w', 'submitted', 'provider_location') returning id as ls \gset
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, location_mode, booking_mode)
+values (:'p', 'service', :'svc', :'atl', 'Haircut', 'A listing made for the checkout key tests.', 4500, 60, :'o4w', 'submitted', 'provider_location', 'approve') returning id as ls \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'le', :'ls');
 update listings set status = 'live', published_at = now() where id in (:'le', :'ls');

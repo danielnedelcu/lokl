@@ -49,8 +49,8 @@ select is((select kind from service_areas where id = :'decatur'), 'city',
 
 -- 4. A provider can make it an "I come to you" Service's travel area...
 select tests.authenticate_as(:'prov');
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode)
-values (:'p', 'service', :'svc', :'atl', 'Haircut at your home', 'A classic cut wherever you are in the metro.', 6000, 'customer_location')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, booking_mode, duration_minutes)
+values (:'p', 'service', :'svc', :'atl', 'Haircut at your home', 'A classic cut wherever you are in the metro.', 6000, 'customer_location', 'approve', 60)
 returning id as ls \gset
 select lives_ok(
   format($$ insert into listing_service_areas (listing_id, service_area_id) values (%L, %L) $$, :'ls', :'decatur'),

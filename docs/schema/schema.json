@@ -967,7 +967,7 @@
           "name": "booking_mode",
           "type": "text",
           "nullable": true,
-          "comment": "Services: instant (booked and paid from a slot) or approve (a slot requested, the card held, the provider accepts or declines). Chosen by the provider; a Service without one isn't bookable. Null on Experiences."
+          "comment": "Services: instant (booked and paid from a slot) or approve (a slot requested, the card held, the provider accepts or declines). Required on every Service, chosen by the provider (no default); can change while live (bookings keep the mode they were made under). Null on Experiences."
         },
         {
           "name": "buffer_minutes",
@@ -1161,6 +1161,28 @@
           "referenced_table": "",
           "columns": [
             "rejection_reason"
+          ]
+        },
+        {
+          "name": "listings_service_duration",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'service'::text) OR ((duration_minutes IS NOT NULL) AND ((duration_minutes \u003e= 15) AND (duration_minutes \u003c= 720)))))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "duration_minutes"
+          ]
+        },
+        {
+          "name": "listings_service_has_mode",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'service'::text) OR (booking_mode IS NOT NULL)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "booking_mode"
           ]
         },
         {
@@ -7530,7 +7552,7 @@
       ],
       "constraints": [
         {
-          "name": "provider_weekly_hours_check",
+          "name": "provider_weekly_hours_ends_after_starts",
           "type": "CHECK",
           "def": "CHECK ((ends \u003e starts))",
           "table": "public.provider_weekly_hours",
@@ -7654,7 +7676,7 @@
       ],
       "constraints": [
         {
-          "name": "provider_date_hours_check",
+          "name": "provider_date_hours_ends_after_starts",
           "type": "CHECK",
           "def": "CHECK ((ends \u003e starts))",
           "table": "public.provider_date_hours",
@@ -10501,6 +10523,30 @@
       "name": "public.create_service_booking",
       "return_type": "bookings",
       "arguments": "p_listing_id uuid, p_customer_id uuid, p_starts_at timestamp with time zone, p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_address jsonb, p_reserved_until timestamp with time zone, p_checkout_key uuid DEFAULT NULL::uuid, p_request_hash text DEFAULT NULL::text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.replace_weekly_hours",
+      "return_type": "int4",
+      "arguments": "p_hours jsonb",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.replace_date_hours",
+      "return_type": "int4",
+      "arguments": "p_date date, p_hours jsonb",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.service_slots_core",
+      "return_type": "record",
+      "arguments": "p_listing_id uuid, p_from date, p_to date, p_now timestamp with time zone, p_require_bookable boolean",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.my_service_slots_preview",
+      "return_type": "record",
+      "arguments": "p_listing_id uuid, p_from date, p_to date",
       "type": "FUNCTION"
     }
   ],

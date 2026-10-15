@@ -83,7 +83,7 @@ try {
       id, provider_id: providerId, city_id: atl.id, area_id: created.area, status: "submitted", kind,
       category_id: kind === "service" ? svcCat : expCat, title: `Jobs ${kind} ${run} ${id.slice(0, 4)}`,
       description: "A listing made by the booking jobs test.", price_cents: 5000, duration_minutes: 60,
-      location_mode: kind === "service" ? "provider_location" : null,
+      location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? "approve" : null,
     }));
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
     await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));

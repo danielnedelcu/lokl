@@ -19,7 +19,7 @@ Hours for one date, replacing that weekday's weekly hours: one row per interval.
 
 | Name                                         | Type        | Definition                                                                                     |
 | -------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------- |
-| provider_date_hours_check                    | CHECK       | CHECK ((ends > starts))                                                                        |
+| provider_date_hours_ends_after_starts        | CHECK       | CHECK ((ends > starts))                                                                        |
 | provider_date_hours_provider_id_fkey         | FOREIGN KEY | FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE                           |
 | provider_date_hours_pkey                     | PRIMARY KEY | PRIMARY KEY (id)                                                                               |
 | provider_date_hours_provider_id_tsrange_excl | x           | EXCLUDE USING gist (provider_id WITH =, tsrange((on_date + starts), (on_date + ends)) WITH &&) |

@@ -358,6 +358,14 @@ the data and functions it will use.
   (`bookings_hold`, `experience_sessions_hold`, security definer).
 - **btree_gist** (for the exclusion constraints) lives in the
   `gist_support` schema, which no API role may use.
+- **Phase 2** ([20261015022506_service_settings_required.sql](../../supabase/migrations/20261015022506_service_settings_required.sql)):
+  every Service has a mode and a 15 to 720 minute duration; slots come from
+  one core (`service_slots_core`), which gives Approve Services at least 4
+  hours' notice; providers preview their own Services' slots
+  (`my_service_slots_preview`) and save hours in one step
+  (`replace_weekly_hours`, `replace_date_hours`). The website's
+  Availability page and listing editor use them; customers still book by
+  request until phase 3.
 
 ## 5. Cancellations and refunds
 

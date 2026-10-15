@@ -25,8 +25,8 @@ returning id as la \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id)
 values (:'pb', 'experience', :'exp', :'atl', 'Mural walk', 'Street art of Old Fourth Ward, on foot.', 3000, 90, :'o4w')
 returning id as lb \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id)
-values (:'pa', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w')
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
+values (:'pa', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w', 'approve', 60)
 returning id as ls \gset
 
 -- Times used below.

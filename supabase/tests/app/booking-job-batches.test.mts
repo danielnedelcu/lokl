@@ -62,8 +62,8 @@ try {
     const id = randomUUID();
     created.listings.push(id);
     psql(`set local session_replication_role = replica;
-      insert into public.listings (id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, location_mode, status)
-      values ('${id}', 'batches-${id}', '${providerId}', 'service', '${created.category}', '${atl.id}', 'Batches cut', 'A listing made by the job batches test.', 5000, 60, '${created.area}', 'provider_location', 'live');`);
+      insert into public.listings (id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, location_mode, status, booking_mode)
+      values ('${id}', 'batches-${id}', '${providerId}', 'service', '${created.category}', '${atl.id}', 'Batches cut', 'A listing made by the job batches test.', 5000, 60, '${created.area}', 'provider_location', 'live', 'approve');`);
     return id;
   };
   const live = await listing(open);

@@ -19,7 +19,7 @@ A provider's repeating weekly hours: one row per interval (a day can have severa
 
 | Name                                                   | Type        | Definition                                                                                                                           |
 | ------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| provider_weekly_hours_check                            | CHECK       | CHECK ((ends > starts))                                                                                                              |
+| provider_weekly_hours_ends_after_starts                | CHECK       | CHECK ((ends > starts))                                                                                                              |
 | provider_weekly_hours_weekday_check                    | CHECK       | CHECK (((weekday >= 0) AND (weekday <= 6)))                                                                                          |
 | provider_weekly_hours_provider_id_fkey                 | FOREIGN KEY | FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE                                                                 |
 | provider_weekly_hours_pkey                             | PRIMARY KEY | PRIMARY KEY (id)                                                                                                                     |
