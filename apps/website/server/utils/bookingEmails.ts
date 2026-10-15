@@ -134,7 +134,7 @@ export async function loadEmailContext(db: SupabaseClient, bookingId: string, si
   const { data: b, error } = await db
     .from("bookings")
     .select(
-      "id, kind, status, starts_at, ends_at, confirmed_at, cancelled_at, problem_reported_at, problem_resolution, respond_by, preferred_times, party_size, total_cents, " +
+      "id, kind, status, service_mode, starts_at, ends_at, confirmed_at, cancelled_at, problem_reported_at, problem_resolution, respond_by, party_size, total_cents, " +
       "refunded_cents, cancelled_by, status_changed_by, customer_name, customer_id, provider_id, " +
       // The booking's review, for the review emails (docs/design/reviews.md).
       "review:reviews(rating, status, removed_rule, reply:review_replies(status, removed_rule)), " +

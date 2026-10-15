@@ -126,7 +126,9 @@ async function add() {
 
   const owner = await login("provider");
   const provider = await must(db.from("providers").insert({ owner_id: owner.id, display_name: "Seed review Studio", city_id: atl.id }).select("id").single(), "add the provider");
-  await must(db.from("providers").update({ stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", provider.id), "mark payouts set up");
+  await must(db.from("providers").update({ stripe_account_id: `acct_seed_${run}`, stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", provider.id), "mark payouts set up");
+  // Open all day, every day: Services are booked from their free times.
+  await must(db.from("provider_weekly_hours").insert([0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ provider_id: provider.id, weekday, starts: "00:00", ends: "24:00" }))), "add hours");
   const category = async (kind, name) => (await must(db.from("categories").insert({ kind, name: `Seed review ${name}`, slug: `seed-review-${kind}-${run}` }).select("id").single(), "add a category")).id;
   const categories = { service: await category("service", "Haircuts"), experience: await category("experience", "Walks") };
   const area = (await must(db.from("service_areas").insert({ city_id: atl.id, kind: "neighborhood", name: "Seed review Old Fourth Ward" }).select("id").single(), "add an area")).id;
@@ -161,8 +163,11 @@ async function add() {
   const reviewed = async (listingId, stars) => {
     for (const [i, rating] of stars.entries()) {
       const customer = await login(`customer-${++customers}`);
-      const b = await must(db.rpc("create_service_request", {
-        p_listing_id: listingId, p_customer_id: customer.id, p_preferred_times: [new Date(Date.now() + 3 * DAY).toISOString()],
+      // A free time three days or more out; the booking is then moved into the past.
+      const day = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(d);
+      const slots = await must(db.rpc("service_slots", { p_listing_id: listingId, p_from: day(new Date(Date.now() + 3 * DAY)), p_to: day(new Date(Date.now() + 9 * DAY)) }), "find a free time");
+      const b = await must(db.rpc("create_service_booking", {
+        p_listing_id: listingId, p_customer_id: customer.id, p_starts_at: slots[0].starts_at,
         p_customer_name: names[i % names.length], p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null,
         p_address: null, p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
       }), "add a booking");

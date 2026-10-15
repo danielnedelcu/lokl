@@ -72,9 +72,12 @@ try {
   // Bookings written straight to the tables with the guards off (local
   // only), each with its finances row. `order` puts the one that matters last.
   const insert = (rows: { id: string; listing: string; provider: string; status: string; extra?: Record<string, string> }[]) => {
-    const cols = ["id", "kind", "listing_id", "provider_id", "customer_id", "customer_name", "unit_price_cents", "total_cents", "preferred_times", "status"];
+    const cols = ["id", "kind", "listing_id", "provider_id", "customer_id", "customer_name", "unit_price_cents", "total_cents", "status"];
+    // Every Service booking has its mode and slot; `extra` may move the slot.
+    const slot = { service_mode: "'approve'", starts_at: "now() + interval '20 days'", ends_at: "now() + interval '20 days 1 hour'" };
+    rows = rows.map((r) => ({ ...r, extra: { ...slot, ...r.extra } }));
     const extraCols = [...new Set(rows.flatMap((r) => Object.keys(r.extra ?? {})))];
-    const values = rows.map((r) => `('${r.id}', 'service', '${r.listing}', '${r.provider}', '${customer}', 'Sam', 5000, 5000, array[now() + interval '20 days'], '${r.status}'` +
+    const values = rows.map((r) => `('${r.id}', 'service', '${r.listing}', '${r.provider}', '${customer}', 'Sam', 5000, 5000, '${r.status}'` +
       extraCols.map((c) => `, ${r.extra?.[c] ?? "default"}`).join("") + ")");
     psql(`set local session_replication_role = replica;
       insert into public.bookings (${[...cols, ...extraCols].join(", ")}) values ${values.join(",\n")};

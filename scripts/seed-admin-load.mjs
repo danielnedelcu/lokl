@@ -137,15 +137,16 @@ cross join lateral (
   from auth.users u where u.email = 'customer' || (1 + n % 2000) || '@load.test.local'
 ) c;
 
-insert into public.bookings (id, kind, listing_id, provider_id, customer_id, session_id, status, preferred_times, starts_at, ends_at,
+insert into public.bookings (id, kind, listing_id, provider_id, customer_id, session_id, status, service_mode, starts_at, ends_at,
   party_size, customer_name, unit_price_cents, total_cents, currency, confirmed_at, payout_due_at, refunded_cents, refunded_at,
   cancelled_by, cancelled_at, status_changed_by, created_at, updated_at, problem_reported_at)
 select b.id, b.kind, b.listing_id, b.provider_id, b.customer_id,
   case when b.kind = 'experience' then b.session_id end,
   b.status,
-  case when b.kind = 'service' then array[b.created_at + interval '5 days'] end,
-  case when b.status in ('confirmed','completed','paid_out','cancelled') then b.created_at + interval '5 days' end,
-  case when b.status in ('confirmed','completed','paid_out','cancelled') then b.created_at + interval '5 days 1 hour' end,
+  -- Every Service booking has its mode and its time (a slot); Experiences, a time once booked.
+  case when b.kind = 'service' then 'approve' end,
+  case when b.kind = 'service' or b.status in ('confirmed','completed','paid_out','cancelled') then b.created_at + interval '5 days' end,
+  case when b.kind = 'service' or b.status in ('confirmed','completed','paid_out','cancelled') then b.created_at + interval '5 days 1 hour' end,
   case when b.kind = 'experience' then 1 + b.n % 3 else 1 end,
   b.first || ' ' || b.last,
   b.price_cents, b.price_cents * case when b.kind = 'experience' then 1 + b.n % 3 else 1 end, 'usd',

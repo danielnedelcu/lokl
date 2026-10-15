@@ -32,7 +32,8 @@ export interface EmailContext {
     starts_at: string | null;
     confirmed_at: string | null;
     respond_by: string | null;
-    preferred_times: string[] | null;
+    /** Services: instant or approve (docs/design/service-availability.md). */
+    service_mode?: "instant" | "approve" | null;
     party_size: number;
     total_cents: number;
     provider_amount_cents: number;
@@ -207,9 +208,10 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
         recipient: "customer",
         subject: `Request sent: ${l.title}`,
         intro: [
-          `We've sent your request to ${provider.name}. They have until ${b.respond_by ? at(b.respond_by) : "48 hours from now"} to accept one of the times you offered.`,
+          `We've sent your request to ${provider.name}. They have until ${b.respond_by ? at(b.respond_by) : "48 hours from now"} to accept it.`,
           `Your card is on hold for ${money(b.total_cents)}. You won't be charged unless they accept.`,
         ],
+        facts: [["When", when]],
         button: { label: "See your request", url: customerUrl },
       });
     case "customer_request_accepted":
@@ -252,8 +254,15 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
         recipient: "customer",
         subject: `You're booked: ${l.title} on ${date}`,
         intro: [`You're booked for ${l.title} with ${provider.name}.`],
-        facts: [["When", when], ["People", people(b.party_size)]],
-        after: [`You paid ${money(b.total_cents)}. The meeting point and details are on your booking page.`, policyLine(b, tz, l.marketName)],
+        // A Service is for one person, with the address on the booking page;
+        // an Experience has a group size and a meeting point.
+        facts: l.kind === "service" ? [["When", when]] : [["When", when], ["People", people(b.party_size)]],
+        after: [
+          l.kind === "service"
+            ? `You paid ${money(b.total_cents)}. The address and details are on your booking page.`
+            : `You paid ${money(b.total_cents)}. The meeting point and details are on your booking page.`,
+          policyLine(b, tz, l.marketName),
+        ],
         button: { label: "See your booking", url: customerUrl },
       });
     case "customer_booking_cancelled": {
@@ -324,9 +333,9 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
         recipient: "provider",
         subject: `New request: ${l.title}`,
         intro: [
-          `${name} sent a request for ${l.title}. Please accept one of the times offered, or decline, by ${b.respond_by ? at(b.respond_by) : "48 hours from now"}.`,
+          `${name} asked to book ${l.title}. Please accept or decline by ${b.respond_by ? at(b.respond_by) : "48 hours from now"}.`,
         ],
-        facts: (b.preferred_times ?? []).map((t, i) => [i === 0 ? "First choice" : i === 1 ? "Second choice" : "Third choice", at(t)] as [string, string]),
+        facts: [["When", when]],
         after: ["If you don't answer by then, the request ends and the customer isn't charged."],
         button: { label: "Answer the request", url: providerUrl },
       });
@@ -335,7 +344,7 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
         recipient: "provider",
         subject: `New booking: ${l.title} on ${date}`,
         intro: [`${name} booked ${l.title}.`],
-        facts: [["When", when], ["People", people(b.party_size)]],
+        facts: l.kind === "service" ? [["When", when]] : [["When", when], ["People", people(b.party_size)]],
         after: [`You'll receive ${money(b.provider_amount_cents)} after it happens.`],
         button: { label: "See the booking", url: providerUrl },
       });

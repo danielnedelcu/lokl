@@ -22,6 +22,8 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          checkout_key: string | null
+          checkout_request_hash: string | null
           commission_cents: number | null
           commission_rate_bps: number | null
           confirmed_at: string | null
@@ -49,7 +51,6 @@ export type Database = {
           payout_held_at: string | null
           payout_hold: string | null
           payout_holds_released: string[] | null
-          preferred_times: string[] | null
           problem_note: string | null
           problem_reported_at: string | null
           problem_resolution: string | null
@@ -62,6 +63,7 @@ export type Database = {
           respond_by: string | null
           reversal_failed_at: string | null
           reversal_failure: string | null
+          service_mode: string | null
           session_id: string | null
           starts_at: string | null
           status: string | null
@@ -418,7 +420,6 @@ export type Database = {
           listing_id: string
           party_size: number
           payout_due_at: string | null
-          preferred_times: string[] | null
           problem_reported_at: string | null
           problem_resolution: string | null
           problem_resolved_at: string | null
@@ -456,7 +457,6 @@ export type Database = {
           listing_id: string
           party_size?: number
           payout_due_at?: string | null
-          preferred_times?: string[] | null
           problem_reported_at?: string | null
           problem_resolution?: string | null
           problem_resolved_at?: string | null
@@ -494,7 +494,6 @@ export type Database = {
           listing_id?: string
           party_size?: number
           payout_due_at?: string | null
-          preferred_times?: string[] | null
           problem_reported_at?: string | null
           problem_resolution?: string | null
           problem_resolved_at?: string | null
@@ -2263,66 +2262,6 @@ export type Database = {
           listing_id: string
           party_size: number
           payout_due_at: string | null
-          preferred_times: string[] | null
-          problem_reported_at: string | null
-          problem_resolution: string | null
-          problem_resolved_at: string | null
-          provider_id: string
-          refunded_at: string | null
-          refunded_cents: number
-          reserved_until: string | null
-          respond_by: string | null
-          service_mode: string | null
-          session_id: string | null
-          starts_at: string | null
-          status: string
-          status_changed_by: string
-          total_cents: number
-          unit_price_cents: number
-          updated_at: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "bookings"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      create_service_request: {
-        Args: {
-          p_address: Json
-          p_checkout_key?: string
-          p_customer_email: string
-          p_customer_id: string
-          p_customer_name: string
-          p_customer_notes: string
-          p_customer_phone: string
-          p_listing_id: string
-          p_preferred_times: string[]
-          p_request_hash?: string
-          p_reserved_until: string
-        }
-        Returns: {
-          cancel_reason: string | null
-          cancelled_at: string | null
-          cancelled_by: string | null
-          checkout_key: string | null
-          checkout_request_hash: string | null
-          confirmed_at: string | null
-          created_at: string
-          currency: string
-          customer_city: string | null
-          customer_id: string
-          customer_name: string
-          customer_notes: string | null
-          customer_postal_code: string | null
-          ends_at: string | null
-          id: string
-          kind: string
-          listing_id: string
-          party_size: number
-          payout_due_at: string | null
-          preferred_times: string[] | null
           problem_reported_at: string | null
           problem_resolution: string | null
           problem_resolved_at: string | null
@@ -2463,7 +2402,6 @@ export type Database = {
           listing_id: string
           party_size: number
           payout_due_at: string | null
-          preferred_times: string[] | null
           problem_reported_at: string | null
           problem_resolution: string | null
           problem_resolved_at: string | null
@@ -2495,6 +2433,10 @@ export type Database = {
       }
       review_state: { Args: { p_booking_id: string }; Returns: Json }
       review_window_open: { Args: { p_booking_id: string }; Returns: boolean }
+      service_next_slot: {
+        Args: { p_from?: string; p_listing_id: string }
+        Returns: string
+      }
       service_slots: {
         Args: { p_from: string; p_listing_id: string; p_to: string }
         Returns: {

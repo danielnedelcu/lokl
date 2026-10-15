@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // the provider never had them as a request or a booking.
 
 const BOOKING_LIST_FIELDS =
-  "id, kind, status, listing_id, starts_at, ends_at, preferred_times, party_size, total_cents, respond_by, " +
+  "id, kind, status, listing_id, service_mode, starts_at, ends_at, party_size, total_cents, respond_by, " +
   "customer_name, customer_notes, customer_city, customer_postal_code, cancelled_by, created_at, " +
   "listing:listings(title, location_mode, duration_minutes, city:cities(name, timezone)), " +
   "contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), " +

@@ -8,6 +8,7 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { slotAfter } from "./_slots";
 
 const env = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -81,9 +82,8 @@ try {
   // 2. Removing refuses while a test listing has a booking.
   const bookable = rows.find((r) => r.kind === "service")!;
   const { user: customer } = await must(db.auth.admin.createUser({ email: `seed-carousel-customer-${run}@test.local`, email_confirm: true }));
-  created.booking = (await must(db.rpc("create_service_request", {
-    p_listing_id: bookable.id, p_customer_id: customer.id,
-    p_preferred_times: [new Date(Date.now() + 3 * 864e5).toISOString()], p_customer_name: "Sam", p_customer_email: "sam@test.local",
+  created.booking = (await must(db.rpc("create_service_booking", {
+    p_listing_id: bookable.id, p_customer_id: customer.id, p_starts_at: await slotAfter(db, bookable.id, 3 * 864e5), p_customer_name: "Sam", p_customer_email: "sam@test.local",
     p_customer_phone: null, p_customer_notes: null, p_address: null, p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
   })) as { id: string }).id;
   const refused = script("--remove");

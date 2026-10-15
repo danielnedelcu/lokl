@@ -56,7 +56,9 @@ check(lastMinute.includes("cancel for free until it starts, at Tue, Oct 6, 11:27
 
 // 6. The particulars asked for.
 const req = find("provider_new_request").text;
-check(["First choice", "Second choice", "Third choice"].every((c) => req.includes(c)), "6a. the new-request email lists all the offered times");
+check(req.includes("When: Sat, Oct 10, 11:00 AM (Atlanta time)") && !req.includes("choice"), "6a. the new-request email gives the slot booked, in Atlanta time");
+check(["customer_request_declined", "customer_request_expired"].every((k) => all.filter((a) => a.kind === k).every((a) => !a.out.text.includes("Oct 10"))),
+  "6a2. a declined or expired request's email doesn't give its time, as if it would take place");
 check(["customer_request_declined", "customer_request_expired"].every((k) => all.filter((a) => a.kind === k).every((a) => a.out.text.includes("/atlanta/services/hair-and-beauty"))),
   "6b. declined and didn't-go-through emails link to similar listings");
 check(find("customer_request_expired", "card couldn't be charged").text.includes("couldn't charge your card"), "6c. the card variant says the card failed, not that nobody answered");

@@ -5,6 +5,7 @@
 -- and the provider's notifications.
 begin;
 \ir _helpers/users.psql
+\ir _helpers/slots.psql
 select plan(37);
 
 -- ---------------------------------------------------------------------------
@@ -38,9 +39,10 @@ update listings set status = 'live', published_at = now() where id in (:'ls', :'
 select (now() + interval '3 days')::timestamptz as t1 \gset
 
 -- The customer's studio request (ba) and home request (bh), both requested.
+select tests.make_bookable(:'p');
 select tests.authenticate_as_service_role();
-select (create_service_request(:'ls', :'cust', array[:'t1'::timestamptz], 'Sam Customer', 'sam@test.local', '404-555-0100', 'Short on top', null, now() + interval '30 minutes')).id as ba \gset
-select (create_service_request(:'lh', :'cust', array[:'t1'::timestamptz], 'Sam Customer', 'sam@test.local', null, null,
+select (create_service_booking(:'ls', :'cust', tests.slot(:'ls'), 'Sam Customer', 'sam@test.local', '404-555-0100', 'Short on top', null, now() + interval '30 minutes')).id as ba \gset
+select (create_service_booking(:'lh', :'cust', tests.slot(:'lh'), 'Sam Customer', 'sam@test.local', null, null,
   '{"line1": "12 Elm Street", "city": "Atlanta", "state": "GA", "postal_code": "30312"}'::jsonb, now() + interval '30 minutes')).id as bh \gset
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id in (:'ba', :'bh');
 
@@ -94,7 +96,7 @@ select tests.authenticate_as(:'owner');
 
 -- 6. After acceptance: the provider sees them, for that booking only.
 select tests.authenticate_as_service_role();
-update bookings set status = 'confirmed', starts_at = :'t1', status_changed_by = 'provider' where id in (:'ba', :'bh');
+update bookings set status = 'confirmed', status_changed_by = 'provider' where id in (:'ba', :'bh');
 select tests.authenticate_as(:'owner');
 select is((select email || ' / ' || phone from booking_contacts where booking_id = :'ba'), 'sam@test.local / 404-555-0100',
   '6a. once accepted, the provider reads the customer''s email and phone');
@@ -129,7 +131,7 @@ select is((select count(*)::int from listing_addresses where listing_id = :'ls')
 select tests.authenticate_as(:'cust');
 select throws_ok(format($$ update bookings set status = 'confirmed' where id = %L $$, :'bh'),
   '42501', 'permission denied for table bookings', '9a. a customer cannot change a booking');
-select throws_ok(format($$ insert into bookings (kind, listing_id, provider_id, customer_id, preferred_times, customer_name, unit_price_cents, total_cents) values ('service', %L, %L, %L, array[now() + interval '3 days'], 'X', 1, 1) $$, :'ls', :'p', :'cust'),
+select throws_ok(format($$ insert into bookings (kind, listing_id, provider_id, customer_id, service_mode, starts_at, ends_at, customer_name, unit_price_cents, total_cents) values ('service', %L, %L, %L, 'approve', now() + interval '3 days', now() + interval '3 days 1 hour', 'X', 1, 1) $$, :'ls', :'p', :'cust'),
   '42501', 'permission denied for table bookings', '9b. a customer cannot create a booking directly');
 select tests.authenticate_as(:'owner');
 select throws_ok(format($$ update bookings set status = 'confirmed' where id = %L $$, :'bh'),
@@ -144,8 +146,8 @@ select throws_ok(format($$ update bookings set status = 'completed' where id = %
 
 -- 10. Nor call the booking functions.
 select tests.authenticate_as(:'cust');
-select throws_ok(format($$ select create_service_request(%L, %L, array[now() + interval '3 days'], 'Sam', 'sam@test.local', null, null, null, now()) $$, :'ls', :'cust'),
-  '42501', 'permission denied for function create_service_request', '10. a customer cannot call the booking functions');
+select throws_ok(format($$ select create_service_booking(%L, %L, now() + interval '3 days', 'Sam', 'sam@test.local', null, null, null, now()) $$, :'ls', :'cust'),
+  '42501', 'permission denied for function create_service_booking', '10. a customer cannot call the booking functions');
 
 -- ---------------------------------------------------------------------------
 -- COMMISSION RATES

@@ -4,6 +4,7 @@
 -- writing the booking change and the admin log together.
 begin;
 \ir _helpers/users.psql
+\ir _helpers/slots.psql
 select plan(42);
 
 -- ---------------------------------------------------------------------------
@@ -52,8 +53,12 @@ grant execute on function pg_temp.logs(uuid) to service_role;
 select tests.authenticate_as_service_role();
 -- Three requests, made two days ago, whose answer-by time passed an hour ago.
 create temp table req (label text primary key, id uuid);
-insert into req select l, (create_service_request(:'ls', :'cust', array[:'t1'::timestamptz], 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id
-  from unnest(array['late', 'early', 'future', 'plain']) l;
+-- One statement each: each takes the next free slot (the one before holds its own).
+select tests.make_bookable(:'p');
+insert into req select 'late', (create_service_booking(:'ls', :'cust', tests.slot(:'ls'), 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id;
+insert into req select 'early', (create_service_booking(:'ls', :'cust', tests.slot(:'ls'), 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id;
+insert into req select 'future', (create_service_booking(:'ls', :'cust', tests.slot(:'ls'), 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id;
+insert into req select 'plain', (create_service_booking(:'ls', :'cust', tests.slot(:'ls'), 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id;
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id in (select id from req);
 select id as r_late from req where label = 'late' \gset
 select id as r_early from req where label = 'early' \gset
@@ -86,18 +91,18 @@ select tests.authenticate_as_service_role();
 -- 1. ACCEPTING, judged at the time Stripe captured the card
 -- ---------------------------------------------------------------------------
 
-select throws_ok(format($$ update private.booking_records set status = 'confirmed', starts_at = %L, status_changed_by = 'provider' where id = %L $$, :'t1', :'r_late'),
+select throws_ok(format($$ update private.booking_records set status = 'confirmed', status_changed_by = 'provider' where id = %L $$, :'r_late'),
   '23514', 'The time to answer this request has passed.', '1a. accepting after the answer-by time is refused');
-select lives_ok(format($$ update private.booking_records set status = 'confirmed', starts_at = %L, status_changed_by = 'provider', confirmed_at = now() - interval '2 hours' where id = %L $$, :'t1', :'r_early'),
+select lives_ok(format($$ update private.booking_records set status = 'confirmed', status_changed_by = 'provider', confirmed_at = now() - interval '2 hours' where id = %L $$, :'r_early'),
   '1b. captured before the answer-by time and recorded after it: confirmed');
 select is((select confirmed_at from bookings where id = :'r_early'), now() - interval '2 hours', '1c. ...confirmed at the time of the capture');
-select throws_ok(format($$ update private.booking_records set status = 'confirmed', starts_at = %L, status_changed_by = 'provider', confirmed_at = now() - interval '30 minutes' where id = %L $$, :'t1', :'r_late'),
+select throws_ok(format($$ update private.booking_records set status = 'confirmed', status_changed_by = 'provider', confirmed_at = now() - interval '30 minutes' where id = %L $$, :'r_late'),
   '23514', 'The time to answer this request has passed.', '1d. captured after the answer-by time: refused');
-select throws_ok(format($$ update private.booking_records set status = 'confirmed', starts_at = %L, status_changed_by = 'provider', confirmed_at = now() + interval '1 minute' where id = %L $$, :'t1', :'r_future'),
+select throws_ok(format($$ update private.booking_records set status = 'confirmed', status_changed_by = 'provider', confirmed_at = now() + interval '1 minute' where id = %L $$, :'r_future'),
   '23514', 'A request is accepted between when it was made and now.', '1e. an accept time in the future is refused');
-select throws_ok(format($$ update private.booking_records set status = 'confirmed', starts_at = %L, status_changed_by = 'provider', confirmed_at = now() - interval '3 days' where id = %L $$, :'t1', :'r_future'),
+select throws_ok(format($$ update private.booking_records set status = 'confirmed', status_changed_by = 'provider', confirmed_at = now() - interval '3 days' where id = %L $$, :'r_future'),
   '23514', 'A request is accepted between when it was made and now.', '1f. an accept time before the request is refused');
-update private.booking_records set status = 'confirmed', starts_at = :'t1', status_changed_by = 'provider' where id = :'r_plain';
+update private.booking_records set status = 'confirmed', status_changed_by = 'provider' where id = :'r_plain';
 select is((select confirmed_at from bookings where id = :'r_plain'), now(), '1g. an accept with no time is confirmed now, as before');
 select throws_ok(format($$ update private.booking_records set confirmed_at = now() - interval '1 hour' where id = %L $$, :'r_plain'),
   '23514', 'A booking''s time and payout date only change with its status.', '1h. the accept time can''t be changed afterwards');

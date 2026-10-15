@@ -9,6 +9,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { MailerLimitError, MAX_ATTEMPTS, QUOTA_RETRY_MS, sendBookingEmails, type EmailSettings, type Mailer, type OutgoingEmail } from "../../../apps/website/server/utils/bookingEmails";
+import { slotAfter } from "./_slots";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -82,8 +83,8 @@ try {
   await must(db.from("listing_photos").insert({ listing_id: listingId, storage_path: `${created.provider}/${listingId}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
   await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", listingId));
   const request = async () => {
-    const b = await must(db.rpc("create_service_request", {
-      p_listing_id: listingId, p_customer_id: customer.id, p_preferred_times: [new Date(Date.now() + 3 * 864e5).toISOString()],
+    const b = await must(db.rpc("create_service_booking", {
+    p_listing_id: listingId, p_customer_id: customer.id, p_starts_at: await slotAfter(db, listingId, 3 * 864e5),
       p_customer_name: "Sam Customer", p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null,
       p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
     })) as { id: string };
@@ -109,7 +110,7 @@ try {
   check(m1.sent.length === 2, "1e. running the sender again sends nothing more");
 
   // 2. A failed send: recorded, retried later with the same key, the booking untouched.
-  await must(db.schema("private").from("booking_records").update({ status: "confirmed", starts_at: (await must(db.schema("private").from("booking_records").select("preferred_times").eq("id", a).single())).preferred_times[0], status_changed_by: "provider" }).eq("id", a));
+  await must(db.schema("private").from("booking_records").update({ status: "confirmed", status_changed_by: "provider" }).eq("id", a));
   check((await must(db.schema("private").from("booking_records").select("status").eq("id", a).single())).status === "confirmed", "2a. accepting works whatever happens to its email");
   const m2 = fakeMailer();
   m2.failTimes(1);

@@ -1,0 +1,40 @@
+-- Slot bookings for the pgTAP tests (docs/design/service-availability.md):
+-- Services are booked from slots only (create_service_booking), so a test
+-- that books one makes its provider bookable and picks a slot. Included with
+-- \ir after users.psql; everything rolls back with the test. (.psql, not
+-- .sql: the runner would run a .sql file here as a test.)
+
+-- A provider open every day, all day, with payouts set up (slots need both).
+create or replace function tests.make_bookable(p_provider uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.providers set stripe_account_id = coalesce(stripe_account_id, 'acct_test_' || left(replace(p_provider::text, '-', ''), 12)),
+         stripe_charges_enabled = true, stripe_payouts_enabled = true
+   where id = p_provider;
+  if not exists (select 1 from public.provider_weekly_hours where provider_id = p_provider) then
+    insert into public.provider_weekly_hours (provider_id, weekday, starts, ends)
+    select p_provider, w, '00:00', '24:00' from generate_series(0, 6) w;
+  end if;
+end;
+$$;
+
+-- The first free slot of a listing at least `p_after` from now (within a week of it).
+create or replace function tests.slot(p_listing uuid, p_after interval default interval '3 days')
+returns timestamptz
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select min(s.starts_at)
+    from public.service_slots_core(p_listing,
+           ((now() + p_after) at time zone 'America/New_York')::date,
+           ((now() + p_after) at time zone 'America/New_York')::date + 6, now(), true) s
+   where s.starts_at >= now() + p_after;
+$$;
+
+grant execute on function tests.make_bookable(uuid), tests.slot(uuid, interval) to anon, authenticated, service_role;

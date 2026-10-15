@@ -20,6 +20,7 @@ import { providerCancel } from "../../../apps/website/server/utils/bookingCancel
 import { providerMay } from "../../../apps/website/server/utils/providerAccess";
 import { loadEmailContext, sendProviderEmails, type OutgoingEmail } from "../../../apps/website/server/utils/bookingEmails";
 import { renderEmail } from "../../../apps/website/server/utils/bookingEmailTemplates";
+import { slotAfter } from "./_slots";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -105,8 +106,8 @@ try {
   const dueAfter = async (id: string) => new Date(Date.parse((await row(id)).payout_due_at) + 60_000);
 
   // 1. A request: the hold is released, cancelled by lokl, logged with the reason.
-  const reqId = (await must(db.rpc("create_service_request", {
-    p_listing_id: svc, p_customer_id: customer.id, p_preferred_times: [new Date(Date.now() + 3 * day).toISOString()], p_customer_name: "Sam",
+  const reqId = (await must(db.rpc("create_service_booking", {
+    p_listing_id: svc, p_customer_id: customer.id, p_starts_at: await slotAfter(db, svc, 3 * day), p_customer_name: "Sam",
     p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null, p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
   })) as { id: string }).id;
   const hold = await stripe.paymentIntents.create({ amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true, payment_method_types: ["card"] });
@@ -189,8 +190,8 @@ try {
   check((await refused(() => retryEmail(db, anEmail!.id, admin.id))).includes("Only a failed or skipped email"), "7b. an email that's already queued isn't queued twice");
 
   // 8. Suspending and reinstating a provider.
-  const openReq = (await must(db.rpc("create_service_request", {
-    p_listing_id: svc, p_customer_id: customer.id, p_preferred_times: [new Date(Date.now() + 4 * day).toISOString()], p_customer_name: "Sam",
+  const openReq = (await must(db.rpc("create_service_booking", {
+    p_listing_id: svc, p_customer_id: customer.id, p_starts_at: await slotAfter(db, svc, 4 * day), p_customer_name: "Sam",
     p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null, p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
   })) as { id: string }).id;
   const hold2 = await stripe.paymentIntents.create({ amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true, payment_method_types: ["card"] });

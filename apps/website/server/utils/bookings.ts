@@ -5,7 +5,7 @@
 // key and Stripe, and the booking checkout test
 // (supabase/tests/app/booking-checkout.test.mts) runs the same code against
 // the local stack and the Lokl sandbox. The database prices bookings and
-// guards their statuses (create_service_request, reserve_experience_booking,
+// guards their statuses (create_service_booking, reserve_experience_booking,
 // bookings_guard); this module only adds Stripe.
 
 import { createHash } from "node:crypto";
@@ -32,6 +32,8 @@ export class BookingError extends Error {
 interface BookingRow {
   id: string;
   kind: "service" | "experience";
+  /** Services: instant (charged at booking) or approve (the card held until the provider accepts). */
+  service_mode: "instant" | "approve" | null;
   status: string;
   listing_id: string;
   total_cents: number;
@@ -92,8 +94,9 @@ async function createCheckout(ctx: CheckoutContext, booking: BookingRow, title: 
         payment_intent_data: {
           metadata: { booking_id: booking.id },
           description: `lokl booking ${booking.id}`,
-          // Services: hold the card until the provider accepts (decision 2).
-          ...(booking.kind === "service" ? { capture_method: "manual" as const } : {}),
+          // A Service the provider approves: hold the card until they accept.
+          // Instant Services and Experiences are charged at once.
+          ...(booking.kind === "service" && booking.service_mode === "approve" ? { capture_method: "manual" as const } : {}),
         },
         expires_at: expiresAt,
         success_url: `${ctx.siteUrl}/account/bookings/${booking.id}?checkout=done`,
@@ -197,15 +200,19 @@ async function endEarlierAttempts(ctx: CheckoutContext, sessionId: string, check
   }
 }
 
-/** A Service request: saved as pending payment, then a Checkout Session that holds the card. */
+/**
+ * A Service booking (docs/design/service-availability.md): the chosen slot
+ * saved as pending payment (and held), then a Checkout Session that charges
+ * at once (Instant) or holds the card until the provider accepts (Approve).
+ */
 export async function startServiceCheckout(ctx: CheckoutContext, input: ServiceBookingRequest) {
   const { data: listing } = await ctx.db.from("listings").select("slug, title").eq("id", input.listingId).maybeSingle();
   if (!listing) throw new BookingError("This Service isn't available to book.", 404);
   await assertProviderCanBeBooked(ctx.db, input.listingId);
-  const { data, error } = await ctx.db.rpc("create_service_request", {
+  const { data, error } = await ctx.db.rpc("create_service_booking", {
     p_listing_id: input.listingId,
     p_customer_id: ctx.customer.id,
-    p_preferred_times: input.preferredTimes,
+    p_starts_at: input.startsAt,
     p_customer_name: input.name,
     p_customer_email: ctx.customer.email,
     p_customer_phone: input.phone ?? null,
@@ -268,7 +275,8 @@ async function move(db: SupabaseClient, booking: BookingRow, update: Record<stri
 
 /**
  * Brings a booking in line with its Checkout Session, as Stripe has it now:
- * paid (a Service becomes a request, an Experience is confirmed), expired, or
+ * paid (an Approve Service becomes a request; an Instant Service or an
+ * Experience is confirmed), expired, or
  * still open (nothing to do). Safe to call any number of times. Used by the
  * payments webhook, by the confirmation page (in case the webhook is late)
  * and by abandoning a checkout.
@@ -296,7 +304,9 @@ export async function syncCheckoutSession(db: SupabaseClient, stripe: Stripe, se
     return `ignored: already ${booking.status}`;
   }
 
-  if (booking.kind === "service") {
+  // A Service the provider approves becomes a request (the card held); an
+  // Instant Service is confirmed when paid, as an Experience is.
+  if (booking.kind === "service" && booking.service_mode === "approve") {
     if (pi.status !== "requires_capture") return `ignored: payment is ${pi.status}`;
     const ok = await move(db, booking, {
       status: "requested",

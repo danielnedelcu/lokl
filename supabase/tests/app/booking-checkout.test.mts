@@ -18,6 +18,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { safeStripe } from "@repo/types";
+import { slotAfter } from "./_slots";
 import {
   abandonCheckout,
   handlePaymentsEvent,
@@ -118,7 +119,7 @@ try {
   // --- 1. Service checkout: manual capture, email prefilled, 30-minute window.
   const svc = await startServiceCheckout(ctx(customer), {
     listingId: serviceId, name: "Sam Customer", notes: "Short on top",
-    preferredTimes: [new Date(Date.now() + 3 * 864e5).toISOString(), new Date(Date.now() + 4 * 864e5).toISOString()],
+    startsAt: await slotAfter(db, serviceId, 3 * 864e5),
   });
   const svcSession = await stripe.checkout.sessions.retrieve((await booking(svc.bookingId)).stripe_checkout_session_id, { expand: ["payment_intent"] });
   check((await booking(svc.bookingId)).status === "pending_payment", "1a. the Service request is saved as pending payment");

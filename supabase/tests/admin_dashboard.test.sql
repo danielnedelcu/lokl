@@ -5,6 +5,7 @@
 -- numbers count, so a number and the page behind it agree.
 begin;
 \ir _helpers/users.psql
+\ir _helpers/slots.psql
 select plan(26);
 
 select tests.create_user('admin@test.local') as admin \gset
@@ -57,8 +58,9 @@ insert into bk select 'edge_in', (reserve_experience_booking(:'s1', :'cust', 1::
 insert into bk select 'edge_out', (reserve_experience_booking(:'s1', :'cust', 1::smallint, 'Edge Out', 'e@test.local', null, null, now() + interval '30 minutes')).id;
 insert into bk select 'unpaid', (reserve_experience_booking(:'s1', :'cust', 1::smallint, 'Never Paid', 'f@test.local', null, null, now() + interval '30 minutes')).id;
 insert into bk select 'old', (reserve_experience_booking(:'s3', :'cust', 1::smallint, 'Long Ago', 'g@test.local', null, null, now() + interval '30 minutes')).id;
-insert into bk select 'svc_paid', (create_service_request(:'ls1', :'cust', array[now() + interval '3 days'], 'Svc Paid', 'h@test.local', null, null, null, now() + interval '30 minutes')).id;
-insert into bk select 'svc_held', (create_service_request(:'ls1', :'cust', array[now() + interval '3 days'], 'Svc Held', 'i@test.local', null, null, null, now() + interval '30 minutes')).id;
+select tests.make_bookable(:'p1');
+insert into bk select 'svc_paid', (create_service_booking(:'ls1', :'cust', tests.slot(:'ls1'), 'Svc Paid', 'h@test.local', null, null, null, now() + interval '30 minutes')).id;
+insert into bk select 'svc_held', (create_service_booking(:'ls1', :'cust', tests.slot(:'ls1'), 'Svc Held', 'i@test.local', null, null, null, now() + interval '30 minutes')).id;
 select tests.clear_authentication();
 
 -- The bookings' states and payment times, written directly with the guard off.

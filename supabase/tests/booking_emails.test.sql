@@ -2,6 +2,7 @@
 -- each, and who can see them (admins read; nobody else reads or writes).
 begin;
 \ir _helpers/users.psql
+\ir _helpers/slots.psql
 select plan(25);
 
 -- ---------------------------------------------------------------------------
@@ -47,11 +48,12 @@ create temp table k (id uuid);
 create function pg_temp.kinds(p_id uuid) returns text[] language sql as $$
   select coalesce(array_agg(kind order by kind), '{}') from public.booking_emails where booking_id = p_id
 $$;
--- A paid Service request, and a reserved Experience.
+-- A paid Service request (Approve), and a reserved Experience.
+select tests.make_bookable(:'p');
 create function pg_temp.request(p_listing uuid, p_customer uuid) returns uuid language plpgsql as $$
 declare v uuid;
 begin
-  v := (public.create_service_request(p_listing, p_customer, array[now() + interval '3 days'],
+  v := (public.create_service_booking(p_listing, p_customer, tests.slot(p_listing),
         'Sam Customer', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id;
   update public.bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id = v;
   return v;
@@ -69,7 +71,7 @@ $$;
 -- 1. Requests.
 select pg_temp.request(:'ls', :'cust') as r1 \gset
 select is(pg_temp.kinds(:'r1'), array['customer_request_sent', 'provider_new_request'], '1a. a paid request queues "request sent" and "new request"');
-update bookings set status = 'confirmed', starts_at = preferred_times[1], status_changed_by = 'provider' where id = :'r1';
+update bookings set status = 'confirmed', status_changed_by = 'provider' where id = :'r1';
 select is(pg_temp.kinds(:'r1'), array['customer_request_accepted', 'customer_request_sent', 'provider_new_request'], '1b. accepting adds "accepted"');
 select pg_temp.request(:'ls', :'cust') as r2 \gset
 update bookings set status = 'declined', status_changed_by = 'provider' where id = :'r2';

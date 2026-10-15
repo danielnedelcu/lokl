@@ -5,6 +5,7 @@
 -- unpaid attempts for the same session, so their spots can't block it.
 begin;
 \ir _helpers/users.psql
+\ir _helpers/slots.psql
 select plan(19);
 
 select tests.create_user('owner@test.local') as owner \gset
@@ -75,11 +76,14 @@ select is((select count(*)::int from bookings where customer_id = :'cust' and se
 --    says the checkout has ended).
 select is((pg_temp.reserve(:'s1', :'cust', 2, :'k1', :'h1')).status, 'expired', '5. the same key after the attempt ended returns it, expired');
 
--- 6. Services: the same key returns the same request; other details are refused.
-select (create_service_request(:'ls', :'cust', array[now() + interval '3 days'], 'Sam', 'sam@test.local', null, null, null, now() + interval '31 minutes', :'k1', :'h1')).id as r1 \gset
-select is((create_service_request(:'ls', :'cust', array[now() + interval '3 days'], 'Sam', 'sam@test.local', null, null, null, now() + interval '31 minutes', :'k1', :'h1')).id,
-  :'r1'::uuid, '6a. a Service retry with the same key returns the same request');
-select throws_ok(format($$ select create_service_request(%L, %L, array[now() + interval '4 days'], 'Sam', 'sam@test.local', null, null, null, now() + interval '31 minutes', %L, %L) $$, :'ls', :'cust', :'k1', :'h2'),
+-- 6. Services: the same key returns the same booking (even though its slot
+-- is now held); other details are refused.
+select tests.make_bookable(:'p');
+select tests.slot(:'ls') as cs \gset
+select (create_service_booking(:'ls', :'cust', :'cs', 'Sam', 'sam@test.local', null, null, null, now() + interval '31 minutes', :'k1', :'h1')).id as r1 \gset
+select is((create_service_booking(:'ls', :'cust', :'cs', 'Sam', 'sam@test.local', null, null, null, now() + interval '31 minutes', :'k1', :'h1')).id,
+  :'r1'::uuid, '6a. a Service retry with the same key returns the same booking');
+select throws_ok(format($$ select create_service_booking(%L, %L, %L::timestamptz + interval '1 day', 'Sam', 'sam@test.local', null, null, null, now() + interval '31 minutes', %L, %L) $$, :'ls', :'cust', :'cs', :'k1', :'h2'),
   '23514', 'This checkout was started with different details. Check your details and try again.', '6b. ...and refuses other details');
 
 -- 7. No key: as before, a new booking every time.

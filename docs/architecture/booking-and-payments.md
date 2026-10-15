@@ -31,7 +31,7 @@ Source paths are links. Short forms used below:
 1. [System overview](#1-system-overview)
 2. [Booking states](#2-booking-states)
 3. [Booking an Experience](#3-booking-an-experience)
-4. [Requesting a Service](#4-requesting-a-service), and [availability, slots and holds](#availability-slots-and-holds-database-only-so-far)
+4. [Booking a Service](#4-booking-a-service), and [availability, slots and holds](#availability-slots-and-holds)
 5. [Cancellations and refunds](#5-cancellations-and-refunds)
 6. [Payouts and holds](#6-payouts-and-holds)
 7. [Admin actions](#7-admin-actions)
@@ -120,12 +120,12 @@ with it, and copied into `booking_events.actor`.
 
 ```mermaid
 stateDiagram-v2
-  [*] --> pending_payment: customer (reserve or request RPC)
-  pending_payment --> confirmed: stripe (Experience paid)
-  pending_payment --> requested: stripe (Service card held)
+  [*] --> pending_payment: customer (reserve or slot-booking RPC)
+  pending_payment --> confirmed: stripe (Experience or Instant Service paid)
+  pending_payment --> requested: stripe (Approve Service, card held)
   pending_payment --> expired: stripe or system (checkout lapsed)
   pending_payment --> cancelled: system (Checkout couldn't start)
-  requested --> confirmed: provider accepts a time
+  requested --> confirmed: provider accepts
   requested --> declined: provider, or system (listing gone)
   requested --> expired: system (no answer), provider (card failed), stripe (hold cancelled in Stripe)
   requested --> cancelled: customer or admin
@@ -143,12 +143,12 @@ What the guard checks on each move, and where the code makes it:
 
 | Move | Code | The database also requires |
 | --- | --- | --- |
-| insert as `pending_payment` | `reserve_experience_booking`, `create_service_request` (RPCs, service role only), from `startExperienceCheckout` / `startServiceCheckout` in `bookings.ts` | the kind and provider match the listing; the customer doesn't own it; the session belongs to it |
-| `pending_payment` → `confirmed` | `syncCheckoutSession` in `bookings.ts` | Experiences only. Sets `confirmed_at`, `ends_at` (start + duration) and `payout_due_at` (end + 24h) |
-| `pending_payment` → `requested` | `syncCheckoutSession` | Services only; sets `respond_by` = now + 48h |
+| insert as `pending_payment` | `reserve_experience_booking`, `create_service_booking` (RPCs, service role only), from `startExperienceCheckout` / `startServiceCheckout` in `bookings.ts` | the kind and provider match the listing; the customer doesn't own it; the session belongs to it; a Service has its mode, start and end (a free slot) |
+| `pending_payment` → `confirmed` | `syncCheckoutSession` in `bookings.ts` | Experiences and Instant Services. Sets `confirmed_at`, `payout_due_at` (end + 24h) and, for an Experience, `ends_at` (start + duration) |
+| `pending_payment` → `requested` | `syncCheckoutSession` | Approve Services only; sets `respond_by` = now + 48h, capped at 2h before the start |
 | `pending_payment` → `expired` | `syncCheckoutSession`; jobs `release-reservations`, `withdraw-unavailable` | |
 | `pending_payment` → `cancelled` | `createCheckout` when Stripe fails | `cancelled_by` = system |
-| `requested` → `confirmed` | `finishAccept` in `bookingAnswers.ts` (from `acceptRequest`, the `payment_intent.succeeded` webhook and the jobs) | accepted (now, or the `confirmed_at` the server passes: when the provider accepted, between the request and now) ≤ `respond_by`; the time is one the customer offered, and still ahead |
+| `requested` → `confirmed` | `finishAccept` in `bookingAnswers.ts` (from `acceptRequest`, the `payment_intent.succeeded` webhook and the jobs) | accepted (now, or the `confirmed_at` the server passes: when the provider accepted, between the request and now) ≤ `respond_by`; the booked time is still ahead |
 | `requested` → `declined` | `declineRequest`; job `withdraw-unavailable`; webhook `payment_intent.canceled` (a decline or withdrawal whose reply was lost) | |
 | `requested` → `expired` | job `expire-requests`; `acceptRequest` (card failed); `finishAccept` (captured, but the chosen time passed: refunded); webhook `payment_intent.canceled` | |
 | `requested` → `cancelled` | `customerCancel` (release), `adminCancelBooking` (`admin_cancel_booking`); webhook `payment_intent.canceled` | |
@@ -159,8 +159,9 @@ What the guard checks on each move, and where the code makes it:
 | `paid_out` → `cancelled` | `adminCancelBooking` | admin only, and the transfer reversal (or its failure) recorded first |
 
 Also enforced on every update: the booking's kind, listing, provider,
-customer, session, party size, offered times and prices never change;
-`refunded_cents` never goes down; times change only with a status change. A
+customer, session, party size, mode and prices never change; a Service's
+time never changes; `refunded_cents` never goes down; other times change
+only with a status change. A
 no-show report can be made once, from `confirmed` or `completed`, between
 the start and `payout_due_at`; its resolution is set once.
 
@@ -251,10 +252,15 @@ Tested in [checkout_keys.test.sql](../../supabase/tests/checkout_keys.test.sql),
 [booking-checkout-retry.test.mts](../../supabase/tests/app/booking-checkout-retry.test.mts)
 and e2e journey 18 (the reply dropped after the server commits).
 
-## 4. Requesting a Service
+## 4. Booking a Service
 
-The customer offers one to three times, each at least 24 hours away; the
-card is only held (manual capture) until the provider answers.
+Since phase 3 of [service-availability.md](../design/service-availability.md)
+(2026-10-15), a Service is booked from one of its free times (a slot), in
+its listing's mode. **Instant:** charged at once and confirmed when paid,
+as an Experience is. **Approve:** the card is only held (manual capture)
+until the provider accepts or declines that one time. Either way the time
+is held for the booking from the moment it's made, so two customers can't
+book it, and it never changes.
 
 ```mermaid
 sequenceDiagram
@@ -265,46 +271,64 @@ sequenceDiagram
   participant DB as Postgres
   participant S as Stripe
 
-  C->>W: POST /api/bookings/service (1-3 times, address if needed)
-  W->>DB: create_service_request (pending_payment)
-  W->>S: Checkout Session, capture_method manual
-  C->>S: pays (the card is held)
+  C->>DB: service_slots (the panel's week), service_next_slot
+  C->>W: POST /api/bookings/service (startsAt, address if needed)
+  W->>DB: create_service_booking (pending_payment, service_mode, the slot's start and end, its hold)
+  alt the time was taken meanwhile
+    DB-->>W: "That time isn't available. Pick another." (409)
+    Note over C: the panel reloads the times
+  end
+  W->>S: Checkout Session (manual capture only for Approve)
+  C->>S: pays
   S->>W: webhook, or the success page's sync
-  W->>DB: requested (stripe), respond_by = now + 48h
-  Note over DB: customer_request_sent, provider_new_request,<br/>notification booking_requested
-  alt provider accepts a time
-    P->>W: POST /api/bookings/:id/accept (startsAt)
-    W->>S: capture (key booking:id:capture:window)
-    alt capture fails and the hold is gone
-      W->>DB: expired (provider), 409 "card couldn't be charged"
-    else captured
-      W->>DB: confirmed (provider), starts_at, charge id
-      opt the database refuses (time passed, changed meanwhile)
-        W->>S: refund the capture
-        W->>DB: expired (system)
+  alt Instant
+    W->>DB: confirmed (stripe), charge id
+  else Approve
+    W->>DB: requested (stripe), respond_by = now + 48h (the guard caps it 2h before the start)
+    Note over DB: customer_request_sent, provider_new_request,<br/>notification booking_requested
+    alt provider accepts
+      P->>W: POST /api/bookings/:id/accept (no body)
+      W->>S: capture, metadata lokl_action accept (key booking:id:capture:window)
+      alt capture fails and the hold is gone
+        W->>DB: expired (provider), 409 "card couldn't be charged"
+      else captured
+        W->>DB: confirmed (provider), charge id
+        opt the database refuses (time passed, changed meanwhile)
+          W->>S: refund the capture
+          W->>DB: expired (system)
+        end
       end
+    else provider declines
+      P->>W: POST /api/bookings/:id/decline
+      W->>S: cancel the PaymentIntent (release the hold)
+      W->>DB: declined (provider), the time freed
+    else nobody answers by respond_by
+      Note over W: job expire-requests
+      W->>S: cancel the PaymentIntent
+      W->>DB: expired (system), the time freed
+    else listing, provider, category or city goes away
+      Note over W: job withdraw-unavailable
+      W->>S: cancel the PaymentIntent
+      W->>DB: declined (system)
     end
-  else provider declines
-    P->>W: POST /api/bookings/:id/decline
-    W->>S: cancel the PaymentIntent (release the hold)
-    W->>DB: declined (provider)
-  else nobody answers by respond_by
-    Note over W: job expire-requests
-    W->>S: cancel the PaymentIntent
-    W->>DB: expired (system)
-    Note over DB: customer_request_expired,<br/>provider_request_unanswered
-  else listing, provider, category or city goes away
-    Note over W: job withdraw-unavailable
-    W->>S: cancel the PaymentIntent
-    W->>DB: declined (system)
   end
 ```
 
-- Overlapping requests aren't blocked: the provider's booking page shows a
-  warning when an offered time overlaps a confirmed booking
-  (`requestOverlaps` in `bookingAnswers.ts`). Accepting a request made this
-  way creates no hold (below), so it isn't refused for overlapping; this
-  ends when the website moves to slots (phase 3).
+- **The listing page** asks `service_next_slot` (the first free time
+  anywhere in the booking window). With none (no hours yet, or every time
+  taken) it says "Not taking bookings yet", with no button to press.
+- **The panel** (`ServiceScheduler.vue`) reads `service_slots` a week at a
+  time, live; "Next available" for an empty week is `service_next_slot`
+  from the week after. Every day and time is the market's.
+- **Accepting** is of the one time booked: the route takes no body, and a
+  capture made outside the accept (`lokl_action` not `accept`) isn't
+  treated as an accept (`finishAccept`). The old request flow (up to three
+  offered times, `create_service_request`, `bookings.preferred_times`, the
+  overlap warning) was removed by
+  [20261015042112_service_slots_only.sql](../../supabase/migrations/20261015042112_service_slots_only.sql).
+- **Declined and expired** bookings never took place: the pages lead with
+  "Declined" or "Expired" and the time as asked for ("was requested for
+  …"), never the time alone; the labels say "Expired", not "Ended".
 - A provider who's suspended can't answer requests
   ([providerAccess.ts](../../apps/website/server/utils/providerAccess.ts)).
 - If the hold is cancelled in Stripe's dashboard, the
@@ -323,11 +347,10 @@ sequenceDiagram
   counted and paged by the database, 20 at a time
   ([customerBookingList.ts](../../apps/website/server/utils/customerBookingList.ts)).
 
-### Availability, slots and holds (database only, so far)
+### Availability, slots and holds
 
-Added 2026-10-14 (phase 1 of [service-availability.md](../design/service-availability.md)).
-The website still books Services by request (above) until phase 3; this is
-the data and functions it will use.
+Added 2026-10-14 to 2026-10-15 (phases 1 to 3 of [service-availability.md](../design/service-availability.md)).
+The website books every Service from these slots (above).
 
 - **Schedules** (per provider, all their listings): `provider_schedules`
   (booking window, notice, slot interval, default buffer; defaults without a
@@ -364,8 +387,18 @@ the data and functions it will use.
   hours' notice; providers preview their own Services' slots
   (`my_service_slots_preview`) and save hours in one step
   (`replace_weekly_hours`, `replace_date_hours`). The website's
-  Availability page and listing editor use them; customers still book by
-  request until phase 3.
+  Availability page and listing editor use them.
+- **Phase 3** ([20261015042112_service_slots_only.sql](../../supabase/migrations/20261015042112_service_slots_only.sql)):
+  the old request flow goes (`create_service_request`,
+  `bookings.preferred_times`). The test data was converted with the
+  booking triggers off (no emails or history; decided 2026-10-15): open
+  old requests expired, each old request given its first offered time
+  (an hour, or the listing's duration), and every old Service booking made
+  Approve. The migration then proves every booking trigger and log guard
+  is on (`assert_log_guards_on()`). Every Service booking now has its mode,
+  start and end (`bookings_service_shape`). `service_next_slot(listing,
+  from)` (visitors and signed-in users) finds the first free time in the
+  whole booking window, 31 days at a time.
 
 ## 5. Cancellations and refunds
 
@@ -971,9 +1004,9 @@ Where the code differs from [docs/design/booking-and-checkout.md](../design/book
     `booking_reports` never by the provider (neither is in the design's
     table).
 14. **`respond_by`:** 48 hours from when the payment is recorded (webhook or
-    sync), not from when the request was made, and not capped at the
-    earliest offered time; the database refuses accepting a time that has
-    passed.
+    sync), not from when the request was made, capped by the guard at 2
+    hours before the booked time; the database refuses accepting a time
+    that has passed.
 15. **Payouts:** a report resolved as "pay the provider" lets the payout go
     ahead. Disputes are judged by the recorded outcome (a won dispute
     doesn't hold), and a released hold isn't put back for the same reason

@@ -17,7 +17,7 @@ function ctx(kind: "service" | "experience", over: Partial<EmailContext["booking
       starts_at: iso(start),
       confirmed_at: iso(SAMPLE_NOW),
       respond_by: iso(SAMPLE_NOW + 48 * H),
-      preferred_times: kind === "service" ? [iso(start), iso(start + 24 * H), iso(start + 50 * H)] : null,
+      service_mode: kind === "service" ? "approve" : null,
       party_size: kind === "experience" ? 2 : 1,
       total_cents: kind === "experience" ? 13000 : 4500,
       provider_amount_cents: kind === "experience" ? 10400 : 3960,
@@ -47,7 +47,8 @@ export function emailSamples(): Sample[] {
   const start = SAMPLE_NOW + 4 * 24 * H;
   const soon = SAMPLE_NOW + 30 * H; // booked inside 48 hours: the grace hour applies
   const longAgo = iso(SAMPLE_NOW - 5 * 24 * H);
-  const req = { starts_at: null, confirmed_at: null };
+  // A request keeps the slot booked; it's just not confirmed yet.
+  const req = { confirmed_at: null };
   return [
     { kind: "customer_request_sent", variant: "", ctx: ctx("service", { status: "requested", ...req }) },
     { kind: "customer_request_accepted", variant: "accepted well ahead", ctx: ctx("service") },

@@ -1,7 +1,8 @@
 // Providers answering Service requests (docs/design/booking-and-checkout.md,
-// step 4 part 4): accepting charges the held card once and shares the
-// customer's details; declining releases the hold; late answers, times not
-// offered and a card that can't be charged are handled. Runs the routes' own
+// step 4 part 4; docs/design/service-availability.md): accepting charges the
+// held card once for the slot booked and shares the customer's details;
+// declining releases the card and the slot; late answers and a card that
+// can't be charged are handled. Runs the routes' own
 // code (server/utils/bookingAnswers.ts) against the LOCAL stack and the LOKL
 // SANDBOX (test mode only). Card holds are made with Stripe's test card
 // token, so no browser payment is needed.
@@ -13,12 +14,12 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { safeStripe } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
+import { slotAfter } from "./_slots";
 import {
   acceptRequest,
   ALREADY_ANSWERED,
   CARD_NOT_CHARGED,
   declineRequest,
-  requestOverlaps,
 } from "../../../apps/website/server/utils/bookingAnswers";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
@@ -83,14 +84,14 @@ try {
   await must(db.from("listing_photos").insert({ listing_id: listingId, storage_path: `${providerId}/${listingId}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
   await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", listingId));
 
-  // A paid request: the database makes the booking, Stripe holds the card
-  // (manual capture, as Checkout does), and it becomes "requested".
+  // A paid request: the database books a free slot (an Approve Service),
+  // Stripe holds the card (manual capture, as Checkout does), and it becomes
+  // "requested". Each request takes the next free slot.
   const day = 864e5;
-  const t1 = new Date(Math.ceil((Date.now() + 3 * day) / 900_000) * 900_000).toISOString();
-  const t2 = new Date(Date.parse(t1) + day).toISOString();
   const request = async () => {
-    const b = await must(db.rpc("create_service_request", {
-      p_listing_id: listingId, p_customer_id: customer.id, p_preferred_times: [t1, t2], p_customer_name: "Sam Customer",
+    const time = await slotAfter(db, listingId, 3 * day);
+    const b = await must(db.rpc("create_service_booking", {
+      p_listing_id: listingId, p_customer_id: customer.id, p_starts_at: time, p_customer_name: "Sam Customer",
       p_customer_email: customer.email, p_customer_phone: "404-555-0100", p_customer_notes: "Short on top",
       p_address: { line1: "12 Elm Street", city: "Atlanta", state: "GA", postal_code: "30312" },
       p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
@@ -103,7 +104,12 @@ try {
       status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: pi.id,
       respond_by: new Date(Date.now() + 2 * day).toISOString(),
     }).eq("id", b.id));
-    return { id: b.id, pi: pi.id };
+    return { id: b.id, pi: pi.id, time };
+  };
+  const slotFree = async (time: string) => {
+    const d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(time));
+    const slots = await must(db.rpc("service_slots", { p_listing_id: listingId, p_from: d, p_to: d })) as { starts_at: string }[];
+    return slots.some((s) => Date.parse(s.starts_at) === Date.parse(time));
   };
 
   // 1. Before accepting: the area, not the street address or contact details.
@@ -114,18 +120,17 @@ try {
   check((await must(owner.client.from("booking_contacts").select("email").eq("booking_id", a.id))).length === 0, "1c. ...or the email and phone");
   check((await must(other.client.from("bookings").select("id").eq("id", a.id))).length === 0, "1d. another provider can't see the request at all");
 
-  // 2. A time the customer didn't offer is refused; nothing is charged.
-  const notOffered = new Date(Date.parse(t1) + 3600_000).toISOString();
-  check((await refused(() => acceptRequest(db, stripe, a.id, notOffered))) === "Accept one of the times the customer offered.", "2a. a time the customer didn't offer is refused");
-  check((await stripe.paymentIntents.retrieve(a.pi)).status === "requires_capture", "2b. ...and the card is still only on hold");
+  // 2. While it waits, the card is only on hold and the slot is kept for it.
+  check((await stripe.paymentIntents.retrieve(a.pi)).status === "requires_capture", "2a. the card is only on hold");
+  check(!(await slotFree(a.time)), "2b. ...and the slot isn't offered to anyone else");
 
   // 3. Accepting charges the card once, and shares the customer's details.
-  check((await acceptRequest(db, stripe, a.id, t2)) === "accepted", "3a. the provider accepts the second time offered");
+  check((await acceptRequest(db, stripe, a.id)) === "accepted", "3a. the provider accepts the request");
   const pa = await stripe.paymentIntents.retrieve(a.pi);
   check(pa.status === "succeeded" && pa.amount_received === 4500, `3b. the card is charged $45.00 (${pa.status}, ${pa.amount_received})`);
   const ab = await must(db.schema("private").from("booking_records").select("status, starts_at, stripe_charge_id, payout_due_at").eq("id", a.id).single());
-  check(ab.status === "confirmed" && Date.parse(ab.starts_at) === Date.parse(t2) && !!ab.stripe_charge_id, "3c. the booking is confirmed for that time, with its charge recorded");
-  check((await acceptRequest(db, stripe, a.id, t2)) === "already accepted", "3d. accepting again (a double click) changes nothing");
+  check(ab.status === "confirmed" && Date.parse(ab.starts_at) === Date.parse(a.time) && !!ab.stripe_charge_id, "3c. the booking is confirmed for the slot booked, with its charge recorded");
+  check((await acceptRequest(db, stripe, a.id)) === "already accepted", "3d. accepting again (a double click) changes nothing");
   check((await stripe.charges.list({ payment_intent: a.pi })).data.length === 1, "3e. ...and there's still only one charge");
   const addr = await must(owner.client.from("booking_addresses").select("line1").eq("booking_id", a.id));
   const contact = await must(owner.client.from("booking_contacts").select("email, phone").eq("booking_id", a.id));
@@ -137,7 +142,7 @@ try {
   // 4. A late answer is refused; the hold isn't touched.
   const late = await request();
   await must(db.schema("private").from("booking_records").update({ respond_by: new Date(Date.now() - 60_000).toISOString() }).eq("id", late.id));
-  check((await refused(() => acceptRequest(db, stripe, late.id, t1))) === "The time to answer this request has passed.", "4a. accepting after the answer-by time is refused");
+  check((await refused(() => acceptRequest(db, stripe, late.id))) === "The time to answer this request has passed.", "4a. accepting after the answer-by time is refused");
   check((await stripe.paymentIntents.retrieve(late.pi)).status === "requires_capture", "4b. ...and nothing is charged");
   await stripe.paymentIntents.cancel(late.pi);
 
@@ -146,14 +151,15 @@ try {
   check((await declineRequest(db, stripe, d.id)) === "declined", "5a. the provider declines");
   check((await stripe.paymentIntents.retrieve(d.pi)).status === "canceled", "5b. the hold is released, so nothing is charged");
   check((await statusOf(d.id)) === "declined", "5c. the booking is declined");
+  check(await slotFree(d.time), "5c2. ...and its slot is free to book again");
   check((await declineRequest(db, stripe, d.id)) === "already declined", "5d. declining again changes nothing");
-  check((await refused(() => acceptRequest(db, stripe, d.id, t1))) === ALREADY_ANSWERED, "5e. a declined request can't then be accepted");
+  check((await refused(() => acceptRequest(db, stripe, d.id))) === ALREADY_ANSWERED, "5e. a declined request can't then be accepted");
   check((await must(owner.client.from("booking_contacts").select("email").eq("booking_id", d.id))).length === 0, "5f. the provider never sees a declined customer's details");
 
   // 6. A card that can't be charged any more ends the request.
   const gone = await request();
   await stripe.paymentIntents.cancel(gone.pi); // as if the hold lapsed
-  check((await refused(() => acceptRequest(db, stripe, gone.id, t1))) === CARD_NOT_CHARGED, "6a. accepting when the card can't be charged says so");
+  check((await refused(() => acceptRequest(db, stripe, gone.id))) === CARD_NOT_CHARGED, "6a. accepting when the card can't be charged says so");
   check((await statusOf(gone.id)) === "expired", "6b. ...and the request ends, with nothing charged");
 
   // 7. The provider can't change a booking with their own login; only the server can.
@@ -162,11 +168,6 @@ try {
   check((await statusOf(own.id)) === "requested", "7. a provider's own login can't change a booking's status");
   await declineRequest(db, stripe, own.id);
 
-  // 8. Overlap warnings (a warning only).
-  const confirmed = [{ id: "x", starts_at: t2, ends_at: new Date(Date.parse(t2) + 3600_000).toISOString(), title: "Another cut" }];
-  const flags = requestOverlaps([t1, new Date(Date.parse(t2) + 30 * 60_000).toISOString(), new Date(Date.parse(t2) + 3600_000).toISOString()], 60, confirmed);
-  check(flags[0]!.length === 0 && flags[1]!.length === 1 && flags[2]!.length === 0,
-    "8. an offered time overlapping a confirmed booking is flagged; back-to-back isn't");
 } catch (e) {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);

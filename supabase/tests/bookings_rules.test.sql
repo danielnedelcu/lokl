@@ -2,7 +2,8 @@
 -- Who can read them is in bookings_access.test.sql.
 begin;
 \ir _helpers/users.psql
-select plan(68);
+\ir _helpers/slots.psql
+select plan(69);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -34,6 +35,7 @@ select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A
 update listings set status = 'live', published_at = now() where id in (:'le', :'ls', :'lh');
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '7 days', 3) returning id as s1 \gset
 
+select tests.make_bookable(:'p');
 select (now() + interval '3 days')::timestamptz as t1 \gset
 select (now() + interval '4 days')::timestamptz as t2 \gset
 
@@ -86,34 +88,36 @@ select throws_ok(
 -- SERVICES: requests
 -- ---------------------------------------------------------------------------
 
--- 6. A request: up to three different times, each 24 hours or more ahead.
-select (create_service_request(:'ls', :'cust', array[:'t1'::timestamptz, :'t2'::timestamptz], 'Sam Customer', 'sam@test.local', '404-555-0100', 'Short on top', null, now() + interval '30 minutes')).id as b2 \gset
+-- 6. A Service is booked for one of its slots (create_service_booking).
+select tests.slot(:'ls') as s2 \gset
+select (create_service_booking(:'ls', :'cust', :'s2', 'Sam Customer', 'sam@test.local', '404-555-0100', 'Short on top', null, now() + interval '30 minutes')).id as b2 \gset
 select is((select array[total_cents, commission_cents, provider_amount_cents] from private.booking_records where id = :'b2'),
   array[4500, 540, 3960], '6a. $45: 12% commission $5.40, provider $39.60');
 select throws_ok(
-  format($$ select create_service_request(%L, %L, array[now() + interval '2 days', now() + interval '3 days', now() + interval '4 days', now() + interval '5 days'], 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'cust'),
-  '23514', 'Offer one to three different times.', '6b. more than three times is refused');
+  format($$ select create_service_booking(%L, %L, %L::timestamptz + interval '10 minutes', 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'cust', :'s2'),
+  '23514', 'That time isn''t available. Pick another.', '6b. a time that isn''t a slot is refused');
 select throws_ok(
-  format($$ select create_service_request(%L, %L, array[now() + interval '2 days', now() + interval '2 days'], 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'cust'),
-  '23514', 'Offer one to three different times.', '6c. the same time twice is refused');
+  format($$ select create_service_booking(%L, %L, %L, 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'admin', :'s2'),
+  '23514', 'That time isn''t available. Pick another.', '6c. the same slot can''t be booked twice');
 select throws_ok(
-  format($$ select create_service_request(%L, %L, array[now() + interval '20 hours'], 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'cust'),
-  '23514', 'Each time needs to be at least 24 hours from now.', '6d. less than 24 hours'' notice is refused');
+  format($$ select create_service_booking(%L, %L, date_trunc('hour', now()) + interval '20 hours', 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'ls', :'cust'),
+  '23514', 'That time isn''t available. Pick another.', '6d. a time inside the 24 hours'' notice isn''t a slot');
 
 -- 7. "I come to you" needs the customer's address; a studio Service doesn't take one.
+select tests.slot(:'lh') as s3 \gset
 select throws_ok(
-  format($$ select create_service_request(%L, %L, array[now() + interval '2 days'], 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'lh', :'cust'),
-  '23514', 'Add the address where the Service should happen.', '7a. an "I come to you" request needs an address');
-select (create_service_request(:'lh', :'cust', array[:'t1'::timestamptz], 'Sam Customer', 'sam@test.local', null, null,
+  format($$ select create_service_booking(%L, %L, %L, 'Sam', 'sam@test.local', null, null, null, now() + interval '30 minutes') $$, :'lh', :'cust', :'s3'),
+  '23514', 'Add the address where the Service should happen.', '7a. an "I come to you" booking needs an address');
+select (create_service_booking(:'lh', :'cust', :'s3', 'Sam Customer', 'sam@test.local', null, null,
   '{"line1": "12 Elm Street", "city": "Atlanta", "state": "GA", "postal_code": "30312"}'::jsonb, now() + interval '30 minutes')).id as b3 \gset
-select is((select line1 from booking_addresses where booking_id = :'b3'), '12 Elm Street', '7b. the address is stored with the request');
+select is((select line1 from booking_addresses where booking_id = :'b3'), '12 Elm Street', '7b. the address is stored with the booking');
 select throws_ok(
-  format($$ select create_service_request(%L, %L, array[now() + interval '2 days'], 'Sam', 'sam@test.local', null, null, '{"line1": "1 A St", "city": "Atlanta", "state": "GA", "postal_code": "30312"}'::jsonb, now() + interval '30 minutes') $$, :'ls', :'cust'),
+  format($$ select create_service_booking(%L, %L, %L, 'Sam', 'sam@test.local', null, null, '{"line1": "1 A St", "city": "Atlanta", "state": "GA", "postal_code": "30312"}'::jsonb, now() + interval '30 minutes') $$, :'ls', :'cust', tests.slot(:'ls')),
   '23514', 'This Service happens at the provider''s place, so no address is needed.', '7c. a studio Service doesn''t take an address');
 select is((select array[customer_city, customer_postal_code] from bookings where id = :'b3'), array['Atlanta', '30312'],
-  '7d. an "I come to you" request copies the customer''s city and zip code onto the booking');
+  '7d. an "I come to you" booking copies the customer''s city and zip code onto it');
 select throws_ok(format($$ update bookings set customer_city = 'Decatur' where id = %L $$, :'b3'),
-  '23514', 'A booking''s listing, customer, size, times offered and price can''t be changed.', '7e. the city and zip code on a booking can''t be changed');
+  '23514', 'A booking''s listing, customer, size, mode and price can''t be changed.', '7e. the city and zip code on a booking can''t be changed');
 
 -- ---------------------------------------------------------------------------
 -- STATUSES
@@ -125,31 +129,34 @@ select lives_ok(format($$ update bookings set status = 'requested', status_chang
 select throws_ok(format($$ update bookings set status = 'requested', status_changed_by = 'stripe' where id = %L $$, :'b1'),
   '23514', 'Only Service bookings are requested.', '8b. an Experience isn''t requested');
 
--- 9. Accepting: one of the offered times, which sets the end and the payout.
+-- 9. Accepting: the slot as booked, which sets the payout.
 select throws_ok(format($$ update bookings set status = 'confirmed', starts_at = now() + interval '10 days', status_changed_by = 'provider' where id = %L $$, :'b2'),
-  '23514', 'Accept one of the times the customer offered.', '9a. the provider must accept an offered time');
-select lives_ok(format($$ update bookings set status = 'confirmed', starts_at = %L, status_changed_by = 'provider' where id = %L $$, :'t2', :'b2'),
-  '9b. the provider accepts one of the offered times');
-select is((select ends_at from bookings where id = :'b2'), :'t2'::timestamptz + interval '60 minutes', '9c. it ends after the listing''s duration');
-select is((select payout_due_at from bookings where id = :'b2'), :'t2'::timestamptz + interval '60 minutes' + interval '24 hours',
+  '23514', 'A booked time can''t be changed.', '9a. the provider accepts the slot, not another time');
+select lives_ok(format($$ update bookings set status = 'confirmed', status_changed_by = 'provider' where id = %L $$, :'b2'),
+  '9b. the provider accepts the booking');
+select is((select ends_at from bookings where id = :'b2'), :'s2'::timestamptz + interval '60 minutes', '9c. it ends as booked, after the listing''s duration');
+select is((select payout_due_at from bookings where id = :'b2'), :'s2'::timestamptz + interval '60 minutes' + interval '24 hours',
   '9d. the payout is due 24 hours after it ends');
 
 -- 9e. A request whose answer-by time has passed can't be accepted.
-select (create_service_request(:'ls', :'cust', array[:'t1'::timestamptz], 'Sam Customer', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id as b5 \gset
+select (create_service_booking(:'ls', :'cust', tests.slot(:'ls'), 'Sam Customer', 'sam@test.local', null, null, null, now() + interval '30 minutes')).id as b5 \gset
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() - interval '1 minute' where id = :'b5';
-select throws_ok(format($$ update bookings set status = 'confirmed', starts_at = %L, status_changed_by = 'provider' where id = %L $$, :'t1', :'b5'),
+select throws_ok(format($$ update bookings set status = 'confirmed', status_changed_by = 'provider' where id = %L $$, :'b5'),
   '23514', 'The time to answer this request has passed.', '9e. a request can''t be accepted after its answer-by time');
 
--- 9f. A time that has already passed can't be accepted. (Requests are made
--- 24 hours ahead, so this one is written directly, as only the server could.)
-insert into bookings (kind, listing_id, provider_id, customer_id, preferred_times, customer_name, unit_price_cents, total_cents, status_changed_by)
-values ('service', :'ls', :'p', :'cust', array[now() - interval '1 hour'], 'Sam Customer', 4500, 4500, 'customer')
+-- 9f. A request starting within 2 hours can't be accepted: its answer-by
+-- time is capped at 2 hours before the start, so it has already passed.
+-- (Approval slots are 4 hours or more ahead, so this one is written
+-- directly, as only the server could.)
+insert into bookings (kind, listing_id, provider_id, customer_id, service_mode, starts_at, ends_at, customer_name, unit_price_cents, total_cents, status_changed_by)
+values ('service', :'ls', :'p', :'cust', 'approve', now() + interval '1 hour', now() + interval '2 hours', 'Sam Customer', 4500, 4500, 'customer')
 returning id as b6 \gset
 insert into booking_finances (booking_id, commission_rate_bps, commission_cents, provider_amount_cents) values (:'b6', 1200, 540, 3960);
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id = :'b6';
-select throws_ok(format($$ update bookings set status = 'confirmed', starts_at = preferred_times[1], status_changed_by = 'provider' where id = %L $$, :'b6'),
-  '23514', 'That time has already passed.', '9f. a time that has passed can''t be accepted');
-select is((select customer_city from bookings where id = :'b2'), null, '9g. a studio Service request has no customer city');
+select is((select respond_by from bookings where id = :'b6'), now() - interval '1 hour', '9f. its answer-by time is capped at 2 hours before the start');
+select throws_ok(format($$ update bookings set status = 'confirmed', status_changed_by = 'provider' where id = %L $$, :'b6'),
+  '23514', 'The time to answer this request has passed.', '9f2. ...so it can''t be accepted');
+select is((select customer_city from bookings where id = :'b2'), null, '9g. a studio Service booking has no customer city');
 
 -- 10. Statuses only move along the allowed paths.
 select throws_ok(format($$ update bookings set status = 'requested' where id = %L $$, :'b2'),
@@ -157,11 +164,11 @@ select throws_ok(format($$ update bookings set status = 'requested' where id = %
 select throws_ok(format($$ update bookings set status = 'paid_out' where id = %L $$, :'b2'),
   '23514', 'A booking can''t go from confirmed to paid_out.', '10b. a booking is completed before it''s paid out');
 select throws_ok(format($$ update bookings set starts_at = %L where id = %L $$, :'t1', :'b2'),
-  '23514', 'A booking''s time and payout date only change with its status.', '10c. a confirmed booking''s time can''t be changed');
+  '23514', 'A booked time can''t be changed.', '10c. a confirmed booking''s time can''t be changed');
 
 -- 11. A booking's price and people never change.
 select throws_ok(format($$ update bookings set total_cents = 100, unit_price_cents = 100 where id = %L $$, :'b2'),
-  '23514', 'A booking''s listing, customer, size, times offered and price can''t be changed.', '11a. a booking''s price can''t be changed');
+  '23514', 'A booking''s listing, customer, size, mode and price can''t be changed.', '11a. a booking''s price can''t be changed');
 
 -- 12. Every change is in the booking's history, with who made it.
 select is(
@@ -184,7 +191,7 @@ update bookings set status = 'cancelled', cancelled_by = 'customer', status_chan
 select lives_ok(format($$ update private.booking_records set status = 'paid_out', stripe_transfer_id = 'tr_test_13a', status_changed_by = 'system' where id = %L $$, :'b1'),
   '13a. a late customer cancellation with no refund can still be paid out');
 update bookings set status = 'requested', status_changed_by = 'stripe', respond_by = now() + interval '48 hours' where id = :'b3';
-update bookings set status = 'confirmed', starts_at = :'t1', status_changed_by = 'provider' where id = :'b3';
+update bookings set status = 'confirmed', status_changed_by = 'provider' where id = :'b3';
 update bookings set status = 'cancelled', cancelled_by = 'provider', cancel_reason = 'I''m unwell that day.', refunded_cents = total_cents, status_changed_by = 'provider' where id = :'b3';
 select throws_ok(format($$ update bookings set status = 'paid_out', status_changed_by = 'system' where id = %L $$, :'b3'),
   '23514', 'A booking can''t go from cancelled to paid_out.', '13b. a provider''s cancellation is never paid out');

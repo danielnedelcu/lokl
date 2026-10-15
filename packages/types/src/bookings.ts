@@ -1,8 +1,9 @@
 import { z } from "zod";
 
-// What the booking forms send (docs/design/booking-and-checkout.md). The
-// database checks the same rules again (create_service_request,
-// reserve_experience_booking); these give the customer plain messages first.
+// What the booking forms send (docs/design/booking-and-checkout.md,
+// docs/design/service-availability.md). The database checks the same rules
+// again (create_service_booking, reserve_experience_booking); these give the
+// customer plain messages first.
 
 const name = z.string().trim().min(1, "Enter your name.").max(120, "Keep your name under 120 characters.");
 const phone = z
@@ -22,13 +23,13 @@ export const bookingAddressSchema = z.object({
   instructions: z.string().trim().max(500).optional(),
 });
 
+/** create_service_booking's refusal when the slot was taken (or closed) meanwhile. */
+export const SLOT_TAKEN = "That time isn't available. Pick another.";
+
 export const serviceBookingRequestSchema = z.object({
   listingId: z.uuid(),
-  preferredTimes: z
-    .array(z.iso.datetime({ offset: true }))
-    .min(1, "Choose at least one time.")
-    .max(3, "Choose up to three times.")
-    .refine((t) => new Set(t).size === t.length, "Choose different times."),
+  /** The slot chosen in the scheduling panel (one of service_slots). */
+  startsAt: z.iso.datetime({ offset: true, error: "Choose a time." }),
   name,
   phone,
   notes,

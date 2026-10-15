@@ -17,6 +17,7 @@ import { customerCancelOutcome } from "../../../packages/types/src/bookings";
 import { startExperienceCheckout } from "../../../apps/website/server/utils/bookings";
 import { cancelSession, customerCancel, providerCancel, reportProblem } from "../../../apps/website/server/utils/bookingCancellations";
 import { withdrawUnavailable } from "../../../apps/website/server/utils/bookingJobs";
+import { slotAfter } from "./_slots";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -119,8 +120,8 @@ try {
     "0f. booked 30 hours before: the grace period still ends an hour after booking");
 
   // 1. A request: free, the hold released.
-  const reqId = (await must(db.rpc("create_service_request", {
-    p_listing_id: svc, p_customer_id: customer.id, p_preferred_times: [new Date(Date.now() + 3 * day).toISOString()], p_customer_name: "Sam",
+  const reqId = (await must(db.rpc("create_service_booking", {
+    p_listing_id: svc, p_customer_id: customer.id, p_starts_at: await slotAfter(db, svc, 3 * day), p_customer_name: "Sam",
     p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null,
     p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
   })) as { id: string }).id;

@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export const CUSTOMER_BOOKING_GROUPS = ["upcoming", "past", "latest"] as const;
 export type CustomerBookingGroup = (typeof CUSTOMER_BOOKING_GROUPS)[number];
 export const CUSTOMER_BOOKINGS_PAGE_SIZE = 20;
-const FIELDS = "id, kind, status, listing_id, starts_at, ends_at, preferred_times, party_size, total_cents, respond_by, customer_name, created_at";
+const FIELDS = "id, kind, status, listing_id, service_mode, starts_at, ends_at, party_size, total_cents, respond_by, customer_name, created_at";
 
 /**
  * Each group as a database filter, so it's counted, ordered and paged by

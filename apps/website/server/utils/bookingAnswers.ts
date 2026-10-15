@@ -1,14 +1,16 @@
 import { stripeErrorSummary } from "@repo/types";
-// A provider answers a Service request: accept one of the offered times
-// (the card hold is captured) or decline (the hold is released)
-// (docs/design/booking-and-checkout.md, step 4 part 4).
+// A provider answers a Service request (a slot booked in Approve mode):
+// accept it (the card hold is captured) or decline (the hold is released)
+// (docs/design/booking-and-checkout.md, step 4 part 4;
+// docs/design/service-availability.md: the time is the slot, fixed when
+// it was booked).
 //
 // Plain TypeScript with no Nuxt imports, like bookings.ts: the routes call it
 // with the server key after checking the provider owns the booking, and
 // supabase/tests/app/provider-bookings.test.mts runs the same code against
 // the local stack and the Lokl sandbox. The database has the last word on
-// every status change (bookings_guard: an offered time, before the answer-by
-// time, for a time still ahead).
+// every status change (bookings_guard: before the answer-by time, for a time
+// still ahead, and never a different time).
 
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -21,7 +23,6 @@ export interface RequestRow {
   kind: "service" | "experience";
   status: string;
   provider_id: string;
-  preferred_times: string[] | null;
   respond_by: string | null;
   starts_at: string | null;
   total_cents: number;
@@ -56,50 +57,45 @@ async function move(db: SupabaseClient, id: string, from: string, update: Record
   return (data ?? []).length > 0;
 }
 
-/** The request as an offered time the provider may still accept, or why not. */
-export function checkAcceptable(b: RequestRow, startsAt: string, now = Date.now()): string | null {
+/** Whether the provider may still accept the request (its booked slot), or why not. */
+export function checkAcceptable(b: RequestRow, now = Date.now()): string | null {
   if (b.kind !== "service") return "Only Service requests are accepted. Experience bookings are confirmed when paid.";
   if (b.status !== "requested") return ALREADY_ANSWERED;
   if (b.respond_by && Date.parse(b.respond_by) <= now) return "The time to answer this request has passed.";
-  const chosen = Date.parse(startsAt);
-  if (!(b.preferred_times ?? []).some((t) => Date.parse(t) === chosen)) return "Accept one of the times the customer offered.";
-  if (chosen <= now) return "That time has already passed.";
+  if (!b.starts_at || Date.parse(b.starts_at) <= now) return "That time has already passed.";
   return null;
 }
 
 /**
  * Records an accepted request from its captured PaymentIntent, whose
- * metadata says what the capture meant (the chosen time, and when the
- * provider accepted), so it's the same whether the accept's reply arrived,
- * was lost and retried, or is finished by Stripe's webhook or the
- * expire-requests job (the lost-reply check, 2026-10-11). The booking is
+ * metadata says what the capture meant (an accept, and when the provider
+ * accepted), so it's the same whether the accept's reply arrived, was lost
+ * and retried, or is finished by Stripe's webhook or the expire-requests job
+ * (the lost-reply check, 2026-10-11). The booking keeps its slot; it's
  * confirmed as of the time the provider accepted, so a request accepted in
- * time stays accepted after its answer-by time. If the chosen time has
- * passed, or the booking can't be confirmed, the charge is refunded and the
- * request ends: nobody pays for something that isn't booked.
+ * time stays accepted after its answer-by time. If the slot has passed, or
+ * the booking can't be confirmed, the charge is refunded and the request
+ * ends: nobody pays for something that isn't booked.
  * Returns "accepted", "already accepted", or null when the payment isn't an
- * accept lokl made; throws a BookingError after refunding.
+ * accept lokl made (pass `ours` when the caller knows it is); throws a
+ * BookingError after refunding.
  */
 export async function finishAccept(
   db: SupabaseClient, stripe: Stripe, b: RequestRow & Record<string, unknown>, intent: Stripe.PaymentIntent,
-  fallback?: { startsAt: string },
+  ours = false,
 ): Promise<"accepted" | "already accepted" | null> {
   if (intent.status !== "succeeded") return null;
   const meta = intent.metadata ?? {};
-  const startsAt = meta.lokl_action === "accept" && meta.accepted_starts_at ? meta.accepted_starts_at : fallback?.startsAt;
-  if (!startsAt) return null;
-  const at = new Date(Date.parse(startsAt)).toISOString();
+  if (meta.lokl_action !== "accept" && !ours) return null;
   const acceptedAt = meta.lokl_action === "accept" && meta.accepted_at ? meta.accepted_at : null;
   const charge = typeof intent.latest_charge === "string" ? intent.latest_charge : intent.latest_charge?.id ?? null;
-  const same = (row: { status: string; starts_at: string | null }) =>
-    row.status === "confirmed" && !!row.starts_at && Date.parse(row.starts_at) === Date.parse(at);
-  if (same(b)) return "already accepted";
+  if (b.status === "confirmed") return "already accepted";
 
   let refusal: BookingError | null = null;
-  if (b.status === "requested" && Date.parse(at) > Date.now()) {
+  if (b.status === "requested" && b.starts_at && Date.parse(b.starts_at) > Date.now()) {
     try {
       const moved = await move(db, b.id, "requested", {
-        status: "confirmed", starts_at: at, status_changed_by: "provider", stripe_charge_id: charge,
+        status: "confirmed", status_changed_by: "provider", stripe_charge_id: charge,
         ...(acceptedAt ? { confirmed_at: acceptedAt } : {}),
       });
       if (moved) return "accepted";
@@ -112,7 +108,7 @@ export async function finishAccept(
   }
 
   const now = await read(db, b.id);
-  if (same(now)) return "already accepted";
+  if (now.status === "confirmed") return "already accepted";
   // Charged, but the booking can't be confirmed: give the money back.
   const refunded = await refundInFull(stripe, now as never);
   if (now.status === "requested") {
@@ -126,37 +122,35 @@ export async function finishAccept(
 }
 
 /**
- * Accept: capture the hold, with what it means (the chosen time, and when
- * the provider accepted), then confirm the booking for the chosen time
- * (finishAccept). Safe to call twice, and after a lost reply: a hold already
- * captured is finished from Stripe, even after the answer-by time. If the
- * card can't be charged, the request ends (expired, by the system).
+ * Accept: capture the hold, with what it means (an accept, and when the
+ * provider accepted), then confirm the booking for its slot (finishAccept).
+ * Safe to call twice, and after a lost reply: a hold already captured is
+ * finished from Stripe, even after the answer-by time. If the card can't be
+ * charged, the request ends (expired, by the system).
  */
-export async function acceptRequest(db: SupabaseClient, stripe: Stripe, bookingId: string, startsAt: string) {
+export async function acceptRequest(db: SupabaseClient, stripe: Stripe, bookingId: string) {
   const b = await read(db, bookingId);
-  if (b.status === "confirmed" && b.starts_at && Date.parse(b.starts_at) === Date.parse(startsAt)) return "already accepted";
+  if (b.kind === "service" && b.status === "confirmed") return "already accepted";
   if (b.kind === "service" && b.status === "requested" && b.stripe_payment_intent_id) {
     // Captured already (the reply to an earlier accept was lost): finish that one.
     const intent = await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id).catch(() => {
       throw new BookingError(STRIPE_DOWN, 502);
     });
     if (intent.status === "succeeded") {
-      const done = await finishAccept(db, stripe, b, intent, { startsAt });
-      const now = await read(db, b.id);
-      if (done && now.starts_at && Date.parse(now.starts_at) === Date.parse(startsAt)) return done;
+      const done = await finishAccept(db, stripe, b, intent, true);
+      if (done) return done;
       throw new BookingError(ALREADY_ANSWERED, 409);
     }
   }
-  const problem = checkAcceptable(b, startsAt);
+  const problem = checkAcceptable(b);
   if (problem) throw new BookingError(problem, 409);
   if (!b.stripe_payment_intent_id) throw new Error(`booking ${b.id} is requested with no PaymentIntent`);
-  const at = new Date(Date.parse(startsAt)).toISOString();
 
   let intent: Stripe.PaymentIntent;
   try {
     intent = await stripe.paymentIntents.capture(
       b.stripe_payment_intent_id,
-      { metadata: { booking_id: b.id, lokl_action: "accept", accepted_starts_at: at, accepted_at: new Date().toISOString() } },
+      { metadata: { booking_id: b.id, lokl_action: "accept", accepted_at: new Date().toISOString() } },
       { idempotencyKey: answerKey(b.id, "capture") },
     );
   } catch (error) {
@@ -176,7 +170,7 @@ export async function acceptRequest(db: SupabaseClient, stripe: Stripe, bookingI
       throw new BookingError(CARD_NOT_CHARGED, 409);
     }
   }
-  const done = await finishAccept(db, stripe, b, intent, { startsAt: at });
+  const done = await finishAccept(db, stripe, b, intent, true);
   if (!done) throw new Error(`booking ${b.id}: the capture couldn't be recorded`);
   return done;
 }
@@ -205,24 +199,4 @@ export async function declineRequest(db: SupabaseClient, stripe: Stripe, booking
   const now = await read(db, b.id);
   if (now.status === "declined") return "already declined";
   throw new BookingError(ALREADY_ANSWERED, 409);
-}
-
-/**
- * Overlap warnings (a warning only, never a block, decided 2026-10-02): for
- * each offered time, the provider's confirmed bookings it overlaps.
- */
-export function requestOverlaps(
-  offered: string[],
-  durationMinutes: number,
-  confirmed: { id: string; starts_at: string; ends_at: string | null; title: string }[],
-) {
-  return offered.map((t) => {
-    const start = Date.parse(t);
-    const end = start + Math.max(durationMinutes, 1) * 60_000;
-    return confirmed.filter((c) => {
-      const cs = Date.parse(c.starts_at);
-      const ce = c.ends_at ? Math.max(Date.parse(c.ends_at), cs + 60_000) : cs + 60_000;
-      return cs < end && start < ce;
-    });
-  });
 }

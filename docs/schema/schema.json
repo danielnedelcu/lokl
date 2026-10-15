@@ -2243,12 +2243,6 @@
           "comment": "pending_payment (in Stripe Checkout; spots held until reserved_until) -\u003e requested (Service: card on hold, waiting for the provider) -\u003e confirmed (accepted and charged, or Experience paid) -\u003e completed (it happened) -\u003e paid_out (provider's share transferred). Or declined, expired, cancelled. A customer's late cancellation (no refund) can still be paid out. The allowed changes are enforced by bookings_guard."
         },
         {
-          "name": "preferred_times",
-          "type": "timestamp with time zone[]",
-          "nullable": true,
-          "comment": "Services: one to three times the customer offers, each at least 24 hours ahead when requested. The provider accepts one, which becomes starts_at."
-        },
-        {
           "name": "starts_at",
           "type": "timestamp with time zone",
           "nullable": true,
@@ -2646,13 +2640,12 @@
         {
           "name": "bookings_experience_shape",
           "type": "CHECK",
-          "def": "CHECK (((kind \u003c\u003e 'experience'::text) OR ((session_id IS NOT NULL) AND (preferred_times IS NULL))))",
+          "def": "CHECK (((kind \u003c\u003e 'experience'::text) OR (session_id IS NOT NULL)))",
           "table": "public.bookings",
           "referenced_table": "",
           "columns": [
             "kind",
-            "session_id",
-            "preferred_times"
+            "session_id"
           ]
         },
         {
@@ -2731,7 +2724,7 @@
         {
           "name": "bookings_service_shape",
           "type": "CHECK",
-          "def": "CHECK (((kind \u003c\u003e 'service'::text) OR ((session_id IS NULL) AND (party_size = 1) AND (((service_mode IS NOT NULL) AND (preferred_times IS NULL) AND (starts_at IS NOT NULL) AND (ends_at IS NOT NULL)) OR ((service_mode IS NULL) AND ((cardinality(preferred_times) \u003e= 1) AND (cardinality(preferred_times) \u003c= 3)))))))",
+          "def": "CHECK (((kind \u003c\u003e 'service'::text) OR ((session_id IS NULL) AND (party_size = 1) AND (service_mode IS NOT NULL) AND (starts_at IS NOT NULL) AND (ends_at IS NOT NULL))))",
           "table": "public.bookings",
           "referenced_table": "",
           "columns": [
@@ -2739,7 +2732,6 @@
             "session_id",
             "party_size",
             "service_mode",
-            "preferred_times",
             "starts_at",
             "ends_at"
           ]
@@ -4585,305 +4577,6 @@
           "name": "booking_reports_final",
           "def": "CREATE TRIGGER booking_reports_final BEFORE UPDATE ON public.booking_reports FOR EACH ROW EXECUTE FUNCTION booking_reports_final()"
         }
-      ]
-    },
-    {
-      "name": "private.booking_records",
-      "type": "VIEW",
-      "comment": "A booking with its finances and no-show note, for the website's server only (service role). Updatable: one statement writes booking_finances, booking_reports and bookings, in that order, so the booking's rules see the money.",
-      "columns": [
-        {
-          "name": "id",
-          "type": "uuid",
-          "nullable": true
-        },
-        {
-          "name": "kind",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "listing_id",
-          "type": "uuid",
-          "nullable": true
-        },
-        {
-          "name": "provider_id",
-          "type": "uuid",
-          "nullable": true
-        },
-        {
-          "name": "customer_id",
-          "type": "uuid",
-          "nullable": true
-        },
-        {
-          "name": "session_id",
-          "type": "uuid",
-          "nullable": true
-        },
-        {
-          "name": "status",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "preferred_times",
-          "type": "timestamp with time zone[]",
-          "nullable": true
-        },
-        {
-          "name": "starts_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "ends_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "party_size",
-          "type": "smallint",
-          "nullable": true
-        },
-        {
-          "name": "customer_name",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "customer_notes",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "unit_price_cents",
-          "type": "integer",
-          "nullable": true
-        },
-        {
-          "name": "total_cents",
-          "type": "integer",
-          "nullable": true
-        },
-        {
-          "name": "currency",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "refunded_cents",
-          "type": "integer",
-          "nullable": true
-        },
-        {
-          "name": "refunded_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "reserved_until",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "respond_by",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "confirmed_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "payout_due_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "problem_reported_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "cancelled_by",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "cancelled_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "cancel_reason",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "status_changed_by",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "customer_city",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "customer_postal_code",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "problem_resolved_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "problem_resolution",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "commission_rate_bps",
-          "type": "integer",
-          "nullable": true
-        },
-        {
-          "name": "commission_cents",
-          "type": "integer",
-          "nullable": true
-        },
-        {
-          "name": "provider_amount_cents",
-          "type": "integer",
-          "nullable": true
-        },
-        {
-          "name": "payout_hold",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "payout_held_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "payout_failed_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "payout_failure",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_checkout_session_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_payment_intent_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_charge_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_transfer_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_transfer_reversal_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "reversal_failed_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "reversal_failure",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "stripe_dispute_id",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "disputed_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "dispute_closed_at",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "dispute_outcome",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "dispute_reason",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "dispute_amount_cents",
-          "type": "integer",
-          "nullable": true
-        },
-        {
-          "name": "dispute_evidence_due_by",
-          "type": "timestamp with time zone",
-          "nullable": true
-        },
-        {
-          "name": "problem_note",
-          "type": "text",
-          "nullable": true
-        },
-        {
-          "name": "payout_holds_released",
-          "type": "text[]",
-          "nullable": true
-        }
-      ],
-      "triggers": [
-        {
-          "name": "booking_records_update",
-          "def": "CREATE TRIGGER booking_records_update INSTEAD OF UPDATE ON private.booking_records FOR EACH ROW EXECUTE FUNCTION private.booking_records_update()"
-        }
-      ],
-      "def": "CREATE VIEW booking_records AS (\n SELECT b.id,\n    b.kind,\n    b.listing_id,\n    b.provider_id,\n    b.customer_id,\n    b.session_id,\n    b.status,\n    b.preferred_times,\n    b.starts_at,\n    b.ends_at,\n    b.party_size,\n    b.customer_name,\n    b.customer_notes,\n    b.unit_price_cents,\n    b.total_cents,\n    b.currency,\n    b.refunded_cents,\n    b.refunded_at,\n    b.reserved_until,\n    b.respond_by,\n    b.confirmed_at,\n    b.payout_due_at,\n    b.problem_reported_at,\n    b.cancelled_by,\n    b.cancelled_at,\n    b.cancel_reason,\n    b.status_changed_by,\n    b.created_at,\n    b.updated_at,\n    b.customer_city,\n    b.customer_postal_code,\n    b.problem_resolved_at,\n    b.problem_resolution,\n    f.commission_rate_bps,\n    f.commission_cents,\n    f.provider_amount_cents,\n    f.payout_hold,\n    f.payout_held_at,\n    f.payout_failed_at,\n    f.payout_failure,\n    f.stripe_checkout_session_id,\n    f.stripe_payment_intent_id,\n    f.stripe_charge_id,\n    f.stripe_transfer_id,\n    f.stripe_transfer_reversal_id,\n    f.reversal_failed_at,\n    f.reversal_failure,\n    f.stripe_dispute_id,\n    f.disputed_at,\n    f.dispute_closed_at,\n    f.dispute_outcome,\n    f.dispute_reason,\n    f.dispute_amount_cents,\n    f.dispute_evidence_due_by,\n    r.note AS problem_note,\n    f.payout_holds_released\n   FROM ((bookings b\n     JOIN booking_finances f ON ((f.booking_id = b.id)))\n     LEFT JOIN booking_reports r ON ((r.booking_id = b.id)))\n)",
-      "referenced_tables": [
-        "public.bookings",
-        "public.booking_finances",
-        "public.booking_reports"
       ]
     },
     {
@@ -8012,6 +7705,315 @@
           ]
         }
       ]
+    },
+    {
+      "name": "private.booking_records",
+      "type": "VIEW",
+      "comment": "A booking with its finances and no-show note, for the website's server only (service role). Updatable: one statement writes booking_finances, booking_reports and bookings, in that order, so the booking's rules see the money.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "ends_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "party_size",
+          "type": "smallint",
+          "nullable": true
+        },
+        {
+          "name": "customer_name",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "customer_notes",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "unit_price_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "total_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "refunded_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "refunded_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "reserved_until",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "respond_by",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "confirmed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_due_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "problem_reported_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "cancelled_by",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "cancel_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "status_changed_by",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "customer_city",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "customer_postal_code",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "problem_resolved_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "problem_resolution",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "checkout_key",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "checkout_request_hash",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "service_mode",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "commission_rate_bps",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "commission_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "provider_amount_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "payout_hold",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "payout_held_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_failed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "payout_failure",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_checkout_session_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_payment_intent_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_charge_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_transfer_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_transfer_reversal_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "reversal_failed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "reversal_failure",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "stripe_dispute_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "disputed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "dispute_closed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "dispute_outcome",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "dispute_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "dispute_amount_cents",
+          "type": "integer",
+          "nullable": true
+        },
+        {
+          "name": "dispute_evidence_due_by",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "problem_note",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "payout_holds_released",
+          "type": "text[]",
+          "nullable": true
+        }
+      ],
+      "triggers": [
+        {
+          "name": "booking_records_update",
+          "def": "CREATE TRIGGER booking_records_update INSTEAD OF UPDATE ON private.booking_records FOR EACH ROW EXECUTE FUNCTION private.booking_records_update()"
+        }
+      ],
+      "def": "CREATE VIEW booking_records AS (\n SELECT b.id,\n    b.kind,\n    b.listing_id,\n    b.provider_id,\n    b.customer_id,\n    b.session_id,\n    b.status,\n    b.starts_at,\n    b.ends_at,\n    b.party_size,\n    b.customer_name,\n    b.customer_notes,\n    b.unit_price_cents,\n    b.total_cents,\n    b.currency,\n    b.refunded_cents,\n    b.refunded_at,\n    b.reserved_until,\n    b.respond_by,\n    b.confirmed_at,\n    b.payout_due_at,\n    b.problem_reported_at,\n    b.cancelled_by,\n    b.cancelled_at,\n    b.cancel_reason,\n    b.status_changed_by,\n    b.created_at,\n    b.updated_at,\n    b.customer_city,\n    b.customer_postal_code,\n    b.problem_resolved_at,\n    b.problem_resolution,\n    b.checkout_key,\n    b.checkout_request_hash,\n    b.service_mode,\n    f.commission_rate_bps,\n    f.commission_cents,\n    f.provider_amount_cents,\n    f.payout_hold,\n    f.payout_held_at,\n    f.payout_failed_at,\n    f.payout_failure,\n    f.stripe_checkout_session_id,\n    f.stripe_payment_intent_id,\n    f.stripe_charge_id,\n    f.stripe_transfer_id,\n    f.stripe_transfer_reversal_id,\n    f.reversal_failed_at,\n    f.reversal_failure,\n    f.stripe_dispute_id,\n    f.disputed_at,\n    f.dispute_closed_at,\n    f.dispute_outcome,\n    f.dispute_reason,\n    f.dispute_amount_cents,\n    f.dispute_evidence_due_by,\n    r.note AS problem_note,\n    f.payout_holds_released\n   FROM ((bookings b\n     JOIN booking_finances f ON ((f.booking_id = b.id)))\n     LEFT JOIN booking_reports r ON ((r.booking_id = b.id)))\n)",
+      "referenced_tables": [
+        "public.bookings",
+        "public.booking_finances",
+        "public.booking_reports"
+      ]
     }
   ],
   "relations": [
@@ -9332,12 +9334,6 @@
       "type": "FUNCTION"
     },
     {
-      "name": "public.create_service_request",
-      "return_type": "bookings",
-      "arguments": "p_listing_id uuid, p_customer_id uuid, p_preferred_times timestamp with time zone[], p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_address jsonb, p_reserved_until timestamp with time zone, p_checkout_key uuid DEFAULT NULL::uuid, p_request_hash text DEFAULT NULL::text",
-      "type": "FUNCTION"
-    },
-    {
       "name": "public.is_time_zone",
       "return_type": "bool",
       "arguments": "p_name text",
@@ -10547,6 +10543,12 @@
       "name": "public.my_service_slots_preview",
       "return_type": "record",
       "arguments": "p_listing_id uuid, p_from date, p_to date",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.service_next_slot",
+      "return_type": "timestamptz",
+      "arguments": "p_listing_id uuid, p_from date DEFAULT NULL::date",
       "type": "FUNCTION"
     }
   ],

@@ -16,6 +16,7 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { safeStripe } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
+import { slotAfter } from "./_slots";
 import { abandonCheckout, startExperienceCheckout, startServiceCheckout } from "../../../apps/website/server/utils/bookings";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
@@ -160,17 +161,18 @@ try {
       "6. a retry after payment returns the booking's confirmation page");
   });
 
-  // 7. Services: the same key returns the same request; other times are refused.
+  // 7. Services: the same key returns the same request; another time is refused.
   await part("part 7", async () => {
-    const times = [new Date(Date.now() + 3 * 864e5).toISOString()];
+    const time = await slotAfter(db, serviceId, 3 * 864e5);
     const k7 = randomUUID();
-    const svc = (preferredTimes: string[], checkoutKey: string) => ({ listingId: serviceId, name: "Sam Customer", preferredTimes, checkoutKey });
-    const req1 = await startServiceCheckout(ctx(customer), svc(times, k7));
-    const req2 = await startServiceCheckout(ctx(customer), svc(times, k7));
+    const svc = (startsAt: string, checkoutKey: string) => ({ listingId: serviceId, name: "Sam Customer", startsAt, checkoutKey });
+    const req1 = await startServiceCheckout(ctx(customer), svc(time, k7));
+    const req2 = await startServiceCheckout(ctx(customer), svc(time, k7));
     check(req1.bookingId === req2.bookingId && req1.url === req2.url, "7a. a Service retry with the same key returns the same request and Checkout");
     check(value(`select count(*) from public.bookings where listing_id = '${serviceId}' and customer_id = '${customer.id}'`) === "1", "7b. ...one request exists");
-    check((await refused(() => startServiceCheckout(ctx(customer), svc([new Date(Date.now() + 4 * 864e5).toISOString()], k7)))) ===
-      "This checkout was started with different details. Check your details and try again.", "7c. the same key with other times is refused");
+    const other = await slotAfter(db, serviceId, 4 * 864e5);
+    check((await refused(() => startServiceCheckout(ctx(customer), svc(other, k7)))) ===
+      "This checkout was started with different details. Check your details and try again.", "7c. the same key with another time is refused");
   });
 } catch (e) {
   failures++;

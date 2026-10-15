@@ -16,6 +16,7 @@ import { safeStripe } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
 import { startExperienceCheckout, handlePaymentsEvent } from "../../../apps/website/server/utils/bookings";
 import { expireRequests, payOut, releaseReservations, withdrawUnavailable } from "../../../apps/website/server/utils/bookingJobs";
+import { slotAfter } from "./_slots";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -96,10 +97,9 @@ try {
   const expSuspendable = await listing(suspendable, "experience");
 
   // A Service request with a real card hold.
-  const t1 = new Date(Math.ceil((Date.now() + 3 * day) / 900_000) * 900_000).toISOString();
   const request = async (listingId: string) => {
-    const b = await must(db.rpc("create_service_request", {
-      p_listing_id: listingId, p_customer_id: customer.id, p_preferred_times: [t1], p_customer_name: "Sam Customer",
+    const b = await must(db.rpc("create_service_booking", {
+    p_listing_id: listingId, p_customer_id: customer.id, p_starts_at: await slotAfter(db, listingId, 3 * 864e5), p_customer_name: "Sam Customer",
       p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null, p_address: null,
       p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
     })) as { id: string };
