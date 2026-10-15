@@ -37,7 +37,8 @@ select pg_temp.listing(:'p1', 'Taco crawl') as le1 \gset
 select pg_temp.listing(:'p1', 'Mural ride') as le2 \gset
 select pg_temp.listing(:'p2', 'Garden walk') as le3 \gset
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le1', now() + interval '7 days', 50) returning id as s1 \gset
-insert into experience_sessions (listing_id, starts_at, capacity) values (:'le2', now() + interval '7 days', 50) returning id as s2 \gset
+-- Two hours after s1: one provider's sessions can't overlap (service_availability).
+insert into experience_sessions (listing_id, starts_at, capacity) values (:'le2', now() + interval '7 days 2 hours', 50) returning id as s2 \gset
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le3', now() + interval '7 days', 50) returning id as s3 \gset
 
 -- Bookings, made as checkout makes them, then moved to the state each test needs.

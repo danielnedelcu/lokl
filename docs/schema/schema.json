@@ -962,6 +962,18 @@
           "type": "text",
           "nullable": true,
           "comment": "Why the owner took the listing down, 10 to 1,000 characters; shown to the provider. Set when unpublished; cleared on restore. Server-only."
+        },
+        {
+          "name": "booking_mode",
+          "type": "text",
+          "nullable": true,
+          "comment": "Services: instant (booked and paid from a slot) or approve (a slot requested, the card held, the provider accepts or declines). Chosen by the provider; a Service without one isn't bookable. Null on Experiences."
+        },
+        {
+          "name": "buffer_minutes",
+          "type": "smallint",
+          "nullable": true,
+          "comment": "Services: free time after each booking (for travel), 0 to 120 minutes; null uses the provider's default."
         }
       ],
       "indexes": [
@@ -1036,6 +1048,26 @@
             "kind",
             "location_mode",
             "area_id"
+          ]
+        },
+        {
+          "name": "listings_booking_mode_check",
+          "type": "CHECK",
+          "def": "CHECK ((booking_mode = ANY (ARRAY['instant'::text, 'approve'::text])))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "booking_mode"
+          ]
+        },
+        {
+          "name": "listings_buffer_minutes_check",
+          "type": "CHECK",
+          "def": "CHECK (((buffer_minutes \u003e= 0) AND (buffer_minutes \u003c= 120)))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "buffer_minutes"
           ]
         },
         {
@@ -1129,6 +1161,18 @@
           "referenced_table": "",
           "columns": [
             "rejection_reason"
+          ]
+        },
+        {
+          "name": "listings_service_settings",
+          "type": "CHECK",
+          "def": "CHECK (((kind = 'service'::text) OR ((booking_mode IS NULL) AND (buffer_minutes IS NULL))))",
+          "table": "public.listings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "booking_mode",
+            "buffer_minutes"
           ]
         },
         {
@@ -1880,6 +1924,10 @@
           "def": "CREATE TRIGGER experience_sessions_guard BEFORE INSERT OR DELETE OR UPDATE ON public.experience_sessions FOR EACH ROW EXECUTE FUNCTION experience_sessions_guard()"
         },
         {
+          "name": "experience_sessions_hold",
+          "def": "CREATE TRIGGER experience_sessions_hold AFTER INSERT OR UPDATE OF starts_at, status ON public.experience_sessions FOR EACH ROW EXECUTE FUNCTION experience_sessions_hold()"
+        },
+        {
           "name": "experience_sessions_set_updated_at",
           "def": "CREATE TRIGGER experience_sessions_set_updated_at BEFORE UPDATE ON public.experience_sessions FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
@@ -2330,6 +2378,12 @@
           "type": "text",
           "nullable": true,
           "comment": "SHA-256 of the attempt's details (the validated request), so the same key with other details is refused. Written only by the booking functions."
+        },
+        {
+          "name": "service_mode",
+          "type": "text",
+          "nullable": true,
+          "comment": "Services booked from a slot: the listing's booking mode when it was made (instant or approve). Null for Experiences and old requests. Written only by create_service_booking."
         }
       ],
       "indexes": [
@@ -2632,16 +2686,40 @@
           ]
         },
         {
+          "name": "bookings_service_mode_check",
+          "type": "CHECK",
+          "def": "CHECK ((service_mode = ANY (ARRAY['instant'::text, 'approve'::text])))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "service_mode"
+          ]
+        },
+        {
+          "name": "bookings_service_mode_only_services",
+          "type": "CHECK",
+          "def": "CHECK (((kind = 'service'::text) OR (service_mode IS NULL)))",
+          "table": "public.bookings",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "service_mode"
+          ]
+        },
+        {
           "name": "bookings_service_shape",
           "type": "CHECK",
-          "def": "CHECK (((kind \u003c\u003e 'service'::text) OR ((session_id IS NULL) AND (party_size = 1) AND ((cardinality(preferred_times) \u003e= 1) AND (cardinality(preferred_times) \u003c= 3)))))",
+          "def": "CHECK (((kind \u003c\u003e 'service'::text) OR ((session_id IS NULL) AND (party_size = 1) AND (((service_mode IS NOT NULL) AND (preferred_times IS NULL) AND (starts_at IS NOT NULL) AND (ends_at IS NOT NULL)) OR ((service_mode IS NULL) AND ((cardinality(preferred_times) \u003e= 1) AND (cardinality(preferred_times) \u003c= 3)))))))",
           "table": "public.bookings",
           "referenced_table": "",
           "columns": [
             "kind",
             "session_id",
             "party_size",
-            "preferred_times"
+            "service_mode",
+            "preferred_times",
+            "starts_at",
+            "ends_at"
           ]
         },
         {
@@ -2757,6 +2835,10 @@
         {
           "name": "bookings_guard",
           "def": "CREATE TRIGGER bookings_guard BEFORE INSERT OR UPDATE ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_guard()"
+        },
+        {
+          "name": "bookings_hold",
+          "def": "CREATE TRIGGER bookings_hold AFTER INSERT OR UPDATE OF status ON public.bookings FOR EACH ROW EXECUTE FUNCTION bookings_hold()"
         },
         {
           "name": "bookings_log_status",
@@ -7243,6 +7325,671 @@
           ]
         }
       ]
+    },
+    {
+      "name": "public.provider_schedules",
+      "type": "BASE TABLE",
+      "comment": "A provider's booking settings, one row per provider (defaults apply without one). The provider writes it; deleting it goes back to the defaults. Goes with its provider (providers are never deleted).",
+      "columns": [
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "booking_window_days",
+          "type": "smallint",
+          "nullable": false,
+          "default": "60",
+          "comment": "How far ahead customers can book, in days (7 to 180)."
+        },
+        {
+          "name": "min_notice_minutes",
+          "type": "integer",
+          "nullable": false,
+          "default": "1440",
+          "comment": "The least notice a booking needs, in minutes (one hour to one week)."
+        },
+        {
+          "name": "slot_interval_minutes",
+          "type": "smallint",
+          "nullable": false,
+          "default": "30",
+          "comment": "How often a slot can start: every 15, 30 or 60 minutes."
+        },
+        {
+          "name": "default_buffer_minutes",
+          "type": "smallint",
+          "nullable": false,
+          "default": "0",
+          "comment": "Free time after each booking (for travel), for Services without their own and for Experience sessions."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "provider_schedules_pkey",
+          "def": "CREATE UNIQUE INDEX provider_schedules_pkey ON public.provider_schedules USING btree (provider_id)",
+          "table": "public.provider_schedules",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "provider_schedules_booking_window_days_check",
+          "type": "CHECK",
+          "def": "CHECK (((booking_window_days \u003e= 7) AND (booking_window_days \u003c= 180)))",
+          "table": "public.provider_schedules",
+          "referenced_table": "",
+          "columns": [
+            "booking_window_days"
+          ]
+        },
+        {
+          "name": "provider_schedules_default_buffer_minutes_check",
+          "type": "CHECK",
+          "def": "CHECK (((default_buffer_minutes \u003e= 0) AND (default_buffer_minutes \u003c= 120)))",
+          "table": "public.provider_schedules",
+          "referenced_table": "",
+          "columns": [
+            "default_buffer_minutes"
+          ]
+        },
+        {
+          "name": "provider_schedules_min_notice_minutes_check",
+          "type": "CHECK",
+          "def": "CHECK (((min_notice_minutes \u003e= 60) AND (min_notice_minutes \u003c= 10080)))",
+          "table": "public.provider_schedules",
+          "referenced_table": "",
+          "columns": [
+            "min_notice_minutes"
+          ]
+        },
+        {
+          "name": "provider_schedules_slot_interval_minutes_check",
+          "type": "CHECK",
+          "def": "CHECK ((slot_interval_minutes = ANY (ARRAY[15, 30, 60])))",
+          "table": "public.provider_schedules",
+          "referenced_table": "",
+          "columns": [
+            "slot_interval_minutes"
+          ]
+        },
+        {
+          "name": "provider_schedules_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE",
+          "table": "public.provider_schedules",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_schedules_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (provider_id)",
+          "table": "public.provider_schedules",
+          "referenced_table": "",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "provider_schedules_set_updated_at",
+          "def": "CREATE TRIGGER provider_schedules_set_updated_at BEFORE UPDATE ON public.provider_schedules FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.provider_weekly_hours",
+      "type": "BASE TABLE",
+      "comment": "A provider's repeating weekly hours: one row per interval (a day can have several). Wall-clock times in the market's time zone. The provider adds, changes and deletes them freely; nothing points here.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "weekday",
+          "type": "smallint",
+          "nullable": false,
+          "comment": "0 is Sunday, 6 is Saturday."
+        },
+        {
+          "name": "starts",
+          "type": "time without time zone",
+          "nullable": false
+        },
+        {
+          "name": "ends",
+          "type": "time without time zone",
+          "nullable": false,
+          "comment": "The end of the interval, after starts; 24:00 is the end of the day."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "provider_weekly_hours_pkey",
+          "def": "CREATE UNIQUE INDEX provider_weekly_hours_pkey ON public.provider_weekly_hours USING btree (id)",
+          "table": "public.provider_weekly_hours",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_weekly_hours_provider_id_weekday_tsrange_excl",
+          "def": "CREATE INDEX provider_weekly_hours_provider_id_weekday_tsrange_excl ON public.provider_weekly_hours USING gist (provider_id, weekday, tsrange(('2000-01-02'::date + starts), ('2000-01-02'::date + ends)))",
+          "table": "public.provider_weekly_hours",
+          "columns": [
+            "provider_id",
+            "weekday",
+            "tsrange"
+          ]
+        },
+        {
+          "name": "provider_weekly_hours_provider_idx",
+          "def": "CREATE INDEX provider_weekly_hours_provider_idx ON public.provider_weekly_hours USING btree (provider_id, weekday)",
+          "table": "public.provider_weekly_hours",
+          "columns": [
+            "provider_id",
+            "weekday"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "provider_weekly_hours_check",
+          "type": "CHECK",
+          "def": "CHECK ((ends \u003e starts))",
+          "table": "public.provider_weekly_hours",
+          "referenced_table": "",
+          "columns": [
+            "ends",
+            "starts"
+          ]
+        },
+        {
+          "name": "provider_weekly_hours_weekday_check",
+          "type": "CHECK",
+          "def": "CHECK (((weekday \u003e= 0) AND (weekday \u003c= 6)))",
+          "table": "public.provider_weekly_hours",
+          "referenced_table": "",
+          "columns": [
+            "weekday"
+          ]
+        },
+        {
+          "name": "provider_weekly_hours_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE",
+          "table": "public.provider_weekly_hours",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_weekly_hours_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.provider_weekly_hours",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_weekly_hours_provider_id_weekday_tsrange_excl",
+          "type": "x",
+          "def": "EXCLUDE USING gist (provider_id WITH =, weekday WITH =, tsrange(('2000-01-02'::date + starts), ('2000-01-02'::date + ends)) WITH \u0026\u0026)",
+          "table": "public.provider_weekly_hours",
+          "referenced_table": "",
+          "columns": [
+            "provider_id",
+            "weekday"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.provider_date_hours",
+      "type": "BASE TABLE",
+      "comment": "Hours for one date, replacing that weekday's weekly hours: one row per interval. A day off is time off for that date. The provider adds, changes and deletes them freely; nothing points here.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "on_date",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "name": "starts",
+          "type": "time without time zone",
+          "nullable": false
+        },
+        {
+          "name": "ends",
+          "type": "time without time zone",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "provider_date_hours_pkey",
+          "def": "CREATE UNIQUE INDEX provider_date_hours_pkey ON public.provider_date_hours USING btree (id)",
+          "table": "public.provider_date_hours",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_date_hours_provider_id_tsrange_excl",
+          "def": "CREATE INDEX provider_date_hours_provider_id_tsrange_excl ON public.provider_date_hours USING gist (provider_id, tsrange((on_date + starts), (on_date + ends)))",
+          "table": "public.provider_date_hours",
+          "columns": [
+            "provider_id",
+            "tsrange"
+          ]
+        },
+        {
+          "name": "provider_date_hours_provider_idx",
+          "def": "CREATE INDEX provider_date_hours_provider_idx ON public.provider_date_hours USING btree (provider_id, on_date)",
+          "table": "public.provider_date_hours",
+          "columns": [
+            "provider_id",
+            "on_date"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "provider_date_hours_check",
+          "type": "CHECK",
+          "def": "CHECK ((ends \u003e starts))",
+          "table": "public.provider_date_hours",
+          "referenced_table": "",
+          "columns": [
+            "ends",
+            "starts"
+          ]
+        },
+        {
+          "name": "provider_date_hours_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE",
+          "table": "public.provider_date_hours",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_date_hours_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.provider_date_hours",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_date_hours_provider_id_tsrange_excl",
+          "type": "x",
+          "def": "EXCLUDE USING gist (provider_id WITH =, tsrange((on_date + starts), (on_date + ends)) WITH \u0026\u0026)",
+          "table": "public.provider_date_hours",
+          "referenced_table": "",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.provider_time_off",
+      "type": "BASE TABLE",
+      "comment": "Whole days a provider isn't available, from starts_on to ends_on (inclusive), whatever their hours. The provider adds, changes and deletes them freely; nothing points here.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "starts_on",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "name": "ends_on",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "nullable": true,
+          "comment": "For the provider alone (customers never see it)."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "provider_time_off_pkey",
+          "def": "CREATE UNIQUE INDEX provider_time_off_pkey ON public.provider_time_off USING btree (id)",
+          "table": "public.provider_time_off",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_time_off_provider_idx",
+          "def": "CREATE INDEX provider_time_off_provider_idx ON public.provider_time_off USING btree (provider_id, starts_on)",
+          "table": "public.provider_time_off",
+          "columns": [
+            "provider_id",
+            "starts_on"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "provider_time_off_check",
+          "type": "CHECK",
+          "def": "CHECK ((ends_on \u003e= starts_on))",
+          "table": "public.provider_time_off",
+          "referenced_table": "",
+          "columns": [
+            "ends_on",
+            "starts_on"
+          ]
+        },
+        {
+          "name": "provider_time_off_note_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(note) \u003c= 200))",
+          "table": "public.provider_time_off",
+          "referenced_table": "",
+          "columns": [
+            "note"
+          ]
+        },
+        {
+          "name": "provider_time_off_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE",
+          "table": "public.provider_time_off",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_time_off_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.provider_time_off",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.provider_holds",
+      "type": "BASE TABLE",
+      "comment": "The provider's time each Service booking (from a slot) and each scheduled Experience session takes: [start, end + buffer). No two of a provider's holds overlap, across all their listings. Written only by triggers on bookings and experience_sessions; deleted when the booking is released (expired, declined, cancelled) or the session cancelled or deleted. Not readable through the API.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "during",
+          "type": "tstzrange",
+          "nullable": false,
+          "comment": "The time held: from the start to the end plus the buffer, as it was when the booking or session was made."
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "session_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "provider_holds_pkey",
+          "def": "CREATE UNIQUE INDEX provider_holds_pkey ON public.provider_holds USING btree (id)",
+          "table": "public.provider_holds",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_holds_booking_id_key",
+          "def": "CREATE UNIQUE INDEX provider_holds_booking_id_key ON public.provider_holds USING btree (booking_id)",
+          "table": "public.provider_holds",
+          "columns": [
+            "booking_id"
+          ]
+        },
+        {
+          "name": "provider_holds_session_id_key",
+          "def": "CREATE UNIQUE INDEX provider_holds_session_id_key ON public.provider_holds USING btree (session_id)",
+          "table": "public.provider_holds",
+          "columns": [
+            "session_id"
+          ]
+        },
+        {
+          "name": "provider_holds_no_overlap",
+          "def": "CREATE INDEX provider_holds_no_overlap ON public.provider_holds USING gist (provider_id, during)",
+          "table": "public.provider_holds",
+          "columns": [
+            "provider_id",
+            "during"
+          ]
+        },
+        {
+          "name": "provider_holds_provider_idx",
+          "def": "CREATE INDEX provider_holds_provider_idx ON public.provider_holds USING gist (provider_id, during)",
+          "table": "public.provider_holds",
+          "columns": [
+            "provider_id",
+            "during"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "provider_holds_check",
+          "type": "CHECK",
+          "def": "CHECK (((booking_id IS NULL) \u003c\u003e (session_id IS NULL)))",
+          "table": "public.provider_holds",
+          "referenced_table": "",
+          "columns": [
+            "booking_id",
+            "session_id"
+          ]
+        },
+        {
+          "name": "provider_holds_during_check",
+          "type": "CHECK",
+          "def": "CHECK ((NOT isempty(during)))",
+          "table": "public.provider_holds",
+          "referenced_table": "",
+          "columns": [
+            "during"
+          ]
+        },
+        {
+          "name": "provider_holds_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE",
+          "table": "public.provider_holds",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_holds_session_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (session_id) REFERENCES experience_sessions(id) ON DELETE CASCADE",
+          "table": "public.provider_holds",
+          "referenced_table": "public.experience_sessions",
+          "columns": [
+            "session_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_holds_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE",
+          "table": "public.provider_holds",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_holds_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.provider_holds",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_holds_booking_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (booking_id)",
+          "table": "public.provider_holds",
+          "referenced_table": "",
+          "columns": [
+            "booking_id"
+          ]
+        },
+        {
+          "name": "provider_holds_session_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (session_id)",
+          "table": "public.provider_holds",
+          "referenced_table": "",
+          "columns": [
+            "session_id"
+          ]
+        },
+        {
+          "name": "provider_holds_no_overlap",
+          "type": "x",
+          "def": "EXCLUDE USING gist (provider_id WITH =, during WITH \u0026\u0026)",
+          "table": "public.provider_holds",
+          "referenced_table": "",
+          "columns": [
+            "provider_id",
+            "during"
+          ]
+        }
+      ]
     }
   ],
   "relations": [
@@ -7910,6 +8657,97 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_schedules",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_weekly_hours",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_date_hours",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_time_off",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_holds",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_holds",
+      "columns": [
+        "session_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.experience_sessions",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (session_id) REFERENCES experience_sessions(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_holds",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE"
     }
   ],
   "functions": [
@@ -8499,6 +9337,1170 @@
       "name": "public.admin_resolve_problem_paid",
       "return_type": "bool",
       "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey4_in",
+      "return_type": "gbtreekey4",
+      "arguments": "cstring",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey4_out",
+      "return_type": "cstring",
+      "arguments": "gist_support.gbtreekey4",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey8_in",
+      "return_type": "gbtreekey8",
+      "arguments": "cstring",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey8_out",
+      "return_type": "cstring",
+      "arguments": "gist_support.gbtreekey8",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey16_in",
+      "return_type": "gbtreekey16",
+      "arguments": "cstring",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey16_out",
+      "return_type": "cstring",
+      "arguments": "gist_support.gbtreekey16",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey32_in",
+      "return_type": "gbtreekey32",
+      "arguments": "cstring",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey32_out",
+      "return_type": "cstring",
+      "arguments": "gist_support.gbtreekey32",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey_var_in",
+      "return_type": "gbtreekey_var",
+      "arguments": "cstring",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey_var_out",
+      "return_type": "cstring",
+      "arguments": "gist_support.gbtreekey_var",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.cash_dist",
+      "return_type": "money",
+      "arguments": "money, money",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.date_dist",
+      "return_type": "int4",
+      "arguments": "date, date",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.float4_dist",
+      "return_type": "float4",
+      "arguments": "real, real",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.float8_dist",
+      "return_type": "float8",
+      "arguments": "double precision, double precision",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.int2_dist",
+      "return_type": "int2",
+      "arguments": "smallint, smallint",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.int4_dist",
+      "return_type": "int4",
+      "arguments": "integer, integer",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.int8_dist",
+      "return_type": "int8",
+      "arguments": "bigint, bigint",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.interval_dist",
+      "return_type": "interval",
+      "arguments": "interval, interval",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.oid_dist",
+      "return_type": "oid",
+      "arguments": "oid, oid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.time_dist",
+      "return_type": "interval",
+      "arguments": "time without time zone, time without time zone",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.ts_dist",
+      "return_type": "interval",
+      "arguments": "timestamp without time zone, timestamp without time zone",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.tstz_dist",
+      "return_type": "interval",
+      "arguments": "timestamp with time zone, timestamp with time zone",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_oid_consistent",
+      "return_type": "bool",
+      "arguments": "internal, oid, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_oid_distance",
+      "return_type": "float8",
+      "arguments": "internal, oid, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_oid_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_oid_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_decompress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_var_decompress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_var_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_oid_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_oid_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_oid_union",
+      "return_type": "gbtreekey8",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_oid_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey8, gist_support.gbtreekey8, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int2_consistent",
+      "return_type": "bool",
+      "arguments": "internal, smallint, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int2_distance",
+      "return_type": "float8",
+      "arguments": "internal, smallint, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int2_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int2_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int2_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int2_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int2_union",
+      "return_type": "gbtreekey4",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int2_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey4, gist_support.gbtreekey4, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int4_consistent",
+      "return_type": "bool",
+      "arguments": "internal, integer, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int4_distance",
+      "return_type": "float8",
+      "arguments": "internal, integer, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int4_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int4_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int4_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int4_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int4_union",
+      "return_type": "gbtreekey8",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int4_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey8, gist_support.gbtreekey8, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int8_consistent",
+      "return_type": "bool",
+      "arguments": "internal, bigint, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int8_distance",
+      "return_type": "float8",
+      "arguments": "internal, bigint, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int8_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int8_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int8_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int8_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int8_union",
+      "return_type": "gbtreekey16",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_int8_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey16, gist_support.gbtreekey16, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float4_consistent",
+      "return_type": "bool",
+      "arguments": "internal, real, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float4_distance",
+      "return_type": "float8",
+      "arguments": "internal, real, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float4_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float4_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float4_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float4_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float4_union",
+      "return_type": "gbtreekey8",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float4_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey8, gist_support.gbtreekey8, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float8_consistent",
+      "return_type": "bool",
+      "arguments": "internal, double precision, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float8_distance",
+      "return_type": "float8",
+      "arguments": "internal, double precision, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float8_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float8_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float8_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float8_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float8_union",
+      "return_type": "gbtreekey16",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_float8_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey16, gist_support.gbtreekey16, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_ts_consistent",
+      "return_type": "bool",
+      "arguments": "internal, timestamp without time zone, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_ts_distance",
+      "return_type": "float8",
+      "arguments": "internal, timestamp without time zone, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_tstz_consistent",
+      "return_type": "bool",
+      "arguments": "internal, timestamp with time zone, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_tstz_distance",
+      "return_type": "float8",
+      "arguments": "internal, timestamp with time zone, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_ts_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_tstz_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_ts_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_ts_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_ts_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_ts_union",
+      "return_type": "gbtreekey16",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_ts_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey16, gist_support.gbtreekey16, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_time_consistent",
+      "return_type": "bool",
+      "arguments": "internal, time without time zone, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_time_distance",
+      "return_type": "float8",
+      "arguments": "internal, time without time zone, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_timetz_consistent",
+      "return_type": "bool",
+      "arguments": "internal, time with time zone, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_time_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_timetz_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_time_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_time_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_time_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_time_union",
+      "return_type": "gbtreekey16",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_time_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey16, gist_support.gbtreekey16, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_date_consistent",
+      "return_type": "bool",
+      "arguments": "internal, date, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_date_distance",
+      "return_type": "float8",
+      "arguments": "internal, date, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_date_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_date_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_date_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_date_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_date_union",
+      "return_type": "gbtreekey8",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_date_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey8, gist_support.gbtreekey8, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_consistent",
+      "return_type": "bool",
+      "arguments": "internal, interval, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_distance",
+      "return_type": "float8",
+      "arguments": "internal, interval, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_decompress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_union",
+      "return_type": "gbtreekey32",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_intv_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey32, gist_support.gbtreekey32, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_cash_consistent",
+      "return_type": "bool",
+      "arguments": "internal, money, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_cash_distance",
+      "return_type": "float8",
+      "arguments": "internal, money, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_cash_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_cash_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_cash_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_cash_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_cash_union",
+      "return_type": "gbtreekey16",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_cash_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey16, gist_support.gbtreekey16, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad_consistent",
+      "return_type": "bool",
+      "arguments": "internal, macaddr, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad_union",
+      "return_type": "gbtreekey16",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey16, gist_support.gbtreekey16, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_text_consistent",
+      "return_type": "bool",
+      "arguments": "internal, text, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bpchar_consistent",
+      "return_type": "bool",
+      "arguments": "internal, character, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_text_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bpchar_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_text_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_text_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_text_union",
+      "return_type": "gbtreekey_var",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_text_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey_var, gist_support.gbtreekey_var, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bytea_consistent",
+      "return_type": "bool",
+      "arguments": "internal, bytea, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bytea_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bytea_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bytea_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bytea_union",
+      "return_type": "gbtreekey_var",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bytea_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey_var, gist_support.gbtreekey_var, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_numeric_consistent",
+      "return_type": "bool",
+      "arguments": "internal, numeric, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_numeric_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_numeric_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_numeric_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_numeric_union",
+      "return_type": "gbtreekey_var",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_numeric_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey_var, gist_support.gbtreekey_var, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bit_consistent",
+      "return_type": "bool",
+      "arguments": "internal, bit, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bit_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bit_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bit_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bit_union",
+      "return_type": "gbtreekey_var",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bit_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey_var, gist_support.gbtreekey_var, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_inet_consistent",
+      "return_type": "bool",
+      "arguments": "internal, inet, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_inet_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_inet_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_inet_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_inet_union",
+      "return_type": "gbtreekey16",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_inet_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey16, gist_support.gbtreekey16, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_uuid_consistent",
+      "return_type": "bool",
+      "arguments": "internal, uuid, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_uuid_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_uuid_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_uuid_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_uuid_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_uuid_union",
+      "return_type": "gbtreekey32",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_uuid_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey32, gist_support.gbtreekey32, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad8_consistent",
+      "return_type": "bool",
+      "arguments": "internal, macaddr8, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad8_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad8_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad8_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad8_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad8_union",
+      "return_type": "gbtreekey16",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_macad8_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey16, gist_support.gbtreekey16, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_enum_consistent",
+      "return_type": "bool",
+      "arguments": "internal, anyenum, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_enum_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_enum_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_enum_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_enum_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_enum_union",
+      "return_type": "gbtreekey8",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_enum_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey8, gist_support.gbtreekey8, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey2_in",
+      "return_type": "gbtreekey2",
+      "arguments": "cstring",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbtreekey2_out",
+      "return_type": "cstring",
+      "arguments": "gist_support.gbtreekey2",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bool_consistent",
+      "return_type": "bool",
+      "arguments": "internal, boolean, smallint, oid, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bool_compress",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bool_fetch",
+      "return_type": "internal",
+      "arguments": "internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bool_penalty",
+      "return_type": "internal",
+      "arguments": "internal, internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bool_picksplit",
+      "return_type": "internal",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bool_union",
+      "return_type": "gbtreekey2",
+      "arguments": "internal, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "gist_support.gbt_bool_same",
+      "return_type": "internal",
+      "arguments": "gist_support.gbtreekey2, gist_support.gbtreekey2, internal",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.hold_buffer",
+      "return_type": "interval",
+      "arguments": "p_listing listings",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.bookings_hold",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.experience_sessions_hold",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.service_slots_at",
+      "return_type": "record",
+      "arguments": "p_listing_id uuid, p_from date, p_to date, p_now timestamp with time zone",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.service_slots",
+      "return_type": "record",
+      "arguments": "p_listing_id uuid, p_from date, p_to date",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.create_service_booking",
+      "return_type": "bookings",
+      "arguments": "p_listing_id uuid, p_customer_id uuid, p_starts_at timestamp with time zone, p_customer_name text, p_customer_email text, p_customer_phone text, p_customer_notes text, p_address jsonb, p_reserved_until timestamp with time zone, p_checkout_key uuid DEFAULT NULL::uuid, p_request_hash text DEFAULT NULL::text",
       "type": "FUNCTION"
     }
   ],

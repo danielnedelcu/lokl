@@ -143,6 +143,22 @@ Each step depends on the ones before it.
    with it saved; a Saved page in the account menu, where unavailable items
    stay, marked, and a removal can be undone. Later: named collections;
    counts for providers, if ever, through an aggregate that names no one.
+3a. [ ] **Service availability and slots** (docs/design/service-availability.md,
+   approved 2026-10-14). Providers' hours and time off, slots per Service,
+   Instant or Approve, and no double booking (holds).
+   - [x] Phase 1, data (2026-10-14, migration `service_availability`):
+     schedules, holds and the exclusion constraint, `service_slots` /
+     `service_slots_at`, `create_service_booking`, the guard's new rules;
+     pgTAP `service_availability.test.sql` (clock changes included).
+   - [ ] Phase 2: the provider's Availability page and per-Service mode,
+     duration and buffer; the constraint "a Service has a mode", with every
+     test fixture that makes a Service.
+   - [ ] Phase 3: the customer's scheduling panel, both modes on the
+     website, emails, the admin view; remove the request flow
+     (`create_service_request`, `preferred_times`) and expire any request
+     still open, in one migration.
+   - [ ] Phase 4: search filters Services by availability.
+   - [ ] Later: Google Calendar sync; team members.
 3. [x] **Reviews and star ratings** (docs/design/reviews.md, built
    2026-10-04; migrations `reviews`, `review_star_counts`): one to five
    stars and words from completed bookings, 14 days to write, edit or
@@ -310,6 +326,19 @@ three are done: explicit API grants, the build secrets check, and
   changes, bringing the docs (and the migrations skill) back in line and
   checking every Mermaid diagram still renders; and checking that every
   claimed check or trigger really exists before writing that it does.
+
+- [ ] **Low priority: move `pg_trgm`, `pgcrypto` and `uuid-ossp` into locked
+  schemas** (found 2026-10-14, with `service_availability`). On Supabase an
+  extension's functions are installed by `supabase_admin` with EXECUTE for
+  PUBLIC, which our migrations (as `postgres`) can't revoke, so visitors and
+  signed-in users can call `pg_trgm`'s 31 functions, `pgcrypto`'s 36 and
+  `uuid-ossp`'s 10. They're in the `extensions` schema, which the API
+  doesn't expose, so they're reachable only from SQL a role can already
+  run, not through PostgREST. `btree_gist` already lives in a schema no API
+  role may use (`gist_support`); do the same for these. Note: `pg_trgm`
+  backs the admin search indexes (`admin_search_pages`), so recreate those
+  indexes' operator classes with the new schema and re-run
+  `node scripts/bench-admin-search.mjs` to confirm they're still used.
 
 ## Automated checks
 

@@ -2,7 +2,7 @@
 
 How booking Services and Experiences, and the money around them, work in the
 code today. Written from the code and migrations on 2026-10-04, and updated
-through 2026-10-11.
+through 2026-10-14.
 [docs/design/booking-and-checkout.md](../design/booking-and-checkout.md) is
 the original design; where the two differ, this document follows the code
 and lists the differences at the end ([Differences from the design](#12-differences-from-the-design)).
@@ -23,14 +23,15 @@ Source paths are links. Short forms used below:
 | `bookingEmails.ts` | [apps/website/server/utils/bookingEmails.ts](../../apps/website/server/utils/bookingEmails.ts) |
 | `bookingRecords.ts` | [apps/website/server/utils/bookingRecords.ts](../../apps/website/server/utils/bookingRecords.ts) |
 | policy | [packages/types/src/bookings.ts](../../packages/types/src/bookings.ts) |
-| guard | `bookings_guard` in [supabase/migrations/20261011024704_money_lost_replies.sql](../../supabase/migrations/20261011024704_money_lost_replies.sql) (its latest version; it was redefined in seven migrations) |
+| guard | `bookings_guard` in [supabase/migrations/20261015005346_service_availability.sql](../../supabase/migrations/20261015005346_service_availability.sql) (its latest version; it was redefined in eight migrations) |
+| availability | [supabase/migrations/20261015005346_service_availability.sql](../../supabase/migrations/20261015005346_service_availability.sql), designed in [docs/design/service-availability.md](../design/service-availability.md) |
 
 ## Contents
 
 1. [System overview](#1-system-overview)
 2. [Booking states](#2-booking-states)
 3. [Booking an Experience](#3-booking-an-experience)
-4. [Requesting a Service](#4-requesting-a-service)
+4. [Requesting a Service](#4-requesting-a-service), and [availability, slots and holds](#availability-slots-and-holds-database-only-so-far)
 5. [Cancellations and refunds](#5-cancellations-and-refunds)
 6. [Payouts and holds](#6-payouts-and-holds)
 7. [Admin actions](#7-admin-actions)
@@ -301,7 +302,9 @@ sequenceDiagram
 
 - Overlapping requests aren't blocked: the provider's booking page shows a
   warning when an offered time overlaps a confirmed booking
-  (`requestOverlaps` in `bookingAnswers.ts`).
+  (`requestOverlaps` in `bookingAnswers.ts`). Accepting a request made this
+  way creates no hold (below), so it isn't refused for overlapping; this
+  ends when the website moves to slots (phase 3).
 - A provider who's suspended can't answer requests
   ([providerAccess.ts](../../apps/website/server/utils/providerAccess.ts)).
 - If the hold is cancelled in Stripe's dashboard, the
@@ -319,6 +322,42 @@ sequenceDiagram
 - The customer's My bookings has the same shape: Upcoming and Past, each
   counted and paged by the database, 20 at a time
   ([customerBookingList.ts](../../apps/website/server/utils/customerBookingList.ts)).
+
+### Availability, slots and holds (database only, so far)
+
+Added 2026-10-14 (phase 1 of [service-availability.md](../design/service-availability.md)).
+The website still books Services by request (above) until phase 3; this is
+the data and functions it will use.
+
+- **Schedules** (per provider, all their listings): `provider_schedules`
+  (booking window, notice, slot interval, default buffer; defaults without a
+  row), `provider_weekly_hours` and `provider_date_hours` (wall-clock
+  intervals in the market's zone, which can't overlap on one day), and
+  `provider_time_off` (whole days). Providers read and write their own;
+  admins read all; visitors none.
+- **Modes:** `listings.booking_mode` (instant or approve; Services only, no
+  default) and `listings.buffer_minutes`. A booking made from a slot records
+  its mode in `bookings.service_mode` and has its start and end from the
+  start; the guard never lets them change.
+- **Slots:** `service_slots(listing, from, to)` (visitors, signed-in users,
+  the server) calls `service_slots_at(…, now)` (server only, so the clock
+  changes can be tested). Nothing for a Service without a mode, a duration,
+  hours, or a provider who can be paid (`provider_payout_setup = 'ready'`).
+- **Booking a slot:** `create_service_booking` (server only) refuses a time
+  that isn't a slot and an approval booking less than 4 hours ahead.
+  - **Instant:** `pending_payment` → `confirmed` when paid; never `requested`.
+  - **Approve:** `pending_payment` → `requested`; the guard caps
+    `respond_by` at 2 hours before the start.
+- **Holds** (`provider_holds`, admins read them): each slot booking and each
+  scheduled Experience session holds `[start, end + buffer)` of its
+  provider's time, as it was when made. An exclusion constraint refuses any
+  overlap across all the provider's listings ("That time was just taken.
+  Pick another." / "That time overlaps another of your bookings or
+  sessions."). Released when a booking expires, is declined or cancelled, or
+  a session is cancelled or deleted. Written only by triggers
+  (`bookings_hold`, `experience_sessions_hold`, security definer).
+- **btree_gist** (for the exclusion constraints) lives in the
+  `gist_support` schema, which no API role may use.
 
 ## 5. Cancellations and refunds
 

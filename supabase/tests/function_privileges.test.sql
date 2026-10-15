@@ -33,7 +33,7 @@ select set_eq(
        ('admin_providers_page|authenticated'), ('admin_reviews_page|authenticated'),
        -- Public pages.
        ('public_guide|anon,authenticated'), ('public_guides|anon,authenticated'), ('public_homepage_guides|anon,authenticated'),
-       ('session_spots_left|anon,authenticated'),
+       ('session_spots_left|anon,authenticated'), ('service_slots|anon,authenticated'),
        -- Signed-in features.
        ('my_saved|authenticated'), ('review_state|authenticated'), ('booking_can_be_reviewed|authenticated'),
        ('review_window_open|authenticated'), ('review_reportable|authenticated'), ('provider_is_public|authenticated'),

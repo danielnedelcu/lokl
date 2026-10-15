@@ -82,8 +82,11 @@ try {
   };
   const svc = await listing("service");
   const exp = await listing("experience");
+  // Each session 2 hours after the last: one provider's sessions can't
+  // overlap (service_availability), and these are an hour long.
+  let sessions = 0;
   const session = async (startsInHours: number) =>
-    (await must(db.from("experience_sessions").insert({ listing_id: exp, starts_at: new Date(Date.now() + startsInHours * 3600_000).toISOString(), capacity: 6 }).select("id").single())).id as string;
+    (await must(db.from("experience_sessions").insert({ listing_id: exp, starts_at: new Date(Date.now() + (startsInHours + 2 * sessions++) * 3600_000).toISOString(), capacity: 6 }).select("id").single())).id as string;
   // A Service request with the card held, as checkout leaves it.
   const request = async (inDays = 3) => {
     const t = new Date(Math.ceil((Date.now() + inDays * day) / 900_000) * 900_000).toISOString();

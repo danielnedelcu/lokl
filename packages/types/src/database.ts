@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   private: {
     Tables: {
@@ -427,6 +427,7 @@ export type Database = {
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
+          service_mode: string | null
           session_id: string | null
           starts_at: string | null
           status: string
@@ -464,6 +465,7 @@ export type Database = {
           refunded_cents?: number
           reserved_until?: string | null
           respond_by?: string | null
+          service_mode?: string | null
           session_id?: string | null
           starts_at?: string | null
           status?: string
@@ -501,6 +503,7 @@ export type Database = {
           refunded_cents?: number
           reserved_until?: string | null
           respond_by?: string | null
+          service_mode?: string | null
           session_id?: string | null
           starts_at?: string | null
           status?: string
@@ -1270,6 +1273,8 @@ export type Database = {
       listings: {
         Row: {
           area_id: string | null
+          booking_mode: string | null
+          buffer_minutes: number | null
           category_id: string
           city_id: string
           created_at: string
@@ -1293,6 +1298,8 @@ export type Database = {
         }
         Insert: {
           area_id?: string | null
+          booking_mode?: string | null
+          buffer_minutes?: number | null
           category_id: string
           city_id: string
           created_at?: string
@@ -1316,6 +1323,8 @@ export type Database = {
         }
         Update: {
           area_id?: string | null
+          booking_mode?: string | null
+          buffer_minutes?: number | null
           category_id?: string
           city_id?: string
           created_at?: string
@@ -1420,6 +1429,41 @@ export type Database = {
           },
         ]
       }
+      provider_date_hours: {
+        Row: {
+          created_at: string
+          ends: string
+          id: string
+          on_date: string
+          provider_id: string
+          starts: string
+        }
+        Insert: {
+          created_at?: string
+          ends: string
+          id?: string
+          on_date: string
+          provider_id: string
+          starts: string
+        }
+        Update: {
+          created_at?: string
+          ends?: string
+          id?: string
+          on_date?: string
+          provider_id?: string
+          starts?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_date_hours_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_emails: {
         Row: {
           admin_action_id: string
@@ -1495,6 +1539,55 @@ export type Database = {
           },
         ]
       }
+      provider_holds: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          during: unknown
+          id: string
+          provider_id: string
+          session_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          during: unknown
+          id?: string
+          provider_id: string
+          session_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          during?: unknown
+          id?: string
+          provider_id?: string
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_holds_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_holds_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_holds_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "experience_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_ratings: {
         Row: {
           provider_id: string
@@ -1537,6 +1630,114 @@ export type Database = {
             foreignKeyName: "provider_ratings_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: true
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_schedules: {
+        Row: {
+          booking_window_days: number
+          created_at: string
+          default_buffer_minutes: number
+          min_notice_minutes: number
+          provider_id: string
+          slot_interval_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          booking_window_days?: number
+          created_at?: string
+          default_buffer_minutes?: number
+          min_notice_minutes?: number
+          provider_id: string
+          slot_interval_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          booking_window_days?: number
+          created_at?: string
+          default_buffer_minutes?: number
+          min_notice_minutes?: number
+          provider_id?: string
+          slot_interval_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_schedules_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: true
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_time_off: {
+        Row: {
+          created_at: string
+          ends_on: string
+          id: string
+          note: string | null
+          provider_id: string
+          starts_on: string
+        }
+        Insert: {
+          created_at?: string
+          ends_on: string
+          id?: string
+          note?: string | null
+          provider_id: string
+          starts_on: string
+        }
+        Update: {
+          created_at?: string
+          ends_on?: string
+          id?: string
+          note?: string | null
+          provider_id?: string
+          starts_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_time_off_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_weekly_hours: {
+        Row: {
+          created_at: string
+          ends: string
+          id: string
+          provider_id: string
+          starts: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          ends: string
+          id?: string
+          provider_id: string
+          starts: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          ends?: string
+          id?: string
+          provider_id?: string
+          starts?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_weekly_hours_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
             referencedRelation: "providers"
             referencedColumns: ["id"]
           },
@@ -2028,6 +2229,65 @@ export type Database = {
         Args: { p_kind: string; p_party: number; p_unit_price: number }
         Returns: Record<string, unknown>
       }
+      create_service_booking: {
+        Args: {
+          p_address: Json
+          p_checkout_key?: string
+          p_customer_email: string
+          p_customer_id: string
+          p_customer_name: string
+          p_customer_notes: string
+          p_customer_phone: string
+          p_listing_id: string
+          p_request_hash?: string
+          p_reserved_until: string
+          p_starts_at: string
+        }
+        Returns: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          checkout_key: string | null
+          checkout_request_hash: string | null
+          confirmed_at: string | null
+          created_at: string
+          currency: string
+          customer_city: string | null
+          customer_id: string
+          customer_name: string
+          customer_notes: string | null
+          customer_postal_code: string | null
+          ends_at: string | null
+          id: string
+          kind: string
+          listing_id: string
+          party_size: number
+          payout_due_at: string | null
+          preferred_times: string[] | null
+          problem_reported_at: string | null
+          problem_resolution: string | null
+          problem_resolved_at: string | null
+          provider_id: string
+          refunded_at: string | null
+          refunded_cents: number
+          reserved_until: string | null
+          respond_by: string | null
+          service_mode: string | null
+          session_id: string | null
+          starts_at: string | null
+          status: string
+          status_changed_by: string
+          total_cents: number
+          unit_price_cents: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_service_request: {
         Args: {
           p_address: Json
@@ -2071,6 +2331,7 @@ export type Database = {
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
+          service_mode: string | null
           session_id: string | null
           starts_at: string | null
           status: string
@@ -2089,6 +2350,10 @@ export type Database = {
       current_active_provider_id: { Args: never; Returns: string }
       current_provider_id: { Args: never; Returns: string }
       has_contact_details: { Args: { p_text: string }; Returns: boolean }
+      hold_buffer: {
+        Args: { p_listing: Database["public"]["Tables"]["listings"]["Row"] }
+        Returns: string
+      }
       is_admin: { Args: never; Returns: boolean }
       is_time_zone: { Args: { p_name: string }; Returns: boolean }
       listing_parents_active: {
@@ -2195,6 +2460,7 @@ export type Database = {
           refunded_cents: number
           reserved_until: string | null
           respond_by: string | null
+          service_mode: string | null
           session_id: string | null
           starts_at: string | null
           status: string
@@ -2217,6 +2483,25 @@ export type Database = {
       }
       review_state: { Args: { p_booking_id: string }; Returns: Json }
       review_window_open: { Args: { p_booking_id: string }; Returns: boolean }
+      service_slots: {
+        Args: { p_from: string; p_listing_id: string; p_to: string }
+        Returns: {
+          ends_at: string
+          starts_at: string
+        }[]
+      }
+      service_slots_at: {
+        Args: {
+          p_from: string
+          p_listing_id: string
+          p_now: string
+          p_to: string
+        }
+        Returns: {
+          ends_at: string
+          starts_at: string
+        }[]
+      }
       session_spots_left: { Args: { p_session_id: string }; Returns: number }
       session_spots_taken: { Args: { p_session_id: string }; Returns: number }
       unpublish_guide: {

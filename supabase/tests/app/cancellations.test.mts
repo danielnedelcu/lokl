@@ -81,8 +81,11 @@ try {
   };
   const svc = await listing("service");
   const exp = await listing("experience");
+  // Each session an hour after the last (they're an hour long): one
+  // provider's sessions can't overlap (service_availability).
+  let sessions = 0;
   const session = async (startsInHours: number, capacity = 6) =>
-    (await must(db.from("experience_sessions").insert({ listing_id: exp, starts_at: new Date(Date.now() + startsInHours * 3600_000).toISOString(), capacity }).select("id").single())).id as string;
+    (await must(db.from("experience_sessions").insert({ listing_id: exp, starts_at: new Date(Date.now() + (startsInHours + sessions++) * 3600_000).toISOString(), capacity }).select("id").single())).id as string;
   // A paid Experience booking, as checkout leaves it.
   const paid = async (sessionId: string) => {
     const b = await must(db.rpc("reserve_experience_booking", {

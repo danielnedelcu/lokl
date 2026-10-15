@@ -33,6 +33,8 @@ const GROWS = new Set([
   "guide_versions", "guides", "job_runs", "listing_addresses", "listing_photos", "listing_ratings",
   "listing_service_areas", "listings", "notifications", "provider_emails", "provider_ratings", "providers",
   "review_replies", "review_reports", "reviews", "saved_listings", "saved_providers",
+  // Service availability (2026-10-14): per provider, and holds per booking or session.
+  "provider_date_hours", "provider_holds", "provider_schedules", "provider_time_off", "provider_weekly_hours",
   // private.booking_records (bookingRecords(db)) is checked as bookings.
 ]);
 

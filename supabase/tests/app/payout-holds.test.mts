@@ -89,8 +89,11 @@ try {
     return id;
   };
   // A paid, confirmed booking (as Checkout leaves it), charged with `card`.
+  // Each session an hour after the last (they're an hour long): one
+  // provider's sessions can't overlap (service_availability).
+  let sessions = 0;
   const paidBooking = async (listingId: string, card: string) => {
-    const session = (await must(db.from("experience_sessions").insert({ listing_id: listingId, starts_at: new Date(Date.now() + 2 * day).toISOString(), capacity: 4 }).select("id").single())).id;
+    const session = (await must(db.from("experience_sessions").insert({ listing_id: listingId, starts_at: new Date(Date.now() + 2 * day + sessions++ * 3600_000).toISOString(), capacity: 4 }).select("id").single())).id;
     const b = await must(db.rpc("reserve_experience_booking", {
       p_session_id: session, p_customer_id: customer.id, p_party_size: 1, p_customer_name: "Sam Customer",
       p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null,
