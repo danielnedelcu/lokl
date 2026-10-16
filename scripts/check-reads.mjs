@@ -35,6 +35,8 @@ const GROWS = new Set([
   "review_replies", "review_reports", "reviews", "saved_listings", "saved_providers",
   // Service availability (2026-10-14): per provider, and holds per booking or session.
   "provider_date_hours", "provider_holds", "provider_schedules", "provider_time_off", "provider_weekly_hours",
+  // Search by availability (2026-10-15): open days per Service.
+  "service_open_days", "service_open_days_pending", "service_open_days_refreshed",
   // private.booking_records (bookingRecords(db)) is checked as bookings.
 ]);
 

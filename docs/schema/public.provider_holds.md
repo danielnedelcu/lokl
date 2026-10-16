@@ -39,6 +39,14 @@ The provider's time each Service booking (from a slot) and each scheduled Experi
 | provider_holds_no_overlap     | CREATE INDEX provider_holds_no_overlap ON public.provider_holds USING gist (provider_id, during)    |
 | provider_holds_provider_idx   | CREATE INDEX provider_holds_provider_idx ON public.provider_holds USING gist (provider_id, during)  |
 
+## Triggers
+
+| Name                            | Definition                                                                                                                                                                                         |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| provider_holds_open_days_delete | CREATE TRIGGER provider_holds_open_days_delete AFTER DELETE ON public.provider_holds REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_holds_open_days_insert | CREATE TRIGGER provider_holds_open_days_insert AFTER INSERT ON public.provider_holds REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_holds_open_days_update | CREATE TRIGGER provider_holds_open_days_update AFTER UPDATE ON public.provider_holds REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+
 ## Relations
 
 ![er](public.provider_holds.svg)

@@ -345,6 +345,10 @@
           "def": "CREATE TRIGGER providers_city_active BEFORE INSERT OR UPDATE OF city_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_check_city_active()"
         },
         {
+          "name": "providers_open_days_update",
+          "def": "CREATE TRIGGER providers_open_days_update AFTER UPDATE ON public.providers REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('id')"
+        },
+        {
           "name": "providers_owner_not_admin",
           "def": "CREATE TRIGGER providers_owner_not_admin BEFORE INSERT OR UPDATE OF owner_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_owner_not_admin()"
         },
@@ -1346,6 +1350,10 @@
         {
           "name": "listings_notify_status_change",
           "def": "CREATE TRIGGER listings_notify_status_change AFTER UPDATE OF status ON public.listings FOR EACH ROW WHEN ((old.status IS DISTINCT FROM new.status)) EXECUTE FUNCTION listings_notify_status_change()"
+        },
+        {
+          "name": "listings_open_days_update",
+          "def": "CREATE TRIGGER listings_open_days_update AFTER UPDATE ON public.listings REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
         },
         {
           "name": "listings_require_photo",
@@ -7169,6 +7177,18 @@
       ],
       "triggers": [
         {
+          "name": "provider_schedules_open_days_delete",
+          "def": "CREATE TRIGGER provider_schedules_open_days_delete AFTER DELETE ON public.provider_schedules REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_schedules_open_days_insert",
+          "def": "CREATE TRIGGER provider_schedules_open_days_insert AFTER INSERT ON public.provider_schedules REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_schedules_open_days_update",
+          "def": "CREATE TRIGGER provider_schedules_open_days_update AFTER UPDATE ON public.provider_schedules REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
           "name": "provider_schedules_set_updated_at",
           "def": "CREATE TRIGGER provider_schedules_set_updated_at BEFORE UPDATE ON public.provider_schedules FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
@@ -7299,6 +7319,20 @@
             "weekday"
           ]
         }
+      ],
+      "triggers": [
+        {
+          "name": "provider_weekly_hours_open_days_delete",
+          "def": "CREATE TRIGGER provider_weekly_hours_open_days_delete AFTER DELETE ON public.provider_weekly_hours REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_weekly_hours_open_days_insert",
+          "def": "CREATE TRIGGER provider_weekly_hours_open_days_insert AFTER INSERT ON public.provider_weekly_hours REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_weekly_hours_open_days_update",
+          "def": "CREATE TRIGGER provider_weekly_hours_open_days_update AFTER UPDATE ON public.provider_weekly_hours REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        }
       ]
     },
     {
@@ -7412,6 +7446,20 @@
             "provider_id"
           ]
         }
+      ],
+      "triggers": [
+        {
+          "name": "provider_date_hours_open_days_delete",
+          "def": "CREATE TRIGGER provider_date_hours_open_days_delete AFTER DELETE ON public.provider_date_hours REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_date_hours_open_days_insert",
+          "def": "CREATE TRIGGER provider_date_hours_open_days_insert AFTER INSERT ON public.provider_date_hours REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_date_hours_open_days_update",
+          "def": "CREATE TRIGGER provider_date_hours_open_days_update AFTER UPDATE ON public.provider_date_hours REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        }
       ]
     },
     {
@@ -7516,6 +7564,20 @@
           "columns": [
             "id"
           ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "provider_time_off_open_days_delete",
+          "def": "CREATE TRIGGER provider_time_off_open_days_delete AFTER DELETE ON public.provider_time_off REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_time_off_open_days_insert",
+          "def": "CREATE TRIGGER provider_time_off_open_days_insert AFTER INSERT ON public.provider_time_off REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_time_off_open_days_update",
+          "def": "CREATE TRIGGER provider_time_off_open_days_update AFTER UPDATE ON public.provider_time_off REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
         }
       ]
     },
@@ -7703,6 +7765,20 @@
             "provider_id",
             "during"
           ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "provider_holds_open_days_delete",
+          "def": "CREATE TRIGGER provider_holds_open_days_delete AFTER DELETE ON public.provider_holds REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_holds_open_days_insert",
+          "def": "CREATE TRIGGER provider_holds_open_days_insert AFTER INSERT ON public.provider_holds REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
+        },
+        {
+          "name": "provider_holds_open_days_update",
+          "def": "CREATE TRIGGER provider_holds_open_days_update AFTER UPDATE ON public.provider_holds REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
         }
       ]
     },
@@ -8013,6 +8089,226 @@
         "public.bookings",
         "public.booking_finances",
         "public.booking_reports"
+      ]
+    },
+    {
+      "name": "public.service_open_days",
+      "type": "BASE TABLE",
+      "comment": "Each market day a Service has a bookable time, with the first and last of them, as of its last refresh (service_open_days_refreshed). Worked out by the slot core; only refresh_service_open_days writes it. Search reads it through service_open_matches. Derived data: rewritten freely, and deleted with its listing.",
+      "columns": [
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "on_date",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "name": "first_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "last_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "comment": "The day's last bookable time when refreshed. Search checks it against now plus the notice, so a day whose times have all come within the notice no longer matches."
+        }
+      ],
+      "indexes": [
+        {
+          "name": "service_open_days_pkey",
+          "def": "CREATE UNIQUE INDEX service_open_days_pkey ON public.service_open_days USING btree (listing_id, on_date)",
+          "table": "public.service_open_days",
+          "columns": [
+            "listing_id",
+            "on_date"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "service_open_days_check",
+          "type": "CHECK",
+          "def": "CHECK ((last_at \u003e= first_at))",
+          "table": "public.service_open_days",
+          "referenced_table": "",
+          "columns": [
+            "last_at",
+            "first_at"
+          ]
+        },
+        {
+          "name": "service_open_days_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.service_open_days",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "service_open_days_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (listing_id, on_date)",
+          "table": "public.service_open_days",
+          "referenced_table": "",
+          "columns": [
+            "listing_id",
+            "on_date"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.service_open_days_refreshed",
+      "type": "BASE TABLE",
+      "comment": "When each Service's open days were last worked out, how far ahead they cover, and its notice then (search checks times against now plus it). Derived data: rewritten freely, and deleted with its listing.",
+      "columns": [
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "refreshed_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "covered_through",
+          "type": "date",
+          "nullable": false
+        },
+        {
+          "name": "notice",
+          "type": "interval",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "service_open_days_refreshed_pkey",
+          "def": "CREATE UNIQUE INDEX service_open_days_refreshed_pkey ON public.service_open_days_refreshed USING btree (listing_id)",
+          "table": "public.service_open_days_refreshed",
+          "columns": [
+            "listing_id"
+          ]
+        },
+        {
+          "name": "service_open_days_refreshed_provider",
+          "def": "CREATE INDEX service_open_days_refreshed_provider ON public.service_open_days_refreshed USING btree (provider_id)",
+          "table": "public.service_open_days_refreshed",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "service_open_days_refreshed_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE",
+          "table": "public.service_open_days_refreshed",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "service_open_days_refreshed_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.service_open_days_refreshed",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "service_open_days_refreshed_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (listing_id)",
+          "table": "public.service_open_days_refreshed",
+          "referenced_table": "",
+          "columns": [
+            "listing_id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.service_open_days_pending",
+      "type": "BASE TABLE",
+      "comment": "Providers whose open days a transaction changed, refreshed (and the rows deleted) when it commits. Empty between transactions; derived data.",
+      "columns": [
+        {
+          "name": "txid",
+          "type": "xid8",
+          "nullable": false,
+          "default": "pg_current_xact_id()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false,
+          "comment": "The provider to refresh at commit. No foreign key: a provider deleted in the same transaction (its holds and hours going with it) is noted too, and simply has nothing to refresh."
+        }
+      ],
+      "indexes": [
+        {
+          "name": "service_open_days_pending_pkey",
+          "def": "CREATE UNIQUE INDEX service_open_days_pending_pkey ON public.service_open_days_pending USING btree (txid, provider_id)",
+          "table": "public.service_open_days_pending",
+          "columns": [
+            "txid",
+            "provider_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "service_open_days_pending_refresh",
+          "type": "TRIGGER",
+          "def": "CREATE CONSTRAINT TRIGGER service_open_days_pending_refresh AFTER INSERT ON public.service_open_days_pending DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION service_open_days_flush()",
+          "table": "public.service_open_days_pending",
+          "referenced_table": ""
+        },
+        {
+          "name": "service_open_days_pending_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (txid, provider_id)",
+          "table": "public.service_open_days_pending",
+          "referenced_table": "",
+          "columns": [
+            "txid",
+            "provider_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "service_open_days_pending_refresh",
+          "def": "CREATE CONSTRAINT TRIGGER service_open_days_pending_refresh AFTER INSERT ON public.service_open_days_pending DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION service_open_days_flush()"
+        }
       ]
     }
   ],
@@ -8772,6 +9068,45 @@
       ],
       "parent_cardinality": "zero_or_one",
       "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.service_open_days",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.service_open_days_refreshed",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.service_open_days_refreshed",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
     }
   ],
   "functions": [
@@ -10549,6 +10884,42 @@
       "name": "public.service_next_slot",
       "return_type": "timestamptz",
       "arguments": "p_listing_id uuid, p_from date DEFAULT NULL::date",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.service_slots_many",
+      "return_type": "record",
+      "arguments": "p_ids uuid[], p_from date, p_to date, p_now timestamp with time zone, p_require_bookable boolean",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.refresh_service_open_days",
+      "return_type": "void",
+      "arguments": "p_provider_ids uuid[]",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.refresh_stale_service_open_days",
+      "return_type": "jsonb",
+      "arguments": "p_limit integer DEFAULT 50",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.service_open_days_changed",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.service_open_days_flush",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.service_open_matches",
+      "return_type": "record",
+      "arguments": "p_ids uuid[], p_from date, p_to date",
       "type": "FUNCTION"
     }
   ],

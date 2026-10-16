@@ -31,6 +31,14 @@ Whole days a provider isn't available, from starts_on to ends_on (inclusive), wh
 | provider_time_off_pkey         | CREATE UNIQUE INDEX provider_time_off_pkey ON public.provider_time_off USING btree (id)                      |
 | provider_time_off_provider_idx | CREATE INDEX provider_time_off_provider_idx ON public.provider_time_off USING btree (provider_id, starts_on) |
 
+## Triggers
+
+| Name                               | Definition                                                                                                                                                                                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| provider_time_off_open_days_delete | CREATE TRIGGER provider_time_off_open_days_delete AFTER DELETE ON public.provider_time_off REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_time_off_open_days_insert | CREATE TRIGGER provider_time_off_open_days_insert AFTER INSERT ON public.provider_time_off REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_time_off_open_days_update | CREATE TRIGGER provider_time_off_open_days_update AFTER UPDATE ON public.provider_time_off REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+
 ## Relations
 
 ![er](public.provider_time_off.svg)

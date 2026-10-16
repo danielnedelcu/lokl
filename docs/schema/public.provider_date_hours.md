@@ -32,6 +32,14 @@ Hours for one date, replacing that weekday's weekly hours: one row per interval.
 | provider_date_hours_provider_id_tsrange_excl | CREATE INDEX provider_date_hours_provider_id_tsrange_excl ON public.provider_date_hours USING gist (provider_id, tsrange((on_date + starts), (on_date + ends))) |
 | provider_date_hours_provider_idx             | CREATE INDEX provider_date_hours_provider_idx ON public.provider_date_hours USING btree (provider_id, on_date)                                                  |
 
+## Triggers
+
+| Name                                 | Definition                                                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| provider_date_hours_open_days_delete | CREATE TRIGGER provider_date_hours_open_days_delete AFTER DELETE ON public.provider_date_hours REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_date_hours_open_days_insert | CREATE TRIGGER provider_date_hours_open_days_insert AFTER INSERT ON public.provider_date_hours REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_date_hours_open_days_update | CREATE TRIGGER provider_date_hours_open_days_update AFTER UPDATE ON public.provider_date_hours REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+
 ## Relations
 
 ![er](public.provider_date_hours.svg)

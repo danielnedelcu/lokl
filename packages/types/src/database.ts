@@ -2083,6 +2083,89 @@ export type Database = {
           },
         ]
       }
+      service_open_days: {
+        Row: {
+          first_at: string
+          last_at: string
+          listing_id: string
+          on_date: string
+        }
+        Insert: {
+          first_at: string
+          last_at: string
+          listing_id: string
+          on_date: string
+        }
+        Update: {
+          first_at?: string
+          last_at?: string
+          listing_id?: string
+          on_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_open_days_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_open_days_pending: {
+        Row: {
+          provider_id: string
+          txid: unknown
+        }
+        Insert: {
+          provider_id: string
+          txid?: unknown
+        }
+        Update: {
+          provider_id?: string
+          txid?: unknown
+        }
+        Relationships: []
+      }
+      service_open_days_refreshed: {
+        Row: {
+          covered_through: string
+          listing_id: string
+          notice: string
+          provider_id: string
+          refreshed_at: string
+        }
+        Insert: {
+          covered_through: string
+          listing_id: string
+          notice: string
+          provider_id: string
+          refreshed_at: string
+        }
+        Update: {
+          covered_through?: string
+          listing_id?: string
+          notice?: string
+          provider_id?: string
+          refreshed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_open_days_refreshed_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_open_days_refreshed_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2360,6 +2443,14 @@ export type Database = {
         Args: { p_listing_id: string; p_provider_id: string }
         Returns: undefined
       }
+      refresh_service_open_days: {
+        Args: { p_provider_ids: string[] }
+        Returns: undefined
+      }
+      refresh_stale_service_open_days: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       reorder_listing_photos: {
         Args: { p_listing_id: string; p_photo_ids: string[] }
         Returns: undefined
@@ -2437,6 +2528,14 @@ export type Database = {
         Args: { p_from?: string; p_listing_id: string }
         Returns: string
       }
+      service_open_matches: {
+        Args: { p_from: string; p_ids: string[]; p_to: string }
+        Returns: {
+          first_at: string
+          first_day: string
+          listing_id: string
+        }[]
+      }
       service_slots: {
         Args: { p_from: string; p_listing_id: string; p_to: string }
         Returns: {
@@ -2466,6 +2565,20 @@ export type Database = {
         }
         Returns: {
           ends_at: string
+          starts_at: string
+        }[]
+      }
+      service_slots_many: {
+        Args: {
+          p_from: string
+          p_ids: string[]
+          p_now: string
+          p_require_bookable: boolean
+          p_to: string
+        }
+        Returns: {
+          ends_at: string
+          listing_id: string
           starts_at: string
         }[]
       }

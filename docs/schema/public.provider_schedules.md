@@ -35,9 +35,12 @@ A provider's booking settings, one row per provider (defaults apply without one)
 
 ## Triggers
 
-| Name                              | Definition                                                                                                                                 |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| provider_schedules_set_updated_at | CREATE TRIGGER provider_schedules_set_updated_at BEFORE UPDATE ON public.provider_schedules FOR EACH ROW EXECUTE FUNCTION set_updated_at() |
+| Name                                | Definition                                                                                                                                                                                                 |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| provider_schedules_open_days_delete | CREATE TRIGGER provider_schedules_open_days_delete AFTER DELETE ON public.provider_schedules REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_schedules_open_days_insert | CREATE TRIGGER provider_schedules_open_days_insert AFTER INSERT ON public.provider_schedules REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_schedules_open_days_update | CREATE TRIGGER provider_schedules_open_days_update AFTER UPDATE ON public.provider_schedules REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_schedules_set_updated_at   | CREATE TRIGGER provider_schedules_set_updated_at BEFORE UPDATE ON public.provider_schedules FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                                                 |
 
 ## Relations
 

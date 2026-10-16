@@ -65,8 +65,8 @@ select is(pg_temp.ids(public_browse('atlanta', 'service')),
   array['00000000-0000-4000-8000-0000000000a2', '00000000-0000-4000-8000-0000000000a1'], '2a. Services newest first');
 select is(pg_temp.ids(public_browse('atlanta', 'service', null, :'midtown')),
   array['00000000-0000-4000-8000-0000000000a2'], '2b. a Service travelling to the area');
-select is((public_browse('atlanta', 'service', null, null, now() + interval '50 days', now() + interval '51 days') ->> 'total')::int, 2,
-  '2c. dates don''t filter Services');
+select is((public_browse('atlanta', 'service', null, null, now() + interval '3 days', now() + interval '4 days') ->> 'total')::int, 0,
+  '2c. dates filter Services too: with no hours, they never match (service_open_days.test.sql has the rest)');
 
 -- 3. Paging.
 select is(pg_temp.ids(public_browse('atlanta', 'experience', null, null, null, null, 2, 2)),

@@ -33,6 +33,14 @@ A provider's repeating weekly hours: one row per interval (a day can have severa
 | provider_weekly_hours_provider_id_weekday_tsrange_excl | CREATE INDEX provider_weekly_hours_provider_id_weekday_tsrange_excl ON public.provider_weekly_hours USING gist (provider_id, weekday, tsrange(('2000-01-02'::date + starts), ('2000-01-02'::date + ends))) |
 | provider_weekly_hours_provider_idx                     | CREATE INDEX provider_weekly_hours_provider_idx ON public.provider_weekly_hours USING btree (provider_id, weekday)                                                                                         |
 
+## Triggers
+
+| Name                                   | Definition                                                                                                                                                                                                       |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| provider_weekly_hours_open_days_delete | CREATE TRIGGER provider_weekly_hours_open_days_delete AFTER DELETE ON public.provider_weekly_hours REFERENCING OLD TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_weekly_hours_open_days_insert | CREATE TRIGGER provider_weekly_hours_open_days_insert AFTER INSERT ON public.provider_weekly_hours REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+| provider_weekly_hours_open_days_update | CREATE TRIGGER provider_weekly_hours_open_days_update AFTER UPDATE ON public.provider_weekly_hours REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id') |
+
 ## Relations
 
 ![er](public.provider_weekly_hours.svg)
