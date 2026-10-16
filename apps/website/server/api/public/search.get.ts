@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { MAX_SEARCH_DAYS, SEARCH_RANGE_TOO_LONG, searchDays, type ListingKind, type PublicSearchResult } from "@repo/types";
+import { MAX_SEARCH_DAYS, SEARCH_RANGE_TOO_LONG, SEARCH_SECTION_SIZE, searchDays, type ListingKind, type PublicSearchResult } from "@repo/types";
 
 // GET /api/public/search?market=atlanta[&area=][&from=&to=][&kind=][&category=][&page=]
-// The header search's results (docs/design/search.md): one page of the shown
-// kind, through the same filtering, paging and visibility rules as browse,
-// and both kinds' counts. A category fixes the kind; with none, Experiences
-// are shown first. Dates filter both kinds (a session, or a free time),
+// The header search's results (docs/design/search.md), through browse's own
+// filtering, order and visibility rules, with both kinds' counts. No kind is
+// the All view: each kind's first SEARCH_SECTION_SIZE results. A kind (or a
+// category, which fixes it) is one page of that kind. Dates filter both kinds (a session, or a free time),
 // over at most 31 days.
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const query = z.object({
@@ -27,15 +27,34 @@ export default defineEventHandler(async (event): Promise<PublicSearchResult> => 
     throw createError({ statusCode: 400, statusMessage: tooLong ? SEARCH_RANGE_TOO_LONG : "Those filters aren't valid." });
   }
   const q = parsed.data;
-  const kind: ListingKind = q.kind ?? "experience";
-  const other: ListingKind = kind === "experience" ? "service" : "experience";
   const db = usePublicDb(event);
+  const filters = { market: q.market, area: q.area, from: q.from, to: q.to };
+  if (!q.kind) {
+    let experience, service;
+    try {
+      [experience, service] = await Promise.all([
+        browsePublicListings(db, { ...filters, kind: "experience", pageSize: SEARCH_SECTION_SIZE }),
+        browsePublicListings(db, { ...filters, kind: "service", pageSize: SEARCH_SECTION_SIZE }),
+      ]);
+    } catch (e) {
+      throw publicFailure(e);
+    }
+    if (!experience || !service) throw createError({ statusCode: 404, statusMessage: "We couldn't find that page." });
+    return {
+      view: "all",
+      market: experience.market,
+      sections: { experience: { items: experience.items, total: experience.total }, service: { items: service.items, total: service.total } },
+      counts: { experience: experience.total, service: service.total },
+    };
+  }
+  const kind: ListingKind = q.kind;
+  const other: ListingKind = kind === "experience" ? "service" : "experience";
   let shown, otherCount;
   try {
     [shown, otherCount] = await Promise.all([
-      browsePublicListings(db, { market: q.market, kind, category: q.category, area: q.area, from: q.from, to: q.to, page: q.page }),
+      browsePublicListings(db, { ...filters, kind, category: q.category, page: q.page }),
       // The other kind's count, for the switch; not needed when a category fixes the kind.
-      q.category ? null : browsePublicListings(db, { market: q.market, kind: other, area: q.area, from: q.from, to: q.to, pageSize: 1 }),
+      q.category ? null : browsePublicListings(db, { ...filters, kind: other, pageSize: 1 }),
     ]);
   } catch (e) {
     throw publicFailure(e);
@@ -43,6 +62,7 @@ export default defineEventHandler(async (event): Promise<PublicSearchResult> => 
   if (!shown) throw createError({ statusCode: 404, statusMessage: "We couldn't find that page." });
   return {
     ...shown,
+    view: kind,
     counts: { [kind]: shown.total, [other]: otherCount?.total ?? 0 } as Record<ListingKind, number>,
   };
 });

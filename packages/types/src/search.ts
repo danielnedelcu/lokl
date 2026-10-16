@@ -1,9 +1,10 @@
 import type { ListingKind } from "./listings";
-import type { PublicBrowseResult } from "./public";
+import type { PublicBrowseResult, PublicListingCard, PublicMarket } from "./public";
 
 // The search results address (docs/design/search.md):
 // /<market>/search?area=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD&kind=<kind>&category=<slug>&page=N
-// Every part is optional. A category's slug is unique only within its kind,
+// Every part is optional. No kind is the All view: both kinds, a section
+// each (2026-10-16). A category's slug is unique only within its kind,
 // so `category` counts only with `kind`. Dates filter both kinds: an
 // Experience with a session on one of the days, a Service with a free time
 // (docs/design/service-availability.md, "Search"), at most 31 days.
@@ -53,8 +54,9 @@ export function readSearch(query: Record<string, unknown>): SearchFilters {
   if (kind === "experience" || kind === "service") out.kind = kind;
   const category = one(query.category);
   if (out.kind && category && SLUG.test(category)) out.category = category;
+  // Pages are a single kind's; the All view has none.
   const page = Number(one(query.page));
-  if (Number.isInteger(page) && page > 1 && page <= 1000) out.page = page;
+  if (out.kind && Number.isInteger(page) && page > 1 && page <= 1000) out.page = page;
   return out;
 }
 
@@ -74,7 +76,19 @@ export function searchPath(market: string, f: SearchFilters): string {
   return `/${market}/search${s ? `?${s}` : ""}`;
 }
 
-/** The results page's data: one page of the shown kind, and both kinds' counts. */
-export interface PublicSearchResult extends PublicBrowseResult {
-  counts: Record<ListingKind, number>;
+/** How many of each kind the All view shows before "See all". */
+export const SEARCH_SECTION_SIZE = 6;
+
+/** One kind's first results in the All view, and how many there are. */
+export interface SearchSection {
+  items: PublicListingCard[];
+  total: number;
 }
+
+/**
+ * The results page's data, with both kinds' counts: the All view (no kind)
+ * has each kind's first results; a kind's view has one page of it.
+ */
+export type PublicSearchResult =
+  | ({ view: "all"; market: PublicMarket; sections: Record<ListingKind, SearchSection> } & { counts: Record<ListingKind, number> })
+  | (PublicBrowseResult & { view: ListingKind; counts: Record<ListingKind, number> });

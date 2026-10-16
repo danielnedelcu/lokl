@@ -131,18 +131,27 @@ Service with a free time on one of them, by the panel's own rules.
 **Data:** `/api/public/search` calls browse's own `browsePublicListings`,
 so the filtering, paging, counts and visibility rules are browse's.
 
-- It returns one page of the shown kind, plus the other kind's count for
-  the switch.
-- A category fixes the kind. Otherwise Experiences show first.
+- **No kind is the All view** (2026-10-16): each kind's first 6
+  (`SEARCH_SECTION_SIZE`), in its own view's order, with both totals.
+- **A kind** (or a category, which fixes it): one page of that kind, plus
+  the other kind's count for the switch.
+- Until 2026-10-16 no kind meant Experiences, so a search with only
+  Services looked empty.
 - It's cached for a minute, like browse.
 
 **Page:**
 - The heading, then each filter in use as a chip that removes just it.
-- The kind switch, "Experiences (n)" and "Services (n)", made of links.
-- The dates note when Services are shown with dates.
-- Cards and pages, as on browse.
+- The view switch, "All (n)", "Experiences (n)" and "Services (n)", made of
+  links, the current one `aria-current`; hidden when a category has chosen
+  the kind.
+- **All:** "Experiences and Services in Atlanta", then a section per kind
+  (Experiences first), each with its heading and count, up to 6 cards and
+  "See all N Experiences/Services" (that kind's view, the same filters). A
+  section with none says so in a line ("No Services on these dates.").
+- **A kind:** its cards and pages, as on browse.
 
-**Empty state:** "No Experiences match this search", with Where, When and
+**Empty state** (nothing in either kind, or none in the kind shown):
+"Nothing matches this search" (or "No Experiences match this search"), with Where, When and
 What as buttons that open that segment in the bar (or the phone panel),
 plus "Clear all filters".
 

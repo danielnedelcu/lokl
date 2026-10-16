@@ -137,6 +137,8 @@ header, sharing `useSearch()` and the panels `SearchWhere`, `SearchWhen` and
 - **Choices are `search-pill` buttons** with `aria-pressed` and a check
   icon, not radios, so the panel's arrow keys aren't fought.
 - **Dates are the market's**, via `quickDates()`, never the device's.
+- **Results open on All** when no kind is chosen: a section per kind, the
+  first 6 (`SEARCH_SECTION_SIZE`) and "See all"; a kind's view is paged.
 - **Dates filter both kinds**, up to 31 days (`MAX_SEARCH_DAYS`): the
   calendar stops there, and a longer range is refused in plain words
   (`SEARCH_RANGE_TOO_LONG`).

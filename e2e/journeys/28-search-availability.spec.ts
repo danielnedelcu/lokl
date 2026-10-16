@@ -3,7 +3,8 @@ import { signIn } from "../support/auth";
 import { expect, test } from "../support/fixtures";
 
 // Journey 28: search by availability (docs/design/service-availability.md,
-// "Search"). Dates filter Services by their free times, in Atlanta days
+// "Search"). With no kind chosen, results open on All: both kinds, a section
+// each, the first 6 and "See all" (docs/design/search.md). Dates filter Services by their free times, in Atlanta days
 // (the browser runs in Los Angeles, and in Auckland for @zones): only those
 // free on the days, soonest first, each opening its scheduling panel on its
 // first free day searched. A range is at most 31 days, in the bar, on the
@@ -67,6 +68,39 @@ test("@zones a dated search: only Services free those days, soonest first, each 
   await expect(dialog.getByRole("button", { pressed: true })).toHaveAccessibleName(new RegExp(`^${longDay(d)}(?: \\(today\\))?, \\d+ times$`));
   const times = dialog.getByRole("radiogroup", { name: `Times on ${longDay(d)}, Atlanta time (ET)` });
   await expect(times.locator("label").first()).toHaveText("3:00 PM");
+});
+
+test("with no kind chosen, results open on All: Experiences then Services, the first 6 of each, See all for the rest", async ({ page, data }) => {
+  const owner = await data.user("all");
+  const provider = await data.provider(owner, `E2E all ${data.run}`, { ownAccount: true });
+  await data.hours(provider);
+  const area = await data.area();
+  const cut = await data.category("service");
+  // Eight Services free that day in this area; no Experiences.
+  const titles: string[] = [];
+  for (let i = 1; i <= 8; i++) titles.push((await data.listing(provider, "service", cut.id, area, `All cut ${i} ${data.run}`, "instant")).title);
+  const d = atlantaDay(3);
+  const search = `/atlanta/search?area=${area}&from=${d}&to=${d}`;
+
+  await page.goto(search);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Experiences and Services in Atlanta");
+  await expect(page.getByRole("link", { name: "All (8)" })).toHaveAttribute("aria-current", "page");
+  const experiences = page.getByRole("region", { name: "Experiences (0)" });
+  const services = page.getByRole("region", { name: "Services (8)" });
+  await expect(experiences).toContainText("No Experiences on these dates.");
+  await expect(services.locator("h3")).toHaveCount(6);
+  // Each section in the same order as its own view.
+  const shown = await services.locator("h3").allTextContents();
+  await services.getByRole("link", { name: "See all 8 Services" }).click();
+  await expect(page).toHaveURL(new RegExp(`/atlanta/search\\?area=${area}&from=${d}&to=${d}&kind=service$`));
+  await expect(page.getByRole("link", { name: "Services (8)" })).toHaveAttribute("aria-current", "page");
+  const all = await cardTitles(page);
+  expect([...all].sort()).toEqual([...titles].sort());
+  expect(all.slice(0, 6)).toEqual(shown);
+
+  // The API: no kind is All, with each kind's first 6 and totals.
+  const api = await (await page.request.get(`/api/public/search?market=atlanta&area=${area}&from=${d}&to=${d}`)).json();
+  expect([api.view, api.sections.service.items.length, api.sections.service.total, api.sections.experience.total]).toEqual(["all", 6, 8, 0]);
 });
 
 test("a date range is at most 31 days: the calendar stops there, the results page and the API say so", async ({ page }) => {

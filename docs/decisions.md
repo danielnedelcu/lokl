@@ -5,6 +5,7 @@ change as a new row rather than editing the old one.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 2026-10-16 | Search results with no kind chosen show All: Experiences then Services, a section each with its count, the first 6 and "See all"; Experiences and Services stay as views, and a category still goes straight to its kind. Replaces "Experiences show first" | With only Services matching (dated searches often), the page opened on an empty Experiences list |
 | 2026-10-15 | Search finds Services by date from a table of open days (per Service and market day), refreshed by triggers on every change and daily as the window moves, with the same set-based core working out live whatever the table doesn't cover; one core serves search, the panel and the preview, with a parity test | Measured: per-search computing took 0.3 s for a day and 1.7 to 5 s for 31 days with 1,000 Services. The live part keeps results right before the job scheduler runs |
 | 2026-10-15 | Open days refresh once per provider per transaction, at commit (statement triggers note the provider; a deferred trigger refreshes), not after each statement | A weekly series of 52 sessions made 52 hold statements and 52 refreshes (1.4 s); now one (about 20 ms) |
 | 2026-10-15 | Services with no free time in their window still appear when browsing without dates, last, marked "Not taking bookings yet"; they never match dates | Guides, profiles and links keep working, and the provider isn't silently hidden |

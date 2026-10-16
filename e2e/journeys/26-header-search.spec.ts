@@ -202,7 +202,8 @@ test("the results: the address holds the filters, browse's results and counts, d
   // Service (no hours, so no free time) isn't on those days, and no note says
   // the dates are only for Experiences any more.
   await page.goto(`/atlanta/search?area=${area}&from=2030-01-01&to=2030-01-02`);
-  await expect(page.getByRole("link", { name: "Experiences (0)" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("link", { name: "All (0)" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("link", { name: "Experiences (0)" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Services (0)" })).toBeVisible();
   await page.getByRole("link", { name: "Services (0)" }).click();
   await expect(page).toHaveURL(new RegExp(`area=${area}&from=2030-01-01&to=2030-01-02&kind=service$`));
@@ -215,7 +216,7 @@ test("the results: the address holds the filters, browse's results and counts, d
 
   // Nothing found: the filters stay editable, each removable, and the bar opens from the page.
   await page.goto(`/atlanta/search?area=${area}&from=2030-01-01&to=2030-01-02`);
-  await expect(page.getByText("No Experiences match this search.")).toBeVisible();
+  await expect(page.getByText("Nothing matches this search.")).toBeVisible();
   await page.getByRole("button", { name: /^When: / }).click();
   await expect(segment(page, "when")).toBeFocused();
   expect(await expanded(page)).toBe("false,true,false");
