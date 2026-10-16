@@ -94,6 +94,8 @@ test("with no kind chosen, results open on All: Experiences then Services, the f
   await services.getByRole("link", { name: "See all 8 Services" }).click();
   await expect(page).toHaveURL(new RegExp(`/atlanta/search\\?area=${area}&from=${d}&to=${d}&kind=service$`));
   await expect(page.getByRole("link", { name: "Services (8)" })).toHaveAttribute("aria-current", "page");
+  // (Wait for the kind's own list: until it loads, the All view's 6 are still shown.)
+  await expect(page.locator("main ul li h3")).toHaveCount(8);
   const all = await cardTitles(page);
   expect([...all].sort()).toEqual([...titles].sort());
   expect(all.slice(0, 6)).toEqual(shown);
