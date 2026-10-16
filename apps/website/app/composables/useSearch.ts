@@ -25,19 +25,16 @@ export function useSearch() {
     return a ? areaLabel(a, marketName.value) : `Anywhere in ${marketName.value}`;
   });
   const whenValue = computed(() => {
-    const { from, kind, category } = draft.value;
+    const { from } = draft.value;
     // One day chosen, no second yet: that day.
     const to = draft.value.to ?? from;
-    // Dates don't filter Services, so with a Service category they don't apply.
-    if (kind === "service" && category) return "Dates: Experiences only";
     if (!from || !to) return "Any dates";
     return from === to ? formatCalendarDay(from) : `${formatCalendarDay(from)} – ${formatCalendarDay(to)}`;
   });
   // The bar's segment is narrow: "Oct 17 – 18", "Oct 31 – Nov 1", "Oct 17".
   const whenShort = computed(() => {
-    const { from, kind, category } = draft.value;
+    const { from } = draft.value;
     const to = draft.value.to ?? from;
-    if (kind === "service" && category) return "Experiences only";
     if (!from || !to) return "Any dates";
     const [fm, fd] = [monthShort(from), Number(from.slice(8))];
     const [tm, td] = [monthShort(to), Number(to.slice(8))];

@@ -399,6 +399,20 @@ The website books every Service from these slots (above).
   start and end (`bookings_service_shape`). `service_next_slot(listing,
   from)` (visitors and signed-in users) finds the first free time in the
   whole booking window, 31 days at a time.
+- **Phase 4** ([20261015230114_service_open_days.sql](../../supabase/migrations/20261015230114_service_open_days.sql)):
+  one slot core for many Services (`service_slots_many`), and the open
+  days search reads (`service_open_days`). **Every hold change refreshes
+  the provider's open days when its transaction commits**: statement
+  triggers on `provider_holds`, hours, time off, settings, listings and
+  providers note the provider in `service_open_days_pending`, and a
+  deferred trigger refreshes each noted provider once, in provider order,
+  under a per-provider advisory lock (a second booking for the same
+  provider waits for the first's refresh, milliseconds). A weekly series of
+  52 sessions is one refresh, not 52. The pending table has no foreign
+  key, so deleting a provider (whose holds and hours go with it) isn't
+  refused (fixed in `open_days_pending_no_provider_key`, 2026-10-16). Tested with simultaneous bookings and
+  with one held open. The daily `refresh-open-days` job moves the window
+  on.
 
 ## 5. Cancellations and refunds
 
@@ -913,6 +927,7 @@ Locally: `npm run job -- <name>` ([scripts/job.mjs](../../scripts/job.mjs)).
 | `withdraw-unavailable` | declines requests (the hold marked `withdraw`), and ends checkouts, whose listing, provider, category or city went away; finishes a captured request like `expire-requests`; refunds and cancels bookings on cancelled sessions | conditional moves; refunds count what's already refunded |
 | `pay-out` | completes ended bookings, then pays out or holds each due one | looks for an existing transfer in the booking's group first; holds only where none is set |
 | `review-reminders` | queues the one review reminder per booking, 10 to 14 days after its end (`queue_review_reminders`); not limited to one booking | the outbox sends each kind once per booking |
+| `refresh-open-days` | daily: refreshes up to 50 providers whose open days are over 20 hours old (`refresh_stale_service_open_days`), oldest first | a refresh rewrites a provider's open days whole, so running twice changes nothing |
 | `send-emails` | sends queued emails | rows are claimed; Resend keys are per row |
 
 **Batches** (truncation sweep, 2026-10-10): each job takes up to 200 rows

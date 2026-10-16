@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MAX_SEARCH_DAYS } from "@repo/types";
 import { parseDate, type DateValue } from "@internationalized/date";
 import { useMediaQuery } from "@vueuse/core";
 import {
@@ -13,8 +14,9 @@ import {
 // is the market's ("Atlanta time"), never the device's: today, the quick
 // dates and the earliest choosable day all come from `timeZone`, and today
 // is marked from that, not from Reka's data-today (the device's day).
-// One day, or a range: a day alone counts as that day. Dates filter
-// Experiences only; the note says so.
+// One day, or a range of up to 31 days (MAX_SEARCH_DAYS): a day alone
+// counts as that day. Dates filter both kinds: Experiences by their
+// sessions, Services by their free times.
 const props = defineProps<{ timeZone: string; zoneLabel: string }>();
 const model = defineModel<{ from?: string; to?: string }>({ required: true });
 const emit = defineEmits<{ chosen: [] }>();
@@ -56,7 +58,7 @@ const quickBtn = "flex w-full flex-col items-start rounded-2xl border border-bor
     </div>
     <div>
       <RangeCalendarRoot v-slot="{ weekDays, grid }" v-model="value" v-model:placeholder="placeholder" :min-value="parseDate(quick.today)"
-        locale="en-US" :week-starts-on="0" fixed-weeks :number-of-months="wide ? 2 : 1" :aria-label="`Dates, ${zoneLabel}`">
+        locale="en-US" :week-starts-on="0" :maximum-days="MAX_SEARCH_DAYS" fixed-weeks :number-of-months="wide ? 2 : 1" :aria-label="`Dates, ${zoneLabel}`">
         <RangeCalendarHeader class="flex items-center justify-between gap-2">
           <RangeCalendarPrev aria-label="Previous month"
             class="hover:bg-accent focus-visible:ring-ring/50 inline-flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-[3px] disabled:opacity-40">
@@ -92,7 +94,7 @@ const quickBtn = "flex w-full flex-col items-start rounded-2xl border border-bor
         </div>
       </RangeCalendarRoot>
       <p class="text-muted-foreground mt-3 max-w-md text-sm">
-        Dates apply to Experiences, in {{ zoneLabel }}. For Services, you suggest times when you book.
+        Dates are in {{ zoneLabel }}. Choose one day, or up to {{ MAX_SEARCH_DAYS }} in a row.
       </p>
     </div>
   </div>

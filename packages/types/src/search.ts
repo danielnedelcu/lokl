@@ -4,9 +4,11 @@ import type { PublicBrowseResult } from "./public";
 // The search results address (docs/design/search.md):
 // /<market>/search?area=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD&kind=<kind>&category=<slug>&page=N
 // Every part is optional. A category's slug is unique only within its kind,
-// so `category` counts only with `kind`. Dates are for Experiences only:
-// they stay in the address with Services shown, but don't filter them.
-// Malformed values (a hand-edited or old link) are dropped, never an error.
+// so `category` counts only with `kind`. Dates filter both kinds: an
+// Experience with a session on one of the days, a Service with a free time
+// (docs/design/service-availability.md, "Search"), at most 31 days.
+// Malformed values (a hand-edited or old link) are dropped, never an error;
+// a range longer than 31 days is kept, and the page says to shorten it.
 
 export interface SearchFilters {
   area?: string;
@@ -21,6 +23,17 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SLUG = /^[a-z0-9-]{1,60}$/;
 const one = (v: unknown) => (typeof v === "string" ? v : Array.isArray(v) && typeof v[0] === "string" ? v[0] : undefined);
+
+/** The longest date range search takes, in days (both ends counted). */
+export const MAX_SEARCH_DAYS = 31;
+/** What the search says about a longer range. */
+export const SEARCH_RANGE_TOO_LONG = `Choose up to ${MAX_SEARCH_DAYS} days.`;
+
+/** How many days a range of calendar dates ("YYYY-MM-DD") covers, both ends counted. */
+export function searchDays(from: string, to: string): number {
+  const day = (d: string) => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+  return Math.round((day(to) - day(from)) / 86_400_000) + 1;
+}
 
 /** The filters in a results address's query, malformed values dropped. */
 export function readSearch(query: Record<string, unknown>): SearchFilters {
@@ -64,6 +77,4 @@ export function searchPath(market: string, f: SearchFilters): string {
 /** The results page's data: one page of the shown kind, and both kinds' counts. */
 export interface PublicSearchResult extends PublicBrowseResult {
   counts: Record<ListingKind, number>;
-  /** True when dates were given but the shown kind is Services, which they don't filter. */
-  datesIgnored: boolean;
 }

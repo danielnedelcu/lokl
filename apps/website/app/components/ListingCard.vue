@@ -11,7 +11,9 @@ const coverUrl = computed(() => {
   const c = props.listing.cover;
   return c ? supabase.storage.from("listing-photos").getPublicUrl(c.cardPath ?? c.path).data.publicUrl : null;
 });
-const href = computed(() => `/${props.listing.kind === "experience" ? "experiences" : "services"}/${props.listing.slug}`);
+// From dated results, a Service opens its scheduling panel on its first
+// searched day with a free time (docs/design/service-availability.md).
+const href = computed(() => `/${props.listing.kind === "experience" ? "experiences" : "services"}/${props.listing.slug}${props.listing.openOn ? `?date=${props.listing.openOn}` : ""}`);
 const price = computed(() =>
   `${formatMoney(props.listing.priceCents, props.listing.currency)}${props.listing.kind === "experience" ? " per person" : ""}`,
 );
@@ -20,7 +22,8 @@ const rating = computed(() => cardRating(props.listing.rating));
 const next = computed(() =>
   props.listing.nextSessionAt
     ? `Next: ${formatSessionDate(props.listing.nextSessionAt, props.market.timezone)}, ${formatSessionTime(props.listing.nextSessionAt, props.market.timezone)}`
-    : props.listing.kind === "experience" ? "No dates yet" : null,
+    : props.listing.kind === "experience" ? "No dates yet"
+    : props.listing.notTakingBookings ? "Not taking bookings yet" : null,
 );
 </script>
 

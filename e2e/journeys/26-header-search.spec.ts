@@ -7,7 +7,8 @@ import { expect, test } from "../support/fixtures";
 // value and aria-expanded, Escape closing it and returning focus, choosing a
 // Where opening When and dates opening What. The quick dates are Atlanta's
 // (the browser runs in Los Angeles, and in Auckland for @zones). The results
-// address holds the filters; dates never hide Services; an empty result
+// address holds the filters; dates filter both kinds (journey 28 has
+// Services by their free times); an empty result
 // keeps the filters editable. On phones, one Search button opens a
 // full-screen panel. The header is sticky and never covers what has focus.
 
@@ -151,7 +152,7 @@ test("@zones the quick dates and today are Atlanta's, whatever the device's zone
   await expect(segment(page, "when")).toHaveAccessibleName("When Fri, Oct 16");
 });
 
-test("the results: the address holds the filters, browse's results and counts, dates never hide Services, an editable empty state", async ({ page, data }) => {
+test("the results: the address holds the filters, browse's results and counts, dates filter both kinds, an editable empty state", async ({ page, data }) => {
   test.setTimeout(150_000);
   const owner = await data.user("search-results");
   const provider = await data.provider(owner, `E2E Results ${data.run}`);
@@ -197,18 +198,20 @@ test("the results: the address holds the filters, browse's results and counts, d
   await page.goto(`/atlanta/experiences/${walk.slug}?area=${area}&from=${from}&to=${to}`);
   expect(await cards()).toEqual(searchCards);
 
-  // Without a category: both kinds counted; with dates, Services aren't filtered by them.
+  // Without a category: both kinds counted, and dates filter both: the
+  // Service (no hours, so no free time) isn't on those days, and no note says
+  // the dates are only for Experiences any more.
   await page.goto(`/atlanta/search?area=${area}&from=2030-01-01&to=2030-01-02`);
   await expect(page.getByRole("link", { name: "Experiences (0)" })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("link", { name: "Services (1)" })).toBeVisible();
-  await page.getByRole("link", { name: "Services (1)" }).click();
+  await expect(page.getByRole("link", { name: "Services (0)" })).toBeVisible();
+  await page.getByRole("link", { name: "Services (0)" }).click();
   await expect(page).toHaveURL(new RegExp(`area=${area}&from=2030-01-01&to=2030-01-02&kind=service$`));
-  await expect(page.getByText("Dates apply to Experiences.")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 3, name: `Results cut ${data.run}` })).toBeVisible();
+  await expect(page.getByText("No Services match this search.")).toBeVisible();
+  await expect(page.getByText(/Experiences only|Dates apply to Experiences/)).toHaveCount(0);
 
-  // A Service category: When says the dates don't apply.
+  // A Service category: When shows the dates, as for Experiences.
   await page.goto(`/atlanta/search?from=2030-01-01&to=2030-01-02&kind=service&category=${cut.slug}`);
-  await expect(segment(page, "when")).toHaveAccessibleName(/^When .*Dates: Experiences only/);
+  await expect(segment(page, "when")).toHaveAccessibleName("When Tue, Jan 1 – Wed, Jan 2");
 
   // Nothing found: the filters stay editable, each removable, and the bar opens from the page.
   await page.goto(`/atlanta/search?area=${area}&from=2030-01-01&to=2030-01-02`);

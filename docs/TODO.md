@@ -166,7 +166,12 @@ Each step depends on the ones before it.
      a Service has no free time). Time a page with a busy provider and an
      empty window; cache or precompute (phase 4's `service_open_days`) if
      it slows pages down.
-   - [ ] Phase 4: search filters Services by availability.
+   - [x] Phase 4 (2026-10-15, migration `service_open_days`): dates filter
+     Services by their free times (open days kept current by triggers, the
+     same core live past them), soonest first, opening the panel on the
+     first free day; ranges up to 31 days; e2e journey 28.
+   - [ ] Re-measure dated search once there are real providers (the open
+     days table and its live part), and the refresh's cost per booking.
    - [ ] Later: Google Calendar sync; team members.
 3. [x] **Reviews and star ratings** (docs/design/reviews.md, built
    2026-10-04; migrations `reviews`, `review_star_counts`): one to five
@@ -407,7 +412,12 @@ A real address before the live one: `staging.hilokl.com` (website) and
 Lokl Stripe sandbox. Test there first what needs a real address:
 
 - [ ] **First: the job scheduler** (`pg_cron` + `pg_net` calling
-  `/api/jobs/*`, including `send-emails` and, daily, `review-reminders`).
+  `/api/jobs/*`, including `send-emails` and, daily, `review-reminders`
+  and `refresh-open-days`). Until `refresh-open-days` runs, a Service's
+  open days move on only when its provider changes something (hours, a
+  booking, settings): dated searches work out live, more slowly, every day
+  past each Service's last refresh, and the further a search reaches, the
+  more of it is live.
   Request expiry, finishing an accept whose reply was lost, withdrawals and
   payouts all depend on it; until then jobs run with `npm run job`
   (docs/design/booking-and-checkout.md; moved to the top 2026-10-11).

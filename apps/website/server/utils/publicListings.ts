@@ -299,7 +299,7 @@ export interface BrowseQuery {
   category?: string;
   /** A service area id in the market. */
   area?: string;
-  /** Experiences: local dates (YYYY-MM-DD) in the market's time zone, inclusive. */
+  /** Local dates (YYYY-MM-DD) in the market's time zone, inclusive: Experiences with a session, Services with a free time. */
   from?: string;
   to?: string;
   page?: number;
@@ -342,7 +342,6 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
   // (public_browse, read with visitors' own rules), so nothing is cut off at
   // the API's 1,000 rows; then only that page's cards are loaded.
   const tz = (market as PublicMarket).timezone;
-  const isExperience = q.kind === "experience";
   const page = Math.max(1, Math.floor(q.page ?? 1) || 1);
   const pageSize = q.pageSize ?? PAGE_SIZE;
   const { data: picked, error: pickError } = await db.rpc("public_browse", {
@@ -350,14 +349,17 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
     p_kind: q.kind,
     p_category: q.category,
     p_area: q.area,
-    p_from: isExperience && q.from ? zonedToInstant({ date: q.from, time: "00:00" }, tz) : undefined,
+    p_from: q.from ? zonedToInstant({ date: q.from, time: "00:00" }, tz) : undefined,
     // Inclusive of the whole last day: up to midnight at the start of the next.
-    p_to: isExperience && q.to ? new Date(Date.parse(zonedToInstant({ date: q.to, time: "23:59" }, tz)) + 60_000).toISOString() : undefined,
+    p_to: q.to ? new Date(Date.parse(zonedToInstant({ date: q.to, time: "23:59" }, tz)) + 60_000).toISOString() : undefined,
     p_page: page,
     p_page_size: pageSize,
   });
   if (pickError) throw new Error(pickError.message);
-  const { ids, total } = picked as unknown as { ids: string[]; total: number };
+  // Services: those on the page with no free time in their window
+  // (undated), and each one's first free day in the searched dates.
+  const { ids, total, closed, firstDays } = picked as unknown as { ids: string[]; total: number; closed?: string[]; firstDays?: Record<string, string> };
+  const closedIds = new Set(closed ?? []);
 
   let cards: ReturnType<typeof toCard>[] = [];
   if (ids.length) {
@@ -371,7 +373,9 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
   return {
     market: market as PublicMarket,
     kind: q.kind,
-    items: cards.map(stripInternal),
+    items: cards.map(stripInternal).map((c) => (c.kind === "service"
+      ? { ...c, notTakingBookings: closedIds.has(c.id), openOn: firstDays?.[c.id] ?? null }
+      : c)),
     page,
     pageSize,
     total,

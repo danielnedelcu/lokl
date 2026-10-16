@@ -18,7 +18,7 @@ import { finishAccept } from "./bookingAnswers";
 import { refundInFull } from "./bookingCancellations";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
-export const JOB_NAMES = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "review-reminders"] as const;
+export const JOB_NAMES = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "review-reminders", "refresh-open-days"] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
 export interface JobResult {
@@ -438,7 +438,27 @@ export async function runJob(name: JobName, db: SupabaseClient, stripe: Stripe, 
     case "withdraw-unavailable": return withdrawUnavailable(db, stripe, opts);
     case "pay-out": return payOut(db, stripe, opts);
     case "review-reminders": return reviewReminders(db, opts);
+    case "refresh-open-days": return refreshOpenDays(db, opts);
   }
+}
+
+/**
+ * Daily: works out again the open days of the providers whose are oldest,
+ * so search covers each Service's whole window from the table
+ * (docs/design/service-availability.md, "Search"). Changes refresh at once
+ * on their own; this only moves the window on. Until it runs, search works
+ * the uncovered days out live. No Stripe.
+ */
+async function refreshOpenDays(db: SupabaseClient, opts: JobOptions) {
+  if (opts.bookingId || opts.now) throw new Error("refresh-open-days runs for every provider, as of now.");
+  const { data, error } = await db.rpc("refresh_stale_service_open_days", { p_limit: 50 });
+  if (error) throw new Error(error.message);
+  const { refreshed, more_waiting } = data as { refreshed: number; more_waiting: boolean };
+  return {
+    job: "refresh-open-days" as const, checked: refreshed,
+    done: refreshed ? [`refreshed ${refreshed} ${refreshed === 1 ? "provider" : "providers"}`] : [], failed: [] as string[],
+    moreWaiting: more_waiting,
+  };
 }
 
 /**

@@ -296,6 +296,44 @@ through an index-friendly table, not `service_slots` per row:
 **The search bar's quick dates and calendar** stay as built. Only the
 copy about Services changes.
 
+## As built in phase 4 (2026-10-15)
+
+**Measured first** (1,000 live Services from 200 providers, 8,334 holds,
+local, as a visitor, median of 20): `service_slots` per Service took 290 ms
+for one day and 1.7 s for 31 days (5 s ordered by the first free time);
+one set-based query for all of them, 90 ms for a day but 1.7 s for 31
+days. Neither was fast enough per search, so:
+
+- **One core** (`service_slots_many`, many Services at once).
+  `service_slots_core` and so `service_slots`, the provider's preview and
+  `service_next_slot` wrap it; a pgTAP test compares it with the old core,
+  word for word, over hours, date hours, time off, buffers, notice,
+  bookings and sessions.
+- **`service_open_days`** (Service, market day, first and last free time)
+  and **`service_open_days_refreshed`** (when, how far ahead it covers, the
+  notice then). Statement triggers on hours, date hours, time off,
+  settings, holds, listings and providers note the provider; at commit, a
+  deferred trigger refreshes each noted provider once, over each Service's
+  whole window, under a per-provider lock (two bookings for one provider
+  wait for each other, never deadlock; tested). A 52-session weekly series
+  is one refresh (it was 52, and 1.4 s, before this was deferred).
+- **`service_open_matches`** (search's only way in, as a visitor): the
+  table where it covers the range, checking each day's last time against
+  now plus the notice, and the same core live for days past it (or a
+  Service never worked out). So results are right whether or not the daily
+  `refresh-open-days` job has run; the job only keeps search off the slower
+  live part.
+- **`public_browse`**: dates filter Services; dated, soonest free time then
+  title; undated, those with no free time in their window last ("closed",
+  shown "Not taking bookings yet"). Each dated card opens the panel on its
+  first free day searched (`firstDays`, `?date=`).
+- **Ranges** are at most 31 days (bar, results page, API).
+- **Measured after** (same data, as a visitor, median of 20): dated
+  search 8 ms for a day and 11 ms for 31 days; browsing Services without
+  dates (the browse page, the homepage's carousel and "On lokl now") 8 ms,
+  from 3 ms before; a 52-session series 6 ms plus 21 ms for its one
+  refresh at commit.
+
 ## The customer's scheduling panel
 
 A dialog from the listing's booking panel, "Schedule your <Service

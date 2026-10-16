@@ -71,8 +71,8 @@ markets, each will be a column headed by its name.
 - **One day or a range.** The first day clicked shows in the bar at once
   and is searched as that day (`from` and `to` the same); a second day
   makes a range; a third starts again.
-- **The note** under the calendar: "Dates apply to Experiences, in Atlanta
-  time (ET). For Services, you suggest times when you book."
+- **The note** under the calendar: "Dates are in Atlanta time (ET). Choose
+  one day, or up to 31 in a row."
 
 ### What
 
@@ -103,14 +103,19 @@ arrow keys would fight.
 
 ## Dates and Services
 
-Services have no sessions: customers suggest times when they book. So dates
-filter Experiences only and never hide Services.
+Since 2026-10-15 (phase 4 of [service-availability.md](service-availability.md)),
+dates filter both kinds: an Experience with a session on one of the days, a
+Service with a free time on one of them, by the panel's own rules.
 
-- The When panel's note says so.
-- The results page lists Services without the dates, under a note.
-- With a Service category chosen, When reads "Dates: Experiences only".
-- The dates stay in the address, so switching back to Experiences keeps
-  them.
+- Dated Services come soonest free time first, then by title; each card
+  opens the Service's scheduling panel on its first free day searched
+  (`?date=`).
+- A Service with no hours never matches dates. Without dates, one with no
+  free time in its window comes last, marked "Not taking bookings yet".
+- A range is at most 31 days: the calendar stops there (Reka's
+  `maximumDays`), the results page says "Choose up to 31 days." for a longer
+  link, and the API refuses it with the same words.
+- (Until 2026-10-15 dates filtered Experiences only, with notes saying so.)
 
 ## Results
 

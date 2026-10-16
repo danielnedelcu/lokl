@@ -1,24 +1,26 @@
 <script setup lang="ts">
-import { readSearch, searchPath, type ListingKind, type PublicSearchResult, type SearchFilters } from "@repo/types";
+import { MAX_SEARCH_DAYS, SEARCH_RANGE_TOO_LONG, readSearch, searchDays, searchPath, type ListingKind, type PublicSearchResult, type SearchFilters } from "@repo/types";
 
 // The header search's results (docs/design/search.md): the address holds the
 // filters (/atlanta/search?area=&from=&to=&kind=&category=&page=), the list
 // comes through browse's own filtering, paging and counts
 // (/api/public/search), and an empty result keeps every filter editable.
-// Dates filter Experiences only; with Services shown, a note says so.
+// Dates filter both kinds (Services by their free times), up to 31 days; a
+// longer range (a hand-made link) says so instead of searching.
 definePageMeta({ layout: "public" });
 
 const route = useRoute();
 const { info, marketSlug, marketName, whereValue, whenValue, whatValue, openSearch } = useSearch();
 const filters = computed(() => readSearch(route.query));
 const kind = computed<ListingKind>(() => filters.value.kind ?? "experience");
+const tooLong = computed(() => !!filters.value.from && !!filters.value.to && searchDays(filters.value.from, filters.value.to) > MAX_SEARCH_DAYS);
 
 const { data: result, error, pending } = await useFetch<PublicSearchResult>("/api/public/search", {
   key: computed(() => `public-search-${route.fullPath}`),
   query: computed(() => ({ market: marketSlug.value, ...filters.value })),
 });
 if (error.value?.statusCode === 404) throw createError({ statusCode: 404, fatal: true });
-if (error.value && import.meta.server) setResponseStatus(useRequestEvent()!, 503);
+if (error.value && !tooLong.value && import.meta.server) setResponseStatus(useRequestEvent()!, 503);
 if (result.value && (filters.value.page ?? 1) > 1 && !result.value.items.length) throw createError({ statusCode: 404, fatal: true });
 
 const market = computed(() => result.value?.market ?? info.value?.market);
@@ -65,14 +67,17 @@ useSeoMeta({ title: () => `Search · ${heading.value}`, robots: "noindex, follow
       </ul>
     </nav>
 
-    <p v-if="result?.datesIgnored" class="bg-muted mt-4 flex max-w-2xl gap-2 rounded-lg p-3 text-sm">
-      <Icon name="lucide:info" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      Dates apply to Experiences. For Services, you suggest times when you book, so these Services aren't filtered by date.
-    </p>
-
     <section aria-labelledby="results-heading" class="mt-8">
       <h2 id="results-heading" class="sr-only">Results</h2>
-      <UiAlert v-if="error" variant="destructive">
+      <div v-if="tooLong" class="border-border rounded-lg border border-dashed p-8 text-center">
+        <p class="font-medium">{{ SEARCH_RANGE_TOO_LONG }}</p>
+        <p class="text-muted-foreground mt-1 text-sm">Search a shorter stretch of dates, up to {{ MAX_SEARCH_DAYS }} days at a time.</p>
+        <div class="mt-5 flex flex-wrap justify-center gap-2">
+          <button type="button" class="link-secondary" @click="openSearch('when')">Change the dates</button>
+          <NuxtLink :to="to({ ...filters, from: undefined, to: undefined, page: undefined })" class="link-secondary">Any dates</NuxtLink>
+        </div>
+      </div>
+      <UiAlert v-else-if="error" variant="destructive">
         <UiAlertTitle>This list didn't load</UiAlertTitle>
         <UiAlertDescription>Please try again in a moment.</UiAlertDescription>
       </UiAlert>
@@ -85,7 +90,7 @@ useSeoMeta({ title: () => `Search · ${heading.value}`, robots: "noindex, follow
           <p class="text-muted-foreground mt-1 text-sm">Try another area, other dates, or anything.</p>
           <div class="mt-5 flex flex-wrap justify-center gap-2">
             <button type="button" class="link-secondary" @click="openSearch('where')">Where: {{ whereValue }}</button>
-            <button v-if="kind === 'experience'" type="button" class="link-secondary" @click="openSearch('when')">When: {{ whenValue }}</button>
+            <button type="button" class="link-secondary" @click="openSearch('when')">When: {{ whenValue }}</button>
             <button type="button" class="link-secondary" @click="openSearch('what')">What: {{ whatValue }}</button>
           </div>
           <NuxtLink v-if="chips.length" :to="to({})" class="link-text mt-4 inline-block text-sm">Clear all filters</NuxtLink>

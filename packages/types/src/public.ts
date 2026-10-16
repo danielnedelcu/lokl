@@ -50,6 +50,10 @@ export interface PublicListingCard {
   rating: RatingSummary;
   /** 4.8 or higher from at least 5 published reviews (isTopRated); worked out, never stored. */
   topRated: boolean;
+  /** Services in browse without dates: no free time anywhere in their window ("Not taking bookings yet"). */
+  notTakingBookings?: boolean;
+  /** Services in dated results: the first searched day with a free time (YYYY-MM-DD), where the panel opens. */
+  openOn?: string | null;
 }
 
 /** A provider's public profile: what signed-out visitors may read. */

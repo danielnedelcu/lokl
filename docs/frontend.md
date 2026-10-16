@@ -137,6 +137,9 @@ header, sharing `useSearch()` and the panels `SearchWhere`, `SearchWhen` and
 - **Choices are `search-pill` buttons** with `aria-pressed` and a check
   icon, not radios, so the panel's arrow keys aren't fought.
 - **Dates are the market's**, via `quickDates()`, never the device's.
+- **Dates filter both kinds**, up to 31 days (`MAX_SEARCH_DAYS`): the
+  calendar stops there, and a longer range is refused in plain words
+  (`SEARCH_RANGE_TOO_LONG`).
 - **The public header is sticky.** `scroll-padding-top` keeps focused
   elements visible below it. A new sticky element must do the same.
 
@@ -187,7 +190,9 @@ The provider's `/dashboard/availability` (docs/design/service-availability.md):
   meanwhile sends the customer back to the times ("That time was just
   taken. Pick another.").
 - **A Service with no free time at all** shows "Not taking bookings yet" on
-  its listing page, with no button.
+  its listing page, with no button, and on its card when browsing.
+- **`?date=YYYY-MM-DD`** (from dated search results) starts the panel on
+  that day and opens it at once for a signed-in customer.
 
 ## Forms
 

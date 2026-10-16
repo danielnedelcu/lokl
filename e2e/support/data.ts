@@ -75,12 +75,18 @@ export class TestData {
     return { id: user.id, email, password };
   }
 
-  /** A provider with payouts set up on the sandbox's connected test account. */
-  async provider(owner: TestUser, name = `E2E Provider ${this.run}`) {
+  /**
+   * A provider with payouts set up on the sandbox's connected test account,
+   * or, with `ownAccount`, on a made-up one of its own (an account belongs
+   * to one provider): for a journey with several providers that is never
+   * paid out.
+   */
+  async provider(owner: TestUser, name = `E2E Provider ${this.run}`, { ownAccount = false } = {}) {
     const id = (await must(this.env.db.from("providers").insert({ owner_id: owner.id, display_name: name, city_id: this.cityId }).select("id").single())).id as string;
     this.providers.push(id);
     await must(this.env.db.from("providers").update({
-      stripe_account_id: this.env.connectedAccount, stripe_charges_enabled: true, stripe_payouts_enabled: true,
+      stripe_account_id: ownAccount ? `acct_e2e_${randomBytes(6).toString("hex")}` : this.env.connectedAccount,
+      stripe_charges_enabled: true, stripe_payouts_enabled: true,
     }).eq("id", id));
     return id;
   }

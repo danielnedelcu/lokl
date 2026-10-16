@@ -26,7 +26,13 @@ const step = ref<"time" | "details">("time");
 
 // ---- The week and its times ------------------------------------------------
 type Slot = { starts_at: string; ends_at: string };
-const firstDay = instantToZoned(props.nextSlotAt, props.listing.market.timezone).date;
+// From dated search results (?date=YYYY-MM-DD, the first searched day with a
+// free time): start on that day, and open at once (signed out, once signed
+// in, since this panel only shows then). Otherwise the next free day.
+const route = useRoute();
+const asked = typeof route.query.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(route.query.date) && route.query.date >= today
+  ? route.query.date : null;
+const firstDay = asked ?? instantToZoned(props.nextSlotAt, props.listing.market.timezone).date;
 const day = ref(firstDay);
 const weekStart = ref(weekStartOf(firstDay));
 const days = computed(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart.value, i)));
@@ -35,14 +41,14 @@ const canGoBack = computed(() => weekStart.value > weekStartOf(today));
 
 const slots = ref<Slot[]>([]);
 const status = ref<"idle" | "pending" | "success" | "error">("idle");
-let asked = 0;
+let loads = 0;
 async function load() {
-  const mine = ++asked;
+  const mine = ++loads;
   status.value = "pending";
   const { data, error } = await supabase.rpc("service_slots", {
     p_listing_id: props.listing.id, p_from: days.value[0]!, p_to: days.value[6]!,
   });
-  if (mine !== asked) return; // a later week was asked for meanwhile
+  if (mine !== loads) return; // a later week was asked for meanwhile
   if (error) {
     status.value = "error";
     return;
@@ -199,6 +205,9 @@ watch(open, (isOpen) => {
     step.value = "time";
     taken.value = "";
   }
+});
+onMounted(() => {
+  if (asked) open.value = true;
 });
 </script>
 
