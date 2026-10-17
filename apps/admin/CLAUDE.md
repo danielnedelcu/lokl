@@ -27,7 +27,8 @@ Owner-only dashboard. Port 3101 (fixed). Root `CLAUDE.md` applies too.
   website checks the token, the admin role and that the call comes from this
   app's exact address (`NUXT_ADMIN_ORIGIN` there, `NUXT_PUBLIC_WEBSITE_URL`
   here; decision 14). Each action takes a reason (`ReasonDialog`) and is
-  logged in `admin_actions`.
+  logged in `admin_actions`; a problem report's reply, move and note take
+  none (the report's own tables are the record; decided 2026-10-17).
 - **Its own session cookie** (`supabase.cookiePrefix` in `nuxt.config.ts`):
   on localhost the website and this app would otherwise share one session,
   since cookies ignore the port. Never set a cookie domain.

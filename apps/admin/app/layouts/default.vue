@@ -2,7 +2,10 @@
 const sections = [
   {
     label: "Overview",
-    items: [{ to: "/", label: "Dashboard", icon: "lucide:layout-dashboard" }],
+    items: [
+      { to: "/", label: "Dashboard", icon: "lucide:layout-dashboard" },
+      { to: "/reports", label: "Problem reports", icon: "lucide:life-buoy" },
+    ],
   },
   {
     label: "Marketplace",
@@ -66,10 +69,13 @@ const route = useRoute();
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <!-- Phones only: the sidebar is hidden there, so the menu opens from this bar. -->
-      <header class="flex h-14 items-center gap-2 border-b border-border bg-card px-2 md:hidden">
-        <DashboardMobileMenu title="lokl Admin" :sections="sections" exact-root="/" :email="user?.email" @sign-out="signOut" />
-        <span class="text-sm font-semibold tracking-tight">lokl Admin</span>
+      <!-- The menu on phones (the sidebar is hidden there); the bell on every size. -->
+      <header class="flex h-14 items-center gap-2 border-b border-border bg-card px-2 md:justify-end md:px-8">
+        <div class="flex flex-1 items-center gap-2 md:hidden">
+          <DashboardMobileMenu title="lokl Admin" :sections="sections" exact-root="/" :email="user?.email" @sign-out="signOut" />
+          <span class="text-sm font-semibold tracking-tight">lokl Admin</span>
+        </div>
+        <ClientOnly><AdminNotificationBell /></ClientOnly>
       </header>
       <main class="min-w-0 flex-1 p-4 md:p-8">
         <slot />

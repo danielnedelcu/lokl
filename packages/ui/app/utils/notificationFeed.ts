@@ -1,4 +1,5 @@
-// A provider's live notifications (docs/design/notifications.md, Realtime).
+// Live notifications: a provider's bell, and an admin's (problem reports;
+// docs/design/notifications.md, Realtime; docs/design/problem-reports.md).
 // Framework-free, so the bell and the Realtime tests use the same code.
 //
 // - Ready means Realtime is watching the database ("Subscribed to
@@ -32,9 +33,19 @@ export interface NotificationRow {
   read_at: string | null;
 }
 
-export interface NotificationFeedHandlers {
+/** An admin bell's row (admin_notifications): ids only, never text. */
+export interface AdminNotificationRow {
+  id: string;
+  recipient_id: string;
+  kind: "support_new" | "support_safety" | "support_reply";
+  report_id: string;
+  created_at: string;
+  read_at: string | null;
+}
+
+export interface NotificationFeedHandlers<Row = NotificationRow> {
   onReady?: () => void;
-  onNotification: (row: NotificationRow) => void;
+  onNotification: (row: Row) => void;
   onProblem?: (message: string) => void;
   /** Status lines for the console (joining, ready, reconnecting). */
   onStatus?: (message: string) => void;
@@ -42,7 +53,19 @@ export interface NotificationFeedHandlers {
 
 const BACKOFF_MS = [1000, 2000, 5000, 10000, 30000];
 
-export function createNotificationFeed(supabase: SupabaseClient, providerId: string, handlers: NotificationFeedHandlers) {
+/**
+ * Which rows to watch: the provider's bell (`notifications` by provider_id,
+ * the default), or an admin's (`admin_notifications` by recipient_id).
+ */
+export interface NotificationSource {
+  table: "notifications" | "admin_notifications";
+  column: "provider_id" | "recipient_id";
+}
+
+export function createNotificationFeed<Row = NotificationRow>(
+  supabase: SupabaseClient, ownerId: string, handlers: NotificationFeedHandlers<Row>,
+  source: NotificationSource = { table: "notifications", column: "provider_id" },
+) {
   let channel: RealtimeChannel | null = null;
   let attempt = 0;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -57,11 +80,11 @@ export function createNotificationFeed(supabase: SupabaseClient, providerId: str
     }
     if (stopped) return;
     const ch = supabase
-      .channel(`notifications:${providerId}:${Date.now()}`)
+      .channel(`${source.table}:${ownerId}:${Date.now()}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `provider_id=eq.${providerId}` },
-        (payload) => handlers.onNotification(payload.new as NotificationRow),
+        { event: "INSERT", schema: "public", table: source.table, filter: `${source.column}=eq.${ownerId}` },
+        (payload) => handlers.onNotification(payload.new as Row),
       )
       .on("system", {}, (m: { extension?: string; status?: string; message?: string }) => {
         if (m.extension !== "postgres_changes") return;

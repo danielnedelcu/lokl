@@ -1,6 +1,6 @@
 # Problem reports: providers tell lokl, the admin tracks them
 
-Status: **approved** (2026-10-17, with the decisions below). Phase 1 (data) built and pushed 2026-10-17 (migration `support_reports`); phase 2 (the provider's side) built 2026-10-17; phase 3 next.
+Status: **approved** (2026-10-17, with the decisions below). Phase 1 (data) built and pushed 2026-10-17 (migration `support_reports`); phase 2 (the provider's side) and phase 3 (the admin's side, migration `support_admin_actions`) built 2026-10-17.
 
 Providers report a problem to lokl from their dashboard and follow it to
 the end; the admin works the reports on a board. Customers reporting
@@ -274,6 +274,13 @@ never logged elsewhere, and never put in an email.
   wait"), `POST /api/admin/support-reports/:id/status`,
   `POST /api/admin/support-reports/:id/notes`. Each checks the admin
   token and origin, and is logged in `admin_actions` with the report id.
+  As built: each calls one database function with the server key
+  (`admin_support_reply`, `admin_support_move`, `admin_support_note`),
+  which makes the change and its log in one transaction; a move names the
+  column the admin saw the card in and is refused if someone else moved
+  it first. They need no reason (docs/decisions.md, 2026-10-17). An
+  unexpected database error is logged in full on the server, and the
+  admin sees "That didn't save. Please try again."
 - Reads go through the user-scoped client (RLS), through database
   functions where a list is paged (`my_support_reports`,
   `admin_support_board`, each with a schema in `RPC_SHAPES`).

@@ -71,6 +71,23 @@ export const supportReportSchema = z.object({
 });
 export type SupportReportInput = z.input<typeof supportReportSchema>;
 
+/** lokl's reply, from the admin app ("Reply", or "Reply and wait for their answer"). */
+export const supportAdminReplySchema = z.object({
+  body: z.string("Write your reply.").trim().min(1, "Write your reply.").max(5000, "Keep it under 5,000 characters."),
+  wait: z.boolean().default(false),
+});
+
+/** "Move to…": the column it goes to, and the one the admin saw it in. */
+export const supportMoveSchema = z.object({
+  to: z.enum(SUPPORT_STATUSES, "Choose a column."),
+  from: z.enum(SUPPORT_STATUSES).nullish(),
+});
+
+/** An admin's private note. */
+export const supportNoteSchema = z.object({
+  body: z.string("Write the note.").trim().min(1, "Write the note.").max(5000, "Keep it under 5,000 characters."),
+});
+
 /** A reply on a report's thread. */
 export const supportMessageSchema = z.object({
   body: z.string("Write your reply.").trim().min(1, "Write your reply.").max(5000, "Keep it under 5,000 characters."),
@@ -84,4 +101,13 @@ export const supportMessageSchema = z.object({
 export function supportRefusalText(message: string, supportEmail?: string | null): string {
   if (message !== SUPPORT_LIMIT_REPORTS && message !== SUPPORT_LIMIT_MESSAGES) return message;
   return `${message} If anyone is in danger, call 911.${supportEmail ? ` You can also email us at ${supportEmail}.` : ""}`;
+}
+
+export type AdminNotificationKind = "support_new" | "support_safety" | "support_reply";
+
+/** An admin bell item in words: "Urgent: a safety report from Fresh Cuts Studio." */
+export function adminNotificationText(kind: AdminNotificationKind, businessName: string, category: SupportCategory): string {
+  if (kind === "support_safety") return `Urgent: a safety report from ${businessName}.`;
+  if (kind === "support_new") return `${businessName} reported a problem about ${SUPPORT_CATEGORY_ABOUT[category]}.`;
+  return `${businessName} replied to their report about ${SUPPORT_CATEGORY_ABOUT[category]}.`;
 }

@@ -11,7 +11,7 @@ import { randomBytes } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPPORT_LIMIT_REPORTS, supportRefusalText, type Database } from "@repo/types";
 import { sendSupportEmails, type EmailSettings, type Mailer, type OutgoingEmail } from "../../../apps/website/server/utils/bookingEmails";
-import { addProviderMessage, createSupportReport, markSupportReportSorted, SupportError } from "../../../apps/website/server/utils/supportReports";
+import { addProviderMessage, adminMove, adminNote, adminReply, createSupportReport, markSupportReportSorted, SupportError } from "../../../apps/website/server/utils/supportReports";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -50,6 +50,7 @@ function fakeMailer() {
   };
   return m;
 }
+const randomUUIDLike = () => "00000000-0000-4000-8000-000000000000";
 const settings: EmailSettings = { mode: "send", allowlist: [], from: "lokl <test@test.local>", replyTo: "help@test.local", siteUrl: "http://localhost:3100" };
 const ADMIN_URL = "http://localhost:3101";
 
@@ -187,6 +188,44 @@ try {
   await sendSupportEmails(db, m10, settings, { adminUrl: ADMIN_URL, reportId: lastId });
   const admin2Row = (await emailRows(lastId)).find((r) => r.admin_id === admin2.id);
   check(!m10.sent.some((e) => e.to === admin2.email) && admin2Row?.status === "skipped", "10. a login that's no longer an admin is skipped");
+
+  // 11. The admin's side, through the admin routes' own code (the server key).
+  await must(db.auth.admin.updateUserById(admin2.id, { app_metadata: { role: "admin" } }));
+  // The other provider (this one used up today's reports in 9).
+  const adminReport = await createSupportReport(other.client, { category: "booking", description: `A customer never showed up. ${SECRET}` });
+  const m11 = fakeMailer();
+  const afterReply = await adminReply(db, adminReport, admin1.id, `Did they message you first? ${SECRET}`, true);
+  check(afterReply === "waiting", "11a. \"Reply and wait\" sends lokl's reply and moves it to Waiting on provider");
+  await sendSupportEmails(db, m11, settings, { adminUrl: ADMIN_URL, reportId: adminReport });
+  const replyMail = m11.sent.find((e) => e.to === other.email);
+  check(!!replyMail && replyMail.subject === "lokl replied to your report" && !replyMail.text.includes(SECRET) && !replyMail.html.includes(SECRET),
+    "11b. the provider is emailed that lokl replied, without the reply");
+  const notOne = await refusal(adminReply(db, adminReport, other.id, "Pretending to be lokl.", false));
+  check(notOne?.status === 403, "11c. a login that isn't an admin is refused");
+  const moved = await refusal(adminMove(db, adminReport, admin2.id, "done", "todo"));
+  check(moved?.status === 409 && moved.message === "Someone else moved it to Waiting on provider first. The board now shows where it is.",
+    "11d. a move from a column it has left is refused, saying where it is");
+  check(await adminMove(db, adminReport, admin2.id, "in_progress", "waiting") === "in_progress", "11e. a move from where it is goes through");
+  await adminNote(db, adminReport, admin1.id, `Checked the booking: no messages. ${SECRET}`);
+  check((await must(other.client.from("support_notes").select("id").eq("report_id", adminReport))).length === 0, "11f. the provider never sees the note");
+  const missing = await refusal(adminMove(db, randomUUIDLike(), admin1.id, "done", null));
+  check(missing?.status === 404 && missing.message === "We couldn't find that report.", "11g. a report that doesn't exist is a 404");
+  const actions = await must(db.from("admin_actions").select("action, reason, message").eq("target", "support_report").eq("target_id", adminReport));
+  check(["support_note", "support_move", "support_reply_wait"].every((a) => actions.some((x) => x.action === a)) && actions.every((x) => !x.reason && !x.message),
+    "11h. each is logged in admin_actions, by id only");
+
+  // 12. An unexpected database error is logged in full on the server (here,
+  // as when the migration isn't on the database yet), and the person sees
+  // the plain message.
+  const logged: string[] = [];
+  const realError = console.error;
+  console.error = (...args: unknown[]) => { logged.push(args.map(String).join(" ")); };
+  const notThere = { rpc: async () => ({ data: null, error: { code: "PGRST202", message: "Could not find the function public.admin_support_reply in the schema cache", details: null, hint: "Perhaps you meant another function" } }) };
+  const plain = await refusal(adminReply(notThere as never, adminReport, admin1.id, "Hello", false));
+  console.error = realError;
+  check(plain?.status === 500 && plain.message === "That didn't save. Please try again.", "12a. the admin sees the plain message");
+  check(logged.some((l) => l.includes("PGRST202") && l.includes("Could not find the function public.admin_support_reply") && l.includes("Perhaps you meant")),
+    "12b. the server log has the real error: its code, words and hint");
 } catch (err) {
   failures++;
   console.error(`FAIL setup or run: ${(err as Error).message}`);

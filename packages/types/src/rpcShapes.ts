@@ -264,6 +264,40 @@ export const adminDashboardShape = z.object({
   bookings_attention: count,
   guide_drafts: count,
   providers_not_payable: count,
+  open_reports: count,
+  urgent_reports: count,
+});
+
+const supportStatus = z.enum(["todo", "in_progress", "waiting", "done"]);
+const supportCategory = z.enum(["booking", "payments", "listing", "website", "safety", "other"]);
+
+/** One column of the admin's problem reports board: its total and one page of cards. */
+const supportBoardColumnShape = z.object({
+  total: count,
+  page: count,
+  page_size: count,
+  rows: z.array(z.object({
+    id,
+    category: supportCategory,
+    urgent: z.boolean(),
+    excerpt: z.string(),
+    provider: z.object({ id, name: z.string() }),
+    status_changed_at: time,
+    last_message_at: time,
+    last_message_from: z.enum(["provider", "admin"]),
+    created_at: time,
+    resolved_at: time.nullable(),
+  })),
+});
+
+/** The board: every column, or the one asked for ("Show more"). */
+export const adminSupportBoardShape = z.object({
+  columns: z.object({
+    todo: supportBoardColumnShape.optional(),
+    in_progress: supportBoardColumnShape.optional(),
+    waiting: supportBoardColumnShape.optional(),
+    done: supportBoardColumnShape.optional(),
+  }),
 });
 
 /** AI guide drafts since a time: how many, and their cost (numeric, so a number or a string). */
@@ -277,6 +311,7 @@ export const RPC_SHAPES = {
   admin_listings_page: adminListingsPageShape,
   admin_providers_page: adminProvidersPageShape,
   admin_reviews_page: adminReviewsPageShape,
+  admin_support_board: adminSupportBoardShape,
   listing_sessions_page: listingSessionsPageShape,
   my_saved: mySavedShape,
   my_support_reports: mySupportReportsShape,
@@ -302,3 +337,6 @@ export type MySavedRows = z.infer<typeof mySavedShape>;
 export type ReviewState = NonNullable<z.infer<typeof reviewStateShape>>;
 export type MySupportReports = z.infer<typeof mySupportReportsShape>;
 export type MySupportReportRow = MySupportReports["rows"][number];
+export type AdminSupportBoard = z.infer<typeof adminSupportBoardShape>;
+export type AdminSupportColumn = NonNullable<AdminSupportBoard["columns"]["todo"]>;
+export type AdminSupportCard = AdminSupportColumn["rows"][number];

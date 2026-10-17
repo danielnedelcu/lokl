@@ -2739,6 +2739,28 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_support_move: {
+        Args: {
+          p_admin_id: string;
+          p_from?: string;
+          p_report_id: string;
+          p_to: string;
+        };
+        Returns: string;
+      };
+      admin_support_note: {
+        Args: { p_admin_id: string; p_body: string; p_report_id: string };
+        Returns: string;
+      };
+      admin_support_reply: {
+        Args: {
+          p_admin_id: string;
+          p_body: string;
+          p_report_id: string;
+          p_wait?: boolean;
+        };
+        Returns: string;
+      };
       assert_log_guards_on: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
@@ -3054,6 +3076,36 @@ export type Database = {
       };
       session_spots_left: { Args: { p_session_id: string }; Returns: number };
       session_spots_taken: { Args: { p_session_id: string }; Returns: number };
+      support_admin_report: {
+        Args: { p_admin_id: string; p_report_id: string };
+        Returns: {
+          booking_id: string | null;
+          category: string;
+          created_at: string;
+          description: string;
+          follows_report_id: string | null;
+          id: string;
+          last_message_at: string;
+          last_message_from: string;
+          listing_id: string | null;
+          provider_id: string;
+          reporter_id: string | null;
+          resolved_at: string | null;
+          status: string;
+          status_changed_at: string;
+          status_changed_by: string;
+          status_changed_by_id: string | null;
+          updated_at: string;
+          urgent: boolean | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "support_reports";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      support_column_name: { Args: { p_status: string }; Returns: string };
       support_limit_message: { Args: { p_what: string }; Returns: string };
       unpublish_guide: {
         Args: { p_admin_id: string; p_guide_id: string };

@@ -189,10 +189,18 @@ Each step depends on the ones before it.
      bell's notification); the routes, and the emails sent at once
      (`sendSupportEmails`, no message text). App test
      `support-reports.test.mts`; journey 29.
-   - [ ] The admin emails link to `/reports/<id>` in the admin app, which
-     phase 3 builds: until then the link is a dead end.
-   - [ ] Phase 3: the admin's side (board, report page, notes, the admin
-     bell and emails, the dashboard count).
+   - [x] Phase 3, the admin's side (2026-10-17, migration
+     `support_admin_actions`): the board at `/reports` (four columns of
+     50 with their totals and "Show more", Urgent first, filters and the
+     admin search's words, "Move to…" announced with focus kept, dragging,
+     a move refused if someone else moved the card first), each report's
+     page (reply, "Reply and wait for their answer", private notes, the
+     history), the admin bell (live, ids only), and "Open problem reports"
+     on the dashboard. The admin's actions are database functions logged
+     in `admin_actions`. pgTAP `support_admin.test.sql`; app tests; e2e
+     journey 29 (both sides live, no reply's words in Realtime).
+   - [ ] Later (design doc): customers reporting problems, photos,
+     assigning a report to an admin, replying by email.
 3. [x] **Reviews and star ratings** (docs/design/reviews.md, built
    2026-10-04; migrations `reviews`, `review_star_counts`): one to five
    stars and words from completed bookings, 14 days to write, edit or

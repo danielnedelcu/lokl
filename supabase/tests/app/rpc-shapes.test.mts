@@ -135,7 +135,14 @@ try {
   check(attention.attention !== null && Object.keys(attention.attention).length === 5, "3c. ...and its five \"needs attention\" counts");
   await read(admin.client, "admin_listings_page", { p_kind: "service", p_page_size: 5 });
   await read(admin.client, "admin_reviews_page", { p_reported: false, p_page_size: 5 });
-  await read(admin.client, "admin_dashboard");
+  const dashboard = await read(admin.client, "admin_dashboard");
+  check(dashboard.open_reports >= 1, "3e. admin_dashboard: the open problem reports");
+  const board = await read(admin.client, "admin_support_board", { p_q: `Shapes ${run}` });
+  check(board.columns.waiting?.rows[0]?.id === report && board.columns.waiting.total === 1 && board.columns.todo?.total === 0,
+    "3f. admin_support_board: every column, with the provider's report waiting");
+  const one = await read(admin.client, "admin_support_board", { p_column: "waiting", p_page: 2, p_page_size: 1, p_q: `Shapes ${run}` });
+  check(one.columns.waiting?.rows.length === 0 && one.columns.waiting.total === 1 && one.columns.todo === undefined,
+    "3g. ...and one column's later page (\"Show more\")");
   await read(admin.client, "admin_ai_draft_cost", { p_since: new Date(Date.now() - 864e5).toISOString() });
   check(true, "3d. the admin functions match their schemas");
 

@@ -388,7 +388,7 @@
 <title>public.listing_addresses:listing_id&#45;&gt;public.listings:id</title>
 <path fill="none" stroke="black" d="M12665.25,-2548.4C12610.93,-2524.87 12642.92,-2300.34 12676.15,-2245.4 12769.7,-2090.73 12941.71,-2209.77 13035.75,-2055.4 13059.93,-2015.7 13083.24,-1950.8 13036.75,-1950.8"/>
 <polygon fill="black" stroke="black" points="12665.02,-2548.35 12673.93,-2554.74 12670.24,-2549.41 12674.49,-2550.27 12674.49,-2550.27 12674.49,-2550.27 12670.24,-2549.41 12675.71,-2545.92 12665.02,-2548.35"/>
-<text text-anchor="start" x="12321.96" y="-2560.4" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<text text-anchor="start" x="12592.1" y="-2534.4" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.listing_service_areas -->
 <g id="node7" class="node">
@@ -982,41 +982,41 @@
 <!-- public.admin_actions -->
 <g id="node17" class="node">
 <title>public.admin_actions</title>
-<polygon fill="#efefef" stroke="none" points="231.35,-904.6 231.35,-950.6 1318.78,-950.6 1318.78,-904.6 231.35,-904.6"/>
-<polygon fill="none" stroke="black" points="231.35,-904.6 231.35,-950.6 1318.78,-950.6 1318.78,-904.6 231.35,-904.6"/>
+<polygon fill="#efefef" stroke="none" points="150.82,-904.6 150.82,-950.6 1399.3,-950.6 1399.3,-904.6 150.82,-904.6"/>
+<polygon fill="none" stroke="black" points="150.82,-904.6 150.82,-950.6 1399.3,-950.6 1399.3,-904.6 150.82,-904.6"/>
 <text text-anchor="start" x="635.58" y="-928.4" font-family="Arial Bold" font-size="18.00">public.admin_actions</text>
 <text text-anchor="start" x="790.05" y="-928.4" font-family="Arial" font-size="14.00">    </text>
 <text text-anchor="start" x="821.17" y="-928.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="238.35" y="-914" font-family="Arial" font-size="14.00" fill="#333333">Every admin action on bookings, emails and providers: who, what, when and why. Written by the website&#39;s admin routes with the service role; read by admins. Never deleted.</text>
-<polygon fill="none" stroke="black" points="231.35,-873.8 231.35,-904.6 1318.78,-904.6 1318.78,-873.8 231.35,-873.8"/>
-<text text-anchor="start" x="238.35" y="-886" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="253.14" y="-886" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="231.35,-843 231.35,-873.8 1318.78,-873.8 1318.78,-843 231.35,-843"/>
-<text text-anchor="start" x="238.35" y="-855.2" font-family="Arial" font-size="14.00">admin_id </text>
-<text text-anchor="start" x="299.05" y="-855.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="231.35,-812.2 231.35,-843 1318.78,-843 1318.78,-812.2 231.35,-812.2"/>
-<text text-anchor="start" x="238.35" y="-824.4" font-family="Arial" font-size="14.00">target </text>
-<text text-anchor="start" x="278.04" y="-824.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="231.35,-781.4 231.35,-812.2 1318.78,-812.2 1318.78,-781.4 231.35,-781.4"/>
-<text text-anchor="start" x="238.35" y="-793.6" font-family="Arial" font-size="14.00">target_id </text>
-<text text-anchor="start" x="296.72" y="-793.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="231.35,-750.6 231.35,-781.4 1318.78,-781.4 1318.78,-750.6 231.35,-750.6"/>
-<text text-anchor="start" x="238.35" y="-762.8" font-family="Arial" font-size="14.00">action </text>
-<text text-anchor="start" x="279.6" y="-762.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="231.35,-719.8 231.35,-750.6 1318.78,-750.6 1318.78,-719.8 231.35,-719.8"/>
-<text text-anchor="start" x="238.35" y="-732" font-family="Arial" font-size="14.00">reason </text>
-<text text-anchor="start" x="285.05" y="-732" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="231.35,-689 231.35,-719.8 1318.78,-719.8 1318.78,-689 231.35,-689"/>
-<text text-anchor="start" x="238.35" y="-701.2" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="308.4" y="-701.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="231.35,-658.2 231.35,-689 1318.78,-689 1318.78,-658.2 231.35,-658.2"/>
-<text text-anchor="start" x="238.35" y="-670.4" font-family="Arial" font-size="14.00">message </text>
-<text text-anchor="start" x="299.05" y="-670.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="329.39" y="-670.4" font-family="Arial" font-size="14.00"> For suspending or reinstating a provider: the optional message lokl added to the provider&#39;s email. (The reason is internal and never sent.)</text>
-<polygon fill="none" stroke="black" points="231.35,-627.4 231.35,-658.2 1318.78,-658.2 1318.78,-627.4 231.35,-627.4"/>
-<text text-anchor="start" x="238.35" y="-639.6" font-family="Arial" font-size="14.00">rule </text>
-<text text-anchor="start" x="265.58" y="-639.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="295.93" y="-639.6" font-family="Arial" font-size="14.00"> For review moderation: the written review rule the removal applied.</text>
+<text text-anchor="start" x="157.82" y="-914" font-family="Arial" font-size="14.00" fill="#333333">Every admin action on bookings, emails, providers, reviews and problem reports: who, what, when and why. Written by the website&#39;s admin routes with the service role; read by admins. Never deleted.</text>
+<polygon fill="none" stroke="black" points="150.82,-873.8 150.82,-904.6 1399.3,-904.6 1399.3,-873.8 150.82,-873.8"/>
+<text text-anchor="start" x="157.82" y="-886" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="172.61" y="-886" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="150.82,-843 150.82,-873.8 1399.3,-873.8 1399.3,-843 150.82,-843"/>
+<text text-anchor="start" x="157.82" y="-855.2" font-family="Arial" font-size="14.00">admin_id </text>
+<text text-anchor="start" x="218.52" y="-855.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="150.82,-812.2 150.82,-843 1399.3,-843 1399.3,-812.2 150.82,-812.2"/>
+<text text-anchor="start" x="157.82" y="-824.4" font-family="Arial" font-size="14.00">target </text>
+<text text-anchor="start" x="197.51" y="-824.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="150.82,-781.4 150.82,-812.2 1399.3,-812.2 1399.3,-781.4 150.82,-781.4"/>
+<text text-anchor="start" x="157.82" y="-793.6" font-family="Arial" font-size="14.00">target_id </text>
+<text text-anchor="start" x="216.19" y="-793.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="150.82,-750.6 150.82,-781.4 1399.3,-781.4 1399.3,-750.6 150.82,-750.6"/>
+<text text-anchor="start" x="157.82" y="-762.8" font-family="Arial" font-size="14.00">action </text>
+<text text-anchor="start" x="199.07" y="-762.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="150.82,-719.8 150.82,-750.6 1399.3,-750.6 1399.3,-719.8 150.82,-719.8"/>
+<text text-anchor="start" x="157.82" y="-732" font-family="Arial" font-size="14.00">reason </text>
+<text text-anchor="start" x="204.52" y="-732" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="150.82,-689 150.82,-719.8 1399.3,-719.8 1399.3,-689 150.82,-689"/>
+<text text-anchor="start" x="157.82" y="-701.2" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="227.87" y="-701.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="150.82,-658.2 150.82,-689 1399.3,-689 1399.3,-658.2 150.82,-658.2"/>
+<text text-anchor="start" x="157.82" y="-670.4" font-family="Arial" font-size="14.00">message </text>
+<text text-anchor="start" x="218.52" y="-670.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="248.86" y="-670.4" font-family="Arial" font-size="14.00"> For suspending or reinstating a provider: the optional message lokl added to the provider&#39;s email. (The reason is internal and never sent.)</text>
+<polygon fill="none" stroke="black" points="150.82,-627.4 150.82,-658.2 1399.3,-658.2 1399.3,-627.4 150.82,-627.4"/>
+<text text-anchor="start" x="157.82" y="-639.6" font-family="Arial" font-size="14.00">rule </text>
+<text text-anchor="start" x="185.06" y="-639.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="215.4" y="-639.6" font-family="Arial" font-size="14.00"> For review moderation: the written review rule the removal applied.</text>
 </g>
 <!-- public.commission_rate_changes -->
 <g id="node18" class="node">
@@ -1161,8 +1161,8 @@
 <!-- public.provider_emails&#45;&gt;public.admin_actions -->
 <g id="edge24" class="edge">
 <title>public.provider_emails:admin_action_id&#45;&gt;public.admin_actions:id</title>
-<path fill="none" stroke="black" d="M1517.01,-1791.88C1556.98,-1743.72 1517.64,-1356.88 1506.92,-1307 1464.19,-1108.07 1523.24,-889.2 1319.78,-889.2"/>
-<polygon fill="black" stroke="black" points="1517.01,-1791.88 1506.08,-1792.68 1512.32,-1794.42 1508.51,-1796.48 1508.51,-1796.48 1508.51,-1796.48 1512.32,-1794.42 1510.36,-1800.6 1517.01,-1791.88"/>
+<path fill="none" stroke="black" d="M1517.61,-1793.69C1602.13,-1735.82 1498.38,-889.2 1400.3,-889.2"/>
+<polygon fill="black" stroke="black" points="1517.77,-1793.64 1506.87,-1792.41 1512.69,-1795.27 1508.56,-1796.6 1508.56,-1796.6 1508.56,-1796.6 1512.69,-1795.27 1509.62,-1800.98 1517.77,-1793.64"/>
 <text text-anchor="start" x="1514.92" y="-1806.8" font-family="Arial" font-size="10.00">FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.booking_finances -->
@@ -1710,7 +1710,7 @@
 <title>public.saved_providers:provider_id&#45;&gt;public.providers:id</title>
 <path fill="none" stroke="black" d="M5855.42,-1601.98C5864.1,-1533.11 5914.59,-1132.4 5914.59,-1132.4 5917.72,-1086.01 5962.08,-1027.8 5915.59,-1027.8"/>
 <polygon fill="black" stroke="black" points="5855.45,-1601.75 5849.74,-1611.11 5854.79,-1607.04 5854.25,-1611.34 5854.25,-1611.34 5854.25,-1611.34 5854.79,-1607.04 5858.67,-1612.23 5855.45,-1601.75"/>
-<text text-anchor="start" x="5861.16" y="-1622" font-family="Arial" font-size="10.00">FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT</text>
+<text text-anchor="start" x="5669.68" y="-1596" font-family="Arial" font-size="10.00">FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.reviews -->
 <g id="node30" class="node">
@@ -2025,7 +2025,7 @@
 <title>public.provider_schedules:provider_id&#45;&gt;public.providers:id</title>
 <path fill="none" stroke="black" d="M7099.57,-1703.18C6999.07,-1677.47 7139.94,-1251.58 7059.06,-1168.4 6969.83,-1076.62 6043.6,-1027.8 5915.59,-1027.8"/>
 <polygon fill="black" stroke="black" points="7099.44,-1703.17 7108.83,-1708.83 7104.74,-1703.8 7109.04,-1704.32 7109.04,-1704.32 7109.04,-1704.32 7104.74,-1703.8 7109.9,-1699.89 7099.44,-1703.17"/>
-<text text-anchor="start" x="6735.39" y="-1714.4" font-family="Arial" font-size="10.00">FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE</text>
+<text text-anchor="start" x="7116.7" y="-1714.4" font-family="Arial" font-size="10.00">FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.provider_weekly_hours -->
 <g id="node36" class="node">
@@ -2397,7 +2397,7 @@
 <title>public.service_open_days:listing_id&#45;&gt;public.listings:id</title>
 <path fill="none" stroke="black" d="M12545.45,-2472.53C12599.56,-2462.67 12574.83,-2371.17 12534.26,-2322.4 12131.39,-1838.18 11545.95,-2539.02 11142.38,-2055.4 11112.59,-2019.7 11094.89,-1950.8 11141.38,-1950.8"/>
 <polygon fill="black" stroke="black" points="12545.56,-2472.52 12535.21,-2468.89 12540.24,-2472.98 12535.92,-2473.34 12535.92,-2473.34 12535.92,-2473.34 12540.24,-2472.98 12535.97,-2477.86 12545.56,-2472.52"/>
-<text text-anchor="start" x="12362.16" y="-2457.4" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<text text-anchor="start" x="12542.26" y="-2483.4" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.service_open_days_refreshed -->
 <g id="node42" class="node">
@@ -2516,7 +2516,7 @@
 <title>public.support_messages:report_id&#45;&gt;public.support_reports:id</title>
 <path fill="none" stroke="black" d="M15485.07,-5901.85C15576.37,-5847.37 15456.54,-5000.88 15527.06,-4922 15592.22,-4849.12 15671.2,-4951.19 15744.06,-4886 15806.57,-4830.08 15711.52,-4704.4 15795.39,-4704.4"/>
 <polygon fill="black" stroke="black" points="15485.18,-5901.82 15474.34,-5900.18 15480.05,-5903.25 15475.88,-5904.42 15475.88,-5904.42 15475.88,-5904.42 15480.05,-5903.25 15476.77,-5908.84 15485.18,-5901.82"/>
-<text text-anchor="start" x="15482.23" y="-5914.6" font-family="Arial" font-size="10.00">FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT</text>
+<text text-anchor="start" x="15281.3" y="-5888.6" font-family="Arial" font-size="10.00">FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.support_notes -->
 <g id="node46" class="node">

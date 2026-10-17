@@ -229,6 +229,8 @@ select is((select array[(d ->> 'open_reports')::int, (d ->> 'urgent_reports')::i
 -- The board's search: the admin searches' words, % and _ literal.
 select tests.authenticate_as(:'owner');
 insert into support_reports (category, description) values ('safety', 'They asked for a 100% refund_now in cash, angrily.');
+-- ...and one that a "%" taken as "anything" would also match.
+insert into support_reports (category, description) values ('safety', 'They wanted 1000 dollars back in cash.');
 select tests.authenticate_as_admin(:'a1');
 select is((select count(*)::int from jsonb_array_elements(admin_support_board(p_q => '100%') -> 'columns' -> 'todo' -> 'rows')), 1,
   '10h. searching "100%" finds the report that says it, and only that one');

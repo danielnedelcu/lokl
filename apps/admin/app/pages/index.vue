@@ -51,6 +51,8 @@ const queues = computed(() => {
   const d = data.value;
   if (!d) return [];
   return [
+    { label: d.urgent_reports ? `Open problem reports (${count(d.urgent_reports)} urgent)` : "Open problem reports",
+      value: d.open_reports, to: "/reports", icon: d.urgent_reports ? "lucide:siren" : "lucide:life-buoy" },
     { label: "Open disputes", value: d.open_disputes, to: "/disputes", icon: "lucide:shield-alert" },
     { label: "Bookings that need attention", value: d.bookings_attention, to: "/bookings#attention-heading", icon: "lucide:triangle-alert" },
     { label: "Guide drafts", value: d.guide_drafts, to: "/content?status=draft", icon: "lucide:file-pen" },
