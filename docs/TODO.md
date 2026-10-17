@@ -421,8 +421,15 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   Request expiry, finishing an accept whose reply was lost, withdrawals and
   payouts all depend on it; until then jobs run with `npm run job`
   (docs/design/booking-and-checkout.md; moved to the top 2026-10-11).
+- [ ] **Service versions for the new projects**: when the staging and
+  production Supabase projects are created, compare their service versions
+  (`supabase services`, linked to each) with `supabase/service-versions.json`,
+  and make the file match production's. From then on `--check-hosted`
+  (`scripts/service-versions.mjs`, run first by `db:push`) checks
+  production, not the testing project.
 - [ ] Switch to branches and pull requests, with `checks` and `database` required to merge.
-- [ ] **CI doesn't run hosted's service versions** (found 2026-10-16). CI
+- [x] **CI doesn't run hosted's service versions** (found 2026-10-16; done
+  2026-10-17: `supabase/service-versions.json`, see CLAUDE.md). CI
   runs PostgREST 16.4 and Postgres 17.11.0.004, the CLI's defaults
   (`supabase/.temp` is ignored by git, so CI has no linked versions);
   hosted and local run PostgREST 14.5 and Postgres 17.6.1.166. Storage

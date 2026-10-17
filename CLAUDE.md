@@ -41,7 +41,8 @@ npm run dev -w admin          # localhost:3101
 npm run build:check           # check both apps build (own folders; safe beside npm run dev)
 npm run typecheck             # vue-tsc on both apps; must pass before committing
 npm run job -- <name>         # run one timed booking job against localhost:3100
-npm run db:test               # rebuild the local DB from migrations, run pgTAP tests
+npm run db:start              # start the local stack on hosted's service versions (supabase/service-versions.json)
+npm run db:test               # rebuild the local DB from migrations, run pgTAP tests (refuses a stack on other versions)
 npm run db:push               # db:test, then apply to hosted Supabase, then db:types + db:docs
 npm run db:types              # regenerate packages/types/src/database.ts from the local stack (after db:test)
 npm run db:types:check        # fails if database.ts differs from what the migrations generate (CI)
@@ -88,6 +89,15 @@ page then fails with a 500 until the dev server is restarted (seen
 2026-10-02). `npm run typecheck` is safe to run alongside the dev servers.
 
 `db:test` needs Docker running. It resets the **local** database only.
+
+**Hosted's service versions run everywhere** (2026-10-17):
+`supabase/service-versions.json` holds the Postgres, PostgREST, Auth and
+Storage versions hosted runs, and `scripts/service-versions.mjs` copies
+them into `supabase/.temp` before every `supabase start` (`db:start`, and
+CI). `db:test` refuses a running stack on other versions, and `db:push`
+fails first if hosted has moved: update the file in a commit of its own,
+restart the stack (`npx supabase stop`, `npm run db:start`) and run the
+full checks.
 
 ## Migrations
 

@@ -83,6 +83,8 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Hosted's service versions
+        run: node scripts/service-versions.mjs
       - name: Start the local Supabase stack
         run: supabase start -x "$SUPABASE_EXCLUDE"
       - name: Database tests (pgTAP)
@@ -145,6 +147,9 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Hosted's service versions
+        if: steps.key.outputs.run == 'true'
+        run: node scripts/service-versions.mjs
       - name: Start the local Supabase stack
         if: steps.key.outputs.run == 'true'
         run: supabase start -x "$SUPABASE_EXCLUDE"
@@ -195,6 +200,9 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Hosted's service versions
+        if: steps.key.outputs.run == 'true'
+        run: node scripts/service-versions.mjs
       - name: Start the local Supabase stack
         if: steps.key.outputs.run == 'true'
         run: supabase start -x "$SUPABASE_EXCLUDE"
