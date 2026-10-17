@@ -422,6 +422,22 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   payouts all depend on it; until then jobs run with `npm run job`
   (docs/design/booking-and-checkout.md; moved to the top 2026-10-11).
 - [ ] Switch to branches and pull requests, with `checks` and `database` required to merge.
+- [ ] **CI doesn't run hosted's service versions** (found 2026-10-16). CI
+  runs PostgREST 16.4 and Postgres 17.11.0.004, the CLI's defaults
+  (`supabase/.temp` is ignored by git, so CI has no linked versions);
+  hosted and local run PostgREST 14.5 and Postgres 17.6.1.166. Storage
+  differs in all three (hosted 1.80.2, local 1.77.5, CI 1.79.36). Next:
+  a tracked `supabase/service-versions.json` copied into `supabase/.temp`
+  before every `supabase start`, and `db:push` failing if hosted moves.
+  (`database.ts` states hosted's PostgREST 14.5, checked on hosted by
+  `db:types`.)
+- [ ] **Tests that depend on the time of day** have failed twice at
+  particular hours (for example, 2026-10-16: the search test's first
+  weekend night fell inside the notice late on a Friday in Atlanta).
+  Plan a fixed "now" for them: Playwright's
+  clock for the e2e journeys, and `p_now` (as `service_slots_at` takes)
+  for the slot functions in the app tests, so they don't depend on when
+  they run.
 - [ ] Run the end-to-end tests in WebKit (Safari's engine) too, against the
   staging site: it needs HTTPS. Production cookies are Secure, and WebKit
   refuses Secure cookies on plain-http localhost (Chromium accepts them), so

@@ -87,6 +87,8 @@ jobs:
         run: supabase start -x "$SUPABASE_EXCLUDE"
       - name: Database tests (pgTAP)
         run: npm run db:test
+      - name: database.ts matches the migrations
+        run: npm run db:types:check
       - name: Build check
         run: npm run build:check
       - name: Start both apps against the local stack

@@ -7,7 +7,11 @@ import type { Tables } from "./database";
 // database refuses.
 
 export type Guide = Tables<"guides">;
-export type GuidePhoto = Tables<"guide_photos">;
+// A guide photo as the table stores it. (The generated row also lists
+// public_guide_photo_json, a function PostgREST offers as a computed field;
+// a plain select never returns it, and its recursive Json type is too deep
+// for Vue's ref.)
+export type GuidePhoto = Omit<Tables<"guide_photos">, "public_guide_photo_json">;
 export type GuideVersion = Tables<"guide_versions">;
 
 export const GUIDE_TITLE_MAX = 120;

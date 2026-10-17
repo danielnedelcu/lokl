@@ -277,7 +277,7 @@ export async function writeGuideDraft(
     .update({
       draft_title: title,
       draft_teaser: teaser,
-      draft_body: body as unknown as Json,
+      draft_body: body as unknown as NonNullable<Json>,
       draft_area_id: req.areaId ?? null,
       draft_category_id: req.categoryId ?? null,
       // A category belongs to one kind; otherwise the draft's choice stays.
@@ -328,7 +328,7 @@ export async function restorePreviousDraft(db: Db, opts: { guideId: string; logI
     throw new GuideDraftError(409, "Only the latest AI draft can be undone, and only once.");
   }
   const p = latest.previous_draft as {
-    title: string; teaser: string; body: Json; area_id: string | null; category_id: string | null;
+    title: string; teaser: string; body: NonNullable<Json>; area_id: string | null; category_id: string | null;
     listing_kind: string | null; pending_review: boolean; reviewed_by: string | null; reviewed_at: string | null;
   };
   const { data: rows, error: wErr } = await db
