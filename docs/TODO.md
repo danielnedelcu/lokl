@@ -181,8 +181,16 @@ Each step depends on the ones before it.
      outbox, the limits (Safety never refused), the lists and the board's
      paging and search; pgTAP `support_reports.test.sql`. The bell already
      shows lokl's replies (journey 29).
-   - [ ] Phase 2: the provider's side (Help list, form, report page,
-     replies, "This is sorted", live replies, the reply email).
+   - [x] Phase 2, the provider's side (2026-10-17): Help in the menu with
+     the waiting count, `/dashboard/help` (paged), the form (911 line
+     always, booking search by customer name), each report's page (status
+     in words, thread, reply, "This is sorted" except Safety, "Start a new
+     report about this" after 30 days, lokl's replies live through the
+     bell's notification); the routes, and the emails sent at once
+     (`sendSupportEmails`, no message text). App test
+     `support-reports.test.mts`; journey 29.
+   - [ ] The admin emails link to `/reports/<id>` in the admin app, which
+     phase 3 builds: until then the link is a dead end.
    - [ ] Phase 3: the admin's side (board, report page, notes, the admin
      bell and emails, the dashboard count).
 3. [x] **Reviews and star ratings** (docs/design/reviews.md, built

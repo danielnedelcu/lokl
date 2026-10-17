@@ -15,9 +15,9 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { marketZone } from "@repo/types";
+import { marketZone, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderEmail, renderProviderAccountEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail } from "./bookingEmailTemplates";
+import { renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -179,7 +179,7 @@ async function providerEmail(db: SupabaseClient, ownerId: string | undefined) {
   return data.user?.email ?? null;
 }
 
-type OutboxTable = "booking_emails" | "provider_emails";
+type OutboxTable = "booking_emails" | "provider_emails" | "support_emails";
 
 async function finish(db: SupabaseClient, table: OutboxTable, id: string, update: Record<string, unknown>) {
   // Resend's messages can quote an address; the row keeps only its id.
@@ -370,6 +370,53 @@ export async function sendProviderEmails(
       return {
         to,
         email: renderProviderAccountEmail(row.kind, { siteUrl: settings.siteUrl, businessName: p.display_name, message: row.message, removed: row.removed, rule: row.rule }),
+      };
+    },
+  });
+}
+
+/**
+ * Sends the problem reports' emails that are due (docs/design/problem-reports.md):
+ * lokl's reply to the provider's owner, and a new report or a reply to each
+ * admin login (skipped if it's no longer an admin). Never the message text.
+ * Never throws.
+ */
+export async function sendSupportEmails(
+  db: SupabaseClient,
+  mailer: Mailer | null,
+  settings: EmailSettings,
+  opts: { adminUrl: string; reportId?: string; now?: Date; limit?: number },
+): Promise<SendResult> {
+  type SupportRow = OutboxRow & { report_id: string; kind: SupportEmailKind; provider_id: string | null; admin_id: string | null };
+  return runOutbox<SupportRow>(db, mailer, settings, {
+    table: "support_emails",
+    columns: "id, report_id, kind, provider_id, admin_id, status, attempts, locked_at, created_at",
+    keyPrefix: "support-email",
+    narrow: opts.reportId ? (q) => q.eq("report_id", opts.reportId) : undefined,
+    now: opts.now,
+    limit: opts.limit,
+    prepare: async (row) => {
+      const { data: r, error } = await db.from("support_reports")
+        .select("id, category, provider:providers(display_name, owner_id)").eq("id", row.report_id).single();
+      if (error) throw new Error(error.message);
+      const report = r as unknown as { id: string; category: SupportCategory; provider: { display_name: string; owner_id: string } };
+      let to: string | null;
+      if (row.kind === "provider_support_reply") {
+        to = await providerEmail(db, report.provider.owner_id);
+      } else {
+        if (!row.admin_id) return { skip: "No admin named." };
+        if (!opts.adminUrl) return { skip: "NUXT_ADMIN_ORIGIN isn't set, so there's no link to the report." };
+        const { data: u, error: userError } = await db.auth.admin.getUserById(row.admin_id);
+        if (userError || !u.user) return { skip: "That admin login no longer exists." };
+        if (u.user.app_metadata?.role !== "admin") return { skip: "No longer an admin." };
+        to = u.user.email ?? null;
+      }
+      return {
+        to,
+        email: renderSupportEmail(row.kind, {
+          siteUrl: settings.siteUrl, adminUrl: opts.adminUrl.replace(/\/$/, ""), reportId: report.id,
+          businessName: report.provider.display_name, category: report.category,
+        }),
       };
     },
   });

@@ -201,6 +201,13 @@ export class TestData {
       alter table public.bookings enable trigger bookings_guard;`]);
   }
 
+  /** Test-only: a problem report resolved `days` days ago (triggers off, local database). */
+  resolvedDaysAgo(reportId: string, days: number) {
+    execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
+      set session_replication_role = replica;
+      update public.support_reports set status = 'done', resolved_at = now() - interval '${Number(days)} days' where id = '${reportId}';`]);
+  }
+
   /**
    * Test-only: a booking that took place, `endedDaysAgo` days ago, and was
    * completed by the pay-out job (so the review request is queued), with no

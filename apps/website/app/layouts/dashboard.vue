@@ -3,6 +3,17 @@ const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 const { data: provider } = await useProvider();
 
+// Reports waiting for the provider's reply, beside "Help"; a reply from lokl
+// (a notification) or coming back to the tab updates it.
+const { data: waitingReports, refresh: refreshWaiting } = await useAsyncData("support-waiting", async () => {
+  if (!provider.value) return 0;
+  const { count } = await supabase.from("support_reports").select("id", { count: "exact", head: true }).eq("status", "waiting");
+  return count ?? 0;
+}, { watch: [() => provider.value?.id] });
+useLiveData({ refresh: refreshWaiting });
+onSupportReportChanged(() => void refreshWaiting());
+const waitingLabel = (n: number) => `${n} ${n === 1 ? "report" : "reports"} waiting for your reply`;
+
 // A provider's links; someone with no business yet (often a customer) gets
 // the setup page and their own bookings instead (found 2026-10-03).
 const sections = computed(() => [{ items: provider.value
@@ -15,6 +26,7 @@ const sections = computed(() => [{ items: provider.value
       { to: "/dashboard/reviews", label: "Reviews", icon: "lucide:star" },
       { to: "/dashboard/payouts", label: "Payouts", icon: "lucide:wallet" },
       { to: "/dashboard/settings", label: "Business profile", icon: "lucide:settings" },
+      { to: "/dashboard/help", label: "Help", icon: "lucide:life-buoy", count: waitingReports.value ?? 0, countLabel: waitingLabel(waitingReports.value ?? 0) },
     ]
   : [
       { to: "/dashboard", label: "Overview", icon: "lucide:layout-dashboard" },

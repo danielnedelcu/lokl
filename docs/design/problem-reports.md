@@ -1,6 +1,6 @@
 # Problem reports: providers tell lokl, the admin tracks them
 
-Status: **approved** (2026-10-17, with the decisions below). Phase 1 (data) built and pushed 2026-10-17 (migration `support_reports`); phase 2 next.
+Status: **approved** (2026-10-17, with the decisions below). Phase 1 (data) built and pushed 2026-10-17 (migration `support_reports`); phase 2 (the provider's side) built 2026-10-17; phase 3 next.
 
 Providers report a problem to lokl from their dashboard and follow it to
 the end; the admin works the reports on a board. Customers reporting
@@ -69,9 +69,11 @@ form):
   "What happened, when, and what you'd like us to do."
 - **Which listing?** (optional) Their own listings, by title
   (`SelectInput`, "None").
-- **Which booking?** (optional) Their own bookings, searched on the server
-  by customer name or date (`SearchSelect`), shown as "Sat, Oct 18, 10:00
-  AM (Atlanta time), Jordan". Choosing a booking fills in its listing.
+- **Which booking?** (optional) Their own bookings, newest first, searched
+  on the server by the customer's name (`SearchSelect`, 20 at a time),
+  shown as "Sat, Oct 18, 10:00 AM (Atlanta time), Jordan" with the
+  listing beneath. Choosing a booking fills in its listing. (Searching by
+  date was left out: the name is what providers remember.)
 - **Send report.** Then the report's page, with a toast: "We've got your
   report. We'll reply here." For Safety: "We've got your report and we've
   told the team now."

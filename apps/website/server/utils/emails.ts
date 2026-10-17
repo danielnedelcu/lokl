@@ -7,18 +7,20 @@ import type { ServerEvent } from "./provider";
 export function bookingEmailDeps() {
   const config = useRuntimeConfig();
   const settings = emailSettings(config, config.public.siteUrl);
-  return { settings, mailer: config.resendApiKey ? resendMailer(config.resendApiKey) : null };
+  // Admins' emails link to the admin app (its exact address, NUXT_ADMIN_ORIGIN).
+  return { settings, mailer: config.resendApiKey ? resendMailer(config.resendApiKey) : null, adminUrl: config.adminOrigin || "" };
 }
 
 export function kickBookingEmails(event: ServerEvent, bookingId?: string) {
-  const { settings, mailer } = bookingEmailDeps();
+  const { settings, mailer, adminUrl } = bookingEmailDeps();
   const db = serverSupabaseServiceRole(event);
-  // Booking emails, then any provider account emails waiting (paused,
-  // active again), which are few.
+  // Booking emails, then any provider account emails and problem reports'
+  // emails waiting (a Safety report's go out here, at once), which are few.
   const run = sendBookingEmails(db, mailer, settings, { bookingId, limit: 20 })
     .then(async (r) => {
       const p = await sendProviderEmails(db, mailer, settings, { limit: 10 });
-      for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k]);
+      const s = await sendSupportEmails(db, mailer, settings, { adminUrl, limit: 20 });
+      for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k], ...s[k]);
       return r;
     })
     .then((r) => {

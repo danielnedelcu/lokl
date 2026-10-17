@@ -116,6 +116,14 @@ try {
   check(state?.role === "customer", "2b. review_state for the customer");
   const sessions = await read(owner.client, "listing_sessions_page", { p_listing_id: walk, p_past: false, p_page: 1, p_page_size: 50 });
   check(sessions.items[0]?.booked === 2, "2c. listing_sessions_page: the session's booked people");
+  // A problem report about their Service, waiting for their reply.
+  const report = (await must(db.from("support_reports").insert({
+    provider_id: created.provider, category: "listing", description: "The shapes test's report about a listing.", listing_id: service,
+  }).select("id").single())).id;
+  await must(db.from("support_reports").update({ status: "waiting" }).eq("id", report).select("id"));
+  const reports = await read(owner.client, "my_support_reports", { p_page: 1, p_page_size: 20 });
+  check(reports.waiting === 1 && reports.rows[0]?.id === report && reports.rows[0]?.listing?.id === service && reports.rows[0]?.booking === null,
+    "2d. my_support_reports: the provider's report, its listing, and the waiting count");
 
   // 3. The admin, including the three reads nothing else ran.
   const picker = await read(admin.client, "admin_providers_page", { p_q: `Shapes ${run}`, p_sort: "name", p_desc: false, p_page_size: 20 });
@@ -149,6 +157,10 @@ try {
   if (created.listings.length) {
     const ids = created.listings.map((i) => `'${i}'`).join(",");
     psql(`set local session_replication_role = replica;
+      delete from public.support_emails where report_id in (select id from public.support_reports where listing_id in (${ids}));
+      delete from public.admin_notifications where report_id in (select id from public.support_reports where listing_id in (${ids}));
+      delete from public.support_report_events where report_id in (select id from public.support_reports where listing_id in (${ids}));
+      delete from public.support_reports where listing_id in (${ids});
       delete from public.saved_listings where listing_id in (${ids});
       delete from public.booking_emails where booking_id in (select id from public.bookings where listing_id in (${ids}));
       delete from public.booking_events where booking_id in (select id from public.bookings where listing_id in (${ids}));

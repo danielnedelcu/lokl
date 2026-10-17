@@ -66,12 +66,13 @@ export default defineEventHandler(async (event) => {
     // send-emails: retry what's due. Every other job then sends the emails
     // its changes queued, so they don't wait for the next send-emails run.
     if (name === "send-emails") {
-      const { settings, mailer } = bookingEmailDeps();
+      const { settings, mailer, adminUrl } = bookingEmailDeps();
       const r = await sendBookingEmails(db, mailer, settings, { bookingId: opts.bookingId, limit: 200 });
       if (!opts.bookingId) {
         const p = await sendProviderEmails(db, mailer, settings, { limit: 50 });
-        for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k]);
-        r.more ||= p.more;
+        const s = await sendSupportEmails(db, mailer, settings, { adminUrl, limit: 50 });
+        for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k], ...s[k]);
+        r.more ||= p.more || s.more;
       }
       result = {
         job: name, checked: r.sent.length + r.retrying.length + r.failed.length + r.skipped.length,

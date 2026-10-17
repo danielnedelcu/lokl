@@ -41,6 +41,10 @@
     "adminBooking:declined": "destructive",
     "providerBooking:requested": "default",
     "providerBooking:confirmed": "secondary",
+    "supportReport:waiting": "default",
+    "supportReport:in_progress": "secondary",
+    "supportBoard:waiting": "secondary",
+    "supportBoard:in_progress": "secondary",
   };
 
   const label = computed(() => statusLabel(props.kind, props.status));

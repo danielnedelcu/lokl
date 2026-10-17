@@ -126,6 +126,26 @@ export const reviewStateShape = z.object({
   }).nullable(),
 }).nullable();
 
+/** The provider's problem reports, a page at a time (my_support_reports). */
+export const mySupportReportsShape = z.object({
+  total: count,
+  waiting: count,
+  rows: z.array(z.object({
+    id,
+    category: z.enum(["booking", "payments", "listing", "website", "safety", "other"]),
+    urgent: z.boolean(),
+    excerpt: z.string(),
+    status: z.enum(["todo", "in_progress", "waiting", "done"]),
+    status_changed_at: time,
+    resolved_at: time.nullable(),
+    last_message_at: time,
+    last_message_from: z.enum(["provider", "admin"]),
+    created_at: time,
+    listing: z.object({ id, title: z.string() }).nullable(),
+    booking: z.object({ id, starts_at: time.nullable() }).nullable(),
+  })),
+});
+
 // ---- Jobs ------------------------------------------------------------------------
 
 export const refreshStaleServiceOpenDaysShape = z.object({ refreshed: count, more_waiting: z.boolean() });
@@ -259,6 +279,7 @@ export const RPC_SHAPES = {
   admin_reviews_page: adminReviewsPageShape,
   listing_sessions_page: listingSessionsPageShape,
   my_saved: mySavedShape,
+  my_support_reports: mySupportReportsShape,
   public_browse: publicBrowseShape,
   public_category_counts: publicCategoryCountsShape,
   public_guide: publicGuideShape,
@@ -279,3 +300,5 @@ export type ListingSessionsPage = z.infer<typeof listingSessionsPageShape>;
 export type ListingSessionRow = ListingSessionsPage["items"][number];
 export type MySavedRows = z.infer<typeof mySavedShape>;
 export type ReviewState = NonNullable<z.infer<typeof reviewStateShape>>;
+export type MySupportReports = z.infer<typeof mySupportReportsShape>;
+export type MySupportReportRow = MySupportReports["rows"][number];

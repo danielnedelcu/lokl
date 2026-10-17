@@ -5,6 +5,10 @@ export interface DashboardNavItem {
   to: string;
   label: string;
   icon: string;
+  /** A number shown beside it (e.g. reports waiting for a reply); 0 shows nothing. */
+  count?: number;
+  /** What the number means, for screen readers: "1 report waiting for your reply". */
+  countLabel?: string;
 }
 export interface DashboardNavSection {
   /** Heading above the group; leave out for a single ungrouped list. */
@@ -46,10 +50,12 @@ const current = computed(() => {
         exact-active-class=""
         :class="item.to === current && activeClass"
         :aria-current="item.to === current ? 'page' : undefined"
+        :aria-label="item.count ? `${item.label}, ${item.countLabel ?? item.count}` : undefined"
         @click="emit('navigate')"
       >
         <Icon :name="item.icon" class="size-4" aria-hidden="true" />
         {{ item.label }}
+        <span v-if="item.count" aria-hidden="true" class="bg-primary text-primary-foreground ml-auto rounded-full px-2 text-xs leading-5 font-semibold">{{ item.count }}</span>
       </NuxtLink>
     </div>
   </nav>

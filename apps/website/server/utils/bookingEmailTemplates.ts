@@ -11,7 +11,7 @@
 // Plain TypeScript with no Nuxt imports: the sender, the tests and
 // `npm run email:previews` all use these same functions.
 
-import { customerCancelOutcome, PROFILE_RULES, REVIEW_RULES, type ProfileRule, type ReviewRule } from "@repo/types";
+import { customerCancelOutcome, PROFILE_RULES, REVIEW_RULES, SUPPORT_CATEGORY_ABOUT, type ProfileRule, type ReviewRule, type SupportCategory } from "@repo/types";
 
 export const EMAIL_KINDS = [
   "customer_request_sent", "customer_request_accepted", "customer_request_declined", "customer_request_expired",
@@ -117,7 +117,7 @@ interface Parts {
   message?: string | null;
   button: { label: string; url: string };
   link?: { label: string; url: string };
-  recipient: "customer" | "provider" | "account";
+  recipient: "customer" | "provider" | "account" | "admin";
 }
 
 function render(p: Parts): RenderedEmail {
@@ -125,7 +125,9 @@ function render(p: Parts): RenderedEmail {
     ? "You're getting this because of a booking on lokl."
     : p.recipient === "provider"
       ? "You're getting this because of a booking on your lokl listing."
-      : "You're getting this because you have a provider account on lokl.";
+      : p.recipient === "admin"
+        ? "You're getting this because you're a lokl admin."
+        : "You're getting this because you have a provider account on lokl.";
   const footer = ["Questions? Reply to this email.", "lokl · Services and Experiences from local people in Atlanta.", why];
 
   const text = [
@@ -533,5 +535,52 @@ export function renderProviderAccountEmail(
     after: ["Payouts that were held while your account was paused stay on hold while we review them. We'll email you when each one is sent."],
     message,
     button,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Problem reports' emails (support_emails; docs/design/problem-reports.md):
+// lokl's reply to the provider, and a new report (urgent for Safety) or a
+// provider's reply to each admin. Never the description or a message: only
+// that there's something to read, and where.
+// ---------------------------------------------------------------------------
+
+export type SupportEmailKind = "provider_support_reply" | "admin_support_new" | "admin_support_safety" | "admin_support_reply";
+
+export function renderSupportEmail(
+  kind: SupportEmailKind,
+  c: { siteUrl: string; adminUrl: string; reportId: string; businessName: string; category: SupportCategory },
+): RenderedEmail {
+  const about = SUPPORT_CATEGORY_ABOUT[c.category];
+  const adminButton = { label: "Open the report", url: `${c.adminUrl}/reports/${c.reportId}` };
+  if (kind === "provider_support_reply") {
+    return render({
+      recipient: "account",
+      subject: "lokl replied to your report",
+      intro: [`lokl replied to your report about ${about}.`, "Read it, and reply if you need to, in your dashboard."],
+      button: { label: "Read the reply", url: `${c.siteUrl}/dashboard/help/${c.reportId}` },
+    });
+  }
+  if (kind === "admin_support_safety") {
+    return render({
+      recipient: "admin",
+      subject: `Urgent: a safety report from ${c.businessName}`,
+      intro: [`${c.businessName} sent a safety report. Please read it now.`, "The form told them to call 911 first if anyone is in danger."],
+      button: adminButton,
+    });
+  }
+  if (kind === "admin_support_new") {
+    return render({
+      recipient: "admin",
+      subject: `New problem report from ${c.businessName}`,
+      intro: [`${c.businessName} reported a problem about ${about}.`],
+      button: adminButton,
+    });
+  }
+  return render({
+    recipient: "admin",
+    subject: `${c.businessName} replied to their report`,
+    intro: [`${c.businessName} replied to their report about ${about}.`],
+    button: adminButton,
   });
 }

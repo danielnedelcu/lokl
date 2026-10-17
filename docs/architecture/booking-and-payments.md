@@ -842,6 +842,19 @@ Provider account emails (paused or active again) are a separate outbox,
 `provider_emails`, written by `admin_set_provider_status`
 ([provider_account_emails](../../supabase/migrations/20261003013910_provider_account_emails.sql)).
 
+Problem reports' emails are a third outbox, `support_emails`
+([support_reports](../../supabase/migrations/20261017053502_support_reports.sql);
+docs/design/problem-reports.md), written by the reports' triggers and
+sent by `sendSupportEmails` with the same claiming and retries (key
+`support-email-<row id>`). The kinds are lokl's reply (`provider_support_reply`)
+to the provider's owner, and a new report, an urgent Safety report or a
+provider's reply (`admin_support_new`, `admin_support_safety`,
+`admin_support_reply`) to each admin login. A row for a login that's no
+longer an admin, or with no admin app address (`NUXT_ADMIN_ORIGIN`), is
+`skipped`. No email carries the description or a message. The provider's
+report routes send at once through `kickBookingEmails`, which now sends
+this outbox too, and the `send-emails` job sweeps it with the other two.
+
 ### Notifications (the provider's bell)
 
 | Kind | Inserted by | When |
@@ -850,6 +863,7 @@ Provider account emails (paused or active again) are a separate outbox,
 | `booking_confirmed` | the same | an Experience is paid |
 | `booking_cancelled` | the same | a request or booking is cancelled by someone other than the provider |
 | `booking_problem_reported` | trigger `bookings_notify_problem` | a no-show report |
+| `support_reply` | trigger `support_notify` | lokl replies to the provider's problem report (no listing: it reads by the report's category) |
 | `review_posted` | trigger `reviews_notify_provider` | a review of the booking is posted (docs/design/reviews.md) |
 
 Listing kinds (approved, sent back and so on) come from

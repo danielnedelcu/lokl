@@ -1,3 +1,5 @@
+import { SUPPORT_STATUSES, SUPPORT_STATUS_FOR_ADMIN, SUPPORT_STATUS_FOR_PROVIDER, type SupportStatus } from "@repo/types";
+
 // The one place status labels are defined (docs/frontend.md): StatusBadge
 // draws them, and searches match the same words people see.
 export const STATUS_LABELS = {
@@ -52,6 +54,11 @@ export const STATUS_LABELS = {
     completed: "Done",
     paid_out: "Paid out",
   },
+  // Problem reports, as the provider sees them, and as the admin's board
+  // names its columns (docs/design/problem-reports.md; the words live in
+  // @repo/types, beside each status's sentence).
+  supportReport: Object.fromEntries(SUPPORT_STATUSES.map((s) => [s, SUPPORT_STATUS_FOR_PROVIDER[s].label])) as Record<SupportStatus, string>,
+  supportBoard: SUPPORT_STATUS_FOR_ADMIN,
 } as const;
 
 export type StatusKind = keyof typeof STATUS_LABELS;
