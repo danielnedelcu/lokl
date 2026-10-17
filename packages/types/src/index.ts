@@ -18,3 +18,4 @@ export * from "./search";
 export * from "./availability";
 export * from "./rpcShapes";
 export * from "./rpcJson";
+export * from "./support";

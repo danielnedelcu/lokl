@@ -16,3 +16,20 @@ export function onListingChanged(listener: Listener) {
   if (getCurrentScope()) onScopeDispose(() => listeners.delete(listener));
   return () => listeners.delete(listener);
 }
+
+// The same for a problem report (docs/design/problem-reports.md): the bells
+// announce each notification's report, and an open report page reloads its
+// thread through its read rules, so a reply appears without Realtime ever
+// carrying the message's text.
+const reportListeners = new Set<Listener>();
+
+export function announceSupportReportChanged(reportId: string) {
+  for (const listener of reportListeners) listener(reportId);
+}
+
+/** Calls `listener` whenever a problem report changes, until the calling component unmounts. */
+export function onSupportReportChanged(listener: Listener) {
+  reportListeners.add(listener);
+  if (getCurrentScope()) onScopeDispose(() => reportListeners.delete(listener));
+  return () => reportListeners.delete(listener);
+}

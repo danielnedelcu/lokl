@@ -296,6 +296,20 @@ export class TestData {
   }
 
   async cleanup() {
+    // Problem reports point at the providers, listings and bookings, so they
+    // go first (never deleted in real use; the guards are off here, locally).
+    if (this.providers.length) {
+      const ids = this.providers.map((i) => `'${i}'`).join(",");
+      execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
+        set session_replication_role = replica;
+        delete from notifications where support_report_id in (select id from support_reports where provider_id in (${ids}));
+        delete from admin_notifications where report_id in (select id from support_reports where provider_id in (${ids}));
+        delete from support_emails where report_id in (select id from support_reports where provider_id in (${ids}));
+        delete from support_notes where report_id in (select id from support_reports where provider_id in (${ids}));
+        delete from support_messages where report_id in (select id from support_reports where provider_id in (${ids}));
+        delete from support_report_events where report_id in (select id from support_reports where provider_id in (${ids}));
+        delete from support_reports where provider_id in (${ids});`]);
+    }
     for (const id of this.guides) await this.env.db.from("guides").delete().eq("id", id).is("published_at", null);
     if (this.publishedGuides.length) {
       const ids = this.publishedGuides.map((i) => `'${i}'`).join(",");

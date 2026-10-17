@@ -1,26 +1,32 @@
 <script setup lang="ts">
-import { bellLabel, notificationText, unreadBadge, type NotificationKind } from "@repo/types";
+import { SUPPORT_CATEGORY_ABOUT, bellLabel, notificationText, unreadBadge, type NotificationKind, type SupportCategory } from "@repo/types";
 
 // The provider dashboard's notification bell (docs/design/notifications.md).
 // Lists the 20 most recent, counts all unread, updates live through
 // createNotificationFeed(), and tells open pages when a listing changed
-// (announceListingChanged), so they refresh.
+// (announceListingChanged), so they refresh. A reply to a problem report has
+// no listing: it reads by the report's category, leads to the report, and
+// tells an open report page to reload its thread (announceSupportReportChanged).
 const props = defineProps<{
   providerId: string;
   /** Where a notification leads, e.g. (id) => `/dashboard/listings/${id}`. */
   listingPath: (listingId: string) => string;
   /** Where a booking notification leads, e.g. (id) => `/dashboard/bookings/${id}`. */
   bookingPath?: (bookingId: string) => string;
+  /** Where a reply to a problem report leads, e.g. (id) => `/dashboard/help/${id}`. */
+  supportPath?: (reportId: string) => string;
 }>();
 
 interface Item {
   id: string;
   kind: NotificationKind;
-  listing_id: string;
+  listing_id: string | null;
   booking_id: string | null;
+  support_report_id: string | null;
   created_at: string;
   read_at: string | null;
   listing: { title: string } | null;
+  support_report: { category: SupportCategory } | null;
 }
 
 const supabase = useSupabaseClient();
@@ -30,13 +36,15 @@ const loadFailed = ref(false);
 const announcement = ref("");
 const open = ref(false);
 
-const textOf = (n: Item) => notificationText(n.kind, n.listing?.title ?? "Your listing");
+const textOf = (n: Item) => notificationText(n.kind, n.kind === "support_reply"
+  ? (n.support_report ? SUPPORT_CATEGORY_ABOUT[n.support_report.category] : "a problem")
+  : n.listing?.title ?? "Your listing");
 
 async function load() {
   const [recent, count] = await Promise.all([
     supabase
       .from("notifications")
-      .select("id, kind, listing_id, booking_id, created_at, read_at, listing:listings(title)")
+      .select("id, kind, listing_id, booking_id, support_report_id, created_at, read_at, listing:listings(title), support_report:support_reports(category)")
       .eq("provider_id", props.providerId)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -68,7 +76,8 @@ function start() {
       await load();
       const item = items.value.find((n) => n.id === row.id);
       if (item) announcement.value = `New notification: ${textOf(item)}`;
-      announceListingChanged(row.listing_id);
+      if (row.listing_id) announceListingChanged(row.listing_id);
+      if (row.support_report_id) announceSupportReportChanged(row.support_report_id);
     },
     onProblem: (message) => console.warn("[notifications]", message),
     onStatus: (message) => console.info("[notifications]", message),
@@ -105,7 +114,11 @@ async function markAllRead() {
 async function openItem(n: Item) {
   if (!n.read_at) void markRead([n.id]);
   open.value = false;
-  await navigateTo(n.booking_id && props.bookingPath ? props.bookingPath(n.booking_id) : props.listingPath(n.listing_id));
+  const to = n.support_report_id && props.supportPath ? props.supportPath(n.support_report_id)
+    : n.booking_id && props.bookingPath ? props.bookingPath(n.booking_id)
+    : n.listing_id ? props.listingPath(n.listing_id)
+    : null;
+  if (to) await navigateTo(to);
 }
 
 const label = computed(() => bellLabel(unread.value));

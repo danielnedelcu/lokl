@@ -49,7 +49,7 @@ async function signOut() {
       <header class="flex h-14 items-center justify-between gap-2 border-b border-border bg-card px-2 md:justify-end md:px-8">
         <DashboardMobileMenu title="lokl" :sections="sections" exact-root="/dashboard" :email="user?.email" @sign-out="signOut" />
         <ClientOnly>
-          <NotificationBell v-if="provider" :provider-id="provider.id" :listing-path="(id) => `/dashboard/listings/${id}`" :booking-path="(id) => `/dashboard/bookings/${id}`" />
+          <NotificationBell v-if="provider" :provider-id="provider.id" :listing-path="(id) => `/dashboard/listings/${id}`" :booking-path="(id) => `/dashboard/bookings/${id}`" :support-path="(id) => `/dashboard/help/${id}`" />
         </ClientOnly>
       </header>
       <!-- id and tabindex: focus lands here after signing in to come here ("Get started"). -->

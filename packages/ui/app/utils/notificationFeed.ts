@@ -17,12 +17,17 @@
 //   so is one found not joined when the tab becomes visible again (browsers
 //   slow timers in hidden tabs, so the heartbeat can lapse).
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
+import type { NotificationKind } from "@repo/types";
 
+// A row as Realtime sends it: ids only, never text. A reply to a problem
+// report has no listing.
 export interface NotificationRow {
   id: string;
   provider_id: string;
-  kind: "listing_approved" | "listing_rejected" | "listing_unpublished" | "listing_restored";
-  listing_id: string;
+  kind: NotificationKind;
+  listing_id: string | null;
+  booking_id: string | null;
+  support_report_id: string | null;
   created_at: string;
   read_at: string | null;
 }
