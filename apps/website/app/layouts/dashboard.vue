@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const supabase = useSupabaseClient();
+// The top bar stays put, so a jump to a heading stops below it.
+useHead({ htmlAttrs: { class: "scroll-pt-16" } });
 const user = useSupabaseUser();
 const { data: provider } = await useProvider();
 
@@ -44,13 +46,17 @@ async function signOut() {
 
 <template>
   <div class="flex min-h-screen bg-muted text-foreground">
-    <aside class="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
+    <!-- The sidebar and the top bar stay put while the page scrolls (2026-10-17);
+         the email and "Sign out" stay at the bottom of the screen. -->
+    <aside class="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col self-start border-r border-border bg-card md:flex">
       <NuxtLink to="/" class="px-5 py-5 text-sm font-semibold tracking-tight">Home</NuxtLink>
-      <div class="px-3">
+      <!-- The menu scrolls inside the sidebar if it's taller than the screen
+           (data-lenis-prevent: the smooth scrolling leaves it alone). -->
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3" data-lenis-prevent>
         <!-- "/dashboard" prefixes every route here, so Overview only highlights on an exact match. -->
         <DashboardNav :sections="sections" exact-root="/dashboard" />
       </div>
-      <div class="mt-auto border-t border-border px-5 py-4 text-sm">
+      <div class="shrink-0 border-t border-border px-5 py-4 text-sm">
         <p class="truncate text-muted-foreground">{{ user?.email }}</p>
         <button type="button" class="mt-1 font-medium" @click="signOut">Sign out</button>
       </div>
@@ -58,7 +64,7 @@ async function signOut() {
 
     <div class="flex min-w-0 flex-1 flex-col">
       <!-- Top bar: the phone menu on the left (hidden from md up), notifications on the right. -->
-      <header class="flex h-14 items-center justify-between gap-2 border-b border-border bg-card px-2 md:justify-end md:px-8">
+      <header class="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-card px-2 md:justify-end md:px-8">
         <DashboardMobileMenu title="lokl" :sections="sections" exact-root="/dashboard" :email="user?.email" @sign-out="signOut" />
         <ClientOnly>
           <NotificationBell v-if="provider" :provider-id="provider.id" :listing-path="(id) => `/dashboard/listings/${id}`" :booking-path="(id) => `/dashboard/bookings/${id}`" :support-path="(id) => `/dashboard/help/${id}`" />

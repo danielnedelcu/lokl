@@ -635,6 +635,9 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
 - [ ] Manual check on the hosted project: leave a provider tab in the
   background for 75 minutes, then take a listing down; the bell updates.
 - [ ] Cleanup job: delete read notifications older than six months.
+- [ ] Notification history beyond the 20 newest (See all / Show older), if
+  providers or admins ask for it. Both bells load the newest 20 and count
+  every unread one in the database (2026-10-17).
 - [ ] Admin notifications, such as new Experiences waiting for review (also
   makes the review queue update live).
 - [ ] Email providers when a listing is approved, rejected or unpublished.

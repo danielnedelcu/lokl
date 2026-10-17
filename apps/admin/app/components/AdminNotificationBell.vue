@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { adminNotificationText, bellLabel, unreadBadge, type AdminNotificationKind, type SupportCategory } from "@repo/types";
+import { adminNotificationText, bellLabel, type AdminNotificationKind, type SupportCategory } from "@repo/types";
 import type { AdminNotificationRow } from "@repo/ui/app/utils/notificationFeed";
 
 // The admin's bell (docs/design/problem-reports.md, Notifications): a new
@@ -96,43 +96,16 @@ onBeforeUnmount(() => feed?.stop());
 useLiveData({ refresh: load });
 
 const label = computed(() => bellLabel(unread.value));
+const panelItems = computed(() => items.value.map((n) => ({
+  id: n.id, text: textOf(n), unread: !n.read_at, urgent: n.kind === "support_safety", age: formatAge(n.created_at),
+})));
 </script>
 
 <template>
   <div class="relative">
-    <UiDropdownMenu v-model:open="open">
-      <UiDropdownMenuTrigger as-child>
-        <UiButton variant="ghost" size="icon-touch" :aria-label="label" class="relative">
-          <Icon name="lucide:bell" class="size-5" aria-hidden="true" />
-          <span v-if="unread > 0" aria-hidden="true"
-            class="bg-success text-success-foreground absolute top-1 right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] leading-none font-semibold">
-            {{ unreadBadge(unread) }}
-          </span>
-        </UiButton>
-      </UiDropdownMenuTrigger>
-      <UiDropdownMenuContent align="end" class="w-[min(24rem,calc(100vw-2rem))] p-0">
-        <div class="border-border flex items-center justify-between gap-2 border-b px-3 py-2">
-          <p class="text-sm font-semibold">Notifications</p>
-        </div>
-        <UiDropdownMenuItem v-if="unread > 0" class="text-primary justify-end px-3 py-2 text-sm font-medium" @select.prevent="markAllRead()">
-          Mark all as read
-        </UiDropdownMenuItem>
-        <p v-if="loadFailed" class="text-muted-foreground p-4 text-sm">Your notifications didn't load. Close this and try again.</p>
-        <p v-else-if="!items.length" class="text-muted-foreground p-4 text-sm">
-          No notifications yet. New problem reports and providers' replies show here.
-        </p>
-        <div v-else class="max-h-[min(28rem,70vh)] overflow-y-auto py-1">
-          <UiDropdownMenuItem v-for="n in items" :key="n.id" class="flex cursor-pointer flex-col items-start gap-1 px-3 py-2.5" @select="openItem(n)">
-            <span class="flex w-full items-start gap-2">
-              <UiBadge v-if="n.kind === 'support_safety'" variant="destructive" class="shrink-0"><Icon name="lucide:siren" class="size-3" aria-hidden="true" />Urgent</UiBadge>
-              <UiBadge v-else-if="!n.read_at" class="shrink-0">New</UiBadge>
-              <span class="text-sm" :class="n.read_at ? 'text-muted-foreground' : 'font-medium'">{{ textOf(n) }}</span>
-            </span>
-            <span class="text-muted-foreground text-xs">{{ formatAge(n.created_at) }} ago</span>
-          </UiDropdownMenuItem>
-        </div>
-      </UiDropdownMenuContent>
-    </UiDropdownMenu>
+    <NotificationPanel v-model:open="open" :label="label" :unread="unread" :items="panelItems" :load-failed="loadFailed"
+      empty-text="No notifications yet. New problem reports and providers' replies show here."
+      @select="(id) => openItem(items.find((n) => n.id === id)!)" @mark-all-read="markAllRead()" />
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
   </div>
 </template>

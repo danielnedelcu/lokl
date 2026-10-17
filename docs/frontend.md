@@ -290,6 +290,18 @@ Plain language on every screen, especially the website, where providers are smal
 - The website is mobile-first. Many providers will manage their listings from a phone.
 - The admin app is desktop-first, with pages that still work on a tablet.
 - Both dashboards need a mobile menu before launch (already in the launch prep list).
+- **Both dashboards' frame stays put** (2026-10-17): the top bar is
+  `sticky`, and the sidebar fills the screen (`sticky`, `h-dvh`) with the
+  email and "Sign out" at its bottom; a long menu scrolls inside it. The
+  page sets a top scroll padding (`scroll-pt-16`), so a jump to a heading
+  stops below the bar. E2e journey 32.
+- **The notification bell's panel** (`NotificationPanel`, shared by the
+  provider's bell and the admin's) is a popover with a list of buttons, not
+  a menu: Tab reaches every notification (a menu takes arrow keys, and Tab
+  closes it). The list scrolls inside the panel, at most the smaller of
+  70% of the screen and 480px, with `overscroll-behavior: contain` and
+  `data-lenis-prevent`, so the page behind never scrolls; a focused
+  notification is scrolled into view. E2e journey 31.
 
 ## Not allowed
 

@@ -30,7 +30,7 @@ test("the bell shows lokl's reply to a problem report, and leads to it", async (
   await signIn(context, owner.email, owner.password);
   await page.goto("/dashboard");
   await page.getByRole("button", { name: "Notifications, 1 unread" }).click();
-  const item = page.getByRole("menuitem", { name: /lokl replied to your report about payments and payouts\./ });
+  const item = page.getByRole("list", { name: "Notifications, newest first" }).getByRole("button", { name: /lokl replied to your report about payments and payouts\./ });
   await expect(item).toBeVisible();
   // The email-free bell never shows the message itself.
   await expect(page.getByText("we're checking with Stripe")).toHaveCount(0);
@@ -270,7 +270,7 @@ test("the board: Safety first, \"Move to…\" by keyboard (announced, focus kept
 
   // The bell: the Safety report, urgent, leading to it.
   await page.getByRole("button", { name: /^Notifications/ }).click();
-  const item = page.getByRole("menuitem", { name: new RegExp(`Urgent: a safety report from Board Studio ${data.run}\\.`) });
+  const item = page.getByRole("list", { name: "Notifications, newest first" }).getByRole("button", { name: new RegExp(`Urgent: a safety report from Board Studio ${data.run}\\.`) });
   await expect(item).toBeVisible();
   await item.click();
   await expect(page).toHaveURL(`${ADMIN}/reports/${safety}`);

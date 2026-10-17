@@ -43,6 +43,8 @@ const sections = [
 
 
 const supabase = useSupabaseClient();
+// The top bar stays put, so a jump to a heading stops below it.
+useHead({ htmlAttrs: { class: "scroll-pt-16" } });
 const user = useSupabaseUser();
 
 async function signOut() {
@@ -56,13 +58,16 @@ const route = useRoute();
 
 <template>
   <div class="flex min-h-screen" :class="route.meta.whiteBackground ? 'bg-background' : 'bg-muted'">
-    <aside class="hidden w-60 shrink-0 flex-col border-r border-border bg-card md:flex">
+    <!-- The sidebar and the top bar stay put while the page scrolls (2026-10-17);
+         the email and "Sign out" stay at the bottom of the screen. -->
+    <aside class="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col self-start border-r border-border bg-card md:flex">
       <div class="px-5 py-5 text-sm font-semibold tracking-tight">lokl Admin</div>
-      <div class="px-3 pb-6">
+      <!-- The menu scrolls inside the sidebar if it's taller than the screen. -->
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-6">
         <!-- "/" prefixes every route, so Dashboard only highlights on an exact match. -->
         <DashboardNav :sections="sections" exact-root="/" />
       </div>
-      <div class="mt-auto border-t border-border px-5 py-4 text-sm">
+      <div class="shrink-0 border-t border-border px-5 py-4 text-sm">
         <p class="truncate text-muted-foreground">{{ user?.email }}</p>
         <button type="button" class="mt-1 font-medium" @click="signOut">Sign out</button>
       </div>
@@ -70,7 +75,7 @@ const route = useRoute();
 
     <div class="flex min-w-0 flex-1 flex-col">
       <!-- The menu on phones (the sidebar is hidden there); the bell on every size. -->
-      <header class="flex h-14 items-center gap-2 border-b border-border bg-card px-2 md:justify-end md:px-8">
+      <header class="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-card px-2 md:justify-end md:px-8">
         <div class="flex flex-1 items-center gap-2 md:hidden">
           <DashboardMobileMenu title="lokl Admin" :sections="sections" exact-root="/" :email="user?.email" @sign-out="signOut" />
           <span class="text-sm font-semibold tracking-tight">lokl Admin</span>
