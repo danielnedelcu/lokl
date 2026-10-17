@@ -133,7 +133,10 @@ try {
   check(undated!.items.at(-1)?.title === "D braids" && undated!.items.filter((c) => c.notTakingBookings).map((c) => c.title).join() === "D braids",
     "1b. undated: the Service with no hours comes last, marked Not taking bookings yet");
   const p5Night = await firstSlot(services[5]!.id, weekend.from, weekend.to);
-  check(!!p5Night && instantToZoned(p5Night, TZ).date === weekend.from && new Date(p5Night).getUTCDate() !== Number(weekend.from.slice(8)),
+  // Whichever weekend night comes first (late on a Friday, Saturday's is
+  // inside the notice): its Atlanta day isn't its UTC day.
+  const nightDay = p5Night ? instantToZoned(p5Night, TZ).date : "";
+  check(!!p5Night && nightDay >= weekend.from && nightDay <= weekend.to && new Date(p5Night).getUTCDate() !== Number(nightDay.slice(8)),
     "1c. (the fixture has a night time that's the next day in UTC, matched to its Atlanta day)");
 
   // 2. As if the daily job had never run: the table covers nothing ahead.
