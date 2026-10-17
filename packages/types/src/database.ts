@@ -192,6 +192,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_notifications: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: string;
+          read_at: string | null;
+          recipient_id: string;
+          report_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind: string;
+          read_at?: string | null;
+          recipient_id: string;
+          report_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          read_at?: string | null;
+          recipient_id?: string;
+          report_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "support_reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       booking_addresses: {
         Row: {
           booking_id: string;
@@ -1470,9 +1506,10 @@ export type Database = {
           created_at: string;
           id: string;
           kind: string;
-          listing_id: string;
+          listing_id: string | null;
           provider_id: string;
           read_at: string | null;
+          support_report_id: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -1480,18 +1517,20 @@ export type Database = {
           created_at?: string;
           id?: string;
           kind: string;
-          listing_id: string;
+          listing_id?: string | null;
           provider_id: string;
           read_at?: string | null;
+          support_report_id?: string | null;
         };
         Update: {
           booking_id?: string | null;
           created_at?: string;
           id?: string;
           kind?: string;
-          listing_id?: string;
+          listing_id?: string | null;
           provider_id?: string;
           read_at?: string | null;
+          support_report_id?: string | null;
         };
         Relationships: [
           {
@@ -1513,6 +1552,13 @@ export type Database = {
             columns: ["provider_id"];
             isOneToOne: false;
             referencedRelation: "providers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_support_report_id_fkey";
+            columns: ["support_report_id"];
+            isOneToOne: false;
+            referencedRelation: "support_reports";
             referencedColumns: ["id"];
           },
         ];
@@ -2272,6 +2318,277 @@ export type Database = {
           },
         ];
       };
+      support_emails: {
+        Row: {
+          admin_id: string | null;
+          attempts: number;
+          created_at: string;
+          id: string;
+          kind: string;
+          last_error: string | null;
+          locked_at: string | null;
+          next_attempt_at: string;
+          provider_id: string | null;
+          report_id: string;
+          resend_id: string | null;
+          sent_at: string | null;
+          skip_reason: string | null;
+          status: string;
+          to_address: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          admin_id?: string | null;
+          attempts?: number;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          last_error?: string | null;
+          locked_at?: string | null;
+          next_attempt_at?: string;
+          provider_id?: string | null;
+          report_id: string;
+          resend_id?: string | null;
+          sent_at?: string | null;
+          skip_reason?: string | null;
+          status?: string;
+          to_address?: string | null;
+        };
+        Update: {
+          admin_id?: string | null;
+          attempts?: number;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          last_error?: string | null;
+          locked_at?: string | null;
+          next_attempt_at?: string;
+          provider_id?: string | null;
+          report_id?: string;
+          resend_id?: string | null;
+          sent_at?: string | null;
+          skip_reason?: string | null;
+          status?: string;
+          to_address?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "support_emails_provider_id_fkey";
+            columns: ["provider_id"];
+            isOneToOne: false;
+            referencedRelation: "providers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "support_emails_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "support_reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      support_messages: {
+        Row: {
+          author_id: string | null;
+          author_kind: string;
+          body: string;
+          created_at: string;
+          id: string;
+          report_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          author_id?: string | null;
+          author_kind?: string;
+          body: string;
+          created_at?: string;
+          id?: string;
+          report_id: string;
+        };
+        Update: {
+          author_id?: string | null;
+          author_kind?: string;
+          body?: string;
+          created_at?: string;
+          id?: string;
+          report_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "support_reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      support_notes: {
+        Row: {
+          admin_id: string | null;
+          body: string;
+          created_at: string;
+          id: string;
+          report_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          admin_id?: string | null;
+          body: string;
+          created_at?: string;
+          id?: string;
+          report_id: string;
+        };
+        Update: {
+          admin_id?: string | null;
+          body?: string;
+          created_at?: string;
+          id?: string;
+          report_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "support_notes_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "support_reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      support_report_events: {
+        Row: {
+          actor: string;
+          actor_id: string | null;
+          created_at: string;
+          from_status: string | null;
+          id: string;
+          report_id: string;
+          to_status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          actor: string;
+          actor_id?: string | null;
+          created_at?: string;
+          from_status?: string | null;
+          id?: string;
+          report_id: string;
+          to_status: string;
+        };
+        Update: {
+          actor?: string;
+          actor_id?: string | null;
+          created_at?: string;
+          from_status?: string | null;
+          id?: string;
+          report_id?: string;
+          to_status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "support_report_events_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "support_reports";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      support_reports: {
+        Row: {
+          booking_id: string | null;
+          category: string;
+          created_at: string;
+          description: string;
+          follows_report_id: string | null;
+          id: string;
+          last_message_at: string;
+          last_message_from: string;
+          listing_id: string | null;
+          provider_id: string;
+          reporter_id: string | null;
+          resolved_at: string | null;
+          status: string;
+          status_changed_at: string;
+          status_changed_by: string;
+          status_changed_by_id: string | null;
+          updated_at: string;
+          urgent: boolean | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          booking_id?: string | null;
+          category: string;
+          created_at?: string;
+          description: string;
+          follows_report_id?: string | null;
+          id?: string;
+          last_message_at?: string;
+          last_message_from?: string;
+          listing_id?: string | null;
+          provider_id?: string;
+          reporter_id?: string | null;
+          resolved_at?: string | null;
+          status?: string;
+          status_changed_at?: string;
+          status_changed_by?: string;
+          status_changed_by_id?: string | null;
+          updated_at?: string;
+          urgent?: never;
+        };
+        Update: {
+          booking_id?: string | null;
+          category?: string;
+          created_at?: string;
+          description?: string;
+          follows_report_id?: string | null;
+          id?: string;
+          last_message_at?: string;
+          last_message_from?: string;
+          listing_id?: string | null;
+          provider_id?: string;
+          reporter_id?: string | null;
+          resolved_at?: string | null;
+          status?: string;
+          status_changed_at?: string;
+          status_changed_by?: string;
+          status_changed_by_id?: string | null;
+          updated_at?: string;
+          urgent?: never;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "support_reports_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "support_reports_follows_report_id_fkey";
+            columns: ["follows_report_id"];
+            isOneToOne: false;
+            referencedRelation: "support_reports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "support_reports_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: false;
+            referencedRelation: "listings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "support_reports_provider_id_fkey";
+            columns: ["provider_id"];
+            isOneToOne: false;
+            referencedRelation: "providers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -2410,6 +2727,18 @@ export type Database = {
         };
         Returns: boolean;
       };
+      admin_support_board: {
+        Args: {
+          p_category?: string;
+          p_column?: string;
+          p_done_days?: number;
+          p_page?: number;
+          p_page_size?: number;
+          p_q?: string;
+          p_urgent_only?: boolean;
+        };
+        Returns: Json;
+      };
       assert_log_guards_on: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;
@@ -2528,6 +2857,10 @@ export type Database = {
           ends_at: string;
           starts_at: string;
         }[];
+      };
+      my_support_reports: {
+        Args: { p_page?: number; p_page_size?: number };
+        Returns: Json;
       };
       provider_is_public: { Args: { p_provider_id: string }; Returns: boolean };
       provider_payout_setup: {
@@ -2721,6 +3054,7 @@ export type Database = {
       };
       session_spots_left: { Args: { p_session_id: string }; Returns: number };
       session_spots_taken: { Args: { p_session_id: string }; Returns: number };
+      support_limit_message: { Args: { p_what: string }; Returns: string };
       unpublish_guide: {
         Args: { p_admin_id: string; p_guide_id: string };
         Returns: undefined;

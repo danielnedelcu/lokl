@@ -173,6 +173,18 @@ Each step depends on the ones before it.
    - [ ] Re-measure dated search once there are real providers (the open
      days table and its live part), and the refresh's cost per booking.
    - [ ] Later: Google Calendar sync; team members.
+3b. [ ] **Problem reports** (docs/design/problem-reports.md, approved
+   2026-10-17): providers report a problem to lokl and follow it; the admin
+   works them on a board.
+   - [x] Phase 1, data (2026-10-17, migration `support_reports`): reports,
+     the thread, notes and history (append-only), both bells, the email
+     outbox, the limits (Safety never refused), the lists and the board's
+     paging and search; pgTAP `support_reports.test.sql`. The bell already
+     shows lokl's replies (journey 29).
+   - [ ] Phase 2: the provider's side (Help list, form, report page,
+     replies, "This is sorted", live replies, the reply email).
+   - [ ] Phase 3: the admin's side (board, report page, notes, the admin
+     bell and emails, the dashboard count).
 3. [x] **Reviews and star ratings** (docs/design/reviews.md, built
    2026-10-04; migrations `reviews`, `review_star_counts`): one to five
    stars and words from completed bookings, 14 days to write, edit or

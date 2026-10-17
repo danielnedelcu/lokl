@@ -1989,7 +1989,7 @@
         {
           "name": "listing_id",
           "type": "uuid",
-          "nullable": false
+          "nullable": true
         },
         {
           "name": "created_at",
@@ -2008,6 +2008,12 @@
           "type": "uuid",
           "nullable": true,
           "comment": "For booking notifications: the booking it's about."
+        },
+        {
+          "name": "support_report_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "The report lokl replied to (kind support_reply)."
         }
       ],
       "indexes": [
@@ -2043,13 +2049,33 @@
           "columns": [
             "listing_id"
           ]
+        },
+        {
+          "name": "notifications_support_report",
+          "def": "CREATE INDEX notifications_support_report ON public.notifications USING btree (support_report_id) WHERE (support_report_id IS NOT NULL)",
+          "table": "public.notifications",
+          "columns": [
+            "support_report_id"
+          ]
         }
       ],
       "constraints": [
         {
+          "name": "notifications_about",
+          "type": "CHECK",
+          "def": "CHECK (\nCASE\n    WHEN (kind = 'support_reply'::text) THEN (support_report_id IS NOT NULL)\n    ELSE (listing_id IS NOT NULL)\nEND)",
+          "table": "public.notifications",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "support_report_id",
+            "listing_id"
+          ]
+        },
+        {
           "name": "notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text, 'booking_problem_reported'::text, 'review_posted'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['listing_approved'::text, 'listing_rejected'::text, 'listing_unpublished'::text, 'listing_restored'::text, 'booking_requested'::text, 'booking_confirmed'::text, 'booking_cancelled'::text, 'booking_problem_reported'::text, 'review_posted'::text, 'support_reply'::text])))",
           "table": "public.notifications",
           "referenced_table": "",
           "columns": [
@@ -2100,6 +2126,19 @@
           "referenced_table": "public.bookings",
           "columns": [
             "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "notifications_support_report_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (support_report_id) REFERENCES support_reports(id) ON DELETE RESTRICT",
+          "table": "public.notifications",
+          "referenced_table": "public.support_reports",
+          "columns": [
+            "support_report_id"
           ],
           "referenced_columns": [
             "id"
@@ -8310,6 +8349,1083 @@
           "def": "CREATE CONSTRAINT TRIGGER service_open_days_pending_refresh AFTER INSERT ON public.service_open_days_pending DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION service_open_days_flush()"
         }
       ]
+    },
+    {
+      "name": "public.support_reports",
+      "type": "BASE TABLE",
+      "comment": "A problem a provider reported to lokl. Never deleted, and its details never change: only its status moves (on the admin's board, by a reply, or by the provider's \"This is sorted\"), with the columns its triggers keep.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "current_provider_id()"
+        },
+        {
+          "name": "reporter_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": "auth.uid()"
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "urgent",
+          "type": "boolean",
+          "nullable": true,
+          "extra_def": "GENERATED ALWAYS AS (category = 'safety'::text) STORED",
+          "comment": "A Safety report: first on the board, emailed to every admin at once, and only an admin closes it."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "follows_report_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "The earlier report this follows on from: a reply to one resolved over 30 days ago starts a new report."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'todo'::text",
+          "comment": "todo, in_progress, waiting (on the provider), done. Providers see Received, We're looking into it, Waiting for your reply, Resolved."
+        },
+        {
+          "name": "status_changed_by",
+          "type": "text",
+          "nullable": false,
+          "default": "'provider'::text"
+        },
+        {
+          "name": "status_changed_by_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "status_changed_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When it last moved to Done: a reply within 30 days of it reopens the report."
+        },
+        {
+          "name": "last_message_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "last_message_from",
+          "type": "text",
+          "nullable": false,
+          "default": "'provider'::text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "support_reports_pkey",
+          "def": "CREATE UNIQUE INDEX support_reports_pkey ON public.support_reports USING btree (id)",
+          "table": "public.support_reports",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_reports_provider",
+          "def": "CREATE INDEX support_reports_provider ON public.support_reports USING btree (provider_id, last_message_at DESC)",
+          "table": "public.support_reports",
+          "columns": [
+            "provider_id",
+            "last_message_at"
+          ]
+        },
+        {
+          "name": "support_reports_board",
+          "def": "CREATE INDEX support_reports_board ON public.support_reports USING btree (status, urgent DESC, last_message_at)",
+          "table": "public.support_reports",
+          "columns": [
+            "status",
+            "urgent",
+            "last_message_at"
+          ]
+        },
+        {
+          "name": "support_reports_listing",
+          "def": "CREATE INDEX support_reports_listing ON public.support_reports USING btree (listing_id) WHERE (listing_id IS NOT NULL)",
+          "table": "public.support_reports",
+          "columns": [
+            "listing_id"
+          ]
+        },
+        {
+          "name": "support_reports_booking",
+          "def": "CREATE INDEX support_reports_booking ON public.support_reports USING btree (booking_id) WHERE (booking_id IS NOT NULL)",
+          "table": "public.support_reports",
+          "columns": [
+            "booking_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "support_reports_category_check",
+          "type": "CHECK",
+          "def": "CHECK ((category = ANY (ARRAY['booking'::text, 'payments'::text, 'listing'::text, 'website'::text, 'safety'::text, 'other'::text])))",
+          "table": "public.support_reports",
+          "referenced_table": "",
+          "columns": [
+            "category"
+          ]
+        },
+        {
+          "name": "support_reports_check",
+          "type": "CHECK",
+          "def": "CHECK (((status = 'done'::text) = (resolved_at IS NOT NULL)))",
+          "table": "public.support_reports",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "resolved_at"
+          ]
+        },
+        {
+          "name": "support_reports_description_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(btrim(description)) \u003e= 20) AND (char_length(btrim(description)) \u003c= 5000)))",
+          "table": "public.support_reports",
+          "referenced_table": "",
+          "columns": [
+            "description"
+          ]
+        },
+        {
+          "name": "support_reports_last_message_from_check",
+          "type": "CHECK",
+          "def": "CHECK ((last_message_from = ANY (ARRAY['provider'::text, 'admin'::text])))",
+          "table": "public.support_reports",
+          "referenced_table": "",
+          "columns": [
+            "last_message_from"
+          ]
+        },
+        {
+          "name": "support_reports_status_changed_by_check",
+          "type": "CHECK",
+          "def": "CHECK ((status_changed_by = ANY (ARRAY['provider'::text, 'admin'::text, 'system'::text])))",
+          "table": "public.support_reports",
+          "referenced_table": "",
+          "columns": [
+            "status_changed_by"
+          ]
+        },
+        {
+          "name": "support_reports_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['todo'::text, 'in_progress'::text, 'waiting'::text, 'done'::text])))",
+          "table": "public.support_reports",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "support_reports_reporter_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (reporter_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.support_reports",
+          "referenced_table": "auth.users",
+          "columns": [
+            "reporter_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_reports_status_changed_by_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (status_changed_by_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.support_reports",
+          "referenced_table": "auth.users",
+          "columns": [
+            "status_changed_by_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_reports_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.support_reports",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_reports_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT",
+          "table": "public.support_reports",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_reports_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.support_reports",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_reports_follows_report_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (follows_report_id) REFERENCES support_reports(id) ON DELETE RESTRICT",
+          "table": "public.support_reports",
+          "referenced_table": "public.support_reports",
+          "columns": [
+            "follows_report_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_reports_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.support_reports",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "support_reports_guard",
+          "def": "CREATE TRIGGER support_reports_guard BEFORE INSERT OR DELETE OR UPDATE ON public.support_reports FOR EACH ROW EXECUTE FUNCTION support_reports_guard()"
+        },
+        {
+          "name": "support_reports_guard_truncate",
+          "def": "CREATE TRIGGER support_reports_guard_truncate BEFORE TRUNCATE ON public.support_reports FOR EACH STATEMENT EXECUTE FUNCTION support_reports_guard()"
+        },
+        {
+          "name": "support_reports_log_status",
+          "def": "CREATE TRIGGER support_reports_log_status AFTER INSERT OR UPDATE OF status ON public.support_reports FOR EACH ROW EXECUTE FUNCTION support_reports_log_status()"
+        },
+        {
+          "name": "support_reports_notify",
+          "def": "CREATE TRIGGER support_reports_notify AFTER INSERT ON public.support_reports FOR EACH ROW EXECUTE FUNCTION support_notify()"
+        }
+      ]
+    },
+    {
+      "name": "public.support_messages",
+      "type": "BASE TABLE",
+      "comment": "A report's thread: messages from the provider and from lokl. Permanent: never edited or deleted (append_only_guard). The provider reads their own reports' messages; admins read all. Never published to Realtime, and never in an email.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "report_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "author_kind",
+          "type": "text",
+          "nullable": false,
+          "default": "'provider'::text"
+        },
+        {
+          "name": "author_id",
+          "type": "uuid",
+          "nullable": true,
+          "default": "auth.uid()"
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "support_messages_pkey",
+          "def": "CREATE UNIQUE INDEX support_messages_pkey ON public.support_messages USING btree (id)",
+          "table": "public.support_messages",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_messages_report",
+          "def": "CREATE INDEX support_messages_report ON public.support_messages USING btree (report_id, created_at)",
+          "table": "public.support_messages",
+          "columns": [
+            "report_id",
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "support_messages_author_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((author_kind = ANY (ARRAY['provider'::text, 'admin'::text])))",
+          "table": "public.support_messages",
+          "referenced_table": "",
+          "columns": [
+            "author_kind"
+          ]
+        },
+        {
+          "name": "support_messages_body_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(btrim(body)) \u003e= 1) AND (char_length(btrim(body)) \u003c= 5000)))",
+          "table": "public.support_messages",
+          "referenced_table": "",
+          "columns": [
+            "body"
+          ]
+        },
+        {
+          "name": "support_messages_author_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (author_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.support_messages",
+          "referenced_table": "auth.users",
+          "columns": [
+            "author_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_messages_report_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT",
+          "table": "public.support_messages",
+          "referenced_table": "public.support_reports",
+          "columns": [
+            "report_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_messages_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.support_messages",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "support_messages_append_only",
+          "def": "CREATE TRIGGER support_messages_append_only BEFORE DELETE OR UPDATE ON public.support_messages FOR EACH ROW EXECUTE FUNCTION append_only_guard('author_id')"
+        },
+        {
+          "name": "support_messages_append_only_truncate",
+          "def": "CREATE TRIGGER support_messages_append_only_truncate BEFORE TRUNCATE ON public.support_messages FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard()"
+        },
+        {
+          "name": "support_messages_check",
+          "def": "CREATE TRIGGER support_messages_check BEFORE INSERT ON public.support_messages FOR EACH ROW EXECUTE FUNCTION support_messages_check()"
+        },
+        {
+          "name": "support_messages_notify",
+          "def": "CREATE TRIGGER support_messages_notify AFTER INSERT ON public.support_messages FOR EACH ROW EXECUTE FUNCTION support_notify()"
+        }
+      ]
+    },
+    {
+      "name": "public.support_notes",
+      "type": "BASE TABLE",
+      "comment": "Admins' private notes on a report: the provider never sees them. Permanent (append_only_guard). Written by the server for an admin.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "report_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "admin_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "support_notes_pkey",
+          "def": "CREATE UNIQUE INDEX support_notes_pkey ON public.support_notes USING btree (id)",
+          "table": "public.support_notes",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_notes_report",
+          "def": "CREATE INDEX support_notes_report ON public.support_notes USING btree (report_id, created_at)",
+          "table": "public.support_notes",
+          "columns": [
+            "report_id",
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "support_notes_body_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(btrim(body)) \u003e= 1) AND (char_length(btrim(body)) \u003c= 5000)))",
+          "table": "public.support_notes",
+          "referenced_table": "",
+          "columns": [
+            "body"
+          ]
+        },
+        {
+          "name": "support_notes_admin_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (admin_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.support_notes",
+          "referenced_table": "auth.users",
+          "columns": [
+            "admin_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_notes_report_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT",
+          "table": "public.support_notes",
+          "referenced_table": "public.support_reports",
+          "columns": [
+            "report_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_notes_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.support_notes",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "support_notes_append_only",
+          "def": "CREATE TRIGGER support_notes_append_only BEFORE DELETE OR UPDATE ON public.support_notes FOR EACH ROW EXECUTE FUNCTION append_only_guard('admin_id')"
+        },
+        {
+          "name": "support_notes_append_only_truncate",
+          "def": "CREATE TRIGGER support_notes_append_only_truncate BEFORE TRUNCATE ON public.support_notes FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard()"
+        }
+      ]
+    },
+    {
+      "name": "public.support_report_events",
+      "type": "BASE TABLE",
+      "comment": "Each status a report moved to, who moved it and when (from_status null: sent). Written only by a trigger; append-only.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "report_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "from_status",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "to_status",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "actor",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "actor_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "support_report_events_pkey",
+          "def": "CREATE UNIQUE INDEX support_report_events_pkey ON public.support_report_events USING btree (id)",
+          "table": "public.support_report_events",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_report_events_report",
+          "def": "CREATE INDEX support_report_events_report ON public.support_report_events USING btree (report_id, created_at)",
+          "table": "public.support_report_events",
+          "columns": [
+            "report_id",
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "support_report_events_actor_check",
+          "type": "CHECK",
+          "def": "CHECK ((actor = ANY (ARRAY['provider'::text, 'admin'::text, 'system'::text])))",
+          "table": "public.support_report_events",
+          "referenced_table": "",
+          "columns": [
+            "actor"
+          ]
+        },
+        {
+          "name": "support_report_events_from_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((from_status = ANY (ARRAY['todo'::text, 'in_progress'::text, 'waiting'::text, 'done'::text])))",
+          "table": "public.support_report_events",
+          "referenced_table": "",
+          "columns": [
+            "from_status"
+          ]
+        },
+        {
+          "name": "support_report_events_to_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((to_status = ANY (ARRAY['todo'::text, 'in_progress'::text, 'waiting'::text, 'done'::text])))",
+          "table": "public.support_report_events",
+          "referenced_table": "",
+          "columns": [
+            "to_status"
+          ]
+        },
+        {
+          "name": "support_report_events_actor_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (actor_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.support_report_events",
+          "referenced_table": "auth.users",
+          "columns": [
+            "actor_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_report_events_report_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT",
+          "table": "public.support_report_events",
+          "referenced_table": "public.support_reports",
+          "columns": [
+            "report_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_report_events_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.support_report_events",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "support_report_events_append_only",
+          "def": "CREATE TRIGGER support_report_events_append_only BEFORE DELETE OR UPDATE ON public.support_report_events FOR EACH ROW EXECUTE FUNCTION append_only_guard('actor_id')"
+        },
+        {
+          "name": "support_report_events_append_only_truncate",
+          "def": "CREATE TRIGGER support_report_events_append_only_truncate BEFORE TRUNCATE ON public.support_report_events FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard()"
+        }
+      ]
+    },
+    {
+      "name": "public.admin_notifications",
+      "type": "BASE TABLE",
+      "comment": "The admin bell: a new report (support_safety for a Safety one) or a provider's reply, one row per admin login. Each admin reads and marks read only their own. Ids only: published to Realtime, so an open report reloads its thread. Deleted with the admin's login.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "recipient_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "report_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_notifications_pkey",
+          "def": "CREATE UNIQUE INDEX admin_notifications_pkey ON public.admin_notifications USING btree (id)",
+          "table": "public.admin_notifications",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_notifications_recipient",
+          "def": "CREATE INDEX admin_notifications_recipient ON public.admin_notifications USING btree (recipient_id, created_at DESC)",
+          "table": "public.admin_notifications",
+          "columns": [
+            "recipient_id",
+            "created_at"
+          ]
+        },
+        {
+          "name": "admin_notifications_unread",
+          "def": "CREATE INDEX admin_notifications_unread ON public.admin_notifications USING btree (recipient_id) WHERE (read_at IS NULL)",
+          "table": "public.admin_notifications",
+          "columns": [
+            "recipient_id"
+          ]
+        },
+        {
+          "name": "admin_notifications_report",
+          "def": "CREATE INDEX admin_notifications_report ON public.admin_notifications USING btree (report_id)",
+          "table": "public.admin_notifications",
+          "columns": [
+            "report_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "admin_notifications_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])))",
+          "table": "public.admin_notifications",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "admin_notifications_recipient_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (recipient_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+          "table": "public.admin_notifications",
+          "referenced_table": "auth.users",
+          "columns": [
+            "recipient_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_notifications_report_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT",
+          "table": "public.admin_notifications",
+          "referenced_table": "public.support_reports",
+          "columns": [
+            "report_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_notifications_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.admin_notifications",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "admin_notifications_set_read_at",
+          "def": "CREATE TRIGGER admin_notifications_set_read_at BEFORE UPDATE OF read_at ON public.admin_notifications FOR EACH ROW EXECUTE FUNCTION notifications_set_read_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.support_emails",
+      "type": "BASE TABLE",
+      "comment": "The problem reports' email outbox: lokl's reply to the provider, and a new report (urgent for Safety) or a reply to each admin. Never the message text. Only its delivery details change (outbox_guard); never deleted.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "report_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "admin_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending'::text"
+        },
+        {
+          "name": "attempts",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "locked_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "to_address",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "resend_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "skip_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "support_emails_pkey",
+          "def": "CREATE UNIQUE INDEX support_emails_pkey ON public.support_emails USING btree (id)",
+          "table": "public.support_emails",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_emails_due",
+          "def": "CREATE INDEX support_emails_due ON public.support_emails USING btree (next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'failed'::text]))",
+          "table": "public.support_emails",
+          "columns": [
+            "next_attempt_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "support_emails_attempts_check",
+          "type": "CHECK",
+          "def": "CHECK ((attempts \u003e= 0))",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "attempts"
+          ]
+        },
+        {
+          "name": "support_emails_check",
+          "type": "CHECK",
+          "def": "CHECK (((kind = 'provider_support_reply'::text) = (provider_id IS NOT NULL)))",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "provider_id"
+          ]
+        },
+        {
+          "name": "support_emails_check1",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e 'provider_support_reply'::text) = (admin_id IS NOT NULL)))",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "admin_id"
+          ]
+        },
+        {
+          "name": "support_emails_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['provider_support_reply'::text, 'admin_support_new'::text, 'admin_support_safety'::text, 'admin_support_reply'::text])))",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "support_emails_last_error_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(last_error) \u003c= 500))",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "last_error"
+          ]
+        },
+        {
+          "name": "support_emails_skip_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(skip_reason) \u003c= 200))",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "skip_reason"
+          ]
+        },
+        {
+          "name": "support_emails_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'skipped'::text, 'failed'::text])))",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "support_emails_to_address_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(to_address) \u003c= 320))",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "to_address"
+          ]
+        },
+        {
+          "name": "support_emails_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.support_emails",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_emails_report_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT",
+          "table": "public.support_emails",
+          "referenced_table": "public.support_reports",
+          "columns": [
+            "report_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "support_emails_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.support_emails",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "support_emails_outbox_guard",
+          "def": "CREATE TRIGGER support_emails_outbox_guard BEFORE DELETE OR UPDATE ON public.support_emails FOR EACH ROW EXECUTE FUNCTION outbox_guard()"
+        },
+        {
+          "name": "support_emails_outbox_guard_truncate",
+          "def": "CREATE TRIGGER support_emails_outbox_guard_truncate BEFORE TRUNCATE ON public.support_emails FOR EACH STATEMENT EXECUTE FUNCTION outbox_guard()"
+        }
+      ]
     }
   ],
   "relations": [
@@ -8481,7 +9597,7 @@
       "parent_columns": [
         "id"
       ],
-      "parent_cardinality": "exactly_one",
+      "parent_cardinality": "zero_or_one",
       "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
     },
     {
@@ -8496,6 +9612,19 @@
       ],
       "parent_cardinality": "zero_or_one",
       "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.notifications",
+      "columns": [
+        "support_report_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.support_reports",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (support_report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
     },
     {
       "table": "public.bookings",
@@ -9107,6 +10236,136 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.support_reports",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.support_reports",
+      "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.support_reports",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.support_reports",
+      "columns": [
+        "follows_report_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.support_reports",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (follows_report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.support_messages",
+      "columns": [
+        "report_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.support_reports",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.support_notes",
+      "columns": [
+        "report_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.support_reports",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.support_report_events",
+      "columns": [
+        "report_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.support_reports",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_notifications",
+      "columns": [
+        "report_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.support_reports",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.support_emails",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.support_emails",
+      "columns": [
+        "report_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.support_reports",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -10920,6 +12179,48 @@
       "name": "public.service_open_matches",
       "return_type": "record",
       "arguments": "p_ids uuid[], p_from date, p_to date",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.support_limit_message",
+      "return_type": "text",
+      "arguments": "p_what text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.support_reports_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.support_reports_log_status",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.support_messages_check",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.support_notify",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.my_support_reports",
+      "return_type": "jsonb",
+      "arguments": "p_page integer DEFAULT 1, p_page_size integer DEFAULT 20",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_support_board",
+      "return_type": "jsonb",
+      "arguments": "p_category text DEFAULT NULL::text, p_urgent_only boolean DEFAULT false, p_q text DEFAULT NULL::text, p_done_days integer DEFAULT 30, p_column text DEFAULT NULL::text, p_page integer DEFAULT 1, p_page_size integer DEFAULT 50",
       "type": "FUNCTION"
     }
   ],
