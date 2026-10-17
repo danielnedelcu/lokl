@@ -9,7 +9,7 @@ export function useProviderPicker(selectedId: () => string | undefined) {
     const { data, error } = await supabase
       .rpc("admin_providers_page", { p_q: term || undefined, p_sort: "name", p_desc: false, p_page_size: 20 })
       .abortSignal(signal);
-    const page = asServerPage<{ id: string; display_name: string; owner_email: string }>(data, error);
+    const page = asServerPage("admin_providers_page", data, error);
     // Two businesses can share a name: the owner's email tells them apart.
     return page.rows.map((p) => ({ value: p.id, label: p.display_name, description: p.owner_email }));
   }

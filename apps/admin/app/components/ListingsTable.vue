@@ -1,21 +1,13 @@
 <script setup lang="ts">
-import type { ListingKind, ListingStatus } from "@repo/types";
+import type { AdminListingRow, ListingKind, ListingStatus } from "@repo/types";
 
 // All listings of one kind, a page at a time from the database
 // (admin_listings_page), with the search, filters, page and sort in the URL
 // (useServerTable). Admins read every listing, drafts included.
 const props = defineProps<{ kind: ListingKind }>();
 
-interface Row {
-  id: string;
-  title: string;
-  status: ListingStatus;
-  price_cents: number;
-  updated_at: string;
-  provider: { id: string; display_name: string } | null;
-  category: { name: string } | null;
-  city: { id: string; name: string } | null;
-}
+// A row as admin_listings_page returns it (its schema is in @repo/types).
+type Row = AdminListingRow;
 
 const supabase = useSupabaseClient();
 const statuses: { value: ListingStatus; label: string }[] = [
@@ -50,7 +42,7 @@ const table = useServerTable({
         p_page: page,
       })
       .abortSignal(signal);
-    return asServerPage<Row>(data, error);
+    return asServerPage("admin_listings_page", data, error);
   },
 });
 const f = computed(() => table.query.value.filters);

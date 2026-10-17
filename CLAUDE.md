@@ -51,6 +51,7 @@ npm run schema:compare        # rebuild locally from migrations, compare with ho
 npm run build:secrets-check   # build both apps with sentinel secrets; fails if any reaches the output
 npm run check:reads           # fails on a read of a growing table that could stop at the API's 1,000 rows
 npm run check:dates           # fails on a date or time that would follow the device's zone
+npm run check:rpc-json        # fails on a database function's JSON read without its schema (rpcJson)
 ```
 
 **Every date and time names its zone** (`docs/frontend.md`): a booking's,
@@ -259,6 +260,13 @@ user id is `user.sub`, not `user.id`.
   clients with it (`supabase.types` in each `nuxt.config.ts`, by absolute
   path). Pass `SupabaseClient<Database>` to helpers, never a bare
   `SupabaseClient`, which makes every table `never`.
+- **Database functions that return JSON are read through their schema**
+  (2026-10-17): each has a zod schema in `packages/types/src/rpcShapes.ts`
+  (`RPC_SHAPES`), and its result is read with `rpcJson("name", data)` (or
+  `asServerPage` for the admin tables), never cast. It throws in the test
+  apps and app tests and logs paths (never values) in production;
+  `check:rpc-json` (CI) fails on a read without it or a JSON function with
+  no schema. The types come from the schemas.
 - `providers.ts` still mirrors the providers table by hand. Replace it with
   the generated types when it's next touched.
 - **`npm run typecheck` must pass (0 errors) before committing.** It runs

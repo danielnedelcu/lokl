@@ -1,5 +1,5 @@
 import { serverSupabaseClient } from "#supabase/server";
-import type { MySaved } from "@repo/types";
+import { rpcJson, type MySaved } from "@repo/types";
 
 // GET /api/account/saved: the signed-in customer's Saved page
 // (docs/design/favourites.md). my_saved() says what they saved and what's
@@ -7,16 +7,12 @@ import type { MySaved } from "@repo/types";
 // are then loaded as a signed-out visitor sees them, so nothing here is more
 // than the public pages show. Something that became hidden in between is
 // shown as no longer available, with the name my_saved() allowed.
-interface SavedRows {
-  listings: { listing_id: string; saved_at: string; available: boolean; title: string | null }[];
-  providers: { provider_id: string; saved_at: string; available: boolean; name: string | null }[];
-}
 
 export default defineEventHandler(async (event): Promise<MySaved> => {
   await requireUser(event);
   const { data, error } = await (await serverSupabaseClient(event)).rpc("my_saved");
   if (error || !data) throw createError({ statusCode: 500, statusMessage: "Your saved items didn't load. Please try again." });
-  const rows = data as unknown as SavedRows;
+  const rows = rpcJson("my_saved", data);
   let cards, providers;
   try {
     const db = usePublicDb(event);

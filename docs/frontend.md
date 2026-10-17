@@ -231,6 +231,7 @@ Every form control in both apps is one of ui-thing's own components, never a nat
 
 ## Data and states
 
+- **A database function's JSON is read with `rpcJson("name", data)`**, which checks it against its schema in `rpcShapes.ts` and types it; never `data as …`.
 - Reads that access rules already protect go through the Supabase client. Privileged actions (anything the provider or admin can't write directly, like publishing or approving) go through a server route.
 - **An update or delete sent straight to the database must confirm it changed a row.** Row rules and filters don't raise an error when they match nothing, so the request "works" and changes nothing. End the query with `.select("id")` and check it with `changedRows(result, "saved" | "deleted" | "changed")`; show `problemText(error, "…")`, which tells the person nothing changed and to refresh (`packages/ui/app/utils/changedRows.ts`). The exception is a write where nothing to change is fine, such as marking notifications read that another tab already marked; say why in a comment.
 - Every list or data view has three designed states besides success: loading, empty and error. Empty states say what the thing is and what to do next ("You haven't created any Services yet. Create your first one to start getting booking requests.").

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { bookedLabel, REVIEW_RULES, REVIEW_RULE_KEYS, reviewStarsSpoken, type ReviewRule } from "@repo/types";
+import { bookedLabel, REVIEW_RULES, REVIEW_RULE_KEYS, reviewStarsSpoken, rpcJson, type AdminReviewRow, type ReviewRule } from "@repo/types";
 
 // Reviews (docs/design/reviews.md, Reporting and moderation): the queue of
 // reviews with open reports, oldest report first, and all reviews with
@@ -12,17 +12,8 @@ const supabase = useSupabaseClient();
 const call = useWebsiteAdmin();
 const websiteUrl = useRuntimeConfig().public.websiteUrl.replace(/\/$/, "");
 
-interface Report { id: string; target: "review" | "reply"; rule: string; note: string | null; created_at: string; status: string; resolution_note: string | null; from: "provider" | "someone_else" }
-interface Row {
-  id: string; rating: number; body: string; reviewer_name: string; booking_month: string; created_at: string; edited_at: string | null;
-  status: "published" | "removed"; removed_at: string | null; removed_rule: ReviewRule | null; removed_reason: string | null;
-  listing: { id: string; title: string; slug: string; kind: string; status: string } | null;
-  provider: { id: string; name: string; slug: string } | null;
-  reply: { body: string; status: "published" | "removed"; removed_rule: ReviewRule | null; removed_reason: string | null } | null;
-  reports: Report[];
-  provider_removals: number;
-  customer_removals: number;
-}
+// A row as admin_reviews_page returns it (its schema is in @repo/types).
+type Row = AdminReviewRow;
 
 const view = ref<"reported" | "all">("reported");
 // "any": Reka's select can't use an empty value.
@@ -39,7 +30,7 @@ const { data, error, pending, refresh } = await useAsyncData("admin-reviews", as
     p_page_size: 25,
   });
   if (e) throw e;
-  return d as unknown as { total: number; open_reports: number; rows: Row[] };
+  return rpcJson("admin_reviews_page", d);
 }, { watch: [view, status, stars, page] });
 watch(error, (e) => e && reportProblem("Couldn't load the reviews", e), { immediate: true });
 

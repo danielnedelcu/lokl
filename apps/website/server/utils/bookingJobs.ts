@@ -11,7 +11,7 @@
 // a job as if at a later time.
 
 import type Stripe from "stripe";
-import { allRows, logText, stripeErrorSummary } from "@repo/types";
+import { allRows, logText, rpcJson, stripeErrorSummary } from "@repo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { abandonCheckout, BookingError, recordDispute } from "./bookings";
 import { finishAccept } from "./bookingAnswers";
@@ -453,7 +453,7 @@ async function refreshOpenDays(db: SupabaseClient, opts: JobOptions) {
   if (opts.bookingId || opts.now) throw new Error("refresh-open-days runs for every provider, as of now.");
   const { data, error } = await db.rpc("refresh_stale_service_open_days", { p_limit: 50 });
   if (error) throw new Error(error.message);
-  const { refreshed, more_waiting } = data as { refreshed: number; more_waiting: boolean };
+  const { refreshed, more_waiting } = rpcJson("refresh_stale_service_open_days", data);
   return {
     job: "refresh-open-days" as const, checked: refreshed,
     done: refreshed ? [`refreshed ${refreshed} ${refreshed === 1 ? "provider" : "providers"}`] : [], failed: [] as string[],

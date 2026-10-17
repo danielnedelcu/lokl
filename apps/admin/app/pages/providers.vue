@@ -1,20 +1,13 @@
 <script setup lang="ts">
-import type { PayoutSetup, ProviderStatus } from "@repo/types";
+import type { AdminProviderRow, PayoutSetup, ProviderStatus } from "@repo/types";
 
 useHead({ title: "Providers · Admin" });
 
 // Providers, a page at a time from the database (admin_providers_page, which
 // also gives each owner's email and payout setup), with the search, filters,
 // page and sort in the URL (useServerTable).
-interface ProviderRow {
-  id: string;
-  display_name: string;
-  status: ProviderStatus;
-  created_at: string;
-  owner_email: string;
-  payout_setup: PayoutSetup;
-  city: { name: string; state: string } | null;
-}
+// A row as admin_providers_page returns it (its schema is in @repo/types).
+type ProviderRow = AdminProviderRow;
 
 const supabase = useSupabaseClient();
 const { data: cities } = await useAsyncData("admin-provider-cities", async () => {
@@ -41,7 +34,7 @@ const table = useServerTable({
         p_page: page,
       })
       .abortSignal(signal);
-    return asServerPage<ProviderRow>(data, error);
+    return asServerPage("admin_providers_page", data, error);
   },
 });
 const f = computed(() => table.query.value.filters);

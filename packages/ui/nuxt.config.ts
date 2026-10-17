@@ -19,9 +19,12 @@ export default defineNuxtConfig({
   // the plugins/row-limit-check files): "warn" logs a read that was probably
   // cut off at the API's 1,000 rows; "throw" makes it fail. The test apps
   // run with NUXT_PUBLIC_ROW_LIMIT_CHECK=throw (scripts/ci-start-apps.mjs).
+  // The same for database functions' JSON (rpcJson in @repo/types): "warn"
+  // logs a result whose shape doesn't match its schema; "throw" fails.
   runtimeConfig: {
     public: {
       rowLimitCheck: "warn",
+      rpcShapeCheck: "warn",
     },
   },
 

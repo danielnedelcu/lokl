@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { publicGuideShape, publicGuidesShape, publicHomepageGuidesShape } from "./rpcShapes";
 import type { Tables } from "./database";
 
 // Destination guides (docs/design/destination-guides.md). The database is
@@ -248,64 +249,12 @@ export function photoCredit(p: Pick<GuidePhoto, "source" | "credit_name" | "cred
 // published guides only.
 // ---------------------------------------------------------------------------
 
-export interface PublicGuidePhoto {
-  id: string;
-  path: string;
-  card_path: string | null;
-  width: number;
-  height: number;
-  alt: string;
-  source: GuidePhotoSource;
-  credit_name: string | null;
-  credit_url: string | null;
-  source_url: string | null;
-  licence: string | null;
-}
-
-export interface PublicGuideMarket {
-  name: string;
-  slug: string;
-  state: string;
-  timezone: string;
-}
-
-export interface PublicGuideSummary {
-  slug: string;
-  title: string;
-  teaser: string;
-  published_at: string;
-  content_updated_at: string;
-  cover: PublicGuidePhoto;
-}
-
-export interface PublicGuidesIndex {
-  market: PublicGuideMarket;
-  guides: PublicGuideSummary[];
-}
-
-export interface PublicGuide {
-  slug: string;
-  title: string;
-  teaser: string;
-  body: unknown;
-  published_at: string;
-  content_updated_at: string;
-  market: PublicGuideMarket;
-  listings: {
-    kind: "service" | "experience" | null;
-    area: { id: string; name: string; kind: string } | null;
-    category: { id: string; name: string; slug: string; kind: "service" | "experience" } | null;
-  };
-  cover_photo_id: string;
-  photos: PublicGuidePhoto[];
-}
-
+// Their shapes are the schemas in ./rpcShapes.ts, which rpcJson checks the
+// functions' results against; these types come from them.
+export type PublicGuidesIndex = NonNullable<z.infer<typeof publicGuidesShape>>;
+export type PublicGuideSummary = PublicGuidesIndex["guides"][number];
+export type PublicGuidePhoto = PublicGuideSummary["cover"];
+export type PublicGuideMarket = PublicGuidesIndex["market"];
+export type PublicGuide = NonNullable<z.infer<typeof publicGuideShape>>;
 /** A guide on the homepage: position 1 is the hero. */
-export interface HomepageGuide {
-  position: number;
-  market: string;
-  slug: string;
-  title: string;
-  teaser: string;
-  cover: PublicGuidePhoto;
-}
+export type HomepageGuide = z.infer<typeof publicHomepageGuidesShape>[number];

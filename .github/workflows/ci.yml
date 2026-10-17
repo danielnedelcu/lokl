@@ -58,6 +58,8 @@ jobs:
         run: npm run check:reads
       - name: Dates and times that would follow the device's zone
         run: npm run check:dates
+      - name: Database functions' JSON read through its schema
+        run: npm run check:rpc-json
       - name: UI tests
         run: npm run test:ui
       - name: Email templates

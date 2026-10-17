@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  REPLY_MAX, REVIEW_MAX, REVIEW_RULES, replySchema, reviewProblem, reviewSchema, reviewStarsSpoken, whyNoReview, type ReviewRule,
+  REPLY_MAX, REVIEW_MAX, REVIEW_RULES, replySchema, reviewProblem, reviewSchema, reviewStarsSpoken, rpcJson, whyNoReview, type ReviewRule, type ReviewState,
 } from "@repo/types";
 
 // A booking's review, on its booking page (docs/design/reviews.md): for the
@@ -11,24 +11,14 @@ import {
 // to the database, whose rules decide (the form checks first).
 const props = defineProps<{ bookingId: string; timezone: string; listingTitle: string; listingPath: string | null; providerName: string }>();
 
-interface State {
-  role: "customer" | "provider" | "admin";
-  window_ends_at: string | null;
-  can_write: boolean;
-  why_not: string | null;
-  reviewer_name: string;
-  review: {
-    id: string; rating: number; body: string; created_at: string; edited_at: string | null;
-    status: "published" | "removed"; removed_rule: ReviewRule | null; can_change: boolean;
-  } | null;
-  reply: { body: string; created_at: string; edited_at: string | null; status: "published" | "removed"; removed_rule: ReviewRule | null } | null;
-}
+// What review_state returns (its schema is in @repo/types).
+type State = ReviewState;
 
 const supabase = useSupabaseClient();
 const { data: state, refresh } = await useAsyncData(`review-state-${props.bookingId}`, async () => {
   const { data, error } = await supabase.rpc("review_state", { p_booking_id: props.bookingId });
   if (error) throw error;
-  return data as unknown as State | null;
+  return rpcJson("review_state", data);
 }, { server: false });
 
 const until = computed(() => (state.value?.window_ends_at ? formatSessionDate(state.value.window_ends_at, props.timezone) : ""));

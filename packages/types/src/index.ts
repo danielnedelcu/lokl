@@ -16,3 +16,5 @@ export * from "./time";
 export * from "./secrets";
 export * from "./search";
 export * from "./availability";
+export * from "./rpcShapes";
+export * from "./rpcJson";

@@ -1,3 +1,5 @@
+import { rpcJson, type RpcJson } from "@repo/types";
+
 // One pattern for the admin's server-side tables (Bookings, Experiences,
 // Services, Providers; planned 2026-10-03). The search text, filters, page
 // and sort live in the URL, so back, reload and bookmarks work; the page asks
@@ -116,9 +118,14 @@ export function useServerTable<F extends string, Row>(opts: ServerTableOptions<F
   return { query, rows, total, totalExact, pending, error, setFilter, setFilters, setSearch, setPage, setSort, clear, refresh: load, filtering };
 }
 
-/** A database page function's answer as a ServerPage, or throw its error. */
-export function asServerPage<Row>(data: unknown, error: { message: string } | null): ServerPage<Row> {
+/**
+ * A database page function's answer, checked against its schema (rpcJson in
+ * @repo/types), or throw its error. No defaults: a page without its rows or
+ * total is a drift to report, not an empty table.
+ */
+export function asServerPage<N extends "admin_bookings_page" | "admin_listings_page" | "admin_providers_page">(
+  name: N, data: unknown, error: { message: string } | null,
+): RpcJson<N> {
   if (error) throw error;
-  const page = data as Partial<ServerPage<Row>> | null;
-  return { rows: page?.rows ?? [], total: page?.total ?? 0, total_exact: page?.total_exact ?? true };
+  return rpcJson(name, data);
 }

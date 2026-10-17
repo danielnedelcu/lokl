@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { RpcJson } from "@repo/types";
 import { payoutState, wasCharged, whenOf, type AdminBookingRow } from "~/utils/bookingAdmin";
 
 // Bookings & payouts (docs/design/booking-and-checkout.md, Admin): what
@@ -32,9 +33,11 @@ const { data: attention, error: attentionError, pending: attentionPending, refre
     ...GROUPS.map((g) => supabase.rpc("admin_bookings_page", { p_attention: g.key, p_page_size: 20 })),
   ]);
   for (const r of [counts, ...groups]) if (r.error) throw r.error;
-  const totals = ((counts.data as { attention?: Record<GroupKey, number> }).attention ?? {}) as Record<GroupKey, number>;
+  // Asked for with p_with_attention, so the counts are there (rpcJson checks the rest).
+  const totals = asServerPage("admin_bookings_page", counts.data, null).attention;
+  if (!totals) throw new Error("admin_bookings_page didn't count what needs attention.");
   return {
-    groups: GROUPS.map((g, i) => ({ ...g, count: totals[g.key] ?? 0, rows: asServerPage<AdminBookingRow>(groups[i]!.data, null).rows })),
+    groups: GROUPS.map((g, i) => ({ ...g, count: totals[g.key], rows: asServerPage("admin_bookings_page", groups[i]!.data, null).rows })),
     // Each shows its latest rows and counts them all (utils/adminLists.ts).
     failedEmails: emails,
     failedRuns: runs,
@@ -50,8 +53,7 @@ const attentionCount = computed(() =>
 
 const STATUSES = ["requested", "confirmed", "completed", "paid_out", "cancelled", "declined", "expired"];
 // The money across every match (admin_booking_totals), from the same request as the page.
-interface Totals { charged_count: number; charged_cents: number; refunded_cents: number; commission_cents: number }
-const totals = ref<Totals | null>(null);
+const totals = ref<RpcJson<"admin_bookings_page">["totals"] | null>(null);
 const table = useServerTable({
   filters: {
     status: oneOf(...STATUSES),
@@ -82,8 +84,8 @@ const table = useServerTable({
         p_page: page,
       })
       .abortSignal(signal);
-    const result = asServerPage<AdminBookingRow>(data, error);
-    totals.value = (data as { totals?: Totals } | null)?.totals ?? null;
+    const result = asServerPage("admin_bookings_page", data, error);
+    totals.value = result.totals;
     return result;
   },
 });

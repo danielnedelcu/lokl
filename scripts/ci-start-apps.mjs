@@ -70,6 +70,8 @@ const shared = {
   NUXT_SUPABASE_SECRET_KEY: secret,
   // Tests: a read cut off at the API's 1,000 rows fails (rowLimitFetch).
   NUXT_PUBLIC_ROW_LIMIT_CHECK: "throw",
+  // ...and a database function's JSON that doesn't match its schema (rpcJson).
+  NUXT_PUBLIC_RPC_SHAPE_CHECK: "throw",
 };
 const apps = [
   {

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { HomepageGuide, PublicGuide, PublicGuidesIndex } from "@repo/types";
+import { rpcJson, type HomepageGuide, type PublicGuide, type PublicGuidesIndex } from "@repo/types";
 import { guideListings, type GuideListingsResult } from "./guideListings";
 
 // Destination guides as visitors see them (docs/design/destination-guides.md,
@@ -11,7 +11,7 @@ import { guideListings, type GuideListingsResult } from "./guideListings";
 export async function loadPublicGuides(db: SupabaseClient, market: string): Promise<PublicGuidesIndex | null> {
   const { data, error } = await db.rpc("public_guides", { p_market: market });
   if (error) throw new Error(error.message);
-  return (data as PublicGuidesIndex | null) ?? null;
+  return rpcJson("public_guides", data);
 }
 
 /** One published guide with its listings block (up to six live listings), or null. */
@@ -22,7 +22,7 @@ export async function loadPublicGuide(
 ): Promise<{ guide: PublicGuide; listings: GuideListingsResult } | null> {
   const { data, error } = await db.rpc("public_guide", { p_market: market, p_slug: slug });
   if (error) throw new Error(error.message);
-  const guide = (data as PublicGuide | null) ?? null;
+  const guide = rpcJson("public_guide", data);
   if (!guide) return null;
   const { data: city, error: cityError } = await db.from("cities").select("id").eq("slug", market).maybeSingle();
   if (cityError) throw new Error(cityError.message);
@@ -41,5 +41,5 @@ export async function loadPublicGuide(
 export async function loadHomepageGuides(db: SupabaseClient): Promise<HomepageGuide[]> {
   const { data, error } = await db.rpc("public_homepage_guides");
   if (error) throw new Error(error.message);
-  return (data as HomepageGuide[] | null) ?? [];
+  return rpcJson("public_homepage_guides", data);
 }

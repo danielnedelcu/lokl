@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from "zod";
-import type { ListingStatus } from "@repo/types";
+import { rpcJson, type ListingSessionRow, type ListingStatus } from "@repo/types";
 
 // The editor's Sessions section (Experiences). Times are entered and shown in
 // the listing city's time zone (zonedTime.ts), whatever the device's zone.
@@ -17,18 +17,8 @@ const emit = defineEmits<{ changed: [] }>();
 
 const supabase = useSupabaseClient();
 
-interface SessionRow {
-  id: string;
-  starts_at: string;
-  capacity: number;
-  status: "scheduled" | "cancelled";
-  /** Booking rows of any kind: any at all means it can't be deleted, only cancelled with refunds. */
-  booking_rows: number;
-  /** People on confirmed bookings, and what cancelling would refund them. */
-  booked: number;
-  refund_cents: number;
-}
-interface SessionsPage { total: number; items: SessionRow[] }
+// A session as listing_sessions_page returns it (its schema is in @repo/types).
+type SessionRow = ListingSessionRow;
 
 // Sessions with each one's bookings counted by the database
 // (listing_sessions_page), 50 at a time: upcoming soonest first, past most
@@ -40,7 +30,7 @@ async function loadPage(past: boolean, page: number) {
     p_listing_id: props.listingId, p_past: past, p_page: page, p_page_size: PAGE_SIZE,
   });
   if (error) throw error;
-  return data as unknown as SessionsPage;
+  return rpcJson("listing_sessions_page", data);
 }
 const { data: firstPages, refresh, error: loadError } = await useAsyncData(`listing-sessions-${props.listingId}`, async () => {
   const [upcoming, past] = await Promise.all([loadPage(false, 1), loadPage(true, 1)]);

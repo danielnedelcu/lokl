@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@repo/types";
+import { rpcJson, type Database } from "@repo/types";
 
 // AI drafting since a time (the cost log, guide_ai_drafts): how many drafts
 // and what they cost, in cents, counted and added up by the database
@@ -9,6 +9,6 @@ import type { Database } from "@repo/types";
 export async function aiDraftCostSince(supabase: SupabaseClient<Database>, since: string) {
   const { data, error } = await supabase.rpc("admin_ai_draft_cost", { p_since: since });
   if (error) throw error;
-  const r = data as { count: number; cost_usd: number | string };
+  const r = rpcJson("admin_ai_draft_cost", data);
   return { count: r.count, cents: Math.round(Number(r.cost_usd) * 100) };
 }

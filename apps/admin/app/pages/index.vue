@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { rpcJson } from "@repo/types";
 // The admin dashboard (plan approved 2026-10-04): the marketplace's numbers
 // from admin_dashboard(), in one call. Each number links to the page behind
 // it, filtered the same way, so the page shows the same figure: the money
@@ -10,26 +11,11 @@
 useHead({ title: "Dashboard · Admin" });
 const supabase = useSupabaseClient();
 
-interface Dashboard {
-  time_zone: string;
-  today: string;
-  paid_from: string;
-  active_since: string;
-  gmv_cents: number;
-  commission_cents: number;
-  bookings: number;
-  active_providers: number;
-  listings_to_review: { experience: number; service: number };
-  open_disputes: number;
-  bookings_attention: number;
-  guide_drafts: number;
-  providers_not_payable: number;
-}
 
 const { data, error, pending, refresh } = await useAsyncData("admin-dashboard", async () => {
   const { data: d, error: e } = await supabase.rpc("admin_dashboard");
   if (e) throw e;
-  return d as unknown as Dashboard;
+  return rpcJson("admin_dashboard", d);
 });
 watch(error, (e) => e && reportProblem("Couldn't load the dashboard", e), { immediate: true });
 // Reviews with open reports (docs/design/reviews.md), from the Reviews page's own function.
@@ -39,7 +25,7 @@ const { data: reviewReports, refresh: refreshReviews } = await useAsyncData("adm
     reportProblem("Couldn't count the review reports", e);
     return null;
   }
-  return (d as unknown as { open_reports: number }).open_reports;
+  return rpcJson("admin_reviews_page", d).open_reports;
 });
 // Fresh numbers when the admin comes back to the tab.
 useLiveData({ refresh: () => Promise.all([refresh(), refreshReviews()]) });

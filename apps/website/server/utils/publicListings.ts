@@ -14,7 +14,7 @@
 // read with visitors' own rules), then loads only that page's cards.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { allRows, isTopRated } from "@repo/types";
+import { allRows, isTopRated, rpcJson } from "@repo/types";
 import type {
   AreaKind,
   ListingKind,
@@ -358,7 +358,7 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
   if (pickError) throw new Error(pickError.message);
   // Services: those on the page with no free time in their window
   // (undated), and each one's first free day in the searched dates.
-  const { ids, total, closed, firstDays } = picked as unknown as { ids: string[]; total: number; closed?: string[]; firstDays?: Record<string, string> };
+  const { ids, total, closed, firstDays } = rpcJson("public_browse", picked);
   const closedIds = new Set(closed ?? []);
 
   let cards: ReturnType<typeof toCard>[] = [];
@@ -396,7 +396,7 @@ export async function loadPublicMarket(db: SupabaseClient, slug: string): Promis
     db.rpc("public_category_counts", { p_market_id: market.id }),
   ]);
   for (const r of [categories, areas, counted]) if (r.error) throw new Error(r.error.message);
-  const counts = new Map(Object.entries((counted.data ?? {}) as Record<string, number>));
+  const counts = new Map(Object.entries(rpcJson("public_category_counts", counted.data)));
 
   const { id: _id, ...publicMarket } = market;
   return {
@@ -440,7 +440,8 @@ export async function publicSitemapEntries(db: SupabaseClient): Promise<{ loc: s
   for (const m of markets.data as { slug: string }[]) {
     const { data, error } = await db.rpc("public_guides", { p_market: m.slug });
     if (error) throw new Error(error.message);
-    const guides = ((data as { guides?: { slug: string; content_updated_at: string }[] } | null)?.guides) ?? [];
+    // A market that isn't public has none.
+    const guides = rpcJson("public_guides", data)?.guides ?? [];
     if (!guides.length) continue;
     entries.set(`/${m.slug}/guides`, guides[0]!.content_updated_at);
     for (const g of guides) entries.set(`/${m.slug}/guides/${g.slug}`, g.content_updated_at);

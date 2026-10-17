@@ -1,4 +1,4 @@
-import { marketZone } from "@repo/types";
+import { marketZone, type AdminBookingRow } from "@repo/types";
 // Shared by the admin's booking pages: what to read, and how a booking's
 // payout reads in words. Admins read every booking through RLS
 // (bookings_read_admin); changes go through the website (useWebsiteAdmin).
@@ -17,38 +17,9 @@ export function withFinances<T = AdminBookingRow>(row: any): T {
   return { ...rest, ...(finances ?? {}), ...(report !== undefined ? { problem_note: report?.note ?? null } : {}) } as T;
 }
 
-export interface AdminBookingRow {
-  id: string;
-  kind: "service" | "experience";
-  status: string;
-  listing_id: string;
-  provider_id: string;
-  starts_at: string | null;
-  ends_at: string | null;
-  created_at: string;
-  party_size: number;
-  total_cents: number;
-  commission_cents: number;
-  provider_amount_cents: number;
-  refunded_cents: number;
-  cancelled_by: string | null;
-  confirmed_at: string | null;
-  payout_due_at: string | null;
-  payout_hold: string | null;
-  payout_failure: string | null;
-  stripe_transfer_id: string | null;
-  problem_reported_at: string | null;
-  problem_resolution: string | null;
-  disputed_at: string | null;
-  dispute_closed_at: string | null;
-  dispute_outcome: string | null;
-  reversal_failed_at: string | null;
-  customer_name: string;
-  /** From the admin search function (admin_bookings_page). */
-  customer_email?: string | null;
-  listing: { title: string; kind: string; status: string; city: { name: string; timezone: string } | null } | null;
-  provider: { display_name: string; status: string } | null;
-}
+// A booking row as the admin's tables show it: admin_bookings_page's rows,
+// described once with their schema in @repo/types (rpcShapes.ts).
+export type { AdminBookingRow };
 
 export const HOLD_LABELS: Record<string, string> = {
   problem_reported: "a reported no-show",

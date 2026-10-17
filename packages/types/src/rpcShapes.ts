@@ -1,0 +1,281 @@
+import { z } from "zod";
+import { LISTING_STATUSES } from "./listings";
+import { GUIDE_PHOTO_SOURCES } from "./guides";
+import { REVIEW_RULES, type ReviewRule } from "./reviews";
+
+// The shape of every database function the apps call that returns JSON
+// (2026-10-17). The generated types say only `Json` for these, so each is
+// described here, once, and read through rpcJson (./rpcJson.ts), which checks
+// it: a function whose JSON drifts (a key renamed, a type changed) fails the
+// tests by name and path instead of quietly showing zeros or empty lists.
+// The TypeScript types below come from these schemas.
+//
+// Missing keys and wrong types fail; extra keys are allowed (and dropped),
+// so a function can gain a field before the apps use it.
+// scripts/check-rpc-json.mjs fails on an rpc() call to one of these that
+// isn't read through rpcJson, and on a JSON function with no schema here.
+
+const id = z.string();
+const time = z.string();
+const kind = z.enum(["service", "experience"]);
+const reviewRule = z.enum(Object.keys(REVIEW_RULES) as [ReviewRule, ...ReviewRule[]]);
+/** A count from Postgres: bigint counts arrive as JSON numbers. */
+const count = z.number().int();
+
+// ---- Public pages ------------------------------------------------------------
+
+export const publicBrowseShape = z.object({
+  total: count,
+  ids: z.array(id),
+  /** Services on the page with no free time in their window (undated browse). */
+  closed: z.array(id).optional(),
+  /** Services on the page: their first free day in the searched dates. */
+  firstDays: z.record(z.string(), z.string()).optional(),
+});
+
+/** Visible listings per category id. */
+export const publicCategoryCountsShape = z.record(z.string(), count);
+
+const guidePhoto = z.object({
+  id,
+  path: z.string(),
+  card_path: z.string().nullable(),
+  width: z.number(),
+  height: z.number(),
+  alt: z.string(),
+  source: z.enum(GUIDE_PHOTO_SOURCES),
+  credit_name: z.string().nullable(),
+  credit_url: z.string().nullable(),
+  source_url: z.string().nullable(),
+  licence: z.string().nullable(),
+});
+const guideMarket = z.object({ name: z.string(), slug: z.string(), state: z.string(), timezone: z.string() });
+
+/** One market's published guides; null for a market that isn't public. */
+export const publicGuidesShape = z.object({
+  market: guideMarket,
+  guides: z.array(z.object({
+    slug: z.string(), title: z.string(), teaser: z.string(),
+    published_at: time, content_updated_at: time, cover: guidePhoto,
+  })),
+}).nullable();
+
+/** One published guide; null when there's no such guide. */
+export const publicGuideShape = z.object({
+  slug: z.string(),
+  title: z.string(),
+  teaser: z.string(),
+  body: z.unknown(),
+  published_at: time,
+  content_updated_at: time,
+  market: guideMarket,
+  listings: z.object({
+    kind: kind.nullable(),
+    area: z.object({ id, name: z.string(), kind: z.string() }).nullable(),
+    category: z.object({ id, name: z.string(), slug: z.string(), kind }).nullable(),
+  }),
+  cover_photo_id: id,
+  photos: z.array(guidePhoto),
+}).nullable();
+
+export const publicHomepageGuidesShape = z.array(z.object({
+  position: z.number().int(),
+  market: z.string(),
+  slug: z.string(),
+  title: z.string(),
+  teaser: z.string(),
+  cover: guidePhoto,
+}));
+
+// ---- Signed-in customers and providers ----------------------------------------
+
+export const mySavedShape = z.object({
+  listings: z.array(z.object({ listing_id: id, saved_at: time, available: z.boolean(), title: z.string().nullable() })),
+  providers: z.array(z.object({ provider_id: id, saved_at: time, available: z.boolean(), name: z.string().nullable() })),
+});
+
+export const listingSessionsPageShape = z.object({
+  total: count,
+  items: z.array(z.object({
+    id,
+    starts_at: time,
+    capacity: z.number().int(),
+    status: z.enum(["scheduled", "cancelled"]),
+    /** Booking rows of any kind: any at all means it can't be deleted, only cancelled with refunds. */
+    booking_rows: z.number().int(),
+    /** People on confirmed bookings, and what cancelling would refund them. */
+    booked: z.number().int(),
+    refund_cents: z.number().int(),
+  })),
+});
+
+/** A booking's review, for whoever may see it; null for anyone else. */
+export const reviewStateShape = z.object({
+  role: z.enum(["customer", "provider", "admin"]),
+  window_ends_at: time.nullable(),
+  can_write: z.boolean(),
+  why_not: z.string().nullable(),
+  reviewer_name: z.string(),
+  review: z.object({
+    id, rating: z.number().int(), body: z.string(), created_at: time, edited_at: time.nullable(),
+    status: z.enum(["published", "removed"]), removed_rule: reviewRule.nullable(), can_change: z.boolean(),
+  }).nullable(),
+  reply: z.object({
+    body: z.string(), created_at: time, edited_at: time.nullable(),
+    status: z.enum(["published", "removed"]), removed_rule: reviewRule.nullable(),
+  }).nullable(),
+}).nullable();
+
+// ---- Jobs ------------------------------------------------------------------------
+
+export const refreshStaleServiceOpenDaysShape = z.object({ refreshed: count, more_waiting: z.boolean() });
+
+// ---- Admin -------------------------------------------------------------------------
+
+/** One page of an admin table (the admin_*_page functions). */
+const serverPage = <Row extends z.ZodType>(row: Row) => z.object({ rows: z.array(row), total: count, total_exact: z.boolean() });
+
+export const adminBookingRowShape = z.object({
+  id,
+  kind,
+  status: z.string(),
+  listing_id: id,
+  provider_id: id,
+  starts_at: time.nullable(),
+  ends_at: time.nullable(),
+  created_at: time,
+  party_size: z.number().int(),
+  total_cents: z.number().int(),
+  commission_cents: z.number().int(),
+  provider_amount_cents: z.number().int(),
+  refunded_cents: z.number().int(),
+  cancelled_by: z.string().nullable(),
+  confirmed_at: time.nullable(),
+  payout_due_at: time.nullable(),
+  payout_hold: z.string().nullable(),
+  payout_failure: z.string().nullable(),
+  stripe_transfer_id: z.string().nullable(),
+  problem_reported_at: time.nullable(),
+  problem_resolution: z.string().nullable(),
+  disputed_at: time.nullable(),
+  dispute_closed_at: time.nullable(),
+  dispute_outcome: z.string().nullable(),
+  reversal_failed_at: time.nullable(),
+  customer_name: z.string(),
+  customer_email: z.string().nullable().optional(),
+  listing: z.object({
+    title: z.string(), kind: z.string(), status: z.string(),
+    city: z.object({ name: z.string(), timezone: z.string() }).nullable(),
+  }).nullable(),
+  provider: z.object({ display_name: z.string(), status: z.string() }).nullable(),
+});
+/** The groups the admin's bookings page counts as needing attention. */
+export const ADMIN_BOOKING_ATTENTION = ["reports", "holds", "owed", "disputes", "unavailable"] as const;
+export const adminBookingsPageShape = serverPage(adminBookingRowShape).extend({
+  /** The money across every match. */
+  totals: z.object({ charged_count: count, charged_cents: count, refunded_cents: count, commission_cents: count }),
+  /** Counts per attention group, across every booking (with p_with_attention only). */
+  attention: z.record(z.enum(ADMIN_BOOKING_ATTENTION), count).nullable(),
+});
+
+export const adminListingRowShape = z.object({
+  id,
+  title: z.string(),
+  status: z.enum(LISTING_STATUSES),
+  price_cents: z.number().int(),
+  updated_at: time,
+  provider: z.object({ id, display_name: z.string() }).nullable(),
+  category: z.object({ name: z.string() }).nullable(),
+  city: z.object({ id, name: z.string() }).nullable(),
+});
+export const adminListingsPageShape = serverPage(adminListingRowShape);
+
+export const adminProviderRowShape = z.object({
+  id,
+  display_name: z.string(),
+  status: z.enum(["active", "suspended"]),
+  created_at: time,
+  owner_email: z.string(),
+  payout_setup: z.enum(["not_started", "in_progress", "ready"]),
+  city: z.object({ name: z.string(), state: z.string() }).nullable(),
+});
+export const adminProvidersPageShape = serverPage(adminProviderRowShape);
+
+const reviewReport = z.object({
+  id, target: z.enum(["review", "reply"]), rule: z.string(), note: z.string().nullable(), created_at: time,
+  status: z.string(), resolution_note: z.string().nullable(), from: z.enum(["provider", "someone_else"]),
+});
+export const adminReviewRowShape = z.object({
+  id,
+  rating: z.number().int(),
+  body: z.string(),
+  reviewer_name: z.string(),
+  booking_month: z.string(),
+  created_at: time,
+  edited_at: time.nullable(),
+  status: z.enum(["published", "removed"]),
+  removed_at: time.nullable(),
+  removed_rule: reviewRule.nullable(),
+  removed_reason: z.string().nullable(),
+  booking_id: id,
+  listing: z.object({ id, title: z.string(), slug: z.string(), kind: z.string(), status: z.string() }).nullable(),
+  provider: z.object({ id, name: z.string(), slug: z.string() }).nullable(),
+  reply: z.object({
+    body: z.string(), created_at: time, edited_at: time.nullable(),
+    status: z.enum(["published", "removed"]), removed_rule: reviewRule.nullable(), removed_reason: z.string().nullable(),
+  }).nullable(),
+  reports: z.array(reviewReport),
+  provider_removals: count,
+  customer_removals: count,
+});
+export const adminReviewsPageShape = z.object({ total: count, open_reports: count, rows: z.array(adminReviewRowShape) });
+
+export const adminDashboardShape = z.object({
+  time_zone: z.string(),
+  today: z.string(),
+  paid_from: z.string(),
+  active_since: z.string(),
+  gmv_cents: count,
+  commission_cents: count,
+  bookings: count,
+  active_providers: count,
+  listings_to_review: z.object({ experience: count, service: count }),
+  open_disputes: count,
+  bookings_attention: count,
+  guide_drafts: count,
+  providers_not_payable: count,
+});
+
+/** AI guide drafts since a time: how many, and their cost (numeric, so a number or a string). */
+export const adminAiDraftCostShape = z.object({ count, cost_usd: z.union([z.number(), z.string()]) });
+
+/** Every JSON function the apps read, by name: rpcJson and the check use this list. */
+export const RPC_SHAPES = {
+  admin_ai_draft_cost: adminAiDraftCostShape,
+  admin_bookings_page: adminBookingsPageShape,
+  admin_dashboard: adminDashboardShape,
+  admin_listings_page: adminListingsPageShape,
+  admin_providers_page: adminProvidersPageShape,
+  admin_reviews_page: adminReviewsPageShape,
+  listing_sessions_page: listingSessionsPageShape,
+  my_saved: mySavedShape,
+  public_browse: publicBrowseShape,
+  public_category_counts: publicCategoryCountsShape,
+  public_guide: publicGuideShape,
+  public_guides: publicGuidesShape,
+  public_homepage_guides: publicHomepageGuidesShape,
+  refresh_stale_service_open_days: refreshStaleServiceOpenDaysShape,
+  review_state: reviewStateShape,
+} as const;
+export type RpcJsonName = keyof typeof RPC_SHAPES;
+export type RpcJson<N extends RpcJsonName> = z.infer<(typeof RPC_SHAPES)[N]>;
+
+export type AdminBookingRow = z.infer<typeof adminBookingRowShape>;
+export type AdminListingRow = z.infer<typeof adminListingRowShape>;
+export type AdminProviderRow = z.infer<typeof adminProviderRowShape>;
+export type AdminReviewRow = z.infer<typeof adminReviewRowShape>;
+export type AdminDashboard = z.infer<typeof adminDashboardShape>;
+export type ListingSessionsPage = z.infer<typeof listingSessionsPageShape>;
+export type ListingSessionRow = ListingSessionsPage["items"][number];
+export type MySavedRows = z.infer<typeof mySavedShape>;
+export type ReviewState = NonNullable<z.infer<typeof reviewStateShape>>;
