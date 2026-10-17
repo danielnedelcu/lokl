@@ -16,6 +16,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
+import net from "node:net";
 
 const root = new URL("../", import.meta.url);
 const pidFile = new URL("node_modules/.cache/ci-apps.pids", root);
@@ -61,11 +62,6 @@ const websiteUrl = `http://localhost:${websitePort}`;
 const adminUrl = `http://localhost:${adminPort}`;
 const shared = {
   NUXT_PUBLIC_SUPABASE_URL: apiUrl,
-  // The sign-in cookie's name is fixed at build time from the Supabase URL
-  // then in use (a laptop's build sees the hosted project's .env); name it
-  // for the local stack, as @supabase/ssr does, or every page reads as
-  // signed out.
-  NUXT_PUBLIC_SUPABASE_COOKIE_PREFIX: `sb-${new URL(apiUrl).hostname.split(".")[0]}-auth-token`,
   NUXT_PUBLIC_SUPABASE_KEY: publishable,
   NUXT_SUPABASE_SECRET_KEY: secret,
   // Tests: a read cut off at the API's 1,000 rows fails (rowLimitFetch).
@@ -80,6 +76,12 @@ const apps = [
     env: {
       ...shared,
       NUXT_PUBLIC_SITE_URL: websiteUrl,
+      // The website's sign-in cookie is named from the Supabase URL at build
+      // time (a laptop's build sees the hosted project's .env); name it for
+      // the local stack, as @supabase/ssr does, or every page reads as
+      // signed out. Not the admin app's: it has its own fixed name
+      // (supabase.cookiePrefix), so the two apps never share a session.
+      NUXT_PUBLIC_SUPABASE_COOKIE_PREFIX: `sb-${new URL(apiUrl).hostname.split(".")[0]}-auth-token`,
       // A stand-in Google client, so the Google button is there to test; the
       // journeys stand in for Google's script and Supabase's answer (journey 23).
       NUXT_PUBLIC_GOOGLE_CLIENT_ID: "e2e-test-client.apps.googleusercontent.com",
@@ -93,6 +95,24 @@ const apps = [
   // Never a Stripe key in the admin app.
   { name: "admin", port: adminPort, env: { ...shared, NUXT_PUBLIC_WEBSITE_URL: websiteUrl, NUXT_STRIPE_SECRET_KEY: "" } },
 ];
+
+// Each port must be free: an app left running (say, by a test run that was
+// stopped) would answer in place of the new one, which then can't start, and
+// the tests would run against the old build (seen 2026-10-17).
+const answers = (port) =>
+  new Promise((resolve) => {
+    const socket = net.connect({ host: "127.0.0.1", port });
+    socket.setTimeout(500);
+    socket.once("connect", () => { socket.destroy(); resolve(true); });
+    socket.once("timeout", () => { socket.destroy(); resolve(false); });
+    socket.once("error", () => resolve(false));
+  });
+for (const app of apps) {
+  if (await answers(app.port)) {
+    console.error(`Port ${app.port} is already in use, so the ${app.name} can't start there. If it's an earlier test run's app, stop it: node scripts/ci-start-apps.mjs --stop (or find it with lsof -nP -iTCP:${app.port} -sTCP:LISTEN).`);
+    process.exit(1);
+  }
+}
 
 const pids = [];
 for (const app of apps) {
@@ -122,6 +142,8 @@ for (const app of apps) {
   for (;;) {
     try {
       await fetch(`http://localhost:${app.port}/`, { signal: AbortSignal.timeout(2000) });
+      // The answer must come from the app just started, still running.
+      process.kill(pids[apps.indexOf(app)], 0);
       console.log(`${app.name} is up on port ${app.port}.`);
       break;
     } catch {

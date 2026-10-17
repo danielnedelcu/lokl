@@ -31,7 +31,7 @@ test("a full batch is logged as more waiting, and the next run clears it", async
   expect(left(), "the first run expires a batch of 200, oldest first").toBeLessThanOrEqual(1);
   expect(lastRun(), "...and logs that more were waiting").toBe("t");
 
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/bookings`);
   await expect(page.getByText("expire-requests").first()).toBeVisible();
   await expect(page.getByText("a full batch: more were waiting for the next run").first()).toBeVisible();

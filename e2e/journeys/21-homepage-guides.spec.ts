@@ -59,7 +59,7 @@ test("the admin chooses a main guide and two more, and the homepage shows them i
   const two = await data.publishedGuide("Eastside eats", admin);
   await data.setHomepage([]);
 
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/content/homepage`);
   const cardsArea = page.getByRole("region", { name: /^More guides/ });
   const preview = page.getByRole("region", { name: "Preview" });
@@ -211,7 +211,7 @@ test("the admin is told when the saved main guide's market is closed", async ({ 
   await data.setHomepage([main.id]);
   await data.env.db.from("cities").update({ active: false }).eq("id", closedMarket);
 
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/content/homepage`);
   await expect(page.getByText("The main guide's market is closed, so visitors see no guides. Choose a guide from an open market.")).toBeVisible();
 });
@@ -221,7 +221,7 @@ test("the admin is told when the main guide was unpublished", async ({ page, con
   const card = await data.publishedGuide("Westside walk", admin);
   await data.setHomepage([card.id], { main: false });
 
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/content/homepage`);
   await expect(page.getByText("The main guide was unpublished, so the homepage shows no guides until you choose one.")).toBeVisible();
   const save = page.getByRole("button", { name: "Save the homepage" });

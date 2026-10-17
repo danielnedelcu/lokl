@@ -89,7 +89,7 @@ test("late at night and in the clock-change week, every page shows the Atlanta t
 
   // The admin's booking page.
   await context.clearCookies();
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/bookings/${lateBooking.id}`);
   await expect(page.getByText(`${atlantaDate(late)}, ${atlantaTime(late)}`).first()).toBeVisible();
 

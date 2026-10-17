@@ -469,12 +469,14 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   staging site: it needs HTTPS. Production cookies are Secure, and WebKit
   refuses Secure cookies on plain-http localhost (Chromium accepts them), so
   WebKit can't run against the local build.
-- [ ] Build each app with the Supabase URL of the project it will run
-  against, or set `NUXT_PUBLIC_SUPABASE_COOKIE_PREFIX` where it runs: the
+- [ ] Build the website with the Supabase URL of the project it will run
+  against, or set `NUXT_PUBLIC_SUPABASE_COOKIE_PREFIX` where it runs: its
   sign-in cookie's name is fixed at build time from that URL, and a build
   pointed at another project at run time reads every visitor as signed out
   (found 2026-10-04 by the end-to-end tests; `scripts/ci-start-apps.mjs`
-  sets it for the local stack).
+  sets it for the local stack). The admin app's cookie has its own fixed
+  name (2026-10-17); never set the variable for it, or the two apps share a
+  session on localhost.
 - [ ] Hosting for both apps on those addresses, over HTTPS.
 - [ ] Supabase auth URLs for staging: Site URL and the `/confirm` redirects
   on both addresses.

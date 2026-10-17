@@ -16,7 +16,7 @@ test("the dashboard's numbers match the bookings behind them", async ({ page, co
   const category = await data.category("experience");
   const listing = await data.listing(provider, "experience", category.id, await data.area());
   await data.paidBooking(customer, await data.session(listing.id, daysFromNow(4)));
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
 
   await page.goto(`${ADMIN}/`);
   const gmvCard = page.getByRole("link", { name: /GMV \(30 days\)/ });

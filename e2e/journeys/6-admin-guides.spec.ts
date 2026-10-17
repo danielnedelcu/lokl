@@ -14,7 +14,7 @@ test("delete a draft guide from the list", async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const title = `E2E delete me ${data.run}`;
   const { id } = await data.guide({ title });
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
 
   await page.goto(`${ADMIN}/content?q=${encodeURIComponent(title)}`);
   const row = page.getByRole("listitem").filter({ hasText: title });
@@ -31,7 +31,7 @@ test("delete a draft guide from the list", async ({ page, context, data }) => {
 
 test("an empty new guide is discarded on leaving; one with a title stays", async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
 
   // New guide, then straight back: nothing is kept.
   await page.goto(`${ADMIN}/content`);
@@ -62,7 +62,7 @@ test("an empty draft left by a closed tab is removed from the list after an hour
   const admin = await data.user("admin", { admin: true });
   const old = await data.guide({ updatedHoursAgo: 2 });
   const recent = await data.guide();
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/content`);
   await expect.poll(() => data.guideExists(old.id), { message: "the hour-old empty draft is removed" }).toBe(false);
   expect(await data.guideExists(recent.id), "a new empty draft (maybe open in another tab) is kept").toBe(true);
@@ -71,7 +71,7 @@ test("an empty draft left by a closed tab is removed from the list after an hour
 test("the photo upload area opens the file picker", async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const { id } = await data.guide({ title: `E2E photos ${data.run}` });
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/content/${id}`);
   await page.getByRole("button", { name: "Guide settings" }).click();
   const area = page.getByRole("button", { name: "Click to add photos" });

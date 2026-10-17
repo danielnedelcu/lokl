@@ -28,6 +28,9 @@ Owner-only dashboard. Port 3101 (fixed). Root `CLAUDE.md` applies too.
   app's exact address (`NUXT_ADMIN_ORIGIN` there, `NUXT_PUBLIC_WEBSITE_URL`
   here; decision 14). Each action takes a reason (`ReasonDialog`) and is
   logged in `admin_actions`.
+- **Its own session cookie** (`supabase.cookiePrefix` in `nuxt.config.ts`):
+  on localhost the website and this app would otherwise share one session,
+  since cookies ignore the port. Never set a cookie domain.
 - **The login page never creates accounts** (`shouldCreateUser: false`). Admins
   are added by hand in Supabase.
 - **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;

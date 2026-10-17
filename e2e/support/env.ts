@@ -8,6 +8,8 @@ import { safeStripe } from "@repo/types";
 
 export const WEBSITE = "http://localhost:3200";
 export const ADMIN = "http://localhost:3201";
+/** The admin app's session cookie name (apps/admin/nuxt.config.ts, supabase.cookiePrefix). */
+export const ADMIN_COOKIE = "sb-lokl-admin-auth-token";
 export const LOKL_SANDBOX = "acct_1UKIdIEfG7OyQ6pv";
 
 export interface TestEnv {

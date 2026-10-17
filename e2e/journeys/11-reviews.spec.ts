@@ -259,7 +259,7 @@ test("a visitor reports a review after signing in; the admin removes it under a 
 
   // The admin: remove the first under its rule, keep the second.
   await context.clearCookies();
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/content/reviews`);
   const removeCard = page.getByRole("listitem").filter({ hasText: "The guide was rude to everyone" });
   await removeCard.getByRole("button", { name: "Remove review" }).click();

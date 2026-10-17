@@ -111,7 +111,7 @@ test("lokl's refund: the reply is lost, the admin page says it's done, logged on
   const listing = await data.listing(provider, "experience", (await data.category("experience")).id, await data.area());
   const booking = await data.paidBooking(customer, await data.session(listing.id, daysFromNow(4)));
 
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/bookings/${booking.id}`);
   await dropFirstReply(page, `/api/admin/bookings/${booking.id}/cancel`);
   await page.getByRole("button", { name: "Refund and cancel" }).click();

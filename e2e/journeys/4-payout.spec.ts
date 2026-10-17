@@ -32,7 +32,7 @@ test("a booking that has happened is paid out to the provider", async ({ page, c
 
   // So does the admin, in the admin app.
   await context.clearCookies();
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/bookings/${booking.id}`);
   await expect(page.getByText("Paid out", { exact: true }).first()).toBeVisible();
 });

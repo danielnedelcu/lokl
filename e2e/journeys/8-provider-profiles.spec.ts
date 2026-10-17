@@ -97,7 +97,7 @@ test("the admin removes profile content that breaks a rule, and the provider is 
   const owner = await data.user("owner");
   const providerId = await data.provider(owner, `E2E Rules ${data.run}`);
   await data.env.db.from("providers").update({ headline: "Walks and tastings", bio: "Ask for Sam at the gate." }).eq("id", providerId);
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
 
   await page.goto(`${ADMIN}/providers?q=${encodeURIComponent(`E2E Rules ${data.run}`)}`);
   await page.getByRole("button", { name: `Profile of E2E Rules ${data.run}` }).click();

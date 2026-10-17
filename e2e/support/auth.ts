@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import type { BrowserContext } from "@playwright/test";
-import { testEnv } from "./env";
+import { ADMIN_COOKIE, testEnv } from "./env";
 
 // Signing a test user in without email (decided 2026-10-04): the password
 // sign-in runs here, in the test, through @supabase/ssr (the library the
@@ -8,10 +8,16 @@ import { testEnv } from "./env";
 // browser. Nothing in the apps knows about tests. If the library changes
 // its cookie format, both sides change together; a mismatch shows as a
 // signed-out page, not a quiet pass.
-export async function signIn(context: BrowserContext, email: string, password: string) {
+//
+// Each app has its own session cookie (decided 2026-10-17): the website's
+// keeps the module's default name, from the project; the admin app's is
+// ADMIN_COOKIE (apps/admin/nuxt.config.ts, supabase.cookiePrefix). `app`
+// says which one this sign-in writes.
+export async function signIn(context: BrowserContext, email: string, password: string, { app = "website" }: { app?: "website" | "admin" } = {}) {
   const env = await testEnv();
   const jar = new Map<string, string>();
   const client = createServerClient(env.apiUrl, env.publishableKey, {
+    ...(app === "admin" ? { cookieOptions: { name: ADMIN_COOKIE } } : {}),
     cookies: {
       getAll: () => [...jar].map(([name, value]) => ({ name, value })),
       setAll: (cookies) => cookies.forEach((c) => (c.value ? jar.set(c.name, c.value) : jar.delete(c.name))),

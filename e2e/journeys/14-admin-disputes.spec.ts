@@ -36,7 +36,7 @@ test("open disputes are all listed; refunds are counted and paged", async ({ pag
     values ('${disputed}', 2000, 1000, 4000, 'dp_e2e_${data.run}', now() - interval '2 days', 'fraudulent', '${due}');` });
   const totalRefunds = Number(execFileSync("psql", [data.env.dbUrl, "-X", "-At", "-c", "select count(*) from public.bookings where refunded_cents > 0"], { encoding: "utf8" }).trim());
 
-  await signIn(context, admin.email, admin.password);
+  await signIn(context, admin.email, admin.password, { app: "admin" });
   await page.goto(`${ADMIN}/disputes`);
   const open = page.getByRole("region", { name: /^Open disputes/ }).or(page.locator("section[aria-labelledby='open-heading']"));
   await expect(open.getByRole("link", { name: listing.title })).toBeVisible();
