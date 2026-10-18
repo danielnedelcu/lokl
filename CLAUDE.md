@@ -53,6 +53,7 @@ npm run check:reads           # fails on a read of a growing table that could st
 npm run check:dates           # fails on a date or time that would follow the device's zone
 npm run check:rpc-json        # fails on a database function's JSON read without its schema (rpcJson)
 npm run check:logs            # fails on a server log that prints an error as it is (use errorText)
+npm run check:booking-doc     # fails if the booking document's guard links miss the newest bookings_guard migration
 npm run check:outside-hosts   # fails on a tracking host the privacy policy doesn't name in the build (part of build:check)
 ```
 
@@ -328,4 +329,6 @@ covers `apps/website/server/utils/booking*.ts`, `adminBookings.ts`,
 `stripe.ts`, the booking, session, admin-booking, job and Stripe routes
 under `apps/website/server/api/`, the booking migrations, and
 `packages/types/src/bookings.ts`. The document describes the code as
-built; `docs/design/booking-and-checkout.md` is the original design.
+built; `docs/design/booking-and-checkout.md` is the original design. `npm run check:booking-doc` (CI) fails if
+its guard links don't name the newest migration defining `bookings_guard`,
+or its count of those migrations is wrong.

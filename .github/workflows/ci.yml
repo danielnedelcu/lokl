@@ -62,6 +62,8 @@ jobs:
         run: npm run check:rpc-json
       - name: Server logs print no error as it is (errorText)
         run: npm run check:logs
+      - name: The booking document names the guard's newest migration
+        run: npm run check:booking-doc
       - name: UI tests
         run: npm run test:ui
       - name: Email templates

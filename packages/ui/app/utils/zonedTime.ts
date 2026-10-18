@@ -4,6 +4,7 @@
 // daylight saving: a weekly 10:00 AM series stays at 10:00 AM local time when
 // the clocks change, even though its UTC time moves by an hour.
 import { getDayOfWeek, parseDate, parseDateTime, toZoned, now } from "@internationalized/date";
+import { repeatedHourZone } from "@repo/types";
 
 /** A wall-clock date and time in a city: "2026-10-24" and "10:00". */
 export interface LocalDateTime {
@@ -106,10 +107,10 @@ export function formatSessionDate(instant: string, timeZone: string): string {
     .format(new Date(instant));
 }
 
-/** "10:00 AM" in `timeZone`. */
+/** "10:00 AM" in `timeZone`; "1:30 AM EDT" or "1:30 AM EST" in the hour that repeats in November. */
 export function formatSessionTime(instant: string, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone })
-    .format(new Date(instant));
+    .format(new Date(instant)) + repeatedHourZone(instant, timeZone);
 }
 
 /** "Atlanta time (ET)": which clock the times are in. */

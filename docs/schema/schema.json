@@ -12252,6 +12252,18 @@
       "return_type": "uuid",
       "arguments": "p_report_id uuid, p_admin_id uuid, p_body text",
       "type": "FUNCTION"
+    },
+    {
+      "name": "public.wall_clock_instant",
+      "return_type": "timestamptz",
+      "arguments": "p_local timestamp without time zone, p_zone text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.session_time_label",
+      "return_type": "text",
+      "arguments": "p_at timestamp with time zone, p_zone text",
+      "type": "FUNCTION"
     }
   ],
   "enums": [

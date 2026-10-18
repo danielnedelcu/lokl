@@ -109,7 +109,10 @@ instants in the market's zone when slots are built. This way 9:00 stays
 - **Hours inside the clock change:** on the March change day, 2:00–3:00
   doesn't exist. Intervals are cut to the real hours of that day. On the
   November change day, 1:00–2:00 happens twice, and slots in it are offered
-  once (the first).
+  once (the first). Built 2026-10-18: `wall_clock_instant` picks the
+  first (daylight-time) instant, where Postgres alone picks the second.
+  A time in that hour is shown with its zone name ("1:30 AM EDT" or
+  "1:30 AM EST") on screens, in emails and in the session clash message.
 - **Notice and window** count from now in market time:
   - The earliest slot is `now + min_notice`.
   - The latest slot starts on the day `today + booking_window_days`.

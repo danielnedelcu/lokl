@@ -11,7 +11,7 @@
 // Plain TypeScript with no Nuxt imports: the sender, the tests and
 // `npm run email:previews` all use these same functions.
 
-import { customerCancelOutcome, PROFILE_RULES, REVIEW_RULES, REVIEW_WINDOW_DAYS, SUPPORT_CATEGORY_ABOUT, type ProfileRule, type ReviewRule, type SupportCategory } from "@repo/types";
+import { customerCancelOutcome, PROFILE_RULES, repeatedHourZone, REVIEW_RULES, REVIEW_WINDOW_DAYS, SUPPORT_CATEGORY_ABOUT, type ProfileRule, type ReviewRule, type SupportCategory } from "@repo/types";
 
 export const EMAIL_KINDS = [
   "customer_request_sent", "customer_request_accepted", "customer_request_declined", "customer_request_expired",
@@ -98,7 +98,8 @@ function dateOnly(iso: string, tz: string) {
   return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: tz }).format(new Date(iso));
 }
 function dateTime(iso: string, tz: string, marketName: string) {
-  const time = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz }).format(new Date(iso));
+  const time = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz }).format(new Date(iso))
+    + repeatedHourZone(iso, tz);
   return `${dateOnly(iso, tz)}, ${time} (${marketName} time)`;
 }
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || "The customer";

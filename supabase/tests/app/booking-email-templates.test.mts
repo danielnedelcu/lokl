@@ -148,5 +148,11 @@ const lateMail = renderEmail("customer_booking_confirmed", { ...confirmed.ctx, b
 check(lateMail.text.includes("Wed, Oct 14") && lateMail.text.includes("11:30 PM") && !lateMail.text.includes("Oct 15"),
   "10. a booking at 11:30 PM Atlanta time is Wed, Oct 14, 11:30 PM in the email, not Oct 15");
 
+// 11. The hour that repeats in November (2026-10-18): a booking at the first
+// 1:30 AM says EDT, and one at the second says EST.
+const at11 = (startsAt: string) => renderEmail("customer_booking_confirmed", { ...confirmed.ctx, booking: { ...confirmed.ctx.booking, starts_at: startsAt, ends_at: startsAt } }).text;
+check(at11("2026-11-01T05:30:00Z").includes("Sun, Nov 1, 1:30 AM EDT (Atlanta time)") && at11("2026-11-01T06:30:00Z").includes("Sun, Nov 1, 1:30 AM EST (Atlanta time)"),
+  "11. a booking in November's repeated hour says 1:30 AM EDT or EST in the email");
+
 console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} booking emails, 3 account emails).`);
 process.exit(failures ? 1 : 0);

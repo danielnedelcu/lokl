@@ -41,5 +41,16 @@ check(iso(monthStartIn(ATL, "2026-11-01T03:30:00Z")) === "2026-10-01T04:00:00.00
 check(iso(monthStartIn(ATL, "2026-11-01T05:00:00Z")) === "2026-11-01T04:00:00.000Z", "4b. an hour and a half later it's November, from Atlanta midnight (still EDT)");
 check(iso(monthStartIn(ATL, "2026-12-15T12:00:00Z")) === "2026-12-01T05:00:00.000Z", "4c. December begins at 05:00 UTC (EST)");
 
+// 5. The repeated hour is labelled (2026-10-18): 1:30 AM EDT and 1:30 AM EST
+// are an hour apart, so each says which it is; no other time carries a label.
+const first = "2026-11-01T05:30:00Z", second = "2026-11-01T06:30:00Z";
+check(formatSessionTime(first, ATL) === "1:30 AM EDT" && formatSessionTime(second, ATL) === "1:30 AM EST", "5a. the two 1:30 AMs on Nov 1 read 1:30 AM EDT and 1:30 AM EST");
+check(formatSessionTime("2026-11-01T05:00:00Z", ATL) === "1:00 AM EDT" && formatSessionTime("2026-11-01T06:59:00Z", ATL) === "1:59 AM EST", "5b. ...from 1:00 to 1:59 on both");
+check(formatSessionTime("2026-11-01T04:59:00Z", ATL) === "12:59 AM" && formatSessionTime("2026-11-01T07:00:00Z", ATL) === "2:00 AM", "5c. 12:59 AM and 2:00 AM, which happen once, have no label");
+check(formatDateTime(first, ATL) === "Nov 1, 2026, 1:30 AM EDT" && formatDateTime(second, ATL) === "Nov 1, 2026, 1:30 AM EST", "5d. formatDateTime labels them too");
+check(formatHomeDateTime(second) === "Nov 1, 2026, 1:30 AM EST Atlanta time", "5e. ...and the admin's record times");
+check(formatSessionTime("2027-03-14T07:30:00Z", ATL) === "3:30 AM" && formatSessionTime("2026-10-25T05:30:00Z", ATL) === "1:30 AM", "5f. the March change and an ordinary night have no label");
+check(formatSessionTime(first, "Asia/Tokyo") === "2:30 PM", "5g. a zone without a change that day has no label");
+
 console.log(failures ? `${failures} failed` : "All zoned time checks passed.");
 process.exit(failures ? 1 : 0);

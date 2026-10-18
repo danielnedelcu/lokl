@@ -5,7 +5,7 @@
 -- who may call the new functions.
 begin;
 \ir _helpers/users.psql
-select plan(71);
+select plan(73);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -293,6 +293,16 @@ select is((pg_temp.local_starts(:'ls', '2026-11-01', '2026-10-30 12:00-04'))[1:7
 select is((select count(*)::int from service_slots_at(:'ls', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')),
   (select count(distinct starts_at)::int from service_slots_at(:'ls', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')),
   '6g. ...each slot is a different moment');
+-- Which 1:00 is offered: the first, still daylight time (EDT, UTC-4), as
+-- the design says (docs/design/service-availability.md); never the repeated
+-- one in standard time (EST, UTC-5).
+select is((select array_agg(starts_at order by starts_at) from service_slots_at(:'ls', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')
+            where starts_at in ('2026-11-01 01:00-04', '2026-11-01 01:00-05', '2026-11-01 01:30-04', '2026-11-01 01:30-05')),
+  array['2026-11-01 01:00-04', '2026-11-01 01:30-04']::timestamptz[],
+  '6h. the repeated hour''s 1:00 and 1:30 are the first ones (EDT), not the repeated ones (EST)');
+select ok(not exists (select 1 from service_slots_at(:'ls', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')
+            where starts_at >= '2026-11-01 01:00-05' and starts_at < '2026-11-01 02:00-05'),
+  '6i. ...and no slot starts in the repeated (EST) hour');
 
 select * from finish();
 rollback;

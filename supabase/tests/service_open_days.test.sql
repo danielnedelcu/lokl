@@ -83,7 +83,12 @@ begin
     -- Each start, as a wall-clock time turned into an instant in the
     -- market's zone (a time skipped by the March clock change lands an hour
     -- later, and is kept once), and the end of its interval.
-    select distinct (t at time zone v_zone) as slot_start, ((o.day + o.ends) at time zone v_zone) as open_until
+    -- A time repeated in November is the first (daylight) one, written here
+    -- independently of wall_clock_instant: an hour before Postgres's answer,
+    -- when that still reads as the same wall-clock time (2026-10-18).
+    select distinct (case when (((t at time zone v_zone) - interval '1 hour') at time zone v_zone) = t
+                          then (t at time zone v_zone) - interval '1 hour' else t at time zone v_zone end) as slot_start,
+           ((o.day + o.ends) at time zone v_zone) as open_until
       from open o
       cross join lateral generate_series(o.day + o.starts, o.day + o.ends - v_duration, v_step) t
      where not exists (select 1 from public.provider_time_off x

@@ -473,6 +473,13 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   clock for the e2e journeys, and `p_now` (as `service_slots_at` takes)
   for the slot functions in the app tests, so they don't depend on when
   they run.
+  - [x] November's repeated hour (2026-10-18): slots in it are the first
+    (daylight-time) ones, as designed, with a pgTAP check; a time in that
+    hour is labelled EDT or EST wherever it's shown.
+  - [ ] The rest of the plan (approved 2026-10-18): fixtures that pass at
+    any hour, `now` parameters for search and display, Playwright's clock
+    in the browser only, and a clock sweep at risky instants, also run
+    nightly in CI.
 - [ ] Run the end-to-end tests in WebKit (Safari's engine) too, against the
   staging site: it needs HTTPS. Production cookies are Secure, and WebKit
   refuses Secure cookies on plain-http localhost (Chromium accepts them), so

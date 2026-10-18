@@ -18,6 +18,7 @@
     "schema:compare": "node scripts/schema-compare.mjs",
     "check:reads": "node scripts/check-reads.mjs",
     "check:logs": "node scripts/check-logs.mjs",
+    "check:booking-doc": "node scripts/check-booking-doc.mjs",
     "check:outside-hosts": "node scripts/check-outside-hosts.mjs",
     "check:dates": "node scripts/check-dates.mjs",
     "check:rpc-json": "node scripts/check-rpc-json.mjs",

@@ -2,7 +2,7 @@
 
 How booking Services and Experiences, and the money around them, work in the
 code today. Written from the code and migrations on 2026-10-04, and updated
-through 2026-10-14.
+through 2026-10-18.
 [docs/design/booking-and-checkout.md](../design/booking-and-checkout.md) is
 the original design; where the two differ, this document follows the code
 and lists the differences at the end ([Differences from the design](#12-differences-from-the-design)).
@@ -23,7 +23,7 @@ Source paths are links. Short forms used below:
 | `bookingEmails.ts` | [apps/website/server/utils/bookingEmails.ts](../../apps/website/server/utils/bookingEmails.ts) |
 | `bookingRecords.ts` | [apps/website/server/utils/bookingRecords.ts](../../apps/website/server/utils/bookingRecords.ts) |
 | policy | [packages/types/src/bookings.ts](../../packages/types/src/bookings.ts) |
-| guard | `bookings_guard` in [supabase/migrations/20261015005346_service_availability.sql](../../supabase/migrations/20261015005346_service_availability.sql) (its latest version; it was redefined in eight migrations) |
+| guard | `bookings_guard` in [supabase/migrations/20261015042112_service_slots_only.sql](../../supabase/migrations/20261015042112_service_slots_only.sql) (its latest version; defined in nine migrations: created in `20261001012101_bookings.sql`, redefined in eight) |
 | availability | [supabase/migrations/20261015005346_service_availability.sql](../../supabase/migrations/20261015005346_service_availability.sql), designed in [docs/design/service-availability.md](../design/service-availability.md) |
 
 ## Contents
@@ -114,7 +114,7 @@ flowchart LR
 ## 2. Booking states
 
 A booking's `status`, and every move the database allows
-([guard](../../supabase/migrations/20261011024704_money_lost_replies.sql)).
+([guard](../../supabase/migrations/20261015042112_service_slots_only.sql)).
 Each arrow names who can make it: the `status_changed_by` value recorded
 with it, and copied into `booking_events.actor`.
 
@@ -283,6 +283,7 @@ sequenceDiagram
   S->>W: webhook, or the success page's sync
   alt Instant
     W->>DB: confirmed (stripe), charge id
+    Note over DB: customer_booking_confirmed, provider_new_booking
   else Approve
     W->>DB: requested (stripe), respond_by = now + 48h (the guard caps it 2h before the start)
     Note over DB: customer_request_sent, provider_new_request,<br/>notification booking_requested
@@ -761,7 +762,7 @@ note), which only the service role can use.
 | `experience_sessions` | future, visible ones | own (all) | all | future, visible ones | provider (not moved or cancelled once booked) | with its listing, unless booked |
 | `notifications` | no | own (may mark read) | no | no | triggers | with its listing |
 | `admin_actions`, `job_runs` | no | no | all | no | service role | never (append-only) |
-| `commission_rates` | any signed-in user | any signed-in user | all, may change the rate | no | admin (rate only) | never |
+| `commission_rates` | any signed-in user | any signed-in user | all, may change the rate | the kind and rate (the Fees page; since 2026-10-18) | admin (rate only) | never |
 | `providers` (`stripe_*`, `status`) | no | own | all | no | server only (Stripe sync, admin RPC) | never |
 
 Sources: [bookings](../../supabase/migrations/20261001012101_bookings.sql),
@@ -792,6 +793,10 @@ Queued as rows in `booking_emails` by triggers on `bookings`
 ([booking_finances migration](../../supabase/migrations/20261003022309_booking_finances.sql)),
 then sent by the website ([bookingEmails.ts](../../apps/website/server/utils/bookingEmails.ts),
 templates in [bookingEmailTemplates.ts](../../apps/website/server/utils/bookingEmailTemplates.ts)).
+Times are shown in the listing's market zone, labelled "(Atlanta time)";
+a time in the hour that repeats when the clocks go back also carries its
+zone name, "1:30 AM EDT" or "1:30 AM EST" (`repeatedHourZone` in
+`@repo/types`, 2026-10-18).
 
 | Email | To | Queued when |
 | --- | --- | --- |
@@ -801,7 +806,7 @@ templates in [bookingEmailTemplates.ts](../../apps/website/server/utils/bookingE
 | `customer_request_declined` | customer | `requested` → `declined` |
 | `customer_request_expired` | customer | `requested` → `expired` |
 | `provider_request_unanswered` | provider | `requested` → `expired` by the system (no answer in time) |
-| `customer_booking_confirmed` | customer | an Experience is paid (`pending_payment` → `confirmed`) |
+| `customer_booking_confirmed` | customer | an Experience or an Instant Service is paid (`pending_payment` → `confirmed`) |
 | `provider_new_booking` | provider | the same |
 | `customer_booking_cancelled` | customer | cancelled from `requested`, `confirmed`, `completed` or `paid_out` |
 | `provider_booking_cancelled` | provider | the same, unless the provider cancelled it |
@@ -1028,10 +1033,11 @@ Where the code differs from [docs/design/booking-and-checkout.md](../design/book
 12. **Emails:** also `customer_problem_refunded`, `provider_problem_paid` and
     `provider_problem_refunded`; a booking the provider cancels doesn't email
     the provider.
-13. **Access:** any signed-in user can read `commission_rates` (not only
-    customers); `booking_finances` is never readable by the customer, and
-    `booking_reports` never by the provider (neither is in the design's
-    table).
+13. **Access:** anyone can read `commission_rates`, not only customers:
+    signed-in users all of it, visitors the kind and the rate (published
+    on the Fees page since 2026-10-18). `booking_finances` is never
+    readable by the customer, and `booking_reports` never by the provider
+    (neither is in the design's table).
 14. **`respond_by`:** 48 hours from when the payment is recorded (webhook or
     sync), not from when the request was made, capped by the guard at 2
     hours before the booked time; the database refuses accepting a time

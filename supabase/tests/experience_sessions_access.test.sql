@@ -2,7 +2,7 @@
 -- is paired with the blocked case next to it.
 begin;
 \ir _helpers/users.psql
-select plan(46);
+select plan(58);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -333,8 +333,58 @@ select is(
   (select count(*)::int from experience_sessions where listing_id = :'la' and starts_at > '2030-01-01'), 5,
   '27b. ...with every week'
 );
+-- 28. In the hour that repeats when the clocks go back (Nov 3, 2030), the
+-- clash names which 1:30 AM it is (2026-10-18). One at a time: the two are
+-- an hour apart, and this Experience is longer than that.
+select lives_ok(
+  format($$ insert into experience_sessions (listing_id, starts_at, capacity) values (%L, '2030-11-03 05:30Z', 10) $$, :'la'),
+  '28a. a session at the first 1:30 AM (EDT) is saved'
+);
+select throws_ok(
+  format($$ insert into experience_sessions (listing_id, starts_at, capacity) values (%L, '2030-11-03 05:30Z', 10) $$, :'la'),
+  '23505', 'There''s already a session on Sunday, November 3, 2030 at 1:30 AM EDT.',
+  '28b. a clash with it says 1:30 AM EDT'
+);
+delete from experience_sessions where listing_id = :'la' and starts_at = '2030-11-03 05:30Z';
+select lives_ok(
+  format($$ insert into experience_sessions (listing_id, starts_at, capacity) values (%L, '2030-11-03 06:30Z', 10) $$, :'la'),
+  '28c. a session at the second 1:30 AM (EST) is saved'
+);
+select throws_ok(
+  format($$ insert into experience_sessions (listing_id, starts_at, capacity) values (%L, '2030-11-03 06:30Z', 10) $$, :'la'),
+  '23505', 'There''s already a session on Sunday, November 3, 2030 at 1:30 AM EST.',
+  '28d. ...and a clash with that one says 1:30 AM EST'
+);
+-- 28e. Naming EDT or EST changes no session setting: after a caught clash
+-- the caller's zone is what it was (2026-10-18). Postgres also undoes a
+-- setting changed for the transaction when the error is caught, so 28f
+-- checks the source too.
+set local timezone = 'Asia/Tokyo';
+select throws_ok(
+  format($$ insert into experience_sessions (listing_id, starts_at, capacity) values (%L, '2030-11-03 06:30Z', 10) $$, :'la'),
+  '23505', 'There''s already a session on Sunday, November 3, 2030 at 1:30 AM EST.',
+  '28e. a clash, caught, with the caller''s zone set to Tokyo');
+select is(current_setting('TimeZone'), 'Asia/Tokyo', '28e. ...and afterwards the session''s time zone is still Tokyo');
+select ok(not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public' and p.proname in ('experience_sessions_check', 'session_time_label')
+              and (p.prosrc ~* 'set_config|\mset\s+(local\s+)?time\s*zone' or p.proconfig::text ~* 'timezone')),
+  '28f. ...and neither function changes a setting to write the time');
+reset timezone;
+
 -- Out of the way for the counts below.
 delete from experience_sessions where listing_id = :'la' and starts_at > '2030-01-01';
+
+-- 29. session_time_label, at the exact instants: a zone name only in the
+-- repeated hour, the right one for each half, and the offset where Postgres
+-- doesn't know the swapped name (2026-10-18).
+select is(public.session_time_label('2026-11-01 05:30Z', 'America/New_York'), 'Sunday, November 1, 2026 at 1:30 AM EDT', '29a. New York, the first 1:30 AM: EDT');
+select is(public.session_time_label('2026-11-01 06:30Z', 'America/New_York'), 'Sunday, November 1, 2026 at 1:30 AM EST', '29b. ...the second: EST');
+select is(public.session_time_label('2026-11-01 07:30Z', 'America/New_York') || '|' || public.session_time_label('2027-03-14 07:30Z', 'America/New_York'),
+  'Sunday, November 1, 2026 at 2:30 AM|Sunday, March 14, 2027 at 3:30 AM', '29c. times that happen once have no name');
+select is(public.session_time_label('2027-04-03 15:30Z', 'Australia/Sydney') || '|' || public.session_time_label('2027-04-03 16:30Z', 'Australia/Sydney'),
+  'Sunday, April 4, 2027 at 2:30 AM AEDT|Sunday, April 4, 2027 at 2:30 AM AEST', '29d. Sydney in April: AEDT, then AEST');
+select is(public.session_time_label('2026-10-25 00:30Z', 'Europe/London') || '|' || public.session_time_label('2026-10-25 01:30Z', 'Europe/London'),
+  'Sunday, October 25, 2026 at 1:30 AM BST|Sunday, October 25, 2026 at 1:30 AM GMT', '29e. London: BST, then GMT');
 
 -- ---------------------------------------------------------------------------
 -- ADMIN

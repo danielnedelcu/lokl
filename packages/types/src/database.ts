@@ -3076,6 +3076,10 @@ export type Database = {
       };
       session_spots_left: { Args: { p_session_id: string }; Returns: number };
       session_spots_taken: { Args: { p_session_id: string }; Returns: number };
+      session_time_label: {
+        Args: { p_at: string; p_zone: string };
+        Returns: string;
+      };
       support_admin_report: {
         Args: { p_admin_id: string; p_report_id: string };
         Returns: {
@@ -3110,6 +3114,10 @@ export type Database = {
       unpublish_guide: {
         Args: { p_admin_id: string; p_guide_id: string };
         Returns: undefined;
+      };
+      wall_clock_instant: {
+        Args: { p_local: string; p_zone: string };
+        Returns: string;
       };
     };
     Enums: {
