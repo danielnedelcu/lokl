@@ -559,6 +559,20 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     (`NUXT_EMAIL_REPLY_TO`) and the address on pages
     (`NUXT_PUBLIC_SUPPORT_EMAIL`).
   - [ ] `NUXT_EMAIL_MODE=send` in production.
+- **Google Analytics** (decided 2026-10-17; docs/decisions.md)
+  - [ ] A Google Analytics 4 property for hilokl.com; its measurement id in
+    `NUXT_PUBLIC_GTAG_ID` on **production only**, never on staging, so test
+    traffic never mixes with real numbers (a separate property for staging,
+    if it's ever wanted).
+  - [ ] In Google Analytics' admin: data retention 2 months (the shortest);
+    Google Signals off; ads personalisation off; granular location and
+    device data off; every data-sharing setting off; no Google Ads links.
+  - [ ] Enhanced measurement **all off** (page changes from browser
+    history, scrolls, outbound clicks, site search, form interactions,
+    video, file downloads): Google's script would otherwise send events
+    and page addresses lokl doesn't clean.
+  - [ ] The privacy policy's analytics section published before the id is
+    set (docs/design/website-pages.md).
 - **Database**
   - [ ] Run `npm run schema:compare` before every deploy: zero differences
     between the migrations and the hosted (and later production) database.

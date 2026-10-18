@@ -58,6 +58,11 @@ export default defineNuxtConfig({
       // NUXT_PUBLIC_STRIPE_KEY / NUXT_PUBLIC_SITE_URL
       stripeKey: "",
       siteUrl: "http://localhost:3100",
+      // Google Analytics on localhost: for the end-to-end tests' analytics
+      // server only, where every request to Google is caught and answered
+      // locally (scripts/ci-start-apps.mjs; e2e journey 35). Never set it
+      // anywhere else. NUXT_PUBLIC_ANALYTICS_ALLOW_LOCAL.
+      analyticsAllowLocal: "",
       // NUXT_PUBLIC_SUPPORT_EMAIL: where providers and customers can write
       // to lokl (the same address booking emails reply to, for now).
       supportEmail: "",
@@ -164,6 +169,26 @@ export default defineNuxtConfig({
     },
   },
 
+  // Google Analytics 4, measurement only (decided 2026-10-17;
+  // docs/decisions.md). Nothing loads until useAnalytics() starts it: an id
+  // set (NUXT_PUBLIC_GTAG_ID, in production only), a production build, the
+  // site's own address, and no Global Privacy Control. Events are built in
+  // @repo/types (analytics.ts), never sent automatically.
+  gtag: {
+    id: "",
+    initMode: "manual",
+    // Consent Mode: no advertising storage or signals, ever.
+    initCommands: [["consent", "default", { ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied", analytics_storage: "granted" }]],
+    config: {
+      // lokl sends cleaned page views itself, only for public pages.
+      send_page_view: false,
+      allow_google_signals: false,
+      allow_ad_personalization_signals: false,
+      // About 2 months, as long as the data is kept (not Google's 2 years).
+      cookie_expires: 60 * 60 * 24 * 61,
+    },
+  },
+
   modules: [
     "@nuxt/eslint",
     "@nuxt/test-utils",
@@ -172,6 +197,7 @@ export default defineNuxtConfig({
     "@nuxtjs/supabase",
     "dayjs-nuxt",
     "lenis/nuxt",
+    "nuxt-gtag",
     "nuxt-swiper",
     "nuxt-zod",
   ],

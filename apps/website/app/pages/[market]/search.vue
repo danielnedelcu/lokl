@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MAX_SEARCH_DAYS, SEARCH_RANGE_TOO_LONG, readSearch, searchDays, searchPath, type ListingKind, type PublicSearchResult, type SearchFilters } from "@repo/types";
+import { MAX_SEARCH_DAYS, SEARCH_RANGE_TOO_LONG, readSearch, searchDays, searchEvent, searchPath, type ListingKind, type PublicSearchResult, type SearchFilters } from "@repo/types";
 
 // The header search's results (docs/design/search.md): the address holds the
 // filters (/atlanta/search?area=&from=&to=&kind=&category=&page=), the list
@@ -51,6 +51,23 @@ const chips = computed(() => [
   filters.value.from && { label: whenValue.value, remove: "Any dates", href: to({ ...filters.value, from: undefined, to: undefined, page: undefined }) },
   filters.value.category && { label: whatValue.value, remove: "Anything", href: to({ ...filters.value, category: undefined, page: undefined }) },
 ].filter((c): c is { label: string; remove: string; href: string } => !!c));
+
+// Google Analytics' search event (analytics.ts): the filters as settings and
+// how many came back, once per search shown; useAnalytics decides whether
+// anything is sent.
+const { send } = useAnalytics();
+let sentFor = "";
+function sendSearch() {
+  if (!result.value || pending.value || route.fullPath === sentFor) return;
+  sentFor = route.fullPath;
+  const f = filters.value;
+  send(searchEvent({
+    market: marketSlug.value, kind: f.kind, category: f.category, area: f.area, from: f.from, to: f.to,
+    results: list.value ? list.value.total : (result.value.counts.experience ?? 0) + (result.value.counts.service ?? 0),
+  }));
+}
+onMounted(sendSearch);
+watch(result, sendSearch);
 
 const heading = computed(() => `${view.value === "all" ? "Experiences and Services" : kindWord(view.value, 2)} in ${marketName.value}`);
 useSeoMeta({ title: () => `Search · ${heading.value}`, robots: "noindex, follow" });

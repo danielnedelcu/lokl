@@ -8,6 +8,10 @@ import { safeStripe } from "@repo/types";
 
 export const WEBSITE = "http://localhost:3200";
 export const ADMIN = "http://localhost:3201";
+/** The website again, with a made-up Google Analytics id (scripts/e2e.mjs; journeys 33 and 35). */
+export const ANALYTICS = "http://localhost:3202";
+/** Google Analytics' hosts: the only outside hosts the analytics server's pages may ask for. */
+export const GOOGLE_ANALYTICS_HOSTS = ["www.googletagmanager.com", "www.google-analytics.com", "region1.google-analytics.com"];
 /** The admin app's session cookie name (apps/admin/nuxt.config.ts, supabase.cookiePrefix). */
 export const ADMIN_COOKIE = "sb-lokl-admin-auth-token";
 export const LOKL_SANDBOX = "acct_1UKIdIEfG7OyQ6pv";

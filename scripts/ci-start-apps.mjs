@@ -68,6 +68,10 @@ const shared = {
   NUXT_PUBLIC_ROW_LIMIT_CHECK: "throw",
   // ...and a database function's JSON that doesn't match its schema (rpcJson).
   NUXT_PUBLIC_RPC_SHAPE_CHECK: "throw",
+  // No Google Analytics in tests, whatever the shell has set (the analytics
+  // server below is the one exception).
+  NUXT_PUBLIC_GTAG_ID: "",
+  NUXT_PUBLIC_ANALYTICS_ALLOW_LOCAL: "",
 };
 const apps = [
   {
@@ -96,6 +100,27 @@ const apps = [
   { name: "admin", port: adminPort, env: { ...shared, NUXT_PUBLIC_WEBSITE_URL: websiteUrl, NUXT_STRIPE_SECRET_KEY: "" } },
 ];
 
+// The end-to-end tests' analytics server (ANALYTICS_PORT, set only by
+// scripts/e2e.mjs): the same website build with a made-up Google Analytics
+// id and the localhost switch, so journeys 33 and 35 can see what would be
+// sent. Every request to Google is caught by the tests and answered
+// locally: nothing reaches Google. The main website above never gets an id.
+const analyticsPort = Number(process.env.ANALYTICS_PORT || 0);
+if (analyticsPort) {
+  const website = apps[0];
+  apps.push({
+    name: "website-analytics",
+    dir: "website",
+    port: analyticsPort,
+    env: {
+      ...website.env,
+      NUXT_PUBLIC_SITE_URL: `http://localhost:${analyticsPort}`,
+      NUXT_PUBLIC_GTAG_ID: "G-E2ETEST000",
+      NUXT_PUBLIC_ANALYTICS_ALLOW_LOCAL: "1",
+    },
+  });
+}
+
 // Each port must be free: an app left running (say, by a test run that was
 // stopped) would answer in place of the new one, which then can't start, and
 // the tests would run against the old build (seen 2026-10-17).
@@ -116,12 +141,12 @@ for (const app of apps) {
 
 const pids = [];
 for (const app of apps) {
-  const server = new URL(`apps/${app.name}/.output-check/server/index.mjs`, root);
+  const server = new URL(`apps/${app.dir ?? app.name}/.output-check/server/index.mjs`, root);
   if (!fs.existsSync(server)) {
     console.error(`No build for the ${app.name}: run \`npm run build:check\` first.`);
     process.exit(1);
   }
-  const log = fs.openSync(new URL(`apps/${app.name}/.output-check/server.log`, root), "w");
+  const log = fs.openSync(new URL(`apps/${app.dir ?? app.name}/.output-check/${app.name === (app.dir ?? app.name) ? "server" : app.name}.log`, root), "w");
   const child = spawn(process.execPath, [server.pathname], {
     // The server runs in Tokyo, ahead of Atlanta (the market) and of the
     // test browser (Los Angeles, or Auckland in the "ahead" project), so a
@@ -148,7 +173,7 @@ for (const app of apps) {
       break;
     } catch {
       if (Date.now() > deadline) {
-        console.error(`The ${app.name} didn't start within a minute. See apps/${app.name}/.output-check/server.log.`);
+        console.error(`The ${app.name} didn't start within a minute. See its log in apps/${app.dir ?? app.name}/.output-check/.`);
         process.exit(1);
       }
       await new Promise((r) => setTimeout(r, 500));

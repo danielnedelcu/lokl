@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from "zod";
-import type { PublicListing } from "@repo/types";
+import { beginCheckoutEvent, type PublicListing } from "@repo/types";
 
 // Book an Experience: a date (session), how many people, then Stripe
 // Checkout, which charges at once (docs/design/booking-and-checkout.md).
@@ -49,7 +49,10 @@ const submit = handleSubmit(async (v) => {
   }
   const result = await start("/api/bookings/experience", {
     sessionId: v.sessionId, partySize: Number(v.partySize), name: v.name, phone: v.phone || undefined, notes: v.notes || undefined,
-  });
+  }, beginCheckoutEvent({
+    listingId: props.listing.id, kind: "experience", category: props.listing.category.slug,
+    partySize: Number(v.partySize), totalCents: props.listing.priceCents * Number(v.partySize),
+  }));
   // Refused: spots may have changed while they filled the form, so show the
   // latest. Not after a lost reply: the spots shown would count the attempt
   // that may have been made, and block pressing again.

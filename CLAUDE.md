@@ -53,7 +53,7 @@ npm run check:reads           # fails on a read of a growing table that could st
 npm run check:dates           # fails on a date or time that would follow the device's zone
 npm run check:rpc-json        # fails on a database function's JSON read without its schema (rpcJson)
 npm run check:logs            # fails on a server log that prints an error as it is (use errorText)
-npm run check:outside-hosts   # fails on an analytics or tracking host in the build (part of build:check)
+npm run check:outside-hosts   # fails on a tracking host the privacy policy doesn't name in the build (part of build:check)
 ```
 
 **Every date and time names its zone** (`docs/frontend.md`): a booking's,

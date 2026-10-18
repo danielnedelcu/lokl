@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from "zod";
-import { SLOT_TAKEN, type PublicListing } from "@repo/types";
+import { SLOT_TAKEN, beginCheckoutEvent, type PublicListing } from "@repo/types";
 
 // Book a Service from its free times (docs/design/service-availability.md,
 // "The customer's scheduling panel"): a dialog with a week of days and the
@@ -188,7 +188,10 @@ const submit = handleSubmit(async (v) => {
     address: comesToYou.value
       ? { line1: v.line1, line2: v.line2 || undefined, city: v.city, state: v.state, postal_code: v.postal_code, instructions: v.instructions || undefined }
       : undefined,
-  });
+  }, beginCheckoutEvent({
+    listingId: props.listing.id, kind: "service", category: props.listing.category.slug,
+    bookingMode: props.listing.bookingMode, totalCents: props.listing.priceCents,
+  }));
   // Taken meanwhile: back to the times, fresh, to pick another.
   if (result === "refused" && problem.value === SLOT_TAKEN) {
     problem.value = "";

@@ -6,6 +6,8 @@
 // the server returns that booking and its Checkout instead of a second one.
 // A new key when the details change (newAttempt, called by the form) or when
 // the server answered with a refusal (that attempt is over).
+import type { AnalyticsEvent } from "@repo/types";
+
 export type CheckoutResult = "sent" | "refused" | "lost";
 
 export function useBookingCheckout() {
@@ -16,11 +18,14 @@ export function useBookingCheckout() {
     checkoutKey = globalThis.crypto.randomUUID();
   };
 
-  async function start(path: "/api/bookings/service" | "/api/bookings/experience", body: Record<string, unknown>): Promise<CheckoutResult> {
+  const { send } = useAnalytics();
+  // `begun`: the begin_checkout event (analytics.ts), sent once the booking is made, before Stripe.
+  async function start(path: "/api/bookings/service" | "/api/bookings/experience", body: Record<string, unknown>, begun?: AnalyticsEvent): Promise<CheckoutResult> {
     sending.value = true;
     problem.value = "";
     try {
       const { url } = await $fetch<{ url: string }>(path, { method: "POST", body: { ...body, checkoutKey } });
+      if (begun) send(begun);
       window.location.href = url;
       return "sent";
     } catch (e) {

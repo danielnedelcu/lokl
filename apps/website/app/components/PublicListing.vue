@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { areaLabel, whereLabel, type ListingKind, type PublicListing, type PublicPhoto } from "@repo/types";
+import { areaLabel, viewItemEvent, whereLabel, type ListingKind, type PublicListing, type PublicPhoto } from "@repo/types";
 
 // The public listing page, for both kinds (docs/design/browse-and-listing-pages.md).
 // Reads the public route, which only ever returns what a stranger may see:
@@ -25,6 +25,13 @@ if (error.value || !listing.value) {
   });
 }
 const l = computed(() => listing.value!);
+
+// Google Analytics' view_item (analytics.ts): the listing's public id, kind,
+// category and listed price; useAnalytics decides whether anything is sent.
+const { send } = useAnalytics();
+onMounted(() => send(viewItemEvent({
+  listingId: l.value.id, kind: l.value.kind, category: l.value.category.slug, market: l.value.market.slug, priceCents: l.value.priceCents,
+})));
 
 // Back from a cancelled Stripe Checkout: free the hold at once rather than
 // after the checkout window (the route only expires a checkout Stripe still

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HOME_TIME_ZONE, marketZone } from "@repo/types";
+import { HOME_TIME_ZONE, bookingDoneEvent, marketZone } from "@repo/types";
 import { z } from "zod";
 import { canReportProblem, customerCancelOutcome } from "@repo/types";
 // One of the customer's bookings, and the page Stripe Checkout returns to
@@ -10,6 +10,7 @@ definePageMeta({ layout: "public" });
 interface Address { line1: string; line2: string | null; city: string; state: string; postal_code: string; instructions: string | null }
 interface Detail {
   id: string;
+  listing_id: string;
   kind: "service" | "experience";
   status: string;
   starts_at: string | null;
@@ -27,7 +28,7 @@ interface Detail {
   confirmed_at: string | null;
   payout_due_at: string | null;
   problem_reported_at: string | null;
-  listing: { title: string; slug: string; kind: string; locationMode: string | null; isLive: boolean; market: string; timezone: string; providerName: string } | null;
+  listing: { title: string; slug: string; kind: string; locationMode: string | null; isLive: boolean; market: string; timezone: string; providerName: string; categorySlug: string } | null;
   listingAddress: Address | null;
   givenAddress: Address | null;
 }
@@ -44,17 +45,29 @@ useLiveData({ refresh });
 // Back from Checkout: sync with Stripe a few times until it's no longer
 // waiting for payment (usually the first try).
 const confirming = ref(false);
+const { send, origin } = useAnalytics();
 onMounted(async () => {
   if (route.query.checkout !== "done" || !b.value) return;
   await navigateTo({ path: route.path }, { replace: true });
-  if (b.value.status !== "pending_payment") return;
-  confirming.value = true;
-  for (let i = 0; i < 6 && b.value?.status === "pending_payment"; i++) {
-    await $fetch(`/api/bookings/${id}/sync`, { method: "POST" }).catch(() => null);
-    await refresh();
-    if (b.value?.status === "pending_payment") await new Promise((r) => setTimeout(r, 2000));
+  if (b.value.status === "pending_payment") {
+    confirming.value = true;
+    for (let i = 0; i < 6 && b.value?.status === "pending_payment"; i++) {
+      await $fetch(`/api/bookings/${id}/sync`, { method: "POST" }).catch(() => null);
+      await refresh();
+      if (b.value?.status === "pending_payment") await new Promise((r) => setTimeout(r, 2000));
+    }
+    confirming.value = false;
   }
-  confirming.value = false;
+  // Google Analytics (analytics.ts): purchase for a confirmed booking,
+  // booking_requested for an Approve request; no booking id, and a neutral
+  // address instead of this page's. Once, on arriving from Checkout.
+  const done = b.value;
+  if (done && (done.status === "confirmed" || done.status === "requested")) {
+    send(bookingDoneEvent(origin(), {
+      listingId: done.listing_id, kind: done.kind, category: done.listing?.categorySlug ?? "",
+      bookingMode: done.kind === "service" ? done.service_mode : null, totalCents: done.total_cents, status: done.status,
+    }));
+  }
 });
 
 const tz = computed(() => (b.value ? marketZone(b.value.listing, `booking ${b.value.id}`) : HOME_TIME_ZONE));

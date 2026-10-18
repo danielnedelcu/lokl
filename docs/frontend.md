@@ -293,11 +293,19 @@ Plain language on every screen, especially the website, where providers are smal
 - **Smooth scrolling** (Lenis, website only) runs only when the visitor's
   device doesn't ask to reduce motion (2026-10-17); otherwise the browser
   scrolls as usual. Anything that animates follows the same setting.
-- **Nothing from other sites:** icons are bundled (Lucide, plus one each
-  from line-md and ph; a new icon set means installing its
-  `@iconify-json/<set>` package), fonts are self-hosted, and there are no
-  analytics. E2e journey 33 fails on any request outside the app and
-  lokl's Supabase project.
+- **Nothing from other sites the privacy policy doesn't name:** icons are
+  bundled (Lucide, plus one each from line-md and ph; a new icon set means
+  installing its `@iconify-json/<set>` package) and fonts self-hosted. E2e
+  journey 33 fails on any request outside the app, lokl's Supabase
+  project, Google's sign-in script (sign-in forms) and Google Analytics.
+- **Google Analytics** (website only, 2026-10-17): send events only through
+  `useAnalytics().send(...)`, built by a function in `@repo/types`
+  (`analytics.ts`) that returns only allowed keys: fixed words, public ids,
+  slugs, counts, prices. Never a name, email, phone number, booking id or
+  anything typed. A new event adds its builder, its unit tests
+  (`packages/ui/tests/analytics.test.mts`) and a check in e2e journey 35,
+  and the privacy policy's analytics section. Never call nuxt-gtag's
+  `useTrackEvent` or `gtag` directly: `useAnalytics` is the gate.
 - **Both dashboards' frame stays put** (2026-10-17): the top bar is
   `sticky`, and the sidebar fills the screen (`sticky`, `h-dvh`) with the
   email and "Sign out" at its bottom; a long menu scrolls inside it. The

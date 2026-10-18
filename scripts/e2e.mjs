@@ -39,6 +39,8 @@ const env = {
   NUXT_JOB_SECRET: randomBytes(32).toString("hex"),
   WEBSITE_PORT: "3200",
   ADMIN_PORT: "3201",
+  // The website again, with a made-up Google Analytics id (journeys 33, 35).
+  ANALYTICS_PORT: "3202",
 };
 const step = (cmd, cmdArgs) => spawnSync(cmd, cmdArgs, { cwd: root, env, stdio: "inherit" }).status ?? 1;
 
