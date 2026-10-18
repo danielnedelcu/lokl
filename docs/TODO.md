@@ -715,8 +715,13 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [ ] Admin roles before hiring anyone (owner and support), enforced in
     the database, with owner approval for suspensions, payout releases and
     large refunds, alerts, limits, and logging access to contact details.
-    Design first. Staff never get Supabase, Vercel, GitHub or full Stripe
-    access.
+    Staff never get Supabase, Vercel, GitHub or full Stripe access.
+    **Designed and approved 2026-10-18:**
+    [docs/design/admin-roles.md](design/admin-roles.md) (roles read live
+    from `admin_members`, the authenticator second factor enforced in the
+    database, the Team page, recovery and break-glass). First step before
+    building: confirm authenticator-app MFA is available on lokl's
+    Supabase plan.
 
 ## Notifications
 
