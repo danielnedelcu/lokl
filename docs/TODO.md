@@ -722,7 +722,8 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     database, the Team page, recovery and break-glass). Building in the
     cutover's order: 1. authenticator MFA on (done 2026-10-18; enabled on
     hosted, confirmed in the dashboard); 2. the admin app's set-up and
-    second-step pages, optional; 3. the owner enrols two authenticators;
+    second-step pages, optional (done 2026-10-18: `/security`,
+    `/security/verify`); 3. the owner enrols two authenticators (next);
     4. the migration (shown before `db:push`); 5. the Team page, requests,
     contact views, limits and alerts.
 

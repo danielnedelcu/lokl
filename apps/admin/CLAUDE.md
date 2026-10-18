@@ -32,6 +32,12 @@ Owner-only dashboard. Port 3101 (fixed). Root `CLAUDE.md` applies too.
 - **Its own session cookie** (`supabase.cookiePrefix` in `nuxt.config.ts`):
   on localhost the website and this app would otherwise share one session,
   since cookies ignore the port. Never set a cookie domain.
+- **The second factor** (docs/design/admin-roles.md): `/security` sets up
+  authenticators (an app; the key shown only while setting up) and
+  `/security/verify` is the second step after the emailed code. The
+  middleware sends anyone who has an authenticator to it. Optional until
+  the admin roles migration; then `ADMIN_MFA_REQUIRED` in `@repo/types`
+  turns true and the database refuses sessions that haven't passed it.
 - **The login page never creates accounts** (`shouldCreateUser: false`). Admins
   are added by hand in Supabase.
 - **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;

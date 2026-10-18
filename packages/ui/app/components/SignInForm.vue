@@ -159,18 +159,11 @@ const describedBy = (hint: string) => [hint, error.value ? ids.error : ""].filte
         We sent a 6-digit code to <strong class="break-all">{{ email }}</strong>. It works for 10 minutes.
         The email also has a link, if you'd rather use that.
       </p>
-      <!-- Six boxes, named as one group ("6-digit code"), each "Digit 1 of 6".
-           otp: every box offers the code from the email (one-time-code);
-           a pasted or offered code fills them all, digits only, from the
-           first. Backspace and the arrow keys move between boxes. -->
+      <!-- The shared six boxes (CodeInput): named as one group, each "Digit 1 of 6". -->
       <div class="space-y-2">
         <p :id="ids.codeLabel" class="text-sm font-medium">6-digit code</p>
-        <UiPinInput v-model="digits" :input-count="CODE_LENGTH" otp type="number" :disabled="locked"
-          role="group" :aria-labelledby="ids.codeLabel" class="justify-between gap-1.5 sm:justify-start sm:gap-2" @complete="codeComplete">
-          <UiPinInputInput v-for="(_, i) in CODE_LENGTH" :id="i === 0 ? ids.code : undefined" :key="i" :index="i"
-            :aria-label="`Digit ${i + 1} of ${CODE_LENGTH}`" :aria-invalid="!!error || undefined" :aria-describedby="describedBy(ids.codeHint)"
-            class="h-12 w-11 font-mono text-xl sm:w-12" />
-        </UiPinInput>
+        <CodeInput :id="ids.code" v-model="digits" :length="CODE_LENGTH" :labelledby="ids.codeLabel" :describedby="describedBy(ids.codeHint)"
+          :invalid="!!error" :disabled="locked" @complete="codeComplete" />
       </div>
       <p v-if="error" :id="ids.error" role="alert" class="text-destructive text-sm">{{ error }}</p>
       <UiButton :id="ids.submit" type="submit" class="min-h-11 w-full" :disabled="busy || locked">{{ busy ? "Checking…" : "Sign in" }}</UiButton>

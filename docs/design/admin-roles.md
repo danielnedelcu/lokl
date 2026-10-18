@@ -2,7 +2,7 @@
 
 Status: **approved design, being built** (2026-10-18; decisions below,
 under "Decided"), in the order of "Moving from today's admin to the new
-roles". Step 1 is done. To be built
+roles". Steps 1 and 2 are done; step 3 is the owner's. To be built
 before anyone else is given admin access ([docs/TODO.md](../TODO.md),
 Launch prep, "Staff access").
 
@@ -373,6 +373,13 @@ functions to them. The menu follows the role from `admin_role()`.
    (core app tests) enrols, passes and refuses codes on the local stack.
 2. **Ship the admin app's "Set up your authenticator" and "Second step"
    pages**, optional at first: today's `is_admin()` still accepts `aal1`.
+   *Done 2026-10-18:* `/security` (set up, add a backup, remove; the QR
+   code drawn from Supabase's response, the key in groups of four with
+   Copy and, on phones, "Open in authenticator app"; shown only while
+   setting up; each authenticator named) and `/security/verify` (the
+   second step, choosing which authenticator); the six-box `CodeInput`
+   shared with sign-in; removing your last is warned about now and refused
+   once `ADMIN_MFA_REQUIRED` is true (step 4). e2e journey 38.
 3. **You enrol two authenticators**, sign out and in, and pass the second
    step. Keep the Supabase dashboard's own recovery codes and the
    break-glass notes to hand.

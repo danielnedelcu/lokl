@@ -79,12 +79,18 @@ test("the admin app requests nothing outside", async ({ context, data }) => {
   const outside = await watchHosts(ctx);
   await signIn(ctx, admin.email, admin.password, { app: "admin" });
   const page = await ctx.newPage();
-  for (const path of ["/", "/reports", "/bookings", "/providers"]) {
+  for (const path of ["/", "/reports", "/bookings", "/providers", "/security"]) {
     await page.goto(`${ADMIN}${path}`);
     await page.locator("main").waitFor();
     await page.waitForLoadState("networkidle");
     await iconsDrew(page);
   }
+  // Setting up an authenticator: its QR code is drawn here from Supabase's
+  // own response, never fetched from a QR service (2026-10-18).
+  await page.getByRole("button", { name: "Set up an authenticator" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("img", { name: /QR code for your authenticator app/ })).toBeVisible();
+  await page.waitForLoadState("networkidle");
   expect(outside, "no page requested an outside host").toEqual([]);
   await ctx.close();
 });
