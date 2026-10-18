@@ -7,6 +7,7 @@
 // Run: npx tsx packages/ui/tests/info-pages.test.mts (part of `npm run test:ui`).
 import fs from "node:fs";
 import path from "node:path";
+import { marketCountFacts, MARKET_COUNTS_MIN } from "@repo/types";
 import { parseInfoPage } from "../../../apps/website/app/utils/helpArticle";
 
 let failures = 0;
@@ -18,7 +19,7 @@ const check = (ok: boolean, name: string) => {
 const website = new URL("../../../apps/website/", import.meta.url).pathname;
 const dir = path.join(website, "content/pages");
 const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md")).sort();
-const facts = { SUPPORT_EMAIL: "help@hilokl.com", COMMISSION_SERVICE: "12%", COMMISSION_EXPERIENCE: "20%" };
+const facts = { SUPPORT_EMAIL: "help@hilokl.com", COMMISSION_SERVICE: "12%", COMMISSION_EXPERIENCE: "20%", ...marketCountFacts(14, 25) };
 const pages = files.map((f) => ({ f, raw: fs.readFileSync(path.join(dir, f), "utf8"), page: parseInfoPage(f, fs.readFileSync(path.join(dir, f), "utf8"), facts) }));
 
 const pagesDir = path.join(website, "app/pages");
@@ -48,7 +49,8 @@ const broken = pages.flatMap(({ f, page }) => [...page.html.matchAll(/href="([^"
   const p = href.split(/[?#]/)[0]!;
   const help = p.match(/^\/help\/([a-z0-9-]+)$/);
   if (help) return !helpSlugs.has(help[1]!) && !["customers", "hosts"].includes(help[1]!);
-  return !staticPages.has(p) && p !== "/help";
+  // Atlanta's own page (the [market] route), the one market so far.
+  return !staticPages.has(p) && p !== "/help" && p !== "/atlanta";
 });
 check(!broken.length, `3. every link goes to a page that exists, or the support address${broken.length ? `: ${broken.map((b) => `${b.f} → ${b.href}`).join(", ")}` : ""}`);
 
@@ -59,6 +61,48 @@ const claims = pages.flatMap(({ f, page }) => text(page.html).split(/(?<=[.!?])\
   .filter((sentence) => !/doesn't|does not|can't|cannot|isn't|no /i.test(sentence))
   .map((sentence) => `${f}: ${sentence}`));
 check(!claims.length, `4. no claim of background checks, insurance or response times${claims.length ? `: ${claims.join(" | ")}` : ""}`);
+
+// 5. Readable structure: headings go down one level at a time (h1 is the
+// page title, so the body starts at h2), and every image says what it shows.
+for (const { f, page } of pages) {
+  const levels = [1, ...[...page.html.matchAll(/<h([1-6])[ >]/g)].map((m) => Number(m[1]))];
+  check(levels.every((l, i) => i === 0 || l <= levels[i - 1]! + 1), `5a. ${f}: headings in order (${levels.slice(1).join(" ")})`);
+  check([...page.html.matchAll(/<img [^>]*>/g)].every((m) => /alt="[^"]+"/.test(m[0])), `5b. ${f}: every image has alt text`);
+}
+
+// 6. The About page (2026-10-18): its sections in order; its numbers are
+// live, so without them it reports a problem rather than showing a blank.
+const about = pages.find((p) => p.f === "about.md")!;
+const h2s = [...about.page.html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((m) => m[1]);
+check(JSON.stringify(h2s) === JSON.stringify(["Who we are", "Why lokl exists", "Who we serve", "What we stand for", "How it works", "Where to go next"]), `6a. About has its six sections in order (${h2s.join(", ")})`);
+check(about.page.html.includes("browse 14 categories") && about.page.html.includes("in 25 neighborhoods"), "6b. ...with the live numbers it's given");
+check(parseInfoPage("about.md", about.raw, { SUPPORT_EMAIL: "x", COMMISSION_SERVICE: "1%", COMMISSION_EXPERIENCE: "2%" }).problems.some((p) => p.includes("{{MARKET_CATEGORIES}}")), "6c. ...and without them, a problem (never a made-up number)");
+check(["/fees", "/review-rules", "/safety", "/accessibility", "/how-lokl-works", "/atlanta", "/hosting", "/help", "/contact"].every((h) => about.page.html.includes(`href="${h}"`)), "6d. it links each value to its page, How lokl works, and the four next steps");
+// 6f. The numbers show only once both reach MARKET_COUNTS_MIN (5): below it
+// the sentence is left out, with no problem and no blank; at it, they show.
+const aboutWith = (categories: number, neighborhoods: number) =>
+  parseInfoPage("about.md", about.raw, { ...facts, ...marketCountFacts(categories, neighborhoods) });
+const min = MARKET_COUNTS_MIN;
+for (const [c, n] of [[min - 1, min], [min, min - 1], [2, 1]] as const) {
+  const p = aboutWith(c, n);
+  check(!p.problems.length && !p.html.includes("You can browse") && !p.html.includes("{{") && p.html.includes("Every listing on lokl is in Atlanta today."),
+    `6f. ${c} categories and ${n} neighborhoods: the numbers sentence is left out, the rest of Atlanta stays`);
+}
+const atMin = aboutWith(min, min);
+check(!atMin.problems.length && atMin.html.includes(`browse ${min} categories of Services and Experiences, in ${min} neighborhoods.`), `6g. ${min} and ${min}: it shows by itself`);
+if (about.page.html.includes("LAUNCH-PLACEHOLDER")) console.log("note 6e. About still has the placeholder for the founder's words (replace before launch).");
+
+// 7. Every placeholder carries the fixed marker LAUNCH-PLACEHOLDER
+// (scripts/launch-placeholders.mjs), which a deployable build is searched
+// for: a paragraph that reads like a placeholder without it would slip
+// through. Information pages and Help centre articles.
+const helpDir = path.join(website, "content/help");
+const texts = [...pages.map(({ f, raw }) => ({ f, raw })),
+  ...fs.readdirSync(helpDir, { recursive: true }).map(String).filter((f) => f.endsWith(".md")).map((f) => ({ f, raw: fs.readFileSync(path.join(helpDir, f), "utf8") }))];
+const unmarked = texts.flatMap(({ f, raw }) => raw.split(/\n{2,}/)
+  .filter((block) => /placeholder|to be replaced|before launch|\[lokl's legal name\]|\[address\]|\bTODO\b|\bTBD\b|lorem ipsum/i.test(block) && !block.includes("LAUNCH-PLACEHOLDER"))
+  .map((block) => `${f}: ${block.slice(0, 60)}`));
+check(!unmarked.length, `7. every placeholder carries the LAUNCH-PLACEHOLDER marker${unmarked.length ? `: ${unmarked.join(" | ")}` : ""}`);
 
 console.log(failures ? `${failures} failed` : "All information page checks passed.");
 process.exit(failures ? 1 : 0);

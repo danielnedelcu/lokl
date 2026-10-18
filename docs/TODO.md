@@ -559,6 +559,8 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     (`NUXT_EMAIL_REPLY_TO`) and the address on pages
     (`NUXT_PUBLIC_SUPPORT_EMAIL`).
   - [ ] `NUXT_EMAIL_MODE=send` in production.
+  - [ ] Production's `NUXT_PUBLIC_SUPPORT_EMAIL` is `help@hilokl.com` (the
+    pages name it; without the setting they fall back to it).
 - **Public website pages** (docs/design/website-pages.md)
   - [x] Nothing loaded from other sites; Google Analytics, measurement only
     (2026-10-17).
@@ -568,10 +570,25 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     hosting works, Fees and payouts (rates read live), Contact, Safety,
     Cancellation policy, Accessibility. Review the Accessibility page's
     "What isn't right yet" whenever one of its gaps is closed.
+  - [x] About rewritten with real sections (2026-10-18); its numbers show
+    once Atlanta has at least 5 categories and 5 neighborhoods.
+  - [ ] Replace the About page's marked placeholder ("Why lokl exists":
+    why lokl was built, and why Atlanta) with the founder's own words, and
+    an optional photo with alt text, removing the `LAUNCH-PLACEHOLDER`
+    marker with it. Until then a deployable build fails
+    (`scripts/launch-placeholders.mjs`); `build:check` lists it.
+  - [ ] `LOKL_ALLOW_PLACEHOLDERS` is **never set** on staging or
+    production (it lets a build through with placeholders; only
+    `build:check` sets it).
   - [ ] Legal drafts, each "Draft: to be reviewed by a lawyer before
     launch": privacy policy, customer terms, provider terms. They use the
     placeholders "[lokl's legal name]" and "[address]" until the company
-    is formed: replace both before launch.
+    is formed: replace both before launch. Each carries the marker
+    `LAUNCH-PLACEHOLDER` beside it when the drafts are written, so a
+    deployable build fails until they're replaced.
+  - [ ] When the Privacy Policy is written: switch the About page's "We
+    don't sell your personal information" link from Safety to the Privacy
+    Policy, which must say the same.
   - [ ] The footer (four columns), and the sign-in line "By continuing,
     you confirm you're 18 or over and agree to lokl's Terms and Privacy
     Policy".

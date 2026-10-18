@@ -112,9 +112,10 @@ export interface InfoPage {
  * An information page, read like an article (front matter: title, summary,
  * updated). `facts`: what only the page knows when it's served
  * (PAGE_FACTS: the commission rates, the support address). An absent one
- * is a problem, never left blank.
+ * is a problem, never left blank; one given as null leaves out the
+ * paragraph that uses it (About's numbers, until there are enough).
  */
-export function parseInfoPage(file: string, raw: string, facts: Partial<Record<PageFact, string>> = {}): InfoPage {
+export function parseInfoPage(file: string, raw: string, facts: Partial<Record<PageFact, string | null>> = {}): InfoPage {
   const problems: string[] = [];
   const slug = file.replace(/^.*\//, "").replace(/\.md$/, "");
   const m = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -126,7 +127,10 @@ export function parseInfoPage(file: string, raw: string, facts: Partial<Record<P
   }
   for (const key of ["title", "summary", "updated"]) if (!front[key]) problems.push(`${file}: no ${key}`);
   if (front.updated && !/^\d{4}-\d{2}-\d{2}$/.test(front.updated)) problems.push(`${file}: updated isn't YYYY-MM-DD`);
-  const body = fillHelpFacts(m?.[2] ?? "", facts);
+  const left = Object.keys(facts).filter((k) => facts[k as PageFact] === null);
+  const kept = (m?.[2] ?? "").split(/\n{2,}/).filter((block) => !left.some((k) => block.includes(`{{${k}}}`))).join("\n\n");
+  const given = Object.fromEntries(Object.entries(facts).filter(([, v]) => v !== null)) as Partial<Record<PageFact, string>>;
+  const body = fillHelpFacts(kept, given);
   for (const u of body.unknown) problems.push(`${file}: no fact called {{${u}}}`);
   if (/^#\s/m.test(body.text)) problems.push(`${file}: a top-level heading in the body (the title is the page's only one)`);
   return { slug, title: front.title ?? "", summary: front.summary ?? "", updated: front.updated ?? "", html: md.render(body.text), problems };

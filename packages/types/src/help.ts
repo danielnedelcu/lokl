@@ -62,10 +62,28 @@ export const HELP_FACTS: Record<string, string> = {
  * Facts known only when a page is served, not when the site is built: the
  * information pages ask for them by these names, and the page supplies them
  * (the Fees page reads the commission rates live; Contact the support
- * address). The help tests accept these names.
+ * address; About counts Atlanta's categories and neighbourhoods live, so
+ * its numbers are always the database's). The help tests accept these names.
  */
-export const PAGE_FACTS = ["COMMISSION_SERVICE", "COMMISSION_EXPERIENCE", "SUPPORT_EMAIL"] as const;
+export const PAGE_FACTS = ["COMMISSION_SERVICE", "COMMISSION_EXPERIENCE", "SUPPORT_EMAIL", "MARKET_CATEGORIES", "MARKET_NEIGHBORHOODS"] as const;
 export type PageFact = (typeof PAGE_FACTS)[number];
+
+/**
+ * The About page's live numbers show once Atlanta has at least this many
+ * categories and this many neighborhoods (decided 2026-10-18): a smaller
+ * number is true but reads as thin. Below it, the sentence is left out.
+ */
+export const MARKET_COUNTS_MIN = 5;
+
+/**
+ * "14 categories" and "25 neighborhoods" for the About page, or null for
+ * both (the sentence is left out) while either is below MARKET_COUNTS_MIN.
+ */
+export function marketCountFacts(categories: number, neighborhoods: number): Record<"MARKET_CATEGORIES" | "MARKET_NEIGHBORHOODS", string | null> {
+  if (categories < MARKET_COUNTS_MIN || neighborhoods < MARKET_COUNTS_MIN) return { MARKET_CATEGORIES: null, MARKET_NEIGHBORHOODS: null };
+  const count = (n: number, word: string) => `${n.toLocaleString("en-US")} ${word}`;
+  return { MARKET_CATEGORIES: count(categories, "categories"), MARKET_NEIGHBORHOODS: count(neighborhoods, "neighborhoods") };
+}
 
 /**
  * "{{CANCEL_FREE_BEFORE}}" in an article becomes "48 hours"; an unknown name

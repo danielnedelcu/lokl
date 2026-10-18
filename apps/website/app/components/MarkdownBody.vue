@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Text rendered from a Markdown file in content/ (Help centre articles and
 // the information pages), with raw HTML switched off when it was rendered
-// (helpArticle.ts): headings, paragraphs, lists, tables and links only.
+// (helpArticle.ts): headings, paragraphs, lists, tables, links, quotes and
+// images only.
 defineProps<{ html: string }>();
 </script>
 
@@ -17,6 +18,27 @@ defineProps<{ html: string }>();
   margin-top: 2rem;
   font-size: 1.125rem;
   font-weight: 600;
+}
+.help-body :deep(h3) {
+  margin-top: 1.5rem;
+  font-weight: 600;
+}
+/* A quote is set apart in a dashed box: on the About page, the marked
+   placeholder for the founder's words, which mustn't read as finished. */
+.help-body :deep(blockquote) {
+  margin-top: 0.75rem;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md, 0.5rem);
+  padding: 0.75rem 1rem;
+}
+.help-body :deep(blockquote > :first-child) {
+  margin-top: 0;
+}
+.help-body :deep(img) {
+  margin-top: 0.75rem;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md, 0.5rem);
 }
 .help-body :deep(p),
 .help-body :deep(ul),

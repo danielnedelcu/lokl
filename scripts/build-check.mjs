@@ -13,7 +13,7 @@ for (const app of apps) {
   console.log(`Building ${app} (check folders)...`);
   const r = spawnSync("npx", ["nuxt", "build"], {
     cwd: new URL(`../apps/${app}/`, import.meta.url),
-    env: { ...process.env, LOKL_BUILD_CHECK: "1" },
+    env: { ...process.env, LOKL_BUILD_CHECK: "1", LOKL_ALLOW_PLACEHOLDERS: "1" },
     stdio: ["ignore", "ignore", "pipe"],
     encoding: "utf8",
   });
@@ -27,5 +27,12 @@ for (const app of apps) {
 if (!failed) {
   const r = spawnSync(process.execPath, [new URL("check-outside-hosts.mjs", import.meta.url).pathname, ...apps], { stdio: "inherit" });
   if (r.status !== 0) failed = true;
+}
+// Text marked to be replaced before launch is allowed in these test builds,
+// and listed; any other build fails on it (scripts/launch-placeholders.mjs).
+if (!failed) {
+  const { findLaunchPlaceholders, describeLaunchPlaceholders } = await import("./launch-placeholders.mjs");
+  const found = apps.flatMap((app) => findLaunchPlaceholders(new URL(`../apps/${app}/.output-check/`, import.meta.url).pathname));
+  if (found.length) console.log(`Still to replace before launch (a deployable build would fail):\n  ${describeLaunchPlaceholders(found).join("\n  ")}`);
 }
 process.exit(failed ? 1 : 0);

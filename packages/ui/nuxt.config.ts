@@ -4,6 +4,9 @@ import tailwindcss from "@tailwindcss/vite";
 // Paths in a layer resolve against the layer's own folder. "~" would point at
 // the app extending it instead (ui-thing init adds a "~/" entry; don't keep it).
 const layerDir = fileURLToPath(new URL("./", import.meta.url));
+// Read when a build finishes (the hook below); a plain path, so the type
+// checker doesn't go looking for the script's types.
+const launchPlaceholders: string = new URL("../../scripts/launch-placeholders.mjs", import.meta.url).href;
 
 // Shared UI layer: ui-thing components, shared lokl components and the theme.
 // Both apps extend it (`extends: ["@repo/ui"]`). See docs/frontend.md.
@@ -13,6 +16,25 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
+  },
+
+  // No placeholder (text carrying the marker LAUNCH-PLACEHOLDER;
+  // scripts/launch-placeholders.mjs) in a build that could be deployed
+  // (decided 2026-10-18): once the server is built, its output is searched
+  // and the build fails if one is there. The repo's test builds (npm run
+  // build:check, which sets LOKL_ALLOW_PLACEHOLDERS=1) are let through and
+  // list them instead.
+  hooks: {
+    "nitro:init": (nitro) => {
+      if (nitro.options.dev || process.env.LOKL_ALLOW_PLACEHOLDERS === "1") return;
+      nitro.hooks.hook("compiled", async () => {
+        const { findLaunchPlaceholders, describeLaunchPlaceholders } = await import(launchPlaceholders);
+        const found = findLaunchPlaceholders(nitro.options.output.dir);
+        if (found.length) {
+          throw new Error(`This build still has text marked to be replaced before launch, so it can't be deployed:\n${describeLaunchPlaceholders(found).join("\n")}`);
+        }
+      });
+    },
   },
 
   // The runtime row-limit check (rowLimitFetch in @repo/types, installed by
