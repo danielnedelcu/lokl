@@ -121,8 +121,8 @@ full checks.
 4. Show the migration and test diff and wait for an explicit go-ahead.
 5. `npm run db:push`. It applies to the hosted database, which can't be undone,
    so never run it as an automatic last step. It ends with
-   `schema:compare`: any difference between hosted and the migrations is a
-   failure to report, not to ignore. The comparison must also show no
+   `schema:compare` (comments included): any difference between hosted
+   and the migrations is a failure to report, not to ignore. The comparison must also show no
    differences before every deploy.
 
 **Grants are explicit** (`auto_expose_new_tables = false`,

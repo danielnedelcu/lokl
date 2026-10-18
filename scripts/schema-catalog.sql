@@ -3,8 +3,8 @@
 -- constraints, indexes, policies (also on storage.objects), triggers with
 -- their enabled state, functions by full definition (an md5) with security
 -- definer and settings, views with their options, every table, column,
--- function and schema grant, default privileges, extensions, storage buckets
--- and cron jobs. Whitespace inside a value is collapsed so each fact is one
+-- function and schema grant, default privileges, comments, extensions,
+-- storage buckets and cron jobs. Whitespace inside a value is collapsed so each fact is one
 -- line. Read-only.
 \pset format unaligned
 \pset tuples_only on
@@ -38,6 +38,28 @@ select 'schema_grant', n.nspname, (case when a.grantee=0 then 'PUBLIC' else a.gr
 from pg_namespace n, aclexplode(coalesce(n.nspacl, acldefault('n'::"char", n.nspowner))) a where n.nspname in ('public','private');
 select 'default_acl', coalesce(n.nspname,'*')||' by '||d.defaclrole::regrole::text||' on '||d.defaclobjtype::text, (case when a.grantee=0 then 'PUBLIC' else a.grantee::regrole::text end)||' '||a.privilege_type
 from pg_default_acl d left join pg_namespace n on n.oid=d.defaclnamespace, aclexplode(d.defaclacl) a where coalesce(n.nspname,'*') in ('public','private','*','storage');
+-- Comments (2026-10-18): what each table, column, function, policy, trigger,
+-- constraint and schema means. An md5 of the text, and its first words to
+-- tell which.
+select 'comment', 'rel '||n.nspname||'.'||c.relname||coalesce('.'||a.attname,''), md5(d.description)||' '||left(regexp_replace(d.description,'\s+',' ','g'),50)
+from pg_description d join pg_class c on c.oid=d.objoid and d.classoid='pg_class'::regclass join pg_namespace n on n.oid=c.relnamespace
+left join pg_attribute a on a.attrelid=c.oid and a.attnum=d.objsubid and d.objsubid>0
+where n.nspname in ('public','private');
+select 'comment', 'function '||n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')', md5(d.description)||' '||left(regexp_replace(d.description,'\s+',' ','g'),50)
+from pg_description d join pg_proc p on p.oid=d.objoid and d.classoid='pg_proc'::regclass join pg_namespace n on n.oid=p.pronamespace
+where n.nspname in ('public','private');
+select 'comment', 'policy '||n.nspname||'.'||c.relname||'.'||pol.polname, md5(d.description)||' '||left(regexp_replace(d.description,'\s+',' ','g'),50)
+from pg_description d join pg_policy pol on pol.oid=d.objoid and d.classoid='pg_policy'::regclass join pg_class c on c.oid=pol.polrelid join pg_namespace n on n.oid=c.relnamespace
+where n.nspname in ('public','private','storage');
+select 'comment', 'trigger '||n.nspname||'.'||c.relname||'.'||t.tgname, md5(d.description)||' '||left(regexp_replace(d.description,'\s+',' ','g'),50)
+from pg_description d join pg_trigger t on t.oid=d.objoid and d.classoid='pg_trigger'::regclass join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
+where n.nspname in ('public','private');
+select 'comment', 'constraint '||n.nspname||'.'||c.relname||'.'||co.conname, md5(d.description)||' '||left(regexp_replace(d.description,'\s+',' ','g'),50)
+from pg_description d join pg_constraint co on co.oid=d.objoid and d.classoid='pg_constraint'::regclass join pg_class c on c.oid=co.conrelid join pg_namespace n on n.oid=c.relnamespace
+where n.nspname in ('public','private');
+select 'comment', 'schema '||n.nspname, md5(d.description)||' '||left(regexp_replace(d.description,'\s+',' ','g'),50)
+from pg_description d join pg_namespace n on n.oid=d.objoid and d.classoid='pg_namespace'::regclass
+where n.nspname in ('public','private');
 select 'extension', extname, extversion from pg_extension;
 select 'bucket', id, 'public='||public||' size='||coalesce(file_size_limit::text,'')||' types='||coalesce(array_to_string(allowed_mime_types,','),'') from storage.buckets;
 select 'select ''cron'', jobname, schedule||'' ''||md5(command)||'' active=''||active from cron.job' where to_regclass('cron.job') is not null \gexec
