@@ -2,8 +2,8 @@
 
 Status: **approved plan** (2026-10-17). Build order:
 1. Nothing loaded from other sites (done 2026-10-17).
-2. Google Analytics (2026-10-17).
-3. The Markdown setup, search and the first Help articles.
+2. Google Analytics (done 2026-10-17).
+3. The Markdown setup, search and the first Help articles (done 2026-10-17).
 4. The policy and information pages.
 5. The legal drafts and the footer.
 

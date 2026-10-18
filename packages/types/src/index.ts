@@ -20,3 +20,4 @@ export * from "./rpcShapes";
 export * from "./rpcJson";
 export * from "./support";
 export * from "./analytics";
+export * from "./help";

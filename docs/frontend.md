@@ -298,6 +298,20 @@ Plain language on every screen, especially the website, where providers are smal
   installing its `@iconify-json/<set>` package) and fonts self-hosted. E2e
   journey 33 fails on any request outside the app, lokl's Supabase
   project, Google's sign-in script (sign-in forms) and Google Analytics.
+- **Breadcrumbs** use the shared `UiBreadcrumbs` (ui-thing's, changed for
+  lokl, 2026-10-17): `:items="[{ label, link }, …, { label }]"`, the last
+  item the current page. It renders a `<nav aria-label="Breadcrumb">` with
+  an ordered list, plain `link-text` links (no border or background) at
+  least 24px tall with a visible focus ring, the current page as text with
+  `aria-current="page"`, and separators hidden from screen readers. Never
+  hand-write one, and never style crumbs as buttons. E2e journey 36.
+- **Help centre articles** (`apps/website/content/help/<customers|hosts>/<slug>.md`,
+  2026-10-17): front matter `title`, `summary`, `order`, `updated`
+  (YYYY-MM-DD); plain language, numbered steps, the screen's own words in
+  bold. Never write a number the code decides: use `{{NAME}}` from
+  `HELP_FACTS` (`@repo/types`, help.ts), adding the fact there from the
+  code's constant. Link only to pages that exist. `npm run test:ui` checks
+  it all; e2e journey 36 opens every article.
 - **Google Analytics** (website only, 2026-10-17): send events only through
   `useAnalytics().send(...)`, built by a function in `@repo/types`
   (`analytics.ts`) that returns only allowed keys: fixed words, public ids,

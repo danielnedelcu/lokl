@@ -39,9 +39,22 @@ export const serviceBookingRequestSchema = z.object({
 });
 export type ServiceBookingRequest = z.infer<typeof serviceBookingRequestSchema>;
 
+/** The most people one Experience booking can be for. */
+export const PARTY_SIZE_MAX = 10;
+/** How long a checkout holds the spots or the time while the customer pays (Stripe's shortest expiry). */
+export const CHECKOUT_HOLD_MINUTES = 30;
+/** An Approve request: the provider answers within this many hours of the card being held... */
+export const ANSWER_WITHIN_HOURS = 48;
+/** ...and at least this many hours before it starts, whichever comes first (the database's bookings guard). */
+export const ANSWER_BEFORE_START_HOURS = 2;
+/** The provider's share is sent this many hours after a booking ends (payout_due_at, booking_cancellations migration). */
+export const PAYOUT_AFTER_END_HOURS = 24;
+/** A weekly series of Experience sessions runs for 2 to this many weeks. */
+export const SESSION_SERIES_MAX_WEEKS = 12;
+
 export const experienceBookingRequestSchema = z.object({
   sessionId: z.uuid(),
-  partySize: z.coerce.number().int().min(1, "Book at least 1 spot.").max(10, "Book up to 10 people at a time."),
+  partySize: z.coerce.number().int().min(1, "Book at least 1 spot.").max(PARTY_SIZE_MAX, `Book up to ${PARTY_SIZE_MAX} people at a time.`),
   name,
   phone,
   notes,

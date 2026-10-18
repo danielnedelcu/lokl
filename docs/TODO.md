@@ -559,6 +559,23 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     (`NUXT_EMAIL_REPLY_TO`) and the address on pages
     (`NUXT_PUBLIC_SUPPORT_EMAIL`).
   - [ ] `NUXT_EMAIL_MODE=send` in production.
+- **Public website pages** (docs/design/website-pages.md)
+  - [x] Nothing loaded from other sites; Google Analytics, measurement only
+    (2026-10-17).
+  - [x] Help centre at `/help`: 15 articles (6 for customers, 9 for hosts),
+    search, facts from the code (2026-10-17).
+  - [ ] The policy and information pages: About, How lokl works, How
+    hosting works, Fees and payouts (12% Services, 20% Experiences),
+    Contact, Safety, Cancellation policy, Accessibility.
+  - [ ] Legal drafts, each "Draft: to be reviewed by a lawyer before
+    launch": privacy policy, customer terms, provider terms. They use the
+    placeholders "[lokl's legal name]" and "[address]" until the company
+    is formed: replace both before launch.
+  - [ ] The footer (four columns), and the sign-in line "By continuing,
+    you confirm you're 18 or over and agree to lokl's Terms and Privacy
+    Policy".
+  - [ ] Providers' access to customers' email, phone and address ends 30
+    days after the booking (a migration of its own).
 - **Google Analytics** (decided 2026-10-17; docs/decisions.md)
   - [ ] A Google Analytics 4 property for hilokl.com; its measurement id in
     `NUXT_PUBLIC_GTAG_ID` on **production only**, never on staging, so test

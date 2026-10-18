@@ -85,6 +85,11 @@ export function formatCalendarDayLong(date: string): string {
   return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" }).format(parseDate(date).toDate("UTC"));
 }
 
+/** A calendar date with its year, "October 17, 2026" (a page's "Last updated"). */
+export function formatCalendarDate(date: string): string {
+  return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(parseDate(date).toDate("UTC"));
+}
+
 /** The Sunday on or before a calendar date: the start of its week in a date strip. */
 export function weekStartOf(date: string): string {
   return parseDate(date).subtract({ days: getDayOfWeek(parseDate(date), "en-US") }).toString();

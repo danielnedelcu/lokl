@@ -11,7 +11,7 @@
 // Plain TypeScript with no Nuxt imports: the sender, the tests and
 // `npm run email:previews` all use these same functions.
 
-import { customerCancelOutcome, PROFILE_RULES, REVIEW_RULES, SUPPORT_CATEGORY_ABOUT, type ProfileRule, type ReviewRule, type SupportCategory } from "@repo/types";
+import { customerCancelOutcome, PROFILE_RULES, REVIEW_RULES, REVIEW_WINDOW_DAYS, SUPPORT_CATEGORY_ABOUT, type ProfileRule, type ReviewRule, type SupportCategory } from "@repo/types";
 
 export const EMAIL_KINDS = [
   "customer_request_sent", "customer_request_accepted", "customer_request_declined", "customer_request_expired",
@@ -41,7 +41,7 @@ export interface EmailContext {
     cancelled_by: string | null;
     status_changed_by: string;
     customer_name: string;
-    /** For the review emails: the 14 days to review count from the end. */
+    /** For the review emails: the days to review (REVIEW_WINDOW_DAYS) count from the end. */
     ends_at?: string | null;
     cancelled_at?: string | null;
     problem_reported_at?: string | null;
@@ -80,7 +80,7 @@ export function staleReviewEmail(kind: EmailKind, ctx: EmailContext, now = new D
     if (ctx.review) return "Already reviewed.";
     if (b.cancelled_at || !["completed", "paid_out"].includes(b.status)) return "The booking can't be reviewed.";
     if (b.problem_reported_at && b.problem_resolution !== "paid_provider") return "A no-show report is open.";
-    if (!b.ends_at || now.getTime() >= Date.parse(b.ends_at) + 14 * 86_400_000) return "The 14 days to review have passed.";
+    if (!b.ends_at || now.getTime() >= Date.parse(b.ends_at) + REVIEW_WINDOW_DAYS * 86_400_000) return `The ${REVIEW_WINDOW_DAYS} days to review have passed.`;
   }
   if (kind === "customer_review_removed" && ctx.review?.status !== "removed") return "The review isn't removed any more.";
   if (kind === "provider_reply_removed" && ctx.review?.replyStatus !== "removed") return "The reply isn't removed any more.";
@@ -413,7 +413,7 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
     // no incentives). Never the review's own words.
     case "customer_review_request":
     case "customer_review_reminder": {
-      const closes = b.ends_at ? dateOnly(new Date(Date.parse(b.ends_at) + 14 * 86_400_000).toISOString(), tz) : "";
+      const closes = b.ends_at ? dateOnly(new Date(Date.parse(b.ends_at) + REVIEW_WINDOW_DAYS * 86_400_000).toISOString(), tz) : "";
       return render({
         recipient: "customer",
         subject: kind === "customer_review_request" ? `How was ${l.title}?` : `4 days left to review ${l.title}`,
@@ -421,7 +421,7 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
           `Thanks for booking with ${provider.name}${date ? ` on ${date}` : ""}. If you have a minute, tell others what it was like: give it one to five stars and a few words.`,
         ],
         after: [
-          `You can write it${closes ? ` until ${closes}` : " for 14 days after your booking"}. Reviews are public and show your first name and last initial.`,
+          `You can write it${closes ? ` until ${closes}` : ` for ${REVIEW_WINDOW_DAYS} days after your booking`}. Reviews are public and show your first name and last initial.`,
         ],
         button: { label: "Write a review", url: `${customerUrl}#review` },
         link: { label: "Our review rules", url: `${c.siteUrl}/review-rules` },

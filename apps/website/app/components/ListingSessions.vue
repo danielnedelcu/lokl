@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from "zod";
-import { rpcJson, type ListingSessionRow, type ListingStatus } from "@repo/types";
+import { rpcJson, SESSION_SERIES_MAX_WEEKS, type ListingSessionRow, type ListingStatus } from "@repo/types";
 
 // The editor's Sessions section (Experiences). Times are entered and shown in
 // the listing city's time zone (zonedTime.ts), whatever the device's zone.
@@ -93,7 +93,7 @@ const describe = (s: SessionRow) => `${dateOf(s)} at ${formatSessionTime(s.start
 // Add or edit
 // ---------------------------------------------------------------------------
 
-const MAX_WEEKS = 12;
+const MAX_WEEKS = SESSION_SERIES_MAX_WEEKS;
 const formOpen = ref(false);
 const editing = ref<SessionRow | null>(null);
 

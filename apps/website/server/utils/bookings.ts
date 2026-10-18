@@ -10,7 +10,7 @@
 
 import { createHash } from "node:crypto";
 import type Stripe from "stripe";
-import { errorText, stripeErrorSummary } from "@repo/types";
+import { ANSWER_WITHIN_HOURS, CHECKOUT_HOLD_MINUTES, errorText, stripeErrorSummary } from "@repo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExperienceBookingRequest, ServiceBookingRequest } from "@repo/types";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
@@ -20,8 +20,8 @@ import { finishAccept } from "./bookingAnswers";
 import { finishLostCancel, recordAdminCancel } from "./bookingCancellations";
 
 /** Checkout's shortest allowed expiry, and how long spots or a request are held. */
-export const CHECKOUT_WINDOW_MS = 30 * 60 * 1000 + 60 * 1000; // 31 minutes, safely over Stripe's 30
-export const RESPOND_WITHIN_MS = 48 * 60 * 60 * 1000;
+export const CHECKOUT_WINDOW_MS = (CHECKOUT_HOLD_MINUTES + 1) * 60 * 1000; // 31 minutes, safely over Stripe's 30
+export const RESPOND_WITHIN_MS = ANSWER_WITHIN_HOURS * 60 * 60 * 1000;
 
 export class BookingError extends Error {
   constructor(message: string, public status = 409) {

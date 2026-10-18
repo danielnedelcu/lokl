@@ -59,6 +59,7 @@ function about(r: MySupportReportRow) {
       <div>
         <h1 class="text-2xl font-semibold tracking-tight">Help</h1>
         <p class="mt-1 text-sm text-muted-foreground">Tell lokl about a problem, and follow it here until it's sorted.</p>
+        <p class="mt-1 text-sm">How-to guides for hosts are in the <NuxtLink to="/help/hosts" class="link-text">Help centre</NuxtLink>.</p>
       </div>
       <UiButton to="/dashboard/help/new"><Icon name="lucide:message-square-warning" class="size-4" aria-hidden="true" />Report a problem</UiButton>
     </div>

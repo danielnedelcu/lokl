@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 // `npm run build:check` (LOKL_BUILD_CHECK=1) builds into its own folders, so
@@ -11,6 +12,14 @@ const buildCheckFolders = buildCheck
 
 // See `hooks` below: the OG image secret, kept out of module setup.
 let hiddenOgSecret: string | undefined;
+
+/** /help/<slug> for every Help centre article (docs/design/website-pages.md). */
+function helpArticleUrls(): string[] {
+  const dir = fileURLToPath(new URL("./content/help", import.meta.url));
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { recursive: true }).map(String).filter((f) => f.endsWith(".md"))
+    .map((f) => `/help/${f.split("/").pop()!.replace(/\.md$/, "")}`);
+}
 
 export default defineNuxtConfig({
   ...buildCheckFolders,
@@ -82,6 +91,8 @@ export default defineNuxtConfig({
   // visitor. Signed-in and sign-in pages stay out.
   sitemap: {
     sources: ["/api/__sitemap__/urls"],
+    // The Help centre's articles (content/help/<audience>/<slug>.md), read when building.
+    urls: helpArticleUrls(),
     exclude: ["/dashboard/**", "/login", "/confirm"],
   },
 

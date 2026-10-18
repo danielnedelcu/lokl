@@ -147,17 +147,7 @@ useSchemaOrg([
 
 <template>
   <div class="mx-auto max-w-6xl px-4 py-6 md:py-10">
-    <nav aria-label="Breadcrumb" class="text-muted-foreground mb-4 text-sm">
-      <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <li v-for="(c, i) in crumbs" :key="c.to" class="flex items-center gap-1.5">
-          <NuxtLink v-if="i < crumbs.length - 1" :to="c.to" class="link-text">
-            {{ c.name }}
-          </NuxtLink>
-          <span v-else aria-current="page" class="text-foreground line-clamp-1">{{ c.name }}</span>
-          <Icon v-if="i < crumbs.length - 1" name="lucide:chevron-right" class="size-3.5" aria-hidden="true" />
-        </li>
-      </ol>
-    </nav>
+    <UiBreadcrumbs class="text-muted-foreground mb-4" :items="crumbs.map((c) => ({ label: c.name, link: c.to }))" />
 
     <!-- Photos: the cover large, the rest in a row. Each opens the viewer. -->
     <section v-if="l.photos.length" aria-label="Photos" class="mb-8">

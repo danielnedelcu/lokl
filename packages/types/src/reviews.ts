@@ -35,6 +35,8 @@ export const STAR_WORDS = { 1: "Poor", 2: "Fair", 3: "Good", 4: "Very good", 5: 
 /** "4 stars: Very good", "1 star: Poor". */
 export const starLabel = (n: 1 | 2 | 3 | 4 | 5) => `${n} ${n === 1 ? "star" : "stars"}: ${STAR_WORDS[n]}`;
 
+/** A booking can be reviewed for this many days after it ends. */
+export const REVIEW_WINDOW_DAYS = 14;
 export const REVIEW_MIN = 20;
 export const REVIEW_MAX = 2000;
 export const REPLY_MAX = 1500;

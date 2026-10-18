@@ -43,15 +43,7 @@ useSchemaOrg([defineBreadcrumb({ itemListElement: crumbs.value.map((c) => ({ nam
 
 <template>
   <div class="mx-auto max-w-6xl px-4 py-8 md:py-12">
-    <nav aria-label="Breadcrumb" class="text-muted-foreground mb-4 text-sm">
-      <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <li v-for="(c, i) in crumbs" :key="c.to" class="flex items-center gap-1.5">
-          <NuxtLink v-if="i < crumbs.length - 1" :to="c.to" class="link-text">{{ c.name }}</NuxtLink>
-          <span v-else aria-current="page" class="text-foreground">{{ c.name }}</span>
-          <Icon v-if="i < crumbs.length - 1" name="lucide:chevron-right" class="size-3.5" aria-hidden="true" />
-        </li>
-      </ol>
-    </nav>
+    <UiBreadcrumbs class="text-muted-foreground mb-4" :items="crumbs.map((c) => ({ label: c.name, link: c.to }))" />
     <header class="max-w-2xl">
       <h1 class="text-2xl font-semibold tracking-tight md:text-4xl">Guides to {{ market.name }}</h1>
       <p class="mt-3">Where to go and what to do around {{ market.name }}, and the local people you can book along the way.</p>
