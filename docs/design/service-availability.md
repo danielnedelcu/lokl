@@ -331,6 +331,19 @@ days. Neither was fast enough per search, so:
   shown "Not taking bookings yet"). Each dated card opens the panel on its
   first free day searched (`firstDays`, `?date=`).
 - **Ranges** are at most 31 days (bar, results page, API).
+- **Exact first times (2026-10-18; migration
+  `search_exact_first_time`).** Each open day also keeps its start times
+  (`starts`, from the same core call as its first and last), and
+  `service_open_matches` takes the earliest at or after now plus the
+  notice: the panel's time. It had used `greatest(first_at, now() +
+  notice)`, which, once the clock passed a stored first time, was up to a
+  slot early, so search could rank a Service ahead of one free sooner.
+  Measured on the same data before and after (median of 20): dated search
+  9.5 → 10.5 ms for a day and 8.0 → 13.6 ms for 31 days, the same when
+  every stored first time has passed (working those days out live instead
+  took 216 ms); a provider's refresh 26.9 → 27.4 ms; the 52-session
+  series' refresh at commit 36.8 → 39.8 ms. About 4.7 MB of starts for
+  41,000 Service-days.
 - **Measured after** (same data, as a visitor, median of 20): dated
   search 8 ms for a day and 11 ms for 31 days; browsing Services without
   dates (the browse page, the homepage's carousel and "On lokl now") 8 ms,

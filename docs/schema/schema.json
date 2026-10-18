@@ -8133,7 +8133,7 @@
     {
       "name": "public.service_open_days",
       "type": "BASE TABLE",
-      "comment": "Each market day a Service has a bookable time, with the first and last of them, as of its last refresh (service_open_days_refreshed). Worked out by the slot core; only refresh_service_open_days writes it. Search reads it through service_open_matches. Derived data: rewritten freely, and deleted with its listing.",
+      "comment": "Each market day a Service has a bookable time, with its start times (and the first and last of them), as of its last refresh (service_open_days_refreshed). Worked out by the slot core; only refresh_service_open_days writes it. Search reads it through service_open_matches. Derived data: rewritten freely, and deleted with its listing.",
       "columns": [
         {
           "name": "listing_id",
@@ -8155,6 +8155,12 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "comment": "The day's last bookable time when refreshed. Search checks it against now plus the notice, so a day whose times have all come within the notice no longer matches."
+        },
+        {
+          "name": "starts",
+          "type": "timestamp with time zone[]",
+          "nullable": false,
+          "comment": "The day's bookable start times when refreshed, in order (first_at is the first, last_at the last). Search takes the earliest at or after now plus the notice, the time the panel would show."
         }
       ],
       "indexes": [
@@ -8178,6 +8184,18 @@
           "columns": [
             "last_at",
             "first_at"
+          ]
+        },
+        {
+          "name": "service_open_days_starts",
+          "type": "CHECK",
+          "def": "CHECK (((cardinality(starts) \u003e= 1) AND (starts[1] = first_at) AND (starts[cardinality(starts)] = last_at)))",
+          "table": "public.service_open_days",
+          "referenced_table": "",
+          "columns": [
+            "starts",
+            "first_at",
+            "last_at"
           ]
         },
         {

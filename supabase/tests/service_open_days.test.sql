@@ -5,7 +5,7 @@
 begin;
 \ir _helpers/users.psql
 \ir _helpers/slots.psql
-select plan(51);
+select plan(56);
 -- This test is one transaction that never commits, so open days refresh at
 -- the end of each statement here, as they would at each commit. Section 8
 -- checks the deferral itself.
@@ -186,6 +186,13 @@ select is((select notice from service_open_days_refreshed where listing_id = :'s
   '2f. an Approve Service''s notice is at least 4 hours');
 select is((select covered_through from service_open_days_refreshed where listing_id = :'s1'), :'today'::date + 60,
   '2g. covered through today plus the window');
+select is((select count(*)::int from service_open_days d
+            where d.listing_id = :'s1' and d.starts is distinct from
+              (select array_agg(m.starts_at order by m.starts_at) from service_slots_many(array[:'s1']::uuid[], d.on_date, d.on_date, now(), true) m
+                where (m.starts_at at time zone 'America/New_York')::date = d.on_date)), 0,
+  '2h. each open day keeps its start times, exactly the core''s');
+select throws_ok(format($$ update service_open_days set starts = '{}' where listing_id = %L $$, :'s1'), '23514', null,
+  '2i. ...and never none, nor any that don''t run from its first to its last');
 
 -- 3. Kept current by every change that moves slots.
 select first_at as before_first from service_open_days where listing_id = :'s1' and on_date = :'d' \gset
@@ -245,12 +252,11 @@ select is((select count(*)::int from service_open_matches(array[:'s1']::uuid[], 
   '4d. ...and for a Service never worked out');
 select tests.clear_authentication();
 -- A day whose last time has come within the notice no longer matches.
-update service_open_days set first_at = now(), last_at = now() where listing_id = :'s4';
+update service_open_days set first_at = now(), last_at = now(), starts = array[now()] where listing_id = :'s4';
 select tests.authenticate_as_anon();
 select is((select count(*)::int from service_open_matches(array[:'s4']::uuid[], :'d', :'d')), 0, '4e. a day whose times are all within the notice now: no match');
 select throws_ok(format($$ select * from service_open_matches(array[%L]::uuid[], %L::date, %L::date + 201) $$, :'s4', :'today', :'today'),
   '22023', 'Ask for at most 200 days.', '4f. at most 200 days');
-
 -- 5. Browse: dates filter and order Services.
 select tests.clear_authentication();
 select public.refresh_service_open_days(array[:'p', :'q', :'r']::uuid[]);
@@ -267,6 +273,34 @@ select is(public_browse('atlanta', 'service', 'open-cuts', null,
   (:'d'::date + 3)::text, '5b. each Service''s first free day in the range, for the panel');
 select is((pg_temp.ids(public_browse('atlanta', 'service', 'open-cuts')))[4], :'s3'::text, '5c. undated: a Service with no free time comes last');
 select is(public_browse('atlanta', 'service', 'open-cuts') -> 'closed', jsonb_build_array(:'s3'), '5d. ...marked as not taking bookings');
+-- 5e. The table was last refreshed a while ago, when B's first day also
+-- had a start half an hour earlier; now plus the notice has passed it
+-- since. Search gives that day's exact first time, as the panel works it
+-- out: the earliest stored start at or after now plus the notice (found
+-- 2026-10-18: it gave "now plus the notice", not a time anyone could book,
+-- so search could put B ahead of a Service free sooner).
+select tests.clear_authentication();
+select first_day as b_day, first_at as b_first from service_open_matches(array[:'s2']::uuid[], :'today'::date, :'today'::date + 1) \gset
+update service_open_days set first_at = first_at - interval '30 minutes', starts = array[first_at - interval '30 minutes'] || starts
+ where listing_id = :'s2' and on_date = :'b_day';
+select tests.authenticate_as_anon();
+select is((select first_at from service_open_matches(array[:'s2']::uuid[], :'today'::date, :'today'::date + 1)),
+  (select min(starts_at) from service_slots(:'s2', :'b_day'::date, :'b_day'::date)),
+  '5e. a stored first time that now plus the notice has passed: that day''s exact first time, as the panel has it');
+select is((select first_at from service_open_matches(array[:'s2']::uuid[], :'today'::date, :'today'::date + 1)), :'b_first'::timestamptz,
+  '5f. ...the same as when the table was fresh');
+-- 5g. Parity with the live version: for every fixture Service over two
+-- weeks, search's first day and time are exactly the core's, worked out
+-- live now (B's out-of-date start included).
+select tests.clear_authentication();
+select set_eq(
+  format($$ select listing_id, first_day, first_at from service_open_matches(array[%L, %L, %L, %L]::uuid[], %L::date, %L::date + 13) $$,
+         :'s1', :'s2', :'s3', :'s4', :'today', :'today'),
+  format($$ select listing_id, (min(starts_at) at time zone 'America/New_York')::date, min(starts_at)
+              from service_slots_many(array[%L, %L, %L, %L]::uuid[], %L::date, %L::date + 13, now(), true) group by listing_id $$,
+         :'s1', :'s2', :'s3', :'s4', :'today', :'today'),
+  '5g. search''s first day and time for each Service are exactly the core''s, worked out live');
+select tests.authenticate_as_anon();
 
 -- 6. Who may do what.
 select throws_ok('select * from service_open_days', '42501', null, '6a. visitors can''t read open days directly');

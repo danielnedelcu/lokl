@@ -14,7 +14,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { browsePublicListings } from "../../../apps/website/server/utils/publicListings";
-import { addDays, instantToZoned, quickDates, todayIn } from "../../../packages/ui/app/utils/zonedTime";
+import { addDays, instantToZoned, quickDates, todayIn, zonedToInstant } from "../../../packages/ui/app/utils/zonedTime";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -145,6 +145,20 @@ try {
   const nightDay = p5Night ? instantToZoned(p5Night, TZ).date : "";
   check(!!p5Night && nightDay >= laterWeekend.from && nightDay <= laterWeekend.to && new Date(p5Night).getUTCDate() !== Number(nightDay.slice(8)),
     "1c. (the fixture has a night time that's the next day in UTC, matched to its Atlanta day)");
+
+  // 1d. The table was refreshed a while ago (2026-10-18): it's as if now
+  // were 8:40 AM, p4's day's notice ending at 8:40 tomorrow, and the table
+  // last refreshed at 8:25, when p4 still had 8:30 tomorrow. p4's real first
+  // time is 9:00, tied with p1's; search used to order it by "now plus the
+  // notice" (8:40), ahead of p1. It takes the earliest stored start at or
+  // after now plus the notice, as the panel does.
+  const tomorrow = addDays(today, 1);
+  const noticeTo840 = Math.ceil((Date.parse(zonedToInstant({ date: tomorrow, time: "08:40" }, TZ)) - Date.now()) / 60_000);
+  await must(db.from("provider_schedules").insert({ provider_id: p4, min_notice_minutes: noticeTo840 }));
+  const at830 = zonedToInstant({ date: tomorrow, time: "08:30" }, TZ);
+  psql(`update public.service_open_days set first_at = '${at830}', starts = array['${at830}'::timestamptz] || starts
+         where listing_id = '${services[4]!.id}' and on_date = '${tomorrow}';`);
+  await compare("1d. with a stored start from an earlier refresh, passed by now plus the notice");
 
   // 2. As if the daily job had never run: the table covers nothing ahead.
   psql(`delete from public.service_open_days where listing_id in (select id from public.listings where city_id = '${created.city}');

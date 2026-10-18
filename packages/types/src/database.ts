@@ -2238,6 +2238,7 @@ export type Database = {
           last_at: string;
           listing_id: string;
           on_date: string;
+          starts: string[];
         };
         ComputedFields: never;
         Insert: {
@@ -2245,12 +2246,14 @@ export type Database = {
           last_at: string;
           listing_id: string;
           on_date: string;
+          starts: string[];
         };
         Update: {
           first_at?: string;
           last_at?: string;
           listing_id?: string;
           on_date?: string;
+          starts?: string[];
         };
         Relationships: [
           {

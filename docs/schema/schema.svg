@@ -91,382 +91,382 @@
 <!-- public.cities -->
 <g id="node2" class="node">
 <title>public.cities</title>
-<polygon fill="#efefef" stroke="none" points="14840.09,-320.4 14840.09,-366.4 16310.03,-366.4 16310.03,-320.4 14840.09,-320.4"/>
-<polygon fill="none" stroke="black" points="14840.09,-320.4 14840.09,-366.4 16310.03,-366.4 16310.03,-320.4 14840.09,-320.4"/>
-<text text-anchor="start" x="15469.08" y="-344.2" font-family="Arial Bold" font-size="18.00">public.cities</text>
-<text text-anchor="start" x="15556.56" y="-344.2" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="15587.67" y="-344.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="14847.09" y="-329.8" font-family="Arial" font-size="14.00" fill="#333333">The markets lokl operates in, each named after its main city and covering its metro area (Atlanta covers Decatur, Marietta and so on). Admin&#45;managed. Never deleted: providers and listings point here, so a market is deactivated instead.</text>
-<polygon fill="none" stroke="black" points="14840.09,-289.6 14840.09,-320.4 16310.03,-320.4 16310.03,-289.6 14840.09,-289.6"/>
-<text text-anchor="start" x="14847.09" y="-301.8" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="14861.88" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="14840.09,-258.8 14840.09,-289.6 16310.03,-289.6 16310.03,-258.8 14840.09,-258.8"/>
-<text text-anchor="start" x="14847.09" y="-271" font-family="Arial" font-size="14.00">slug </text>
-<text text-anchor="start" x="14876.67" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="14907.01" y="-271" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, e.g. atlanta. Unique.</text>
-<polygon fill="none" stroke="black" points="14840.09,-228 14840.09,-258.8 16310.03,-258.8 16310.03,-228 14840.09,-228"/>
-<text text-anchor="start" x="14847.09" y="-240.2" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="14886" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="14840.09,-197.2 14840.09,-228 16310.03,-228 16310.03,-197.2 14840.09,-197.2"/>
-<text text-anchor="start" x="14847.09" y="-209.4" font-family="Arial" font-size="14.00">state </text>
-<text text-anchor="start" x="14881.33" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="14911.68" y="-209.4" font-family="Arial" font-size="14.00"> Two&#45;letter US state code, e.g. GA.</text>
-<polygon fill="none" stroke="black" points="14840.09,-166.4 14840.09,-197.2 16310.03,-197.2 16310.03,-166.4 14840.09,-166.4"/>
-<text text-anchor="start" x="14847.09" y="-178.6" font-family="Arial" font-size="14.00">timezone </text>
-<text text-anchor="start" x="14907.79" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="14938.13" y="-178.6" font-family="Arial" font-size="14.00"> The market&#39;s time zone, a real IANA name (America/New_York): every booking, session and listing time in this market is shown in it. Required; checked against the database&#39;s zone names.</text>
-<polygon fill="none" stroke="black" points="14840.09,-135.6 14840.09,-166.4 16310.03,-166.4 16310.03,-135.6 14840.09,-135.6"/>
-<text text-anchor="start" x="14847.09" y="-147.8" font-family="Arial" font-size="14.00">active </text>
-<text text-anchor="start" x="14887.55" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="14945.16" y="-147.8" font-family="Arial" font-size="14.00"> Inactive cities are hidden everywhere public and in the provider city picker.</text>
-<polygon fill="none" stroke="black" points="14840.09,-104.8 14840.09,-135.6 16310.03,-135.6 16310.03,-104.8 14840.09,-104.8"/>
-<text text-anchor="start" x="14847.09" y="-117" font-family="Arial" font-size="14.00">sort_order </text>
-<text text-anchor="start" x="14914.79" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="14965.38" y="-117" font-family="Arial" font-size="14.00"> Display order in lists and pickers, lowest first.</text>
-<polygon fill="none" stroke="black" points="14840.09,-74 14840.09,-104.8 16310.03,-104.8 16310.03,-74 14840.09,-74"/>
-<text text-anchor="start" x="14847.09" y="-86.2" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="14917.14" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="14840.09,-43.2 14840.09,-74 16310.03,-74 16310.03,-43.2 14840.09,-43.2"/>
-<text text-anchor="start" x="14847.09" y="-55.4" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="14921.05" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="14932.09,-320.4 14932.09,-366.4 16402.03,-366.4 16402.03,-320.4 14932.09,-320.4"/>
+<polygon fill="none" stroke="black" points="14932.09,-320.4 14932.09,-366.4 16402.03,-366.4 16402.03,-320.4 14932.09,-320.4"/>
+<text text-anchor="start" x="15561.08" y="-344.2" font-family="Arial Bold" font-size="18.00">public.cities</text>
+<text text-anchor="start" x="15648.56" y="-344.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="15679.67" y="-344.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="14939.09" y="-329.8" font-family="Arial" font-size="14.00" fill="#333333">The markets lokl operates in, each named after its main city and covering its metro area (Atlanta covers Decatur, Marietta and so on). Admin&#45;managed. Never deleted: providers and listings point here, so a market is deactivated instead.</text>
+<polygon fill="none" stroke="black" points="14932.09,-289.6 14932.09,-320.4 16402.03,-320.4 16402.03,-289.6 14932.09,-289.6"/>
+<text text-anchor="start" x="14939.09" y="-301.8" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="14953.88" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="14932.09,-258.8 14932.09,-289.6 16402.03,-289.6 16402.03,-258.8 14932.09,-258.8"/>
+<text text-anchor="start" x="14939.09" y="-271" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="14968.67" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="14999.01" y="-271" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, e.g. atlanta. Unique.</text>
+<polygon fill="none" stroke="black" points="14932.09,-228 14932.09,-258.8 16402.03,-258.8 16402.03,-228 14932.09,-228"/>
+<text text-anchor="start" x="14939.09" y="-240.2" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="14978" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="14932.09,-197.2 14932.09,-228 16402.03,-228 16402.03,-197.2 14932.09,-197.2"/>
+<text text-anchor="start" x="14939.09" y="-209.4" font-family="Arial" font-size="14.00">state </text>
+<text text-anchor="start" x="14973.33" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="15003.68" y="-209.4" font-family="Arial" font-size="14.00"> Two&#45;letter US state code, e.g. GA.</text>
+<polygon fill="none" stroke="black" points="14932.09,-166.4 14932.09,-197.2 16402.03,-197.2 16402.03,-166.4 14932.09,-166.4"/>
+<text text-anchor="start" x="14939.09" y="-178.6" font-family="Arial" font-size="14.00">timezone </text>
+<text text-anchor="start" x="14999.79" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="15030.13" y="-178.6" font-family="Arial" font-size="14.00"> The market&#39;s time zone, a real IANA name (America/New_York): every booking, session and listing time in this market is shown in it. Required; checked against the database&#39;s zone names.</text>
+<polygon fill="none" stroke="black" points="14932.09,-135.6 14932.09,-166.4 16402.03,-166.4 16402.03,-135.6 14932.09,-135.6"/>
+<text text-anchor="start" x="14939.09" y="-147.8" font-family="Arial" font-size="14.00">active </text>
+<text text-anchor="start" x="14979.55" y="-147.8" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="15037.16" y="-147.8" font-family="Arial" font-size="14.00"> Inactive cities are hidden everywhere public and in the provider city picker.</text>
+<polygon fill="none" stroke="black" points="14932.09,-104.8 14932.09,-135.6 16402.03,-135.6 16402.03,-104.8 14932.09,-104.8"/>
+<text text-anchor="start" x="14939.09" y="-117" font-family="Arial" font-size="14.00">sort_order </text>
+<text text-anchor="start" x="15006.79" y="-117" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="15057.38" y="-117" font-family="Arial" font-size="14.00"> Display order in lists and pickers, lowest first.</text>
+<polygon fill="none" stroke="black" points="14932.09,-74 14932.09,-104.8 16402.03,-104.8 16402.03,-74 14932.09,-74"/>
+<text text-anchor="start" x="14939.09" y="-86.2" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="15009.14" y="-86.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="14932.09,-43.2 14932.09,-74 16402.03,-74 16402.03,-43.2 14932.09,-43.2"/>
+<text text-anchor="start" x="14939.09" y="-55.4" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="15013.05" y="-55.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.providers&#45;&gt;public.cities -->
 <g id="edge1" class="edge">
 <title>public.providers:city_id&#45;&gt;public.cities:id</title>
-<path fill="none" stroke="black" d="M5925.76,-719.8C9887.56,-719.09 10872.2,-305 14839.09,-305"/>
+<path fill="none" stroke="black" d="M5925.87,-719.8C9928.42,-719.09 10923.39,-305 14931.09,-305"/>
 <polygon fill="black" stroke="black" points="5925.92,-719.8 5915.92,-715.3 5920.59,-719.8 5916.26,-719.8 5916.26,-719.8 5916.26,-719.8 5920.59,-719.8 5915.93,-724.3 5925.92,-719.8"/>
 <text text-anchor="start" x="5922.59" y="-729.8" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.service_areas -->
 <g id="node3" class="node">
 <title>public.service_areas</title>
-<polygon fill="#efefef" stroke="none" points="16508.65,-889.2 16508.65,-935.2 17999.48,-935.2 17999.48,-889.2 16508.65,-889.2"/>
-<polygon fill="none" stroke="black" points="16508.65,-889.2 16508.65,-935.2 17999.48,-935.2 17999.48,-889.2 16508.65,-889.2"/>
-<text text-anchor="start" x="17118.6" y="-913" font-family="Arial Bold" font-size="18.00">public.service_areas</text>
-<text text-anchor="start" x="17265.03" y="-913" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="17296.15" y="-913" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="16515.65" y="-898.6" font-family="Arial" font-size="14.00" fill="#333333">Areas within a market: neighborhoods, cities or towns, and zip codes. Where &quot;I come to you&quot; Services travel, and the public location label on listings. Admin&#45;managed. Never deleted: listings will point here, so an area is deactivated instead.</text>
-<polygon fill="none" stroke="black" points="16508.65,-858.4 16508.65,-889.2 17999.48,-889.2 17999.48,-858.4 16508.65,-858.4"/>
-<text text-anchor="start" x="16515.65" y="-870.6" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="16530.43" y="-870.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="16508.65,-827.6 16508.65,-858.4 17999.48,-858.4 17999.48,-827.6 16508.65,-827.6"/>
-<text text-anchor="start" x="16515.65" y="-839.8" font-family="Arial" font-size="14.00">city_id </text>
-<text text-anchor="start" x="16559.22" y="-839.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="16593.47" y="-839.8" font-family="Arial" font-size="14.00"> The market this area belongs to.</text>
-<polygon fill="none" stroke="black" points="16508.65,-796.8 16508.65,-827.6 17999.48,-827.6 17999.48,-796.8 16508.65,-796.8"/>
-<text text-anchor="start" x="16515.65" y="-809" font-family="Arial" font-size="14.00">kind </text>
-<text text-anchor="start" x="16545.22" y="-809" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="16575.56" y="-809" font-family="Arial" font-size="14.00"> neighborhood (e.g. Old Fourth Ward), city (a city or town within the market, e.g. Decatur) or zip (a five&#45;digit zip code).</text>
-<polygon fill="none" stroke="black" points="16508.65,-766 16508.65,-796.8 17999.48,-796.8 17999.48,-766 16508.65,-766"/>
-<text text-anchor="start" x="16515.65" y="-778.2" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="16554.56" y="-778.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="16584.9" y="-778.2" font-family="Arial" font-size="14.00"> Shown to customers, e.g. Old Fourth Ward, Decatur or 30312. Unique per market and kind.</text>
-<polygon fill="none" stroke="black" points="16508.65,-735.2 16508.65,-766 17999.48,-766 17999.48,-735.2 16508.65,-735.2"/>
-<text text-anchor="start" x="16515.65" y="-747.4" font-family="Arial" font-size="14.00">active </text>
-<text text-anchor="start" x="16556.11" y="-747.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="16613.72" y="-747.4" font-family="Arial" font-size="14.00"> Inactive areas are hidden everywhere public.</text>
-<polygon fill="none" stroke="black" points="16508.65,-704.4 16508.65,-735.2 17999.48,-735.2 17999.48,-704.4 16508.65,-704.4"/>
-<text text-anchor="start" x="16515.65" y="-716.6" font-family="Arial" font-size="14.00">sort_order </text>
-<text text-anchor="start" x="16583.34" y="-716.6" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="16508.65,-673.6 16508.65,-704.4 17999.48,-704.4 17999.48,-673.6 16508.65,-673.6"/>
-<text text-anchor="start" x="16515.65" y="-685.8" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="16585.7" y="-685.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="16508.65,-642.8 16508.65,-673.6 17999.48,-673.6 17999.48,-642.8 16508.65,-642.8"/>
-<text text-anchor="start" x="16515.65" y="-655" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="16589.61" y="-655" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="16631.65,-889.2 16631.65,-935.2 18122.48,-935.2 18122.48,-889.2 16631.65,-889.2"/>
+<polygon fill="none" stroke="black" points="16631.65,-889.2 16631.65,-935.2 18122.48,-935.2 18122.48,-889.2 16631.65,-889.2"/>
+<text text-anchor="start" x="17241.6" y="-913" font-family="Arial Bold" font-size="18.00">public.service_areas</text>
+<text text-anchor="start" x="17388.03" y="-913" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="17419.15" y="-913" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="16638.65" y="-898.6" font-family="Arial" font-size="14.00" fill="#333333">Areas within a market: neighborhoods, cities or towns, and zip codes. Where &quot;I come to you&quot; Services travel, and the public location label on listings. Admin&#45;managed. Never deleted: listings will point here, so an area is deactivated instead.</text>
+<polygon fill="none" stroke="black" points="16631.65,-858.4 16631.65,-889.2 18122.48,-889.2 18122.48,-858.4 16631.65,-858.4"/>
+<text text-anchor="start" x="16638.65" y="-870.6" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="16653.43" y="-870.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="16631.65,-827.6 16631.65,-858.4 18122.48,-858.4 18122.48,-827.6 16631.65,-827.6"/>
+<text text-anchor="start" x="16638.65" y="-839.8" font-family="Arial" font-size="14.00">city_id </text>
+<text text-anchor="start" x="16682.22" y="-839.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="16716.47" y="-839.8" font-family="Arial" font-size="14.00"> The market this area belongs to.</text>
+<polygon fill="none" stroke="black" points="16631.65,-796.8 16631.65,-827.6 18122.48,-827.6 18122.48,-796.8 16631.65,-796.8"/>
+<text text-anchor="start" x="16638.65" y="-809" font-family="Arial" font-size="14.00">kind </text>
+<text text-anchor="start" x="16668.22" y="-809" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="16698.56" y="-809" font-family="Arial" font-size="14.00"> neighborhood (e.g. Old Fourth Ward), city (a city or town within the market, e.g. Decatur) or zip (a five&#45;digit zip code).</text>
+<polygon fill="none" stroke="black" points="16631.65,-766 16631.65,-796.8 18122.48,-796.8 18122.48,-766 16631.65,-766"/>
+<text text-anchor="start" x="16638.65" y="-778.2" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="16677.56" y="-778.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="16707.9" y="-778.2" font-family="Arial" font-size="14.00"> Shown to customers, e.g. Old Fourth Ward, Decatur or 30312. Unique per market and kind.</text>
+<polygon fill="none" stroke="black" points="16631.65,-735.2 16631.65,-766 18122.48,-766 18122.48,-735.2 16631.65,-735.2"/>
+<text text-anchor="start" x="16638.65" y="-747.4" font-family="Arial" font-size="14.00">active </text>
+<text text-anchor="start" x="16679.11" y="-747.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="16736.72" y="-747.4" font-family="Arial" font-size="14.00"> Inactive areas are hidden everywhere public.</text>
+<polygon fill="none" stroke="black" points="16631.65,-704.4 16631.65,-735.2 18122.48,-735.2 18122.48,-704.4 16631.65,-704.4"/>
+<text text-anchor="start" x="16638.65" y="-716.6" font-family="Arial" font-size="14.00">sort_order </text>
+<text text-anchor="start" x="16706.34" y="-716.6" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="16631.65,-673.6 16631.65,-704.4 18122.48,-704.4 18122.48,-673.6 16631.65,-673.6"/>
+<text text-anchor="start" x="16638.65" y="-685.8" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="16708.7" y="-685.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="16631.65,-642.8 16631.65,-673.6 18122.48,-673.6 18122.48,-642.8 16631.65,-642.8"/>
+<text text-anchor="start" x="16638.65" y="-655" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="16712.61" y="-655" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.service_areas&#45;&gt;public.cities -->
 <g id="edge2" class="edge">
 <title>public.service_areas:city_id&#45;&gt;public.cities:id</title>
-<path fill="none" stroke="black" d="M16497.52,-842.7C16261.51,-828.39 16562.13,-305 16311.03,-305"/>
-<polygon fill="black" stroke="black" points="16497.32,-842.69 16507.18,-847.49 16502.65,-842.85 16506.98,-842.98 16506.98,-842.98 16506.98,-842.98 16502.65,-842.85 16507.45,-838.49 16497.32,-842.69"/>
-<text text-anchor="start" x="16171.16" y="-853" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M16620.31,-842.7C16378.89,-828.39 16659.11,-305 16403.03,-305"/>
+<polygon fill="black" stroke="black" points="16620.32,-842.7 16630.18,-847.49 16625.65,-842.86 16629.98,-842.98 16629.98,-842.98 16629.98,-842.98 16625.65,-842.86 16630.44,-838.49 16620.32,-842.7"/>
+<text text-anchor="start" x="16294.16" y="-853" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.categories -->
 <g id="node4" class="node">
 <title>public.categories</title>
-<polygon fill="#efefef" stroke="none" points="18103.68,-904.6 18103.68,-950.6 19290.45,-950.6 19290.45,-904.6 18103.68,-904.6"/>
-<polygon fill="none" stroke="black" points="18103.68,-904.6 18103.68,-950.6 19290.45,-950.6 19290.45,-904.6 18103.68,-904.6"/>
-<text text-anchor="start" x="18573.59" y="-928.4" font-family="Arial Bold" font-size="18.00">public.categories</text>
-<text text-anchor="start" x="18696.04" y="-928.4" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="18727.16" y="-928.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="18110.68" y="-914" font-family="Arial" font-size="14.00" fill="#333333">Service and Experience categories. Flat and admin&#45;managed; each listing belongs to one category of its own kind. Never deleted: listings will point here, so a category is deactivated instead.</text>
-<polygon fill="none" stroke="black" points="18103.68,-873.8 18103.68,-904.6 19290.45,-904.6 19290.45,-873.8 18103.68,-873.8"/>
-<text text-anchor="start" x="18110.68" y="-886" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="18125.46" y="-886" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18103.68,-843 18103.68,-873.8 19290.45,-873.8 19290.45,-843 18103.68,-843"/>
-<text text-anchor="start" x="18110.68" y="-855.2" font-family="Arial" font-size="14.00">kind </text>
-<text text-anchor="start" x="18140.25" y="-855.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="18170.59" y="-855.2" font-family="Arial" font-size="14.00"> service or experience. A listing can only use a category of its own kind.</text>
-<polygon fill="none" stroke="black" points="18103.68,-812.2 18103.68,-843 19290.45,-843 19290.45,-812.2 18103.68,-812.2"/>
-<text text-anchor="start" x="18110.68" y="-824.4" font-family="Arial" font-size="14.00">name </text>
-<text text-anchor="start" x="18149.59" y="-824.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="18179.93" y="-824.4" font-family="Arial" font-size="14.00"> Shown to customers, e.g. Hair and beauty. 2 to 60 characters.</text>
-<polygon fill="none" stroke="black" points="18103.68,-781.4 18103.68,-812.2 19290.45,-812.2 19290.45,-781.4 18103.68,-781.4"/>
-<text text-anchor="start" x="18110.68" y="-793.6" font-family="Arial" font-size="14.00">slug </text>
-<text text-anchor="start" x="18140.25" y="-793.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="18170.59" y="-793.6" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, unique within its kind, e.g. hair&#45;and&#45;beauty.</text>
-<polygon fill="none" stroke="black" points="18103.68,-750.6 18103.68,-781.4 19290.45,-781.4 19290.45,-750.6 18103.68,-750.6"/>
-<text text-anchor="start" x="18110.68" y="-762.8" font-family="Arial" font-size="14.00">description </text>
-<text text-anchor="start" x="18182.27" y="-762.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="18212.61" y="-762.8" font-family="Arial" font-size="14.00"> Optional. Shown on the category page later. Up to 500 characters.</text>
-<polygon fill="none" stroke="black" points="18103.68,-719.8 18103.68,-750.6 19290.45,-750.6 19290.45,-719.8 18103.68,-719.8"/>
-<text text-anchor="start" x="18110.68" y="-732" font-family="Arial" font-size="14.00">active </text>
-<text text-anchor="start" x="18151.14" y="-732" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="18208.74" y="-732" font-family="Arial" font-size="14.00"> Inactive categories are hidden everywhere public, and so are their listings.</text>
-<polygon fill="none" stroke="black" points="18103.68,-689 18103.68,-719.8 19290.45,-719.8 19290.45,-689 18103.68,-689"/>
-<text text-anchor="start" x="18110.68" y="-701.2" font-family="Arial" font-size="14.00">sort_order </text>
-<text text-anchor="start" x="18178.37" y="-701.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="18228.96" y="-701.2" font-family="Arial" font-size="14.00"> Display order within its kind, lowest first.</text>
-<polygon fill="none" stroke="black" points="18103.68,-658.2 18103.68,-689 19290.45,-689 19290.45,-658.2 18103.68,-658.2"/>
-<text text-anchor="start" x="18110.68" y="-670.4" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="18180.72" y="-670.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="18103.68,-627.4 18103.68,-658.2 19290.45,-658.2 19290.45,-627.4 18103.68,-627.4"/>
-<text text-anchor="start" x="18110.68" y="-639.6" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="18184.63" y="-639.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="18226.68,-904.6 18226.68,-950.6 19413.45,-950.6 19413.45,-904.6 18226.68,-904.6"/>
+<polygon fill="none" stroke="black" points="18226.68,-904.6 18226.68,-950.6 19413.45,-950.6 19413.45,-904.6 18226.68,-904.6"/>
+<text text-anchor="start" x="18696.59" y="-928.4" font-family="Arial Bold" font-size="18.00">public.categories</text>
+<text text-anchor="start" x="18819.04" y="-928.4" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="18850.16" y="-928.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="18233.68" y="-914" font-family="Arial" font-size="14.00" fill="#333333">Service and Experience categories. Flat and admin&#45;managed; each listing belongs to one category of its own kind. Never deleted: listings will point here, so a category is deactivated instead.</text>
+<polygon fill="none" stroke="black" points="18226.68,-873.8 18226.68,-904.6 19413.45,-904.6 19413.45,-873.8 18226.68,-873.8"/>
+<text text-anchor="start" x="18233.68" y="-886" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="18248.46" y="-886" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18226.68,-843 18226.68,-873.8 19413.45,-873.8 19413.45,-843 18226.68,-843"/>
+<text text-anchor="start" x="18233.68" y="-855.2" font-family="Arial" font-size="14.00">kind </text>
+<text text-anchor="start" x="18263.25" y="-855.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="18293.59" y="-855.2" font-family="Arial" font-size="14.00"> service or experience. A listing can only use a category of its own kind.</text>
+<polygon fill="none" stroke="black" points="18226.68,-812.2 18226.68,-843 19413.45,-843 19413.45,-812.2 18226.68,-812.2"/>
+<text text-anchor="start" x="18233.68" y="-824.4" font-family="Arial" font-size="14.00">name </text>
+<text text-anchor="start" x="18272.59" y="-824.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="18302.93" y="-824.4" font-family="Arial" font-size="14.00"> Shown to customers, e.g. Hair and beauty. 2 to 60 characters.</text>
+<polygon fill="none" stroke="black" points="18226.68,-781.4 18226.68,-812.2 19413.45,-812.2 19413.45,-781.4 18226.68,-781.4"/>
+<text text-anchor="start" x="18233.68" y="-793.6" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="18263.25" y="-793.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="18293.59" y="-793.6" font-family="Arial" font-size="14.00"> URL&#45;safe identifier, unique within its kind, e.g. hair&#45;and&#45;beauty.</text>
+<polygon fill="none" stroke="black" points="18226.68,-750.6 18226.68,-781.4 19413.45,-781.4 19413.45,-750.6 18226.68,-750.6"/>
+<text text-anchor="start" x="18233.68" y="-762.8" font-family="Arial" font-size="14.00">description </text>
+<text text-anchor="start" x="18305.27" y="-762.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="18335.61" y="-762.8" font-family="Arial" font-size="14.00"> Optional. Shown on the category page later. Up to 500 characters.</text>
+<polygon fill="none" stroke="black" points="18226.68,-719.8 18226.68,-750.6 19413.45,-750.6 19413.45,-719.8 18226.68,-719.8"/>
+<text text-anchor="start" x="18233.68" y="-732" font-family="Arial" font-size="14.00">active </text>
+<text text-anchor="start" x="18274.14" y="-732" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="18331.74" y="-732" font-family="Arial" font-size="14.00"> Inactive categories are hidden everywhere public, and so are their listings.</text>
+<polygon fill="none" stroke="black" points="18226.68,-689 18226.68,-719.8 19413.45,-719.8 19413.45,-689 18226.68,-689"/>
+<text text-anchor="start" x="18233.68" y="-701.2" font-family="Arial" font-size="14.00">sort_order </text>
+<text text-anchor="start" x="18301.37" y="-701.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="18351.96" y="-701.2" font-family="Arial" font-size="14.00"> Display order within its kind, lowest first.</text>
+<polygon fill="none" stroke="black" points="18226.68,-658.2 18226.68,-689 19413.45,-689 19413.45,-658.2 18226.68,-658.2"/>
+<text text-anchor="start" x="18233.68" y="-670.4" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="18303.72" y="-670.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="18226.68,-627.4 18226.68,-658.2 19413.45,-658.2 19413.45,-627.4 18226.68,-627.4"/>
+<text text-anchor="start" x="18233.68" y="-639.6" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="18307.63" y="-639.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.listings -->
 <g id="node5" class="node">
 <title>public.listings</title>
-<polygon fill="#efefef" stroke="none" points="11142.38,-1966.2 11142.38,-2012.2 13035.75,-2012.2 13035.75,-1966.2 11142.38,-1966.2"/>
-<polygon fill="none" stroke="black" points="11142.38,-1966.2 11142.38,-2012.2 13035.75,-2012.2 13035.75,-1966.2 11142.38,-1966.2"/>
-<text text-anchor="start" x="11976.07" y="-1990" font-family="Arial Bold" font-size="18.00">public.listings</text>
-<text text-anchor="start" x="12077.57" y="-1990" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="12108.69" y="-1990" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="11498.01" y="-1975.6" font-family="Arial" font-size="14.00" fill="#333333">A Service or Experience a provider offers. Deleted only while it has never been live (published_at is null); after that it is unlisted or unpublished, never deleted, because bookings will point at it.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1935.4 11142.38,-1966.2 13035.75,-1966.2 13035.75,-1935.4 11142.38,-1935.4"/>
-<text text-anchor="start" x="11149.38" y="-1947.6" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="11164.16" y="-1947.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1904.6 11142.38,-1935.4 13035.75,-1935.4 13035.75,-1904.6 11142.38,-1904.6"/>
-<text text-anchor="start" x="11149.38" y="-1916.8" font-family="Arial" font-size="14.00">provider_id </text>
-<text text-anchor="start" x="11222.53" y="-1916.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1873.8 11142.38,-1904.6 13035.75,-1904.6 13035.75,-1873.8 11142.38,-1873.8"/>
-<text text-anchor="start" x="11149.38" y="-1886" font-family="Arial" font-size="14.00">kind </text>
-<text text-anchor="start" x="11178.95" y="-1886" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="11209.29" y="-1886" font-family="Arial" font-size="14.00"> service or experience. Fixed at creation.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1843 11142.38,-1873.8 13035.75,-1873.8 13035.75,-1843 11142.38,-1843"/>
-<text text-anchor="start" x="11149.38" y="-1855.2" font-family="Arial" font-size="14.00">category_id </text>
-<text text-anchor="start" x="11225.65" y="-1855.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="11259.89" y="-1855.2" font-family="Arial" font-size="14.00"> A category of the same kind, enforced by the (category_id, kind) reference.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1812.2 11142.38,-1843 13035.75,-1843 13035.75,-1812.2 11142.38,-1812.2"/>
-<text text-anchor="start" x="11149.38" y="-1824.4" font-family="Arial" font-size="14.00">city_id </text>
-<text text-anchor="start" x="11192.95" y="-1824.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1781.4 11142.38,-1812.2 13035.75,-1812.2 13035.75,-1781.4 11142.38,-1781.4"/>
-<text text-anchor="start" x="11149.38" y="-1793.6" font-family="Arial" font-size="14.00">title </text>
-<text text-anchor="start" x="11175.05" y="-1793.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1750.6 11142.38,-1781.4 13035.75,-1781.4 13035.75,-1750.6 11142.38,-1750.6"/>
-<text text-anchor="start" x="11149.38" y="-1762.8" font-family="Arial" font-size="14.00">slug </text>
-<text text-anchor="start" x="11178.95" y="-1762.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="11209.29" y="-1762.8" font-family="Arial" font-size="14.00"> Generated from the title with a short random suffix when the listing is created. Used by public listing pages; not changed afterwards.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1719.8 11142.38,-1750.6 13035.75,-1750.6 13035.75,-1719.8 11142.38,-1719.8"/>
-<text text-anchor="start" x="11149.38" y="-1732" font-family="Arial" font-size="14.00">description </text>
-<text text-anchor="start" x="11220.97" y="-1732" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1689 11142.38,-1719.8 13035.75,-1719.8 13035.75,-1689 11142.38,-1689"/>
-<text text-anchor="start" x="11149.38" y="-1701.2" font-family="Arial" font-size="14.00">price_cents </text>
-<text text-anchor="start" x="11224.86" y="-1701.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="11275.45" y="-1701.2" font-family="Arial" font-size="14.00"> Whole price in cents for a Service; per person for an Experience.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1658.2 11142.38,-1689 13035.75,-1689 13035.75,-1658.2 11142.38,-1658.2"/>
-<text text-anchor="start" x="11149.38" y="-1670.4" font-family="Arial" font-size="14.00">currency </text>
-<text text-anchor="start" x="11206.95" y="-1670.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1627.4 11142.38,-1658.2 13035.75,-1658.2 13035.75,-1627.4 11142.38,-1627.4"/>
-<text text-anchor="start" x="11149.38" y="-1639.6" font-family="Arial" font-size="14.00">duration_minutes </text>
-<text text-anchor="start" x="11260.67" y="-1639.6" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<text text-anchor="start" x="11311.25" y="-1639.6" font-family="Arial" font-size="14.00"> Required for Experiences; optional for Services.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1596.6 11142.38,-1627.4 13035.75,-1627.4 13035.75,-1596.6 11142.38,-1596.6"/>
-<text text-anchor="start" x="11149.38" y="-1608.8" font-family="Arial" font-size="14.00">location_mode </text>
-<text text-anchor="start" x="11244.33" y="-1608.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="11274.67" y="-1608.8" font-family="Arial" font-size="14.00"> Services only: provider_location (customer comes to the provider) or customer_location (provider travels, within listing_service_areas). Null for Experiences.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1565.8 11142.38,-1596.6 13035.75,-1596.6 13035.75,-1565.8 11142.38,-1565.8"/>
-<text text-anchor="start" x="11149.38" y="-1578" font-family="Arial" font-size="14.00">area_id </text>
-<text text-anchor="start" x="11199.97" y="-1578" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="11234.22" y="-1578" font-family="Arial" font-size="14.00"> The public location label, e.g. Old Fourth Ward. Required for provider&#45;location Services and Experiences. Must be in the listing&#39;s city.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1535 11142.38,-1565.8 13035.75,-1565.8 13035.75,-1535 11142.38,-1535"/>
-<text text-anchor="start" x="11149.38" y="-1547.2" font-family="Arial" font-size="14.00">status </text>
-<text text-anchor="start" x="11190.62" y="-1547.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="11220.96" y="-1547.2" font-family="Arial" font-size="14.00"> draft, submitted, live, rejected or unpublished. Changed only by server routes.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1504.2 11142.38,-1535 13035.75,-1535 13035.75,-1504.2 11142.38,-1504.2"/>
-<text text-anchor="start" x="11149.38" y="-1516.4" font-family="Arial" font-size="14.00">rejection_reason </text>
-<text text-anchor="start" x="11256.78" y="-1516.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="11287.12" y="-1516.4" font-family="Arial" font-size="14.00"> Why an Experience was sent back. Set on rejection; cleared on resubmission.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1473.4 11142.38,-1504.2 13035.75,-1504.2 13035.75,-1473.4 11142.38,-1473.4"/>
-<text text-anchor="start" x="11149.38" y="-1485.6" font-family="Arial" font-size="14.00">submitted_at </text>
-<text text-anchor="start" x="11233.43" y="-1485.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1442.6 11142.38,-1473.4 13035.75,-1473.4 13035.75,-1442.6 11142.38,-1442.6"/>
-<text text-anchor="start" x="11149.38" y="-1454.8" font-family="Arial" font-size="14.00">reviewed_at </text>
-<text text-anchor="start" x="11228.76" y="-1454.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1411.8 11142.38,-1442.6 13035.75,-1442.6 13035.75,-1411.8 11142.38,-1411.8"/>
-<text text-anchor="start" x="11149.38" y="-1424" font-family="Arial" font-size="14.00">published_at </text>
-<text text-anchor="start" x="11232.67" y="-1424" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<text text-anchor="start" x="11398.39" y="-1424" font-family="Arial" font-size="14.00"> Set the first time the listing goes live and never cleared.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1381 11142.38,-1411.8 13035.75,-1411.8 13035.75,-1381 11142.38,-1381"/>
-<text text-anchor="start" x="11149.38" y="-1393.2" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="11219.43" y="-1393.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1350.2 11142.38,-1381 13035.75,-1381 13035.75,-1350.2 11142.38,-1350.2"/>
-<text text-anchor="start" x="11149.38" y="-1362.4" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="11223.34" y="-1362.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="11142.38,-1319.4 11142.38,-1350.2 13035.75,-1350.2 13035.75,-1319.4 11142.38,-1319.4"/>
-<text text-anchor="start" x="11149.38" y="-1331.6" font-family="Arial" font-size="14.00">unpublished_reason </text>
-<text text-anchor="start" x="11279.37" y="-1331.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="11309.71" y="-1331.6" font-family="Arial" font-size="14.00"> Why the owner took the listing down, 10 to 1,000 characters; shown to the provider. Set when unpublished; cleared on restore. Server&#45;only.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1288.6 11142.38,-1319.4 13035.75,-1319.4 13035.75,-1288.6 11142.38,-1288.6"/>
-<text text-anchor="start" x="11149.38" y="-1300.8" font-family="Arial" font-size="14.00">booking_mode </text>
-<text text-anchor="start" x="11245.11" y="-1300.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="11275.46" y="-1300.8" font-family="Arial" font-size="14.00"> Services: instant (booked and paid from a slot) or approve (a slot requested, the card held, the provider accepts or declines). Required on every Service, chosen by the provider (no default); can change while live (bookings keep the mode they were made under). Null on Experiences.</text>
-<polygon fill="none" stroke="black" points="11142.38,-1257.8 11142.38,-1288.6 13035.75,-1288.6 13035.75,-1257.8 11142.38,-1257.8"/>
-<text text-anchor="start" x="11149.38" y="-1270" font-family="Arial" font-size="14.00">buffer_minutes </text>
-<text text-anchor="start" x="11245.87" y="-1270" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
-<text text-anchor="start" x="11301.11" y="-1270" font-family="Arial" font-size="14.00"> Services: free time after each booking (for travel), 0 to 120 minutes; null uses the provider&#39;s default.</text>
+<polygon fill="#efefef" stroke="none" points="11234.38,-1966.2 11234.38,-2012.2 13127.75,-2012.2 13127.75,-1966.2 11234.38,-1966.2"/>
+<polygon fill="none" stroke="black" points="11234.38,-1966.2 11234.38,-2012.2 13127.75,-2012.2 13127.75,-1966.2 11234.38,-1966.2"/>
+<text text-anchor="start" x="12068.07" y="-1990" font-family="Arial Bold" font-size="18.00">public.listings</text>
+<text text-anchor="start" x="12169.57" y="-1990" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="12200.69" y="-1990" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="11590.01" y="-1975.6" font-family="Arial" font-size="14.00" fill="#333333">A Service or Experience a provider offers. Deleted only while it has never been live (published_at is null); after that it is unlisted or unpublished, never deleted, because bookings will point at it.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1935.4 11234.38,-1966.2 13127.75,-1966.2 13127.75,-1935.4 11234.38,-1935.4"/>
+<text text-anchor="start" x="11241.38" y="-1947.6" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="11256.16" y="-1947.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1904.6 11234.38,-1935.4 13127.75,-1935.4 13127.75,-1904.6 11234.38,-1904.6"/>
+<text text-anchor="start" x="11241.38" y="-1916.8" font-family="Arial" font-size="14.00">provider_id </text>
+<text text-anchor="start" x="11314.53" y="-1916.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1873.8 11234.38,-1904.6 13127.75,-1904.6 13127.75,-1873.8 11234.38,-1873.8"/>
+<text text-anchor="start" x="11241.38" y="-1886" font-family="Arial" font-size="14.00">kind </text>
+<text text-anchor="start" x="11270.95" y="-1886" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="11301.29" y="-1886" font-family="Arial" font-size="14.00"> service or experience. Fixed at creation.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1843 11234.38,-1873.8 13127.75,-1873.8 13127.75,-1843 11234.38,-1843"/>
+<text text-anchor="start" x="11241.38" y="-1855.2" font-family="Arial" font-size="14.00">category_id </text>
+<text text-anchor="start" x="11317.65" y="-1855.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="11351.89" y="-1855.2" font-family="Arial" font-size="14.00"> A category of the same kind, enforced by the (category_id, kind) reference.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1812.2 11234.38,-1843 13127.75,-1843 13127.75,-1812.2 11234.38,-1812.2"/>
+<text text-anchor="start" x="11241.38" y="-1824.4" font-family="Arial" font-size="14.00">city_id </text>
+<text text-anchor="start" x="11284.95" y="-1824.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1781.4 11234.38,-1812.2 13127.75,-1812.2 13127.75,-1781.4 11234.38,-1781.4"/>
+<text text-anchor="start" x="11241.38" y="-1793.6" font-family="Arial" font-size="14.00">title </text>
+<text text-anchor="start" x="11267.05" y="-1793.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1750.6 11234.38,-1781.4 13127.75,-1781.4 13127.75,-1750.6 11234.38,-1750.6"/>
+<text text-anchor="start" x="11241.38" y="-1762.8" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="11270.95" y="-1762.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="11301.29" y="-1762.8" font-family="Arial" font-size="14.00"> Generated from the title with a short random suffix when the listing is created. Used by public listing pages; not changed afterwards.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1719.8 11234.38,-1750.6 13127.75,-1750.6 13127.75,-1719.8 11234.38,-1719.8"/>
+<text text-anchor="start" x="11241.38" y="-1732" font-family="Arial" font-size="14.00">description </text>
+<text text-anchor="start" x="11312.97" y="-1732" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1689 11234.38,-1719.8 13127.75,-1719.8 13127.75,-1689 11234.38,-1689"/>
+<text text-anchor="start" x="11241.38" y="-1701.2" font-family="Arial" font-size="14.00">price_cents </text>
+<text text-anchor="start" x="11316.86" y="-1701.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="11367.45" y="-1701.2" font-family="Arial" font-size="14.00"> Whole price in cents for a Service; per person for an Experience.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1658.2 11234.38,-1689 13127.75,-1689 13127.75,-1658.2 11234.38,-1658.2"/>
+<text text-anchor="start" x="11241.38" y="-1670.4" font-family="Arial" font-size="14.00">currency </text>
+<text text-anchor="start" x="11298.95" y="-1670.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1627.4 11234.38,-1658.2 13127.75,-1658.2 13127.75,-1627.4 11234.38,-1627.4"/>
+<text text-anchor="start" x="11241.38" y="-1639.6" font-family="Arial" font-size="14.00">duration_minutes </text>
+<text text-anchor="start" x="11352.67" y="-1639.6" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="11403.25" y="-1639.6" font-family="Arial" font-size="14.00"> Required for Experiences; optional for Services.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1596.6 11234.38,-1627.4 13127.75,-1627.4 13127.75,-1596.6 11234.38,-1596.6"/>
+<text text-anchor="start" x="11241.38" y="-1608.8" font-family="Arial" font-size="14.00">location_mode </text>
+<text text-anchor="start" x="11336.33" y="-1608.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="11366.67" y="-1608.8" font-family="Arial" font-size="14.00"> Services only: provider_location (customer comes to the provider) or customer_location (provider travels, within listing_service_areas). Null for Experiences.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1565.8 11234.38,-1596.6 13127.75,-1596.6 13127.75,-1565.8 11234.38,-1565.8"/>
+<text text-anchor="start" x="11241.38" y="-1578" font-family="Arial" font-size="14.00">area_id </text>
+<text text-anchor="start" x="11291.97" y="-1578" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="11326.22" y="-1578" font-family="Arial" font-size="14.00"> The public location label, e.g. Old Fourth Ward. Required for provider&#45;location Services and Experiences. Must be in the listing&#39;s city.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1535 11234.38,-1565.8 13127.75,-1565.8 13127.75,-1535 11234.38,-1535"/>
+<text text-anchor="start" x="11241.38" y="-1547.2" font-family="Arial" font-size="14.00">status </text>
+<text text-anchor="start" x="11282.62" y="-1547.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="11312.96" y="-1547.2" font-family="Arial" font-size="14.00"> draft, submitted, live, rejected or unpublished. Changed only by server routes.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1504.2 11234.38,-1535 13127.75,-1535 13127.75,-1504.2 11234.38,-1504.2"/>
+<text text-anchor="start" x="11241.38" y="-1516.4" font-family="Arial" font-size="14.00">rejection_reason </text>
+<text text-anchor="start" x="11348.78" y="-1516.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="11379.12" y="-1516.4" font-family="Arial" font-size="14.00"> Why an Experience was sent back. Set on rejection; cleared on resubmission.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1473.4 11234.38,-1504.2 13127.75,-1504.2 13127.75,-1473.4 11234.38,-1473.4"/>
+<text text-anchor="start" x="11241.38" y="-1485.6" font-family="Arial" font-size="14.00">submitted_at </text>
+<text text-anchor="start" x="11325.43" y="-1485.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1442.6 11234.38,-1473.4 13127.75,-1473.4 13127.75,-1442.6 11234.38,-1442.6"/>
+<text text-anchor="start" x="11241.38" y="-1454.8" font-family="Arial" font-size="14.00">reviewed_at </text>
+<text text-anchor="start" x="11320.76" y="-1454.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1411.8 11234.38,-1442.6 13127.75,-1442.6 13127.75,-1411.8 11234.38,-1411.8"/>
+<text text-anchor="start" x="11241.38" y="-1424" font-family="Arial" font-size="14.00">published_at </text>
+<text text-anchor="start" x="11324.67" y="-1424" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="11490.39" y="-1424" font-family="Arial" font-size="14.00"> Set the first time the listing goes live and never cleared.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1381 11234.38,-1411.8 13127.75,-1411.8 13127.75,-1381 11234.38,-1381"/>
+<text text-anchor="start" x="11241.38" y="-1393.2" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="11311.43" y="-1393.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1350.2 11234.38,-1381 13127.75,-1381 13127.75,-1350.2 11234.38,-1350.2"/>
+<text text-anchor="start" x="11241.38" y="-1362.4" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="11315.34" y="-1362.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="11234.38,-1319.4 11234.38,-1350.2 13127.75,-1350.2 13127.75,-1319.4 11234.38,-1319.4"/>
+<text text-anchor="start" x="11241.38" y="-1331.6" font-family="Arial" font-size="14.00">unpublished_reason </text>
+<text text-anchor="start" x="11371.37" y="-1331.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="11401.71" y="-1331.6" font-family="Arial" font-size="14.00"> Why the owner took the listing down, 10 to 1,000 characters; shown to the provider. Set when unpublished; cleared on restore. Server&#45;only.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1288.6 11234.38,-1319.4 13127.75,-1319.4 13127.75,-1288.6 11234.38,-1288.6"/>
+<text text-anchor="start" x="11241.38" y="-1300.8" font-family="Arial" font-size="14.00">booking_mode </text>
+<text text-anchor="start" x="11337.11" y="-1300.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="11367.46" y="-1300.8" font-family="Arial" font-size="14.00"> Services: instant (booked and paid from a slot) or approve (a slot requested, the card held, the provider accepts or declines). Required on every Service, chosen by the provider (no default); can change while live (bookings keep the mode they were made under). Null on Experiences.</text>
+<polygon fill="none" stroke="black" points="11234.38,-1257.8 11234.38,-1288.6 13127.75,-1288.6 13127.75,-1257.8 11234.38,-1257.8"/>
+<text text-anchor="start" x="11241.38" y="-1270" font-family="Arial" font-size="14.00">buffer_minutes </text>
+<text text-anchor="start" x="11337.87" y="-1270" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
+<text text-anchor="start" x="11393.11" y="-1270" font-family="Arial" font-size="14.00"> Services: free time after each booking (for travel), 0 to 120 minutes; null uses the provider&#39;s default.</text>
 </g>
 <!-- public.listings&#45;&gt;public.providers -->
 <g id="edge3" class="edge">
 <title>public.listings:provider_id&#45;&gt;public.providers:id</title>
-<path fill="none" stroke="black" d="M11130.95,-1919.96C10426.23,-1914.47 10406.35,-1352.37 9719.06,-1168.4 9310.55,-1059.05 6338.49,-1027.8 5915.59,-1027.8"/>
-<polygon fill="black" stroke="black" points="11131.04,-1919.96 11141.03,-1924.5 11136.38,-1919.98 11140.71,-1920 11140.71,-1920 11140.71,-1920 11136.38,-1919.98 11141.06,-1915.5 11131.04,-1919.96"/>
-<text text-anchor="start" x="10765.41" y="-1930" font-family="Arial" font-size="10.00">FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M11222.97,-1919.96C10481.67,-1914.75 10443.91,-1352.58 9719.06,-1168.4 9309.19,-1064.25 6338.49,-1027.8 5915.59,-1027.8"/>
+<polygon fill="black" stroke="black" points="11223.04,-1919.96 11233.03,-1924.5 11228.38,-1919.98 11232.71,-1920 11232.71,-1920 11232.71,-1920 11228.38,-1919.98 11233.06,-1915.5 11223.04,-1919.96"/>
+<text text-anchor="start" x="10857.41" y="-1930" font-family="Arial" font-size="10.00">FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.listings&#45;&gt;public.cities -->
 <g id="edge4" class="edge">
 <title>public.listings:city_id&#45;&gt;public.cities:id</title>
-<path fill="none" stroke="black" d="M13047.07,-1827.55C14083.44,-1817.58 13793.93,-305 14839.09,-305"/>
-<polygon fill="black" stroke="black" points="13047.08,-1827.55 13037.06,-1823.1 13041.75,-1827.58 13037.42,-1827.6 13037.42,-1827.6 13037.42,-1827.6 13041.75,-1827.58 13037.1,-1832.1 13047.08,-1827.55"/>
-<text text-anchor="start" x="13043.75" y="-1837.6" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M13139.07,-1827.55C14175.44,-1817.58 13885.93,-305 14931.09,-305"/>
+<polygon fill="black" stroke="black" points="13139.08,-1827.55 13129.06,-1823.1 13133.75,-1827.58 13129.42,-1827.6 13129.42,-1827.6 13129.42,-1827.6 13133.75,-1827.58 13129.1,-1832.1 13139.08,-1827.55"/>
+<text text-anchor="start" x="13135.75" y="-1837.6" font-family="Arial" font-size="10.00">FOREIGN KEY (city_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.listings&#45;&gt;public.service_areas -->
 <g id="edge5" class="edge">
 <title>public.listings:area_id&#45;&gt;public.service_areas:id</title>
-<path fill="none" stroke="black" d="M13047.11,-1581.19C14612.5,-1578.09 14936.77,-873.8 16507.65,-873.8"/>
-<polygon fill="black" stroke="black" points="13047.08,-1581.19 13037.08,-1576.7 13041.75,-1581.2 13037.42,-1581.2 13037.42,-1581.2 13037.42,-1581.2 13041.75,-1581.2 13037.09,-1585.7 13047.08,-1581.19"/>
-<text text-anchor="start" x="13043.75" y="-1591.2" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M13138.91,-1581.19C14717.98,-1578.18 15046.2,-873.8 16630.65,-873.8"/>
+<polygon fill="black" stroke="black" points="13139.08,-1581.19 13129.08,-1576.7 13133.75,-1581.2 13129.42,-1581.2 13129.42,-1581.2 13129.42,-1581.2 13133.75,-1581.2 13129.09,-1585.7 13139.08,-1581.19"/>
+<text text-anchor="start" x="13135.75" y="-1591.2" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.listings&#45;&gt;public.categories -->
 <g id="edge6" class="edge">
 <title>public.listings:category_id&#45;&gt;public.categories:id</title>
-<path fill="none" stroke="black" d="M13047,-1858.37C13647.06,-1854.41 17644.28,-1515.87 18052.06,-1132.4 18132.49,-1056.77 17992.27,-889.2 18102.68,-889.2"/>
-<polygon fill="black" stroke="black" points="13047.08,-1858.36 13037.07,-1853.9 13041.75,-1858.38 13037.42,-1858.4 13037.42,-1858.4 13037.42,-1858.4 13041.75,-1858.38 13037.1,-1862.9 13047.08,-1858.36"/>
-<text text-anchor="start" x="13043.75" y="-1868.4" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id, kind) REFERENCES categories(id, kind) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M13139.06,-1858.37C13742.76,-1854.44 17764.64,-1518.02 18175.06,-1132.4 18255.52,-1056.8 18115.27,-889.2 18225.68,-889.2"/>
+<polygon fill="black" stroke="black" points="13139.08,-1858.37 13129.07,-1853.9 13133.75,-1858.38 13129.42,-1858.4 13129.42,-1858.4 13129.42,-1858.4 13133.75,-1858.38 13129.1,-1862.9 13139.08,-1858.37"/>
+<text text-anchor="start" x="13135.75" y="-1868.4" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id, kind) REFERENCES categories(id, kind) ON DELETE RESTRICT</text>
 </g>
 <!-- public.listing_addresses -->
 <g id="node6" class="node">
 <title>public.listing_addresses</title>
-<polygon fill="#efefef" stroke="none" points="12676.15,-2565.8 12676.15,-2611.8 14517.98,-2611.8 14517.98,-2565.8 12676.15,-2565.8"/>
-<polygon fill="none" stroke="black" points="12676.15,-2565.8 12676.15,-2611.8 14517.98,-2611.8 14517.98,-2565.8 12676.15,-2565.8"/>
-<text text-anchor="start" x="13448.58" y="-2589.6" font-family="Arial Bold" font-size="18.00">public.listing_addresses</text>
-<text text-anchor="start" x="13621.06" y="-2589.6" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="13652.17" y="-2589.6" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="12683.15" y="-2575.2" font-family="Arial" font-size="14.00" fill="#333333">A listing&#39;s exact address. Private: readable only by the listing&#39;s provider and the admin (customers with a confirmed booking come later). Required for provider&#45;location Services and Experiences before publishing or submitting. Deleted with its listing, or by the provider when it is no longer needed.</text>
-<polygon fill="none" stroke="black" points="12676.15,-2535 12676.15,-2565.8 14517.98,-2565.8 14517.98,-2535 12676.15,-2535"/>
-<text text-anchor="start" x="12683.15" y="-2547.2" font-family="Arial" font-size="14.00">listing_id </text>
-<text text-anchor="start" x="12741.51" y="-2547.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="12676.15,-2504.2 12676.15,-2535 14517.98,-2535 14517.98,-2504.2 12676.15,-2504.2"/>
-<text text-anchor="start" x="12683.15" y="-2516.4" font-family="Arial" font-size="14.00">line1 </text>
-<text text-anchor="start" x="12716.61" y="-2516.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="12676.15,-2473.4 12676.15,-2504.2 14517.98,-2504.2 14517.98,-2473.4 12676.15,-2473.4"/>
-<text text-anchor="start" x="12683.15" y="-2485.6" font-family="Arial" font-size="14.00">line2 </text>
-<text text-anchor="start" x="12716.61" y="-2485.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="12676.15,-2442.6 12676.15,-2473.4 14517.98,-2473.4 14517.98,-2442.6 12676.15,-2442.6"/>
-<text text-anchor="start" x="12683.15" y="-2454.8" font-family="Arial" font-size="14.00">city </text>
-<text text-anchor="start" x="12708.03" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="12676.15,-2411.8 12676.15,-2442.6 14517.98,-2442.6 14517.98,-2411.8 12676.15,-2411.8"/>
-<text text-anchor="start" x="12683.15" y="-2424" font-family="Arial" font-size="14.00">state </text>
-<text text-anchor="start" x="12717.39" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="12676.15,-2381 12676.15,-2411.8 14517.98,-2411.8 14517.98,-2381 12676.15,-2381"/>
-<text text-anchor="start" x="12683.15" y="-2393.2" font-family="Arial" font-size="14.00">postal_code </text>
-<text text-anchor="start" x="12762.54" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="12676.15,-2350.2 12676.15,-2381 14517.98,-2381 14517.98,-2350.2 12676.15,-2350.2"/>
-<text text-anchor="start" x="12683.15" y="-2362.4" font-family="Arial" font-size="14.00">instructions </text>
-<text text-anchor="start" x="12757.84" y="-2362.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="12788.19" y="-2362.4" font-family="Arial" font-size="14.00"> Optional arrival notes, e.g. &quot;Side entrance, ring twice&quot;.</text>
-<polygon fill="none" stroke="black" points="12676.15,-2319.4 12676.15,-2350.2 14517.98,-2350.2 14517.98,-2319.4 12676.15,-2319.4"/>
-<text text-anchor="start" x="12683.15" y="-2331.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="12753.19" y="-2331.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="12676.15,-2288.6 12676.15,-2319.4 14517.98,-2319.4 14517.98,-2288.6 12676.15,-2288.6"/>
-<text text-anchor="start" x="12683.15" y="-2300.8" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="12757.1" y="-2300.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="12799.15,-2565.8 12799.15,-2611.8 14640.98,-2611.8 14640.98,-2565.8 12799.15,-2565.8"/>
+<polygon fill="none" stroke="black" points="12799.15,-2565.8 12799.15,-2611.8 14640.98,-2611.8 14640.98,-2565.8 12799.15,-2565.8"/>
+<text text-anchor="start" x="13571.58" y="-2589.6" font-family="Arial Bold" font-size="18.00">public.listing_addresses</text>
+<text text-anchor="start" x="13744.06" y="-2589.6" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="13775.17" y="-2589.6" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="12806.15" y="-2575.2" font-family="Arial" font-size="14.00" fill="#333333">A listing&#39;s exact address. Private: readable only by the listing&#39;s provider and the admin (customers with a confirmed booking come later). Required for provider&#45;location Services and Experiences before publishing or submitting. Deleted with its listing, or by the provider when it is no longer needed.</text>
+<polygon fill="none" stroke="black" points="12799.15,-2535 12799.15,-2565.8 14640.98,-2565.8 14640.98,-2535 12799.15,-2535"/>
+<text text-anchor="start" x="12806.15" y="-2547.2" font-family="Arial" font-size="14.00">listing_id </text>
+<text text-anchor="start" x="12864.51" y="-2547.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="12799.15,-2504.2 12799.15,-2535 14640.98,-2535 14640.98,-2504.2 12799.15,-2504.2"/>
+<text text-anchor="start" x="12806.15" y="-2516.4" font-family="Arial" font-size="14.00">line1 </text>
+<text text-anchor="start" x="12839.61" y="-2516.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="12799.15,-2473.4 12799.15,-2504.2 14640.98,-2504.2 14640.98,-2473.4 12799.15,-2473.4"/>
+<text text-anchor="start" x="12806.15" y="-2485.6" font-family="Arial" font-size="14.00">line2 </text>
+<text text-anchor="start" x="12839.61" y="-2485.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="12799.15,-2442.6 12799.15,-2473.4 14640.98,-2473.4 14640.98,-2442.6 12799.15,-2442.6"/>
+<text text-anchor="start" x="12806.15" y="-2454.8" font-family="Arial" font-size="14.00">city </text>
+<text text-anchor="start" x="12831.03" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="12799.15,-2411.8 12799.15,-2442.6 14640.98,-2442.6 14640.98,-2411.8 12799.15,-2411.8"/>
+<text text-anchor="start" x="12806.15" y="-2424" font-family="Arial" font-size="14.00">state </text>
+<text text-anchor="start" x="12840.39" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="12799.15,-2381 12799.15,-2411.8 14640.98,-2411.8 14640.98,-2381 12799.15,-2381"/>
+<text text-anchor="start" x="12806.15" y="-2393.2" font-family="Arial" font-size="14.00">postal_code </text>
+<text text-anchor="start" x="12885.54" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="12799.15,-2350.2 12799.15,-2381 14640.98,-2381 14640.98,-2350.2 12799.15,-2350.2"/>
+<text text-anchor="start" x="12806.15" y="-2362.4" font-family="Arial" font-size="14.00">instructions </text>
+<text text-anchor="start" x="12880.84" y="-2362.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="12911.19" y="-2362.4" font-family="Arial" font-size="14.00"> Optional arrival notes, e.g. &quot;Side entrance, ring twice&quot;.</text>
+<polygon fill="none" stroke="black" points="12799.15,-2319.4 12799.15,-2350.2 14640.98,-2350.2 14640.98,-2319.4 12799.15,-2319.4"/>
+<text text-anchor="start" x="12806.15" y="-2331.6" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="12876.19" y="-2331.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="12799.15,-2288.6 12799.15,-2319.4 14640.98,-2319.4 14640.98,-2288.6 12799.15,-2288.6"/>
+<text text-anchor="start" x="12806.15" y="-2300.8" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="12880.1" y="-2300.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.listing_addresses&#45;&gt;public.listings -->
 <g id="edge7" class="edge">
 <title>public.listing_addresses:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M12665.25,-2548.4C12610.93,-2524.87 12642.92,-2300.34 12676.15,-2245.4 12769.7,-2090.73 12941.71,-2209.77 13035.75,-2055.4 13059.93,-2015.7 13083.24,-1950.8 13036.75,-1950.8"/>
-<polygon fill="black" stroke="black" points="12665.02,-2548.35 12673.93,-2554.74 12670.24,-2549.41 12674.49,-2550.27 12674.49,-2550.27 12674.49,-2550.27 12670.24,-2549.41 12675.71,-2545.92 12665.02,-2548.35"/>
-<text text-anchor="start" x="12592.1" y="-2534.4" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M12787.93,-2548.26C12734.17,-2524.02 12767.04,-2300.85 12799.15,-2245.4 12883.69,-2099.41 13042.75,-2201.12 13127.75,-2055.4 13151.17,-2015.24 13175.24,-1950.8 13128.75,-1950.8"/>
+<polygon fill="black" stroke="black" points="12788.03,-2548.28 12796.9,-2554.74 12793.25,-2549.38 12797.49,-2550.26 12797.49,-2550.26 12797.49,-2550.26 12793.25,-2549.38 12798.74,-2545.93 12788.03,-2548.28"/>
+<text text-anchor="start" x="12444.96" y="-2560.4" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.listing_service_areas -->
 <g id="node7" class="node">
 <title>public.listing_service_areas</title>
-<polygon fill="#efefef" stroke="none" points="16637.09,-2473.4 16637.09,-2519.4 17871.04,-2519.4 17871.04,-2473.4 16637.09,-2473.4"/>
-<polygon fill="none" stroke="black" points="16637.09,-2473.4 16637.09,-2519.4 17871.04,-2519.4 17871.04,-2473.4 16637.09,-2473.4"/>
-<text text-anchor="start" x="17091.6" y="-2497.2" font-family="Arial Bold" font-size="18.00">public.listing_service_areas</text>
-<text text-anchor="start" x="17292.03" y="-2497.2" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="17323.15" y="-2497.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="16644.09" y="-2482.8" font-family="Arial" font-size="14.00" fill="#333333">Where an &quot;I come to you&quot; Service travels. At least one row is required before a customer&#45;location Service can go live. Rows go with their listing; the provider removes a row to stop covering an area.</text>
-<polygon fill="none" stroke="black" points="16637.09,-2442.6 16637.09,-2473.4 17871.04,-2473.4 17871.04,-2442.6 16637.09,-2442.6"/>
-<text text-anchor="start" x="16644.09" y="-2454.8" font-family="Arial" font-size="14.00">listing_id </text>
-<text text-anchor="start" x="16702.45" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="16637.09,-2411.8 16637.09,-2442.6 17871.04,-2442.6 17871.04,-2411.8 16637.09,-2411.8"/>
-<text text-anchor="start" x="16644.09" y="-2424" font-family="Arial" font-size="14.00">service_area_id </text>
-<text text-anchor="start" x="16746.81" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="16637.09,-2381 16637.09,-2411.8 17871.04,-2411.8 17871.04,-2381 16637.09,-2381"/>
-<text text-anchor="start" x="16644.09" y="-2393.2" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="16714.14" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="16760.09,-2473.4 16760.09,-2519.4 17994.04,-2519.4 17994.04,-2473.4 16760.09,-2473.4"/>
+<polygon fill="none" stroke="black" points="16760.09,-2473.4 16760.09,-2519.4 17994.04,-2519.4 17994.04,-2473.4 16760.09,-2473.4"/>
+<text text-anchor="start" x="17214.6" y="-2497.2" font-family="Arial Bold" font-size="18.00">public.listing_service_areas</text>
+<text text-anchor="start" x="17415.03" y="-2497.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="17446.15" y="-2497.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="16767.09" y="-2482.8" font-family="Arial" font-size="14.00" fill="#333333">Where an &quot;I come to you&quot; Service travels. At least one row is required before a customer&#45;location Service can go live. Rows go with their listing; the provider removes a row to stop covering an area.</text>
+<polygon fill="none" stroke="black" points="16760.09,-2442.6 16760.09,-2473.4 17994.04,-2473.4 17994.04,-2442.6 16760.09,-2442.6"/>
+<text text-anchor="start" x="16767.09" y="-2454.8" font-family="Arial" font-size="14.00">listing_id </text>
+<text text-anchor="start" x="16825.45" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="16760.09,-2411.8 16760.09,-2442.6 17994.04,-2442.6 17994.04,-2411.8 16760.09,-2411.8"/>
+<text text-anchor="start" x="16767.09" y="-2424" font-family="Arial" font-size="14.00">service_area_id </text>
+<text text-anchor="start" x="16869.81" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="16760.09,-2381 16760.09,-2411.8 17994.04,-2411.8 17994.04,-2381 16760.09,-2381"/>
+<text text-anchor="start" x="16767.09" y="-2393.2" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="16837.14" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.listing_service_areas&#45;&gt;public.service_areas -->
 <g id="edge8" class="edge">
 <title>public.listing_service_areas:service_area_id&#45;&gt;public.service_areas:id</title>
-<path fill="none" stroke="black" d="M17880.79,-2422.18C17966.92,-2325.76 18084.2,-873.8 18000.48,-873.8"/>
-<polygon fill="black" stroke="black" points="17881,-2422.06 17870.09,-2423.13 17876.37,-2424.71 17872.62,-2426.87 17872.62,-2426.87 17872.62,-2426.87 17876.37,-2424.71 17874.57,-2430.94 17881,-2422.06"/>
-<text text-anchor="start" x="17666.43" y="-2411.2" font-family="Arial" font-size="10.00">FOREIGN KEY (service_area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M18003.79,-2422.18C18089.92,-2325.76 18207.2,-873.8 18123.48,-873.8"/>
+<polygon fill="black" stroke="black" points="18004,-2422.06 17993.09,-2423.13 17999.37,-2424.71 17995.62,-2426.87 17995.62,-2426.87 17995.62,-2426.87 17999.37,-2424.71 17997.57,-2430.94 18004,-2422.06"/>
+<text text-anchor="start" x="17789.43" y="-2411.2" font-family="Arial" font-size="10.00">FOREIGN KEY (service_area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.listing_service_areas&#45;&gt;public.listings -->
 <g id="edge9" class="edge">
 <title>public.listing_service_areas:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M16626.19,-2455.96C16571.12,-2430.93 16635.03,-2183.32 16584.06,-2137.6 16437.17,-2005.82 13234.09,-1950.8 13036.75,-1950.8"/>
-<polygon fill="black" stroke="black" points="16625.97,-2455.91 16634.85,-2462.34 16631.19,-2456.99 16635.43,-2457.86 16635.43,-2457.86 16635.43,-2457.86 16631.19,-2456.99 16636.67,-2453.53 16625.97,-2455.91"/>
-<text text-anchor="start" x="16643.09" y="-2468" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M16749.19,-2455.96C16694.12,-2430.93 16758.04,-2183.31 16707.06,-2137.6 16558.85,-2004.7 13327.81,-1950.8 13128.75,-1950.8"/>
+<polygon fill="black" stroke="black" points="16748.97,-2455.91 16757.85,-2462.34 16754.19,-2456.99 16758.43,-2457.86 16758.43,-2457.86 16758.43,-2457.86 16754.19,-2456.99 16759.67,-2453.53 16748.97,-2455.91"/>
+<text text-anchor="start" x="16766.09" y="-2468" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.listing_photos -->
 <g id="node8" class="node">
 <title>public.listing_photos</title>
-<polygon fill="#efefef" stroke="none" points="14659.91,-2550.4 14659.91,-2596.4 16532.21,-2596.4 16532.21,-2550.4 14659.91,-2550.4"/>
-<polygon fill="none" stroke="black" points="14659.91,-2550.4 14659.91,-2596.4 16532.21,-2596.4 16532.21,-2550.4 14659.91,-2550.4"/>
-<text text-anchor="start" x="15458.06" y="-2574.2" font-family="Arial Bold" font-size="18.00">public.listing_photos</text>
-<text text-anchor="start" x="15609.57" y="-2574.2" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="15640.69" y="-2574.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="14666.91" y="-2559.8" font-family="Arial" font-size="14.00" fill="#333333">Photos of a listing, at most 8. Position 0 is the cover. At least one is required before a listing is published or submitted. Removed by the provider (not while submitted or unpublished, and never the last one of a live listing) or by the admin; rows go with their listing. Removing a row leaves the stored file.</text>
-<polygon fill="none" stroke="black" points="14659.91,-2519.6 14659.91,-2550.4 16532.21,-2550.4 16532.21,-2519.6 14659.91,-2519.6"/>
-<text text-anchor="start" x="14666.91" y="-2531.8" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="14681.7" y="-2531.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="14659.91,-2488.8 14659.91,-2519.6 16532.21,-2519.6 16532.21,-2488.8 14659.91,-2488.8"/>
-<text text-anchor="start" x="14666.91" y="-2501" font-family="Arial" font-size="14.00">listing_id </text>
-<text text-anchor="start" x="14725.28" y="-2501" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="14659.91,-2458 14659.91,-2488.8 16532.21,-2488.8 16532.21,-2458 14659.91,-2458"/>
-<text text-anchor="start" x="14666.91" y="-2470.2" font-family="Arial" font-size="14.00">storage_path </text>
-<text text-anchor="start" x="14752.53" y="-2470.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="14782.88" y="-2470.2" font-family="Arial" font-size="14.00"> Path in the listing&#45;photos bucket: &lt;provider_id&gt;/&lt;listing_id&gt;/&lt;random uuid&gt;.&lt;ext&gt;. Must be in this listing&#39;s own folder.</text>
-<polygon fill="none" stroke="black" points="14659.91,-2427.2 14659.91,-2458 16532.21,-2458 16532.21,-2427.2 14659.91,-2427.2"/>
-<text text-anchor="start" x="14666.91" y="-2439.4" font-family="Arial" font-size="14.00">position </text>
-<text text-anchor="start" x="14719.06" y="-2439.4" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
-<text text-anchor="start" x="14774.29" y="-2439.4" font-family="Arial" font-size="14.00"> 0 to 7, unique per listing. 0 is the cover photo.</text>
-<polygon fill="none" stroke="black" points="14659.91,-2396.4 14659.91,-2427.2 16532.21,-2427.2 16532.21,-2396.4 14659.91,-2396.4"/>
-<text text-anchor="start" x="14666.91" y="-2408.6" font-family="Arial" font-size="14.00">alt_text </text>
-<text text-anchor="start" x="14715.94" y="-2408.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="14746.29" y="-2408.6" font-family="Arial" font-size="14.00"> Describes the photo for screen reader users. Required, 5 to 200 characters.</text>
-<polygon fill="none" stroke="black" points="14659.91,-2365.6 14659.91,-2396.4 16532.21,-2396.4 16532.21,-2365.6 14659.91,-2365.6"/>
-<text text-anchor="start" x="14666.91" y="-2377.8" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="14736.96" y="-2377.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="14659.91,-2334.8 14659.91,-2365.6 16532.21,-2365.6 16532.21,-2334.8 14659.91,-2334.8"/>
-<text text-anchor="start" x="14666.91" y="-2347" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="14740.87" y="-2347" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="14659.91,-2304 14659.91,-2334.8 16532.21,-2334.8 16532.21,-2304 14659.91,-2304"/>
-<text text-anchor="start" x="14666.91" y="-2316.2" font-family="Arial" font-size="14.00">card_path </text>
-<text text-anchor="start" x="14733.07" y="-2316.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="14763.42" y="-2316.2" font-family="Arial" font-size="14.00"> The card&#45;sized copy (about 600px wide) of this photo, in the same folder: &lt;uuid&gt;.card.webp for &lt;uuid&gt;.&lt;ext&gt;, or &lt;uuid&gt;.card.jpg where the browser couldn&#39;t encode WebP. Null for photos added before card copies existed; pages then use the full photo. Set on upload, never changed.</text>
+<polygon fill="#efefef" stroke="none" points="14782.91,-2550.4 14782.91,-2596.4 16655.21,-2596.4 16655.21,-2550.4 14782.91,-2550.4"/>
+<polygon fill="none" stroke="black" points="14782.91,-2550.4 14782.91,-2596.4 16655.21,-2596.4 16655.21,-2550.4 14782.91,-2550.4"/>
+<text text-anchor="start" x="15581.06" y="-2574.2" font-family="Arial Bold" font-size="18.00">public.listing_photos</text>
+<text text-anchor="start" x="15732.57" y="-2574.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="15763.69" y="-2574.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="14789.91" y="-2559.8" font-family="Arial" font-size="14.00" fill="#333333">Photos of a listing, at most 8. Position 0 is the cover. At least one is required before a listing is published or submitted. Removed by the provider (not while submitted or unpublished, and never the last one of a live listing) or by the admin; rows go with their listing. Removing a row leaves the stored file.</text>
+<polygon fill="none" stroke="black" points="14782.91,-2519.6 14782.91,-2550.4 16655.21,-2550.4 16655.21,-2519.6 14782.91,-2519.6"/>
+<text text-anchor="start" x="14789.91" y="-2531.8" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="14804.7" y="-2531.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="14782.91,-2488.8 14782.91,-2519.6 16655.21,-2519.6 16655.21,-2488.8 14782.91,-2488.8"/>
+<text text-anchor="start" x="14789.91" y="-2501" font-family="Arial" font-size="14.00">listing_id </text>
+<text text-anchor="start" x="14848.28" y="-2501" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="14782.91,-2458 14782.91,-2488.8 16655.21,-2488.8 16655.21,-2458 14782.91,-2458"/>
+<text text-anchor="start" x="14789.91" y="-2470.2" font-family="Arial" font-size="14.00">storage_path </text>
+<text text-anchor="start" x="14875.53" y="-2470.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="14905.88" y="-2470.2" font-family="Arial" font-size="14.00"> Path in the listing&#45;photos bucket: &lt;provider_id&gt;/&lt;listing_id&gt;/&lt;random uuid&gt;.&lt;ext&gt;. Must be in this listing&#39;s own folder.</text>
+<polygon fill="none" stroke="black" points="14782.91,-2427.2 14782.91,-2458 16655.21,-2458 16655.21,-2427.2 14782.91,-2427.2"/>
+<text text-anchor="start" x="14789.91" y="-2439.4" font-family="Arial" font-size="14.00">position </text>
+<text text-anchor="start" x="14842.06" y="-2439.4" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
+<text text-anchor="start" x="14897.29" y="-2439.4" font-family="Arial" font-size="14.00"> 0 to 7, unique per listing. 0 is the cover photo.</text>
+<polygon fill="none" stroke="black" points="14782.91,-2396.4 14782.91,-2427.2 16655.21,-2427.2 16655.21,-2396.4 14782.91,-2396.4"/>
+<text text-anchor="start" x="14789.91" y="-2408.6" font-family="Arial" font-size="14.00">alt_text </text>
+<text text-anchor="start" x="14838.94" y="-2408.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="14869.29" y="-2408.6" font-family="Arial" font-size="14.00"> Describes the photo for screen reader users. Required, 5 to 200 characters.</text>
+<polygon fill="none" stroke="black" points="14782.91,-2365.6 14782.91,-2396.4 16655.21,-2396.4 16655.21,-2365.6 14782.91,-2365.6"/>
+<text text-anchor="start" x="14789.91" y="-2377.8" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="14859.96" y="-2377.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="14782.91,-2334.8 14782.91,-2365.6 16655.21,-2365.6 16655.21,-2334.8 14782.91,-2334.8"/>
+<text text-anchor="start" x="14789.91" y="-2347" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="14863.87" y="-2347" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="14782.91,-2304 14782.91,-2334.8 16655.21,-2334.8 16655.21,-2304 14782.91,-2304"/>
+<text text-anchor="start" x="14789.91" y="-2316.2" font-family="Arial" font-size="14.00">card_path </text>
+<text text-anchor="start" x="14856.07" y="-2316.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="14886.42" y="-2316.2" font-family="Arial" font-size="14.00"> The card&#45;sized copy (about 600px wide) of this photo, in the same folder: &lt;uuid&gt;.card.webp for &lt;uuid&gt;.&lt;ext&gt;, or &lt;uuid&gt;.card.jpg where the browser couldn&#39;t encode WebP. Null for photos added before card copies existed; pages then use the full photo. Set on upload, never changed.</text>
 </g>
 <!-- public.listing_photos&#45;&gt;public.listings -->
 <g id="edge10" class="edge">
 <title>public.listing_photos:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M14648.8,-2502.38C14583.92,-2476.92 14659.61,-2192.34 14603.06,-2137.6 14477.13,-2015.7 13212.02,-1950.8 13036.75,-1950.8"/>
-<polygon fill="black" stroke="black" points="14648.74,-2502.37 14657.79,-2508.57 14653.99,-2503.31 14658.26,-2504.08 14658.26,-2504.08 14658.26,-2504.08 14653.99,-2503.31 14659.38,-2499.71 14648.74,-2502.37"/>
-<text text-anchor="start" x="14305.73" y="-2514.2" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M14771.8,-2502.38C14706.93,-2476.92 14782.67,-2192.28 14726.06,-2137.6 14597.53,-2013.46 13307.44,-1950.8 13128.75,-1950.8"/>
+<polygon fill="black" stroke="black" points="14771.74,-2502.37 14780.79,-2508.57 14776.99,-2503.31 14781.26,-2504.08 14781.26,-2504.08 14781.26,-2504.08 14776.99,-2503.31 14782.38,-2499.71 14771.74,-2502.37"/>
+<text text-anchor="start" x="14428.73" y="-2514.2" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.experience_sessions -->
 <g id="node9" class="node">
@@ -505,7 +505,7 @@
 <!-- public.experience_sessions&#45;&gt;public.listings -->
 <g id="edge11" class="edge">
 <title>public.experience_sessions:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M8147.91,-2486.89C8208.94,-2461.32 8132.79,-2187.44 8189.06,-2137.6 8220.89,-2109.42 9676.64,-2104.34 9719.06,-2101.6 10353.42,-2060.58 10505.69,-1950.8 11141.38,-1950.8"/>
+<path fill="none" stroke="black" d="M8147.91,-2486.89C8208.94,-2461.32 8132.79,-2187.44 8189.06,-2137.6 8220.89,-2109.42 9676.63,-2104.21 9719.06,-2101.6 10394.15,-2060.1 10557.02,-1950.8 11233.38,-1950.8"/>
 <polygon fill="black" stroke="black" points="8148.03,-2486.86 8137.37,-2484.32 8142.79,-2487.86 8138.54,-2488.67 8138.54,-2488.67 8138.54,-2488.67 8142.79,-2487.86 8139.05,-2493.16 8148.03,-2486.86"/>
 <text text-anchor="start" x="8144.88" y="-2498.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
@@ -558,7 +558,7 @@
 <!-- public.notifications&#45;&gt;public.listings -->
 <g id="edge13" class="edge">
 <title>public.notifications:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M7542.15,-5873.69C7087.54,-5863.6 7481.32,-5174.28 7088.06,-4922 7017.34,-4876.63 5634.76,-4946.12 5576.06,-4886 5314.99,-4618.64 5371.72,-4358.07 5576.06,-4045.2 5597.83,-4011.88 5631.83,-4039.14 5658.06,-4009.2 6038.13,-3575.43 5919.84,-3330.92 6019.06,-2762.8 6031.04,-2694.23 6008.53,-2185.47 6059.06,-2137.6 6095.97,-2102.64 9668.31,-2104.53 9719.06,-2101.6 10353.69,-2064.92 10505.69,-1950.8 11141.38,-1950.8"/>
+<path fill="none" stroke="black" d="M7542.15,-5873.69C7087.54,-5863.6 7481.32,-5174.28 7088.06,-4922 7017.34,-4876.63 5634.76,-4946.12 5576.06,-4886 5314.99,-4618.64 5371.72,-4358.07 5576.06,-4045.2 5597.83,-4011.88 5631.83,-4039.14 5658.06,-4009.2 6038.13,-3575.43 5919.84,-3330.92 6019.06,-2762.8 6031.04,-2694.23 6008.53,-2185.47 6059.06,-2137.6 6095.97,-2102.64 9668.3,-2104.37 9719.06,-2101.6 10394.41,-2064.73 10557.02,-1950.8 11233.38,-1950.8"/>
 <polygon fill="black" stroke="black" points="7542.02,-5873.69 7551.97,-5878.3 7547.35,-5873.75 7551.68,-5873.79 7551.68,-5873.79 7551.68,-5873.79 7547.35,-5873.75 7552.07,-5869.3 7542.02,-5873.69"/>
 <text text-anchor="start" x="7199.16" y="-5883.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
@@ -806,8 +806,8 @@
 <!-- public.bookings&#45;&gt;public.listings -->
 <g id="edge17" class="edge">
 <title>public.bookings:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M11053.46,-3842.98C11882.66,-3840.09 12178.83,-3490.21 12586.06,-2762.8 12654.06,-2641.35 12532.57,-2242.5 12624.06,-2137.6 12746.7,-1996.98 12916.74,-2199.11 13035.75,-2055.4 13065.4,-2019.59 13083.24,-1950.8 13036.75,-1950.8"/>
-<polygon fill="black" stroke="black" points="11053.4,-3842.98 11043.39,-3838.5 11048.07,-3842.99 11043.74,-3843 11043.74,-3843 11043.74,-3843 11048.07,-3842.99 11043.41,-3847.5 11053.4,-3842.98"/>
+<path fill="none" stroke="black" d="M11053.38,-3842.99C11928.18,-3840.51 12266.11,-3522.05 12709.06,-2762.8 12779.2,-2642.57 12656.39,-2243.21 12747.06,-2137.6 12859.81,-2006.27 13018.39,-2189.57 13127.75,-2055.4 13157.12,-2019.36 13175.24,-1950.8 13128.75,-1950.8"/>
+<polygon fill="black" stroke="black" points="11053.4,-3842.99 11043.39,-3838.5 11048.07,-3842.99 11043.74,-3843 11043.74,-3843 11043.74,-3843 11048.07,-3842.99 11043.41,-3847.5 11053.4,-3842.99"/>
 <text text-anchor="start" x="11050.07" y="-3853" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.bookings&#45;&gt;public.experience_sessions -->
@@ -1283,382 +1283,382 @@
 <!-- public.guides -->
 <g id="node23" class="node">
 <title>public.guides</title>
-<polygon fill="#efefef" stroke="none" points="18768.48,-2012.4 18768.48,-2058.4 20779.65,-2058.4 20779.65,-2012.4 18768.48,-2012.4"/>
-<polygon fill="none" stroke="black" points="18768.48,-2012.4 18768.48,-2058.4 20779.65,-2058.4 20779.65,-2012.4 18768.48,-2012.4"/>
-<text text-anchor="start" x="19663.57" y="-2036.2" font-family="Arial Bold" font-size="18.00">public.guides</text>
-<text text-anchor="start" x="19760.06" y="-2036.2" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="19791.18" y="-2036.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="18775.48" y="-2021.8" font-family="Arial" font-size="14.00" fill="#333333">Destination guides: articles about a place or theme in a market that recommend live lokl listings. Admin&#45;written. Draft columns are edited; live columns (title, teaser, body, cover_photo_id) are set only by publish_guide(). Visitors see published guides through the website&#39;s server. Unpublished, never deleted, once published.</text>
-<polygon fill="none" stroke="black" points="18768.48,-1981.6 18768.48,-2012.4 20779.65,-2012.4 20779.65,-1981.6 18768.48,-1981.6"/>
-<text text-anchor="start" x="18775.48" y="-1993.8" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="18790.26" y="-1993.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1950.8 18768.48,-1981.6 20779.65,-1981.6 20779.65,-1950.8 18768.48,-1950.8"/>
-<text text-anchor="start" x="18775.48" y="-1963" font-family="Arial" font-size="14.00">market_id </text>
-<text text-anchor="start" x="18840.84" y="-1963" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1920 18768.48,-1950.8 20779.65,-1950.8 20779.65,-1920 18768.48,-1920"/>
-<text text-anchor="start" x="18775.48" y="-1932.2" font-family="Arial" font-size="14.00">slug </text>
-<text text-anchor="start" x="18805.05" y="-1932.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1889.2 18768.48,-1920 20779.65,-1920 20779.65,-1889.2 18768.48,-1889.2"/>
-<text text-anchor="start" x="18775.48" y="-1901.4" font-family="Arial" font-size="14.00">draft_title </text>
-<text text-anchor="start" x="18836.95" y="-1901.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1858.4 18768.48,-1889.2 20779.65,-1889.2 20779.65,-1858.4 18768.48,-1858.4"/>
-<text text-anchor="start" x="18775.48" y="-1870.6" font-family="Arial" font-size="14.00">draft_teaser </text>
-<text text-anchor="start" x="18854.08" y="-1870.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1827.6 18768.48,-1858.4 20779.65,-1858.4 20779.65,-1827.6 18768.48,-1827.6"/>
-<text text-anchor="start" x="18775.48" y="-1839.8" font-family="Arial" font-size="14.00">draft_body </text>
-<text text-anchor="start" x="18845.53" y="-1839.8" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
-<text text-anchor="start" x="18886.77" y="-1839.8" font-family="Arial" font-size="14.00"> The draft body as Editor.js blocks (JSON). Rendered by lokl&#39;s own renderer, never as raw HTML.</text>
-<polygon fill="none" stroke="black" points="18768.48,-1796.8 18768.48,-1827.6 20779.65,-1827.6 20779.65,-1796.8 18768.48,-1796.8"/>
-<text text-anchor="start" x="18775.48" y="-1809" font-family="Arial" font-size="14.00">draft_cover_photo_id </text>
-<text text-anchor="start" x="18910.91" y="-1809" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1766 18768.48,-1796.8 20779.65,-1796.8 20779.65,-1766 18768.48,-1766"/>
-<text text-anchor="start" x="18775.48" y="-1778.2" font-family="Arial" font-size="14.00">draft_area_id </text>
-<text text-anchor="start" x="18861.87" y="-1778.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1735.2 18768.48,-1766 20779.65,-1766 20779.65,-1735.2 18768.48,-1735.2"/>
-<text text-anchor="start" x="18775.48" y="-1747.4" font-family="Arial" font-size="14.00">draft_category_id </text>
-<text text-anchor="start" x="18887.55" y="-1747.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1704.4 18768.48,-1735.2 20779.65,-1735.2 20779.65,-1704.4 18768.48,-1704.4"/>
-<text text-anchor="start" x="18775.48" y="-1716.6" font-family="Arial" font-size="14.00">draft_listing_kind </text>
-<text text-anchor="start" x="18884.43" y="-1716.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1673.6 18768.48,-1704.4 20779.65,-1704.4 20779.65,-1673.6 18768.48,-1673.6"/>
-<text text-anchor="start" x="18775.48" y="-1685.8" font-family="Arial" font-size="14.00">title </text>
-<text text-anchor="start" x="18801.15" y="-1685.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1642.8 18768.48,-1673.6 20779.65,-1673.6 20779.65,-1642.8 18768.48,-1642.8"/>
-<text text-anchor="start" x="18775.48" y="-1655" font-family="Arial" font-size="14.00">teaser </text>
-<text text-anchor="start" x="18818.28" y="-1655" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="18848.62" y="-1655" font-family="Arial" font-size="14.00"> Up to 160 characters: shown under the photo on cards and the homepage, and used as the meta description.</text>
-<polygon fill="none" stroke="black" points="18768.48,-1612 18768.48,-1642.8 20779.65,-1642.8 20779.65,-1612 18768.48,-1612"/>
-<text text-anchor="start" x="18775.48" y="-1624.2" font-family="Arial" font-size="14.00">body </text>
-<text text-anchor="start" x="18809.73" y="-1624.2" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1581.2 18768.48,-1612 20779.65,-1612 20779.65,-1581.2 18768.48,-1581.2"/>
-<text text-anchor="start" x="18775.48" y="-1593.4" font-family="Arial" font-size="14.00">cover_photo_id </text>
-<text text-anchor="start" x="18875.11" y="-1593.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1550.4 18768.48,-1581.2 20779.65,-1581.2 20779.65,-1550.4 18768.48,-1550.4"/>
-<text text-anchor="start" x="18775.48" y="-1562.6" font-family="Arial" font-size="14.00">area_id </text>
-<text text-anchor="start" x="18826.07" y="-1562.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="18860.32" y="-1562.6" font-family="Arial" font-size="14.00"> The live listings block&#39;s area (with category_id and listing_kind): copied from the draft_ columns by publish_guide(), like the text and cover.</text>
-<polygon fill="none" stroke="black" points="18768.48,-1519.6 18768.48,-1550.4 20779.65,-1550.4 20779.65,-1519.6 18768.48,-1519.6"/>
-<text text-anchor="start" x="18775.48" y="-1531.8" font-family="Arial" font-size="14.00">category_id </text>
-<text text-anchor="start" x="18851.75" y="-1531.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1488.8 18768.48,-1519.6 20779.65,-1519.6 20779.65,-1488.8 18768.48,-1488.8"/>
-<text text-anchor="start" x="18775.48" y="-1501" font-family="Arial" font-size="14.00">listing_kind </text>
-<text text-anchor="start" x="18848.63" y="-1501" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1458 18768.48,-1488.8 20779.65,-1488.8 20779.65,-1458 18768.48,-1458"/>
-<text text-anchor="start" x="18775.48" y="-1470.2" font-family="Arial" font-size="14.00">status </text>
-<text text-anchor="start" x="18816.72" y="-1470.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1427.2 18768.48,-1458 20779.65,-1458 20779.65,-1427.2 18768.48,-1427.2"/>
-<text text-anchor="start" x="18775.48" y="-1439.4" font-family="Arial" font-size="14.00">ai_draft_pending_review </text>
-<text text-anchor="start" x="18931.92" y="-1439.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<text text-anchor="start" x="18989.53" y="-1439.4" font-family="Arial" font-size="14.00"> True from the moment an AI draft lands in the draft until the admin confirms they&#39;ve checked the highlighted phrases and the facts. Publishing is refused while true.</text>
-<polygon fill="none" stroke="black" points="18768.48,-1396.4 18768.48,-1427.2 20779.65,-1427.2 20779.65,-1396.4 18768.48,-1396.4"/>
-<text text-anchor="start" x="18775.48" y="-1408.6" font-family="Arial" font-size="14.00">ai_reviewed_by </text>
-<text text-anchor="start" x="18876.65" y="-1408.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1365.6 18768.48,-1396.4 20779.65,-1396.4 20779.65,-1365.6 18768.48,-1365.6"/>
-<text text-anchor="start" x="18775.48" y="-1377.8" font-family="Arial" font-size="14.00">ai_reviewed_at </text>
-<text text-anchor="start" x="18873.54" y="-1377.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1334.8 18768.48,-1365.6 20779.65,-1365.6 20779.65,-1334.8 18768.48,-1334.8"/>
-<text text-anchor="start" x="18775.48" y="-1347" font-family="Arial" font-size="14.00">published_at </text>
-<text text-anchor="start" x="18858.77" y="-1347" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1304 18768.48,-1334.8 20779.65,-1334.8 20779.65,-1304 18768.48,-1304"/>
-<text text-anchor="start" x="18775.48" y="-1316.2" font-family="Arial" font-size="14.00">content_updated_at </text>
-<text text-anchor="start" x="18903.15" y="-1316.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<text text-anchor="start" x="19068.87" y="-1316.2" font-family="Arial" font-size="14.00"> When the live text or cover last changed: &quot;Last updated&quot; on the page and dateModified in structured data.</text>
-<polygon fill="none" stroke="black" points="18768.48,-1273.2 18768.48,-1304 20779.65,-1304 20779.65,-1273.2 18768.48,-1273.2"/>
-<text text-anchor="start" x="18775.48" y="-1285.4" font-family="Arial" font-size="14.00">created_by </text>
-<text text-anchor="start" x="18848.64" y="-1285.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1242.4 18768.48,-1273.2 20779.65,-1273.2 20779.65,-1242.4 18768.48,-1242.4"/>
-<text text-anchor="start" x="18775.48" y="-1254.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="18845.53" y="-1254.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="18768.48,-1211.6 18768.48,-1242.4 20779.65,-1242.4 20779.65,-1211.6 18768.48,-1211.6"/>
-<text text-anchor="start" x="18775.48" y="-1223.8" font-family="Arial" font-size="14.00">updated_at </text>
-<text text-anchor="start" x="18849.44" y="-1223.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="18891.48,-2012.4 18891.48,-2058.4 20902.65,-2058.4 20902.65,-2012.4 18891.48,-2012.4"/>
+<polygon fill="none" stroke="black" points="18891.48,-2012.4 18891.48,-2058.4 20902.65,-2058.4 20902.65,-2012.4 18891.48,-2012.4"/>
+<text text-anchor="start" x="19786.57" y="-2036.2" font-family="Arial Bold" font-size="18.00">public.guides</text>
+<text text-anchor="start" x="19883.06" y="-2036.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="19914.18" y="-2036.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="18898.48" y="-2021.8" font-family="Arial" font-size="14.00" fill="#333333">Destination guides: articles about a place or theme in a market that recommend live lokl listings. Admin&#45;written. Draft columns are edited; live columns (title, teaser, body, cover_photo_id) are set only by publish_guide(). Visitors see published guides through the website&#39;s server. Unpublished, never deleted, once published.</text>
+<polygon fill="none" stroke="black" points="18891.48,-1981.6 18891.48,-2012.4 20902.65,-2012.4 20902.65,-1981.6 18891.48,-1981.6"/>
+<text text-anchor="start" x="18898.48" y="-1993.8" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="18913.26" y="-1993.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1950.8 18891.48,-1981.6 20902.65,-1981.6 20902.65,-1950.8 18891.48,-1950.8"/>
+<text text-anchor="start" x="18898.48" y="-1963" font-family="Arial" font-size="14.00">market_id </text>
+<text text-anchor="start" x="18963.84" y="-1963" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1920 18891.48,-1950.8 20902.65,-1950.8 20902.65,-1920 18891.48,-1920"/>
+<text text-anchor="start" x="18898.48" y="-1932.2" font-family="Arial" font-size="14.00">slug </text>
+<text text-anchor="start" x="18928.05" y="-1932.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1889.2 18891.48,-1920 20902.65,-1920 20902.65,-1889.2 18891.48,-1889.2"/>
+<text text-anchor="start" x="18898.48" y="-1901.4" font-family="Arial" font-size="14.00">draft_title </text>
+<text text-anchor="start" x="18959.95" y="-1901.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1858.4 18891.48,-1889.2 20902.65,-1889.2 20902.65,-1858.4 18891.48,-1858.4"/>
+<text text-anchor="start" x="18898.48" y="-1870.6" font-family="Arial" font-size="14.00">draft_teaser </text>
+<text text-anchor="start" x="18977.08" y="-1870.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1827.6 18891.48,-1858.4 20902.65,-1858.4 20902.65,-1827.6 18891.48,-1827.6"/>
+<text text-anchor="start" x="18898.48" y="-1839.8" font-family="Arial" font-size="14.00">draft_body </text>
+<text text-anchor="start" x="18968.53" y="-1839.8" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
+<text text-anchor="start" x="19009.77" y="-1839.8" font-family="Arial" font-size="14.00"> The draft body as Editor.js blocks (JSON). Rendered by lokl&#39;s own renderer, never as raw HTML.</text>
+<polygon fill="none" stroke="black" points="18891.48,-1796.8 18891.48,-1827.6 20902.65,-1827.6 20902.65,-1796.8 18891.48,-1796.8"/>
+<text text-anchor="start" x="18898.48" y="-1809" font-family="Arial" font-size="14.00">draft_cover_photo_id </text>
+<text text-anchor="start" x="19033.91" y="-1809" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1766 18891.48,-1796.8 20902.65,-1796.8 20902.65,-1766 18891.48,-1766"/>
+<text text-anchor="start" x="18898.48" y="-1778.2" font-family="Arial" font-size="14.00">draft_area_id </text>
+<text text-anchor="start" x="18984.87" y="-1778.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1735.2 18891.48,-1766 20902.65,-1766 20902.65,-1735.2 18891.48,-1735.2"/>
+<text text-anchor="start" x="18898.48" y="-1747.4" font-family="Arial" font-size="14.00">draft_category_id </text>
+<text text-anchor="start" x="19010.55" y="-1747.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1704.4 18891.48,-1735.2 20902.65,-1735.2 20902.65,-1704.4 18891.48,-1704.4"/>
+<text text-anchor="start" x="18898.48" y="-1716.6" font-family="Arial" font-size="14.00">draft_listing_kind </text>
+<text text-anchor="start" x="19007.43" y="-1716.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1673.6 18891.48,-1704.4 20902.65,-1704.4 20902.65,-1673.6 18891.48,-1673.6"/>
+<text text-anchor="start" x="18898.48" y="-1685.8" font-family="Arial" font-size="14.00">title </text>
+<text text-anchor="start" x="18924.15" y="-1685.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1642.8 18891.48,-1673.6 20902.65,-1673.6 20902.65,-1642.8 18891.48,-1642.8"/>
+<text text-anchor="start" x="18898.48" y="-1655" font-family="Arial" font-size="14.00">teaser </text>
+<text text-anchor="start" x="18941.28" y="-1655" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="18971.62" y="-1655" font-family="Arial" font-size="14.00"> Up to 160 characters: shown under the photo on cards and the homepage, and used as the meta description.</text>
+<polygon fill="none" stroke="black" points="18891.48,-1612 18891.48,-1642.8 20902.65,-1642.8 20902.65,-1612 18891.48,-1612"/>
+<text text-anchor="start" x="18898.48" y="-1624.2" font-family="Arial" font-size="14.00">body </text>
+<text text-anchor="start" x="18932.73" y="-1624.2" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1581.2 18891.48,-1612 20902.65,-1612 20902.65,-1581.2 18891.48,-1581.2"/>
+<text text-anchor="start" x="18898.48" y="-1593.4" font-family="Arial" font-size="14.00">cover_photo_id </text>
+<text text-anchor="start" x="18998.11" y="-1593.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1550.4 18891.48,-1581.2 20902.65,-1581.2 20902.65,-1550.4 18891.48,-1550.4"/>
+<text text-anchor="start" x="18898.48" y="-1562.6" font-family="Arial" font-size="14.00">area_id </text>
+<text text-anchor="start" x="18949.07" y="-1562.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="18983.32" y="-1562.6" font-family="Arial" font-size="14.00"> The live listings block&#39;s area (with category_id and listing_kind): copied from the draft_ columns by publish_guide(), like the text and cover.</text>
+<polygon fill="none" stroke="black" points="18891.48,-1519.6 18891.48,-1550.4 20902.65,-1550.4 20902.65,-1519.6 18891.48,-1519.6"/>
+<text text-anchor="start" x="18898.48" y="-1531.8" font-family="Arial" font-size="14.00">category_id </text>
+<text text-anchor="start" x="18974.75" y="-1531.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1488.8 18891.48,-1519.6 20902.65,-1519.6 20902.65,-1488.8 18891.48,-1488.8"/>
+<text text-anchor="start" x="18898.48" y="-1501" font-family="Arial" font-size="14.00">listing_kind </text>
+<text text-anchor="start" x="18971.63" y="-1501" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1458 18891.48,-1488.8 20902.65,-1488.8 20902.65,-1458 18891.48,-1458"/>
+<text text-anchor="start" x="18898.48" y="-1470.2" font-family="Arial" font-size="14.00">status </text>
+<text text-anchor="start" x="18939.72" y="-1470.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1427.2 18891.48,-1458 20902.65,-1458 20902.65,-1427.2 18891.48,-1427.2"/>
+<text text-anchor="start" x="18898.48" y="-1439.4" font-family="Arial" font-size="14.00">ai_draft_pending_review </text>
+<text text-anchor="start" x="19054.92" y="-1439.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<text text-anchor="start" x="19112.53" y="-1439.4" font-family="Arial" font-size="14.00"> True from the moment an AI draft lands in the draft until the admin confirms they&#39;ve checked the highlighted phrases and the facts. Publishing is refused while true.</text>
+<polygon fill="none" stroke="black" points="18891.48,-1396.4 18891.48,-1427.2 20902.65,-1427.2 20902.65,-1396.4 18891.48,-1396.4"/>
+<text text-anchor="start" x="18898.48" y="-1408.6" font-family="Arial" font-size="14.00">ai_reviewed_by </text>
+<text text-anchor="start" x="18999.65" y="-1408.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1365.6 18891.48,-1396.4 20902.65,-1396.4 20902.65,-1365.6 18891.48,-1365.6"/>
+<text text-anchor="start" x="18898.48" y="-1377.8" font-family="Arial" font-size="14.00">ai_reviewed_at </text>
+<text text-anchor="start" x="18996.54" y="-1377.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1334.8 18891.48,-1365.6 20902.65,-1365.6 20902.65,-1334.8 18891.48,-1334.8"/>
+<text text-anchor="start" x="18898.48" y="-1347" font-family="Arial" font-size="14.00">published_at </text>
+<text text-anchor="start" x="18981.77" y="-1347" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1304 18891.48,-1334.8 20902.65,-1334.8 20902.65,-1304 18891.48,-1304"/>
+<text text-anchor="start" x="18898.48" y="-1316.2" font-family="Arial" font-size="14.00">content_updated_at </text>
+<text text-anchor="start" x="19026.15" y="-1316.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="19191.87" y="-1316.2" font-family="Arial" font-size="14.00"> When the live text or cover last changed: &quot;Last updated&quot; on the page and dateModified in structured data.</text>
+<polygon fill="none" stroke="black" points="18891.48,-1273.2 18891.48,-1304 20902.65,-1304 20902.65,-1273.2 18891.48,-1273.2"/>
+<text text-anchor="start" x="18898.48" y="-1285.4" font-family="Arial" font-size="14.00">created_by </text>
+<text text-anchor="start" x="18971.64" y="-1285.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1242.4 18891.48,-1273.2 20902.65,-1273.2 20902.65,-1242.4 18891.48,-1242.4"/>
+<text text-anchor="start" x="18898.48" y="-1254.6" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="18968.53" y="-1254.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="18891.48,-1211.6 18891.48,-1242.4 20902.65,-1242.4 20902.65,-1211.6 18891.48,-1211.6"/>
+<text text-anchor="start" x="18898.48" y="-1223.8" font-family="Arial" font-size="14.00">updated_at </text>
+<text text-anchor="start" x="18972.44" y="-1223.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.guides&#45;&gt;public.cities -->
 <g id="edge27" class="edge">
 <title>public.guides:market_id&#45;&gt;public.cities:id</title>
-<path fill="none" stroke="black" d="M18757.36,-1965.44C18592.43,-1940.29 18649.39,-1295.02 18768.48,-1168.4 18856.13,-1075.21 19255.47,-1225.65 19343.06,-1132.4 19369.19,-1104.59 19369.41,-473.2 19343.06,-445.6 19226.62,-323.63 16479.66,-305 16311.03,-305"/>
-<polygon fill="black" stroke="black" points="18757.17,-1965.43 18766.81,-1970.66 18762.49,-1965.83 18766.81,-1966.15 18766.81,-1966.15 18766.81,-1966.15 18762.49,-1965.83 18767.48,-1961.69 18757.17,-1965.43"/>
-<text text-anchor="start" x="18415.43" y="-1976.2" font-family="Arial" font-size="10.00">FOREIGN KEY (market_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M18880.36,-1965.44C18715.43,-1940.29 18772.39,-1295.02 18891.48,-1168.4 18979.13,-1075.21 19378.47,-1225.65 19466.06,-1132.4 19492.19,-1104.59 19492.42,-473.19 19466.06,-445.6 19348.4,-322.42 16573.38,-305 16403.03,-305"/>
+<polygon fill="black" stroke="black" points="18880.17,-1965.43 18889.81,-1970.66 18885.49,-1965.83 18889.81,-1966.15 18889.81,-1966.15 18889.81,-1966.15 18885.49,-1965.83 18890.48,-1961.69 18880.17,-1965.43"/>
+<text text-anchor="start" x="18538.43" y="-1976.2" font-family="Arial" font-size="10.00">FOREIGN KEY (market_id) REFERENCES cities(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.guides&#45;&gt;public.service_areas -->
 <g id="edge28" class="edge">
 <title>public.guides:area_id&#45;&gt;public.service_areas:id</title>
-<path fill="none" stroke="black" d="M18757.25,-1565.58C18554.39,-1556.5 18669.6,-1273.92 18484.06,-1168.4 18400.13,-1120.67 18122.99,-1196.81 18051.06,-1132.4 17963.82,-1054.28 18117.59,-873.8 18000.48,-873.8"/>
-<polygon fill="black" stroke="black" points="18757.15,-1565.57 18767.05,-1570.29 18762.48,-1565.69 18766.81,-1565.79 18766.81,-1565.79 18766.81,-1565.79 18762.48,-1565.69 18767.24,-1561.29 18757.15,-1565.57"/>
-<text text-anchor="start" x="18386.5" y="-1575.8" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M18880.25,-1565.58C18677.39,-1556.5 18792.6,-1273.92 18607.06,-1168.4 18523.13,-1120.67 18245.99,-1196.81 18174.06,-1132.4 18086.82,-1054.28 18240.59,-873.8 18123.48,-873.8"/>
+<polygon fill="black" stroke="black" points="18880.15,-1565.57 18890.05,-1570.29 18885.48,-1565.69 18889.81,-1565.79 18889.81,-1565.79 18889.81,-1565.79 18885.48,-1565.69 18890.24,-1561.29 18880.15,-1565.57"/>
+<text text-anchor="start" x="18509.5" y="-1575.8" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.guides&#45;&gt;public.service_areas -->
 <g id="edge29" class="edge">
 <title>public.guides:draft_area_id&#45;&gt;public.service_areas:id</title>
-<path fill="none" stroke="black" d="M18757.16,-1781.22C18473.41,-1771.1 18727.14,-1338.42 18484.06,-1168.4 18404.94,-1113.06 18122.99,-1196.81 18051.06,-1132.4 17963.82,-1054.28 18117.59,-873.8 18000.48,-873.8"/>
-<polygon fill="black" stroke="black" points="18757.15,-1781.22 18767.07,-1785.89 18762.48,-1781.31 18766.81,-1781.39 18766.81,-1781.39 18766.81,-1781.39 18762.48,-1781.31 18767.22,-1776.89 18757.15,-1781.22"/>
-<text text-anchor="start" x="18360.93" y="-1791.4" font-family="Arial" font-size="10.00">FOREIGN KEY (draft_area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M18880.16,-1781.22C18596.41,-1771.1 18850.14,-1338.42 18607.06,-1168.4 18527.94,-1113.06 18245.99,-1196.81 18174.06,-1132.4 18086.82,-1054.28 18240.59,-873.8 18123.48,-873.8"/>
+<polygon fill="black" stroke="black" points="18880.15,-1781.22 18890.07,-1785.89 18885.48,-1781.31 18889.81,-1781.39 18889.81,-1781.39 18889.81,-1781.39 18885.48,-1781.31 18890.22,-1776.89 18880.15,-1781.22"/>
+<text text-anchor="start" x="18483.93" y="-1791.4" font-family="Arial" font-size="10.00">FOREIGN KEY (draft_area_id) REFERENCES service_areas(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.guides&#45;&gt;public.categories -->
 <g id="edge30" class="edge">
 <title>public.guides:category_id&#45;&gt;public.categories:id</title>
-<path fill="none" stroke="black" d="M18757.19,-1533.23C18689.16,-1508.47 18722.93,-1231.48 18768.48,-1168.4 18911.68,-970.07 19146.57,-1191.64 19290.45,-993.8 19317.79,-956.2 19337.94,-889.2 19291.45,-889.2"/>
-<polygon fill="black" stroke="black" points="18757.29,-1533.25 18766.39,-1539.38 18762.55,-1534.15 18766.82,-1534.89 18766.82,-1534.89 18766.82,-1534.89 18762.55,-1534.15 18767.91,-1530.51 18757.29,-1533.25"/>
-<text text-anchor="start" x="18384.28" y="-1545" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M18880.19,-1533.23C18812.16,-1508.47 18845.93,-1231.48 18891.48,-1168.4 19034.68,-970.07 19269.57,-1191.64 19413.45,-993.8 19440.79,-956.2 19460.94,-889.2 19414.45,-889.2"/>
+<polygon fill="black" stroke="black" points="18880.29,-1533.25 18889.39,-1539.38 18885.55,-1534.15 18889.82,-1534.89 18889.82,-1534.89 18889.82,-1534.89 18885.55,-1534.15 18890.91,-1530.51 18880.29,-1533.25"/>
+<text text-anchor="start" x="18507.28" y="-1545" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.guides&#45;&gt;public.categories -->
 <g id="edge31" class="edge">
 <title>public.guides:draft_category_id&#45;&gt;public.categories:id</title>
-<path fill="none" stroke="black" d="M18758,-1746.33C18705.75,-1696.06 18732.63,-1218.1 18768.48,-1168.4 18911.58,-970 19146.57,-1191.64 19290.45,-993.8 19317.79,-956.2 19337.94,-889.2 19291.45,-889.2"/>
-<polygon fill="black" stroke="black" points="18758.06,-1746.35 18765.32,-1754.56 18762.92,-1748.54 18766.87,-1750.33 18766.87,-1750.33 18766.87,-1750.33 18762.92,-1748.54 18769.02,-1746.36 18758.06,-1746.35"/>
-<text text-anchor="start" x="18358.71" y="-1760.6" font-family="Arial" font-size="10.00">FOREIGN KEY (draft_category_id) REFERENCES categories(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M18881,-1746.33C18828.75,-1696.06 18855.63,-1218.1 18891.48,-1168.4 19034.58,-970 19269.57,-1191.64 19413.45,-993.8 19440.79,-956.2 19460.94,-889.2 19414.45,-889.2"/>
+<polygon fill="black" stroke="black" points="18881.06,-1746.35 18888.32,-1754.56 18885.92,-1748.54 18889.87,-1750.33 18889.87,-1750.33 18889.87,-1750.33 18885.92,-1748.54 18892.02,-1746.36 18881.06,-1746.35"/>
+<text text-anchor="start" x="18481.71" y="-1760.6" font-family="Arial" font-size="10.00">FOREIGN KEY (draft_category_id) REFERENCES categories(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.guide_photos -->
 <g id="node24" class="node">
 <title>public.guide_photos</title>
-<polygon fill="#efefef" stroke="none" points="19432.81,-981.6 19432.81,-1027.6 21579.31,-1027.6 21579.31,-981.6 19432.81,-981.6"/>
-<polygon fill="none" stroke="black" points="19432.81,-981.6 19432.81,-1027.6 21579.31,-1027.6 21579.31,-981.6 19432.81,-981.6"/>
-<text text-anchor="start" x="20370.57" y="-1005.4" font-family="Arial Bold" font-size="18.00">public.guide_photos</text>
-<text text-anchor="start" x="20517.06" y="-1005.4" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="20548.18" y="-1005.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="19439.81" y="-991" font-family="Arial" font-size="14.00" fill="#333333">Photos of a guide, in the public guide&#45;photos bucket under &lt;guide id&gt;/: resized in the browser (longest side at most 2,400px, metadata removed), with a ~600px card copy. Credits as the licence asks: none for own photos; &quot;Photo by {name} on Unsplash&quot; with links; or the credit, licence and source for another licence (commercial use confirmed).</text>
-<polygon fill="none" stroke="black" points="19432.81,-950.8 19432.81,-981.6 21579.31,-981.6 21579.31,-950.8 19432.81,-950.8"/>
-<text text-anchor="start" x="19439.81" y="-963" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="19454.6" y="-963" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="19432.81,-920 19432.81,-950.8 21579.31,-950.8 21579.31,-920 19432.81,-920"/>
-<text text-anchor="start" x="19439.81" y="-932.2" font-family="Arial" font-size="14.00">guide_id </text>
-<text text-anchor="start" x="19496.64" y="-932.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="19432.81,-889.2 19432.81,-920 21579.31,-920 21579.31,-889.2 19432.81,-889.2"/>
-<text text-anchor="start" x="19439.81" y="-901.4" font-family="Arial" font-size="14.00">storage_path </text>
-<text text-anchor="start" x="19525.43" y="-901.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19432.81,-858.4 19432.81,-889.2 21579.31,-889.2 21579.31,-858.4 19432.81,-858.4"/>
-<text text-anchor="start" x="19439.81" y="-870.6" font-family="Arial" font-size="14.00">card_path </text>
-<text text-anchor="start" x="19505.97" y="-870.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19432.81,-827.6 19432.81,-858.4 21579.31,-858.4 21579.31,-827.6 19432.81,-827.6"/>
-<text text-anchor="start" x="19439.81" y="-839.8" font-family="Arial" font-size="14.00">width </text>
-<text text-anchor="start" x="19476.39" y="-839.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="19432.81,-796.8 19432.81,-827.6 21579.31,-827.6 21579.31,-796.8 19432.81,-796.8"/>
-<text text-anchor="start" x="19439.81" y="-809" font-family="Arial" font-size="14.00">height </text>
-<text text-anchor="start" x="19481.85" y="-809" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="19432.81,-766 19432.81,-796.8 21579.31,-796.8 21579.31,-766 19432.81,-766"/>
-<text text-anchor="start" x="19439.81" y="-778.2" font-family="Arial" font-size="14.00">alt_text </text>
-<text text-anchor="start" x="19488.84" y="-778.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19432.81,-735.2 19432.81,-766 21579.31,-766 21579.31,-735.2 19432.81,-735.2"/>
-<text text-anchor="start" x="19439.81" y="-747.4" font-family="Arial" font-size="14.00">source </text>
-<text text-anchor="start" x="19485.72" y="-747.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19432.81,-704.4 19432.81,-735.2 21579.31,-735.2 21579.31,-704.4 19432.81,-704.4"/>
-<text text-anchor="start" x="19439.81" y="-716.6" font-family="Arial" font-size="14.00">credit_name </text>
-<text text-anchor="start" x="19520.74" y="-716.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19432.81,-673.6 19432.81,-704.4 21579.31,-704.4 21579.31,-673.6 19432.81,-673.6"/>
-<text text-anchor="start" x="19439.81" y="-685.8" font-family="Arial" font-size="14.00">credit_url </text>
-<text text-anchor="start" x="19501.28" y="-685.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19432.81,-642.8 19432.81,-673.6 21579.31,-673.6 21579.31,-642.8 19432.81,-642.8"/>
-<text text-anchor="start" x="19439.81" y="-655" font-family="Arial" font-size="14.00">source_url </text>
-<text text-anchor="start" x="19509.07" y="-655" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19432.81,-612 19432.81,-642.8 21579.31,-642.8 21579.31,-612 19432.81,-612"/>
-<text text-anchor="start" x="19439.81" y="-624.2" font-family="Arial" font-size="14.00">licence </text>
-<text text-anchor="start" x="19487.28" y="-624.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19432.81,-581.2 19432.81,-612 21579.31,-612 21579.31,-581.2 19432.81,-581.2"/>
-<text text-anchor="start" x="19439.81" y="-593.4" font-family="Arial" font-size="14.00">commercial_use_confirmed </text>
-<text text-anchor="start" x="19614.88" y="-593.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
-<polygon fill="none" stroke="black" points="19432.81,-550.4 19432.81,-581.2 21579.31,-581.2 21579.31,-550.4 19432.81,-550.4"/>
-<text text-anchor="start" x="19439.81" y="-562.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="19509.86" y="-562.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="19555.81,-981.6 19555.81,-1027.6 21702.31,-1027.6 21702.31,-981.6 19555.81,-981.6"/>
+<polygon fill="none" stroke="black" points="19555.81,-981.6 19555.81,-1027.6 21702.31,-1027.6 21702.31,-981.6 19555.81,-981.6"/>
+<text text-anchor="start" x="20493.57" y="-1005.4" font-family="Arial Bold" font-size="18.00">public.guide_photos</text>
+<text text-anchor="start" x="20640.06" y="-1005.4" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="20671.18" y="-1005.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="19562.81" y="-991" font-family="Arial" font-size="14.00" fill="#333333">Photos of a guide, in the public guide&#45;photos bucket under &lt;guide id&gt;/: resized in the browser (longest side at most 2,400px, metadata removed), with a ~600px card copy. Credits as the licence asks: none for own photos; &quot;Photo by {name} on Unsplash&quot; with links; or the credit, licence and source for another licence (commercial use confirmed).</text>
+<polygon fill="none" stroke="black" points="19555.81,-950.8 19555.81,-981.6 21702.31,-981.6 21702.31,-950.8 19555.81,-950.8"/>
+<text text-anchor="start" x="19562.81" y="-963" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="19577.6" y="-963" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="19555.81,-920 19555.81,-950.8 21702.31,-950.8 21702.31,-920 19555.81,-920"/>
+<text text-anchor="start" x="19562.81" y="-932.2" font-family="Arial" font-size="14.00">guide_id </text>
+<text text-anchor="start" x="19619.64" y="-932.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="19555.81,-889.2 19555.81,-920 21702.31,-920 21702.31,-889.2 19555.81,-889.2"/>
+<text text-anchor="start" x="19562.81" y="-901.4" font-family="Arial" font-size="14.00">storage_path </text>
+<text text-anchor="start" x="19648.43" y="-901.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19555.81,-858.4 19555.81,-889.2 21702.31,-889.2 21702.31,-858.4 19555.81,-858.4"/>
+<text text-anchor="start" x="19562.81" y="-870.6" font-family="Arial" font-size="14.00">card_path </text>
+<text text-anchor="start" x="19628.97" y="-870.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19555.81,-827.6 19555.81,-858.4 21702.31,-858.4 21702.31,-827.6 19555.81,-827.6"/>
+<text text-anchor="start" x="19562.81" y="-839.8" font-family="Arial" font-size="14.00">width </text>
+<text text-anchor="start" x="19599.39" y="-839.8" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="19555.81,-796.8 19555.81,-827.6 21702.31,-827.6 21702.31,-796.8 19555.81,-796.8"/>
+<text text-anchor="start" x="19562.81" y="-809" font-family="Arial" font-size="14.00">height </text>
+<text text-anchor="start" x="19604.85" y="-809" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="19555.81,-766 19555.81,-796.8 21702.31,-796.8 21702.31,-766 19555.81,-766"/>
+<text text-anchor="start" x="19562.81" y="-778.2" font-family="Arial" font-size="14.00">alt_text </text>
+<text text-anchor="start" x="19611.84" y="-778.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19555.81,-735.2 19555.81,-766 21702.31,-766 21702.31,-735.2 19555.81,-735.2"/>
+<text text-anchor="start" x="19562.81" y="-747.4" font-family="Arial" font-size="14.00">source </text>
+<text text-anchor="start" x="19608.72" y="-747.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19555.81,-704.4 19555.81,-735.2 21702.31,-735.2 21702.31,-704.4 19555.81,-704.4"/>
+<text text-anchor="start" x="19562.81" y="-716.6" font-family="Arial" font-size="14.00">credit_name </text>
+<text text-anchor="start" x="19643.74" y="-716.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19555.81,-673.6 19555.81,-704.4 21702.31,-704.4 21702.31,-673.6 19555.81,-673.6"/>
+<text text-anchor="start" x="19562.81" y="-685.8" font-family="Arial" font-size="14.00">credit_url </text>
+<text text-anchor="start" x="19624.28" y="-685.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19555.81,-642.8 19555.81,-673.6 21702.31,-673.6 21702.31,-642.8 19555.81,-642.8"/>
+<text text-anchor="start" x="19562.81" y="-655" font-family="Arial" font-size="14.00">source_url </text>
+<text text-anchor="start" x="19632.07" y="-655" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19555.81,-612 19555.81,-642.8 21702.31,-642.8 21702.31,-612 19555.81,-612"/>
+<text text-anchor="start" x="19562.81" y="-624.2" font-family="Arial" font-size="14.00">licence </text>
+<text text-anchor="start" x="19610.28" y="-624.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19555.81,-581.2 19555.81,-612 21702.31,-612 21702.31,-581.2 19555.81,-581.2"/>
+<text text-anchor="start" x="19562.81" y="-593.4" font-family="Arial" font-size="14.00">commercial_use_confirmed </text>
+<text text-anchor="start" x="19737.88" y="-593.4" font-family="Arial" font-size="14.00" fill="#666666">[boolean]</text>
+<polygon fill="none" stroke="black" points="19555.81,-550.4 19555.81,-581.2 21702.31,-581.2 21702.31,-550.4 19555.81,-550.4"/>
+<text text-anchor="start" x="19562.81" y="-562.6" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="19632.86" y="-562.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.guides&#45;&gt;public.guide_photos -->
 <g id="edge32" class="edge">
 <title>public.guides:cover_photo_id&#45;&gt;public.guide_photos:id</title>
-<path fill="none" stroke="black" d="M20789.52,-1591.33C20825.94,-1544.49 20809.87,-1200.82 20779.65,-1168.4 20575.01,-948.92 19638.24,-1289.54 19432.81,-1070.8 19400.99,-1036.91 19385.32,-966.2 19431.81,-966.2"/>
-<polygon fill="black" stroke="black" points="20789.53,-1591.32 20778.63,-1592.56 20784.94,-1594.05 20781.22,-1596.26 20781.22,-1596.26 20781.22,-1596.26 20784.94,-1594.05 20783.23,-1600.3 20789.53,-1591.32"/>
-<text text-anchor="start" x="20787.65" y="-1606.6" font-family="Arial" font-size="10.00">FOREIGN KEY (cover_photo_id) REFERENCES guide_photos(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M20912.52,-1591.33C20948.94,-1544.49 20932.87,-1200.82 20902.65,-1168.4 20698.01,-948.92 19761.24,-1289.54 19555.81,-1070.8 19523.99,-1036.91 19508.32,-966.2 19554.81,-966.2"/>
+<polygon fill="black" stroke="black" points="20912.53,-1591.32 20901.63,-1592.56 20907.94,-1594.05 20904.22,-1596.26 20904.22,-1596.26 20904.22,-1596.26 20907.94,-1594.05 20906.23,-1600.3 20912.53,-1591.32"/>
+<text text-anchor="start" x="20910.65" y="-1606.6" font-family="Arial" font-size="10.00">FOREIGN KEY (cover_photo_id) REFERENCES guide_photos(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.guides&#45;&gt;public.guide_photos -->
 <g id="edge33" class="edge">
 <title>public.guides:draft_cover_photo_id&#45;&gt;public.guide_photos:id</title>
-<path fill="none" stroke="black" d="M20790.08,-1808.42C20849.9,-1757.94 20826.12,-1218.29 20779.65,-1168.4 20575.1,-948.84 19638.24,-1289.54 19432.81,-1070.8 19400.99,-1036.91 19385.32,-966.2 19431.81,-966.2"/>
-<polygon fill="black" stroke="black" points="20790.24,-1808.36 20779.28,-1807.9 20785.29,-1810.34 20781.27,-1811.95 20781.27,-1811.95 20781.27,-1811.95 20785.29,-1810.34 20782.63,-1816.25 20790.24,-1808.36"/>
-<text text-anchor="start" x="20787.65" y="-1822.2" font-family="Arial" font-size="10.00">FOREIGN KEY (draft_cover_photo_id) REFERENCES guide_photos(id) ON DELETE SET NULL</text>
+<path fill="none" stroke="black" d="M20913.08,-1808.42C20972.9,-1757.94 20949.12,-1218.29 20902.65,-1168.4 20698.1,-948.84 19761.24,-1289.54 19555.81,-1070.8 19523.99,-1036.91 19508.32,-966.2 19554.81,-966.2"/>
+<polygon fill="black" stroke="black" points="20913.24,-1808.36 20902.28,-1807.9 20908.29,-1810.34 20904.27,-1811.95 20904.27,-1811.95 20904.27,-1811.95 20908.29,-1810.34 20905.63,-1816.25 20913.24,-1808.36"/>
+<text text-anchor="start" x="20910.65" y="-1822.2" font-family="Arial" font-size="10.00">FOREIGN KEY (draft_cover_photo_id) REFERENCES guide_photos(id) ON DELETE SET NULL</text>
 </g>
 <!-- public.guide_photos&#45;&gt;public.guides -->
 <g id="edge34" class="edge">
 <title>public.guide_photos:guide_id&#45;&gt;public.guides:id</title>
-<path fill="none" stroke="black" d="M19421.46,-936.44C19374.22,-946.65 19394.24,-1029.63 19432.81,-1070.8 19638,-1289.77 20575.14,-948.8 20779.65,-1168.4 20811.02,-1202.09 20826.68,-1997 20780.65,-1997"/>
-<polygon fill="black" stroke="black" points="19421.53,-936.43 19431.93,-939.91 19426.84,-935.9 19431.15,-935.47 19431.15,-935.47 19431.15,-935.47 19426.84,-935.9 19431.03,-930.96 19421.53,-936.43"/>
-<text text-anchor="start" x="19080.82" y="-945.4" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M19544.46,-936.44C19497.22,-946.65 19517.24,-1029.63 19555.81,-1070.8 19761,-1289.77 20698.14,-948.8 20902.65,-1168.4 20934.02,-1202.09 20949.68,-1997 20903.65,-1997"/>
+<polygon fill="black" stroke="black" points="19544.53,-936.43 19554.93,-939.91 19549.84,-935.9 19554.15,-935.47 19554.15,-935.47 19554.15,-935.47 19549.84,-935.9 19554.03,-930.96 19544.53,-936.43"/>
+<text text-anchor="start" x="19203.82" y="-945.4" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.guide_versions -->
 <g id="node25" class="node">
 <title>public.guide_versions</title>
-<polygon fill="#efefef" stroke="none" points="19580.52,-2596.6 19580.52,-2642.6 20351.61,-2642.6 20351.61,-2596.6 19580.52,-2596.6"/>
-<polygon fill="none" stroke="black" points="19580.52,-2596.6 19580.52,-2642.6 20351.61,-2642.6 20351.61,-2596.6 19580.52,-2596.6"/>
-<text text-anchor="start" x="19824.58" y="-2620.4" font-family="Arial Bold" font-size="18.00">public.guide_versions</text>
-<text text-anchor="start" x="19983.06" y="-2620.4" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="20014.17" y="-2620.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="19587.52" y="-2606" font-family="Arial" font-size="14.00" fill="#333333">A snapshot of a guide&#39;s live copy each time it&#39;s published, with who and when. Written by publish_guide(); read by admins.</text>
-<polygon fill="none" stroke="black" points="19580.52,-2565.8 19580.52,-2596.6 20351.61,-2596.6 20351.61,-2565.8 19580.52,-2565.8"/>
-<text text-anchor="start" x="19587.52" y="-2578" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="19602.3" y="-2578" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2535 19580.52,-2565.8 20351.61,-2565.8 20351.61,-2535 19580.52,-2535"/>
-<text text-anchor="start" x="19587.52" y="-2547.2" font-family="Arial" font-size="14.00">guide_id </text>
-<text text-anchor="start" x="19644.34" y="-2547.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2504.2 19580.52,-2535 20351.61,-2535 20351.61,-2504.2 19580.52,-2504.2"/>
-<text text-anchor="start" x="19587.52" y="-2516.4" font-family="Arial" font-size="14.00">title </text>
-<text text-anchor="start" x="19613.19" y="-2516.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2473.4 19580.52,-2504.2 20351.61,-2504.2 20351.61,-2473.4 19580.52,-2473.4"/>
-<text text-anchor="start" x="19587.52" y="-2485.6" font-family="Arial" font-size="14.00">teaser </text>
-<text text-anchor="start" x="19630.32" y="-2485.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2442.6 19580.52,-2473.4 20351.61,-2473.4 20351.61,-2442.6 19580.52,-2442.6"/>
-<text text-anchor="start" x="19587.52" y="-2454.8" font-family="Arial" font-size="14.00">body </text>
-<text text-anchor="start" x="19621.76" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2411.8 19580.52,-2442.6 20351.61,-2442.6 20351.61,-2411.8 19580.52,-2411.8"/>
-<text text-anchor="start" x="19587.52" y="-2424" font-family="Arial" font-size="14.00">cover_photo_id </text>
-<text text-anchor="start" x="19687.14" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2381 19580.52,-2411.8 20351.61,-2411.8 20351.61,-2381 19580.52,-2381"/>
-<text text-anchor="start" x="19587.52" y="-2393.2" font-family="Arial" font-size="14.00">area_id </text>
-<text text-anchor="start" x="19638.11" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2350.2 19580.52,-2381 20351.61,-2381 20351.61,-2350.2 19580.52,-2350.2"/>
-<text text-anchor="start" x="19587.52" y="-2362.4" font-family="Arial" font-size="14.00">category_id </text>
-<text text-anchor="start" x="19663.78" y="-2362.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2319.4 19580.52,-2350.2 20351.61,-2350.2 20351.61,-2319.4 19580.52,-2319.4"/>
-<text text-anchor="start" x="19587.52" y="-2331.6" font-family="Arial" font-size="14.00">listing_kind </text>
-<text text-anchor="start" x="19660.67" y="-2331.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2288.6 19580.52,-2319.4 20351.61,-2319.4 20351.61,-2288.6 19580.52,-2288.6"/>
-<text text-anchor="start" x="19587.52" y="-2300.8" font-family="Arial" font-size="14.00">published_by </text>
-<text text-anchor="start" x="19673.91" y="-2300.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="19580.52,-2257.8 19580.52,-2288.6 20351.61,-2288.6 20351.61,-2257.8 19580.52,-2257.8"/>
-<text text-anchor="start" x="19587.52" y="-2270" font-family="Arial" font-size="14.00">published_at </text>
-<text text-anchor="start" x="19670.8" y="-2270" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="19703.52,-2596.6 19703.52,-2642.6 20474.61,-2642.6 20474.61,-2596.6 19703.52,-2596.6"/>
+<polygon fill="none" stroke="black" points="19703.52,-2596.6 19703.52,-2642.6 20474.61,-2642.6 20474.61,-2596.6 19703.52,-2596.6"/>
+<text text-anchor="start" x="19947.58" y="-2620.4" font-family="Arial Bold" font-size="18.00">public.guide_versions</text>
+<text text-anchor="start" x="20106.06" y="-2620.4" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="20137.17" y="-2620.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="19710.52" y="-2606" font-family="Arial" font-size="14.00" fill="#333333">A snapshot of a guide&#39;s live copy each time it&#39;s published, with who and when. Written by publish_guide(); read by admins.</text>
+<polygon fill="none" stroke="black" points="19703.52,-2565.8 19703.52,-2596.6 20474.61,-2596.6 20474.61,-2565.8 19703.52,-2565.8"/>
+<text text-anchor="start" x="19710.52" y="-2578" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="19725.3" y="-2578" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2535 19703.52,-2565.8 20474.61,-2565.8 20474.61,-2535 19703.52,-2535"/>
+<text text-anchor="start" x="19710.52" y="-2547.2" font-family="Arial" font-size="14.00">guide_id </text>
+<text text-anchor="start" x="19767.34" y="-2547.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2504.2 19703.52,-2535 20474.61,-2535 20474.61,-2504.2 19703.52,-2504.2"/>
+<text text-anchor="start" x="19710.52" y="-2516.4" font-family="Arial" font-size="14.00">title </text>
+<text text-anchor="start" x="19736.19" y="-2516.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2473.4 19703.52,-2504.2 20474.61,-2504.2 20474.61,-2473.4 19703.52,-2473.4"/>
+<text text-anchor="start" x="19710.52" y="-2485.6" font-family="Arial" font-size="14.00">teaser </text>
+<text text-anchor="start" x="19753.32" y="-2485.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2442.6 19703.52,-2473.4 20474.61,-2473.4 20474.61,-2442.6 19703.52,-2442.6"/>
+<text text-anchor="start" x="19710.52" y="-2454.8" font-family="Arial" font-size="14.00">body </text>
+<text text-anchor="start" x="19744.76" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2411.8 19703.52,-2442.6 20474.61,-2442.6 20474.61,-2411.8 19703.52,-2411.8"/>
+<text text-anchor="start" x="19710.52" y="-2424" font-family="Arial" font-size="14.00">cover_photo_id </text>
+<text text-anchor="start" x="19810.14" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2381 19703.52,-2411.8 20474.61,-2411.8 20474.61,-2381 19703.52,-2381"/>
+<text text-anchor="start" x="19710.52" y="-2393.2" font-family="Arial" font-size="14.00">area_id </text>
+<text text-anchor="start" x="19761.11" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2350.2 19703.52,-2381 20474.61,-2381 20474.61,-2350.2 19703.52,-2350.2"/>
+<text text-anchor="start" x="19710.52" y="-2362.4" font-family="Arial" font-size="14.00">category_id </text>
+<text text-anchor="start" x="19786.78" y="-2362.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2319.4 19703.52,-2350.2 20474.61,-2350.2 20474.61,-2319.4 19703.52,-2319.4"/>
+<text text-anchor="start" x="19710.52" y="-2331.6" font-family="Arial" font-size="14.00">listing_kind </text>
+<text text-anchor="start" x="19783.67" y="-2331.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2288.6 19703.52,-2319.4 20474.61,-2319.4 20474.61,-2288.6 19703.52,-2288.6"/>
+<text text-anchor="start" x="19710.52" y="-2300.8" font-family="Arial" font-size="14.00">published_by </text>
+<text text-anchor="start" x="19796.91" y="-2300.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="19703.52,-2257.8 19703.52,-2288.6 20474.61,-2288.6 20474.61,-2257.8 19703.52,-2257.8"/>
+<text text-anchor="start" x="19710.52" y="-2270" font-family="Arial" font-size="14.00">published_at </text>
+<text text-anchor="start" x="19793.8" y="-2270" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.guide_versions&#45;&gt;public.service_areas -->
 <g id="edge35" class="edge">
 <title>public.guide_versions:area_id&#45;&gt;public.service_areas:id</title>
-<path fill="none" stroke="black" d="M19569.31,-2395.87C19471.83,-2385.09 19615.39,-2211.33 19529.06,-2137.6 19443.08,-2064.17 18606.57,-2163.67 18512.06,-2101.6 18113.36,-1839.75 18200.47,-1585.4 18051.06,-1132.4 18032.72,-1076.79 18059.03,-873.8 18000.48,-873.8"/>
-<polygon fill="black" stroke="black" points="19569.19,-2395.87 19578.95,-2400.88 19574.52,-2396.14 19578.85,-2396.37 19578.85,-2396.37 19578.85,-2396.37 19574.52,-2396.14 19579.41,-2391.89 19569.19,-2395.87"/>
-<text text-anchor="start" x="19297.19" y="-2380.4" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE SET NULL</text>
+<path fill="none" stroke="black" d="M19692.31,-2395.87C19594.83,-2385.09 19738.39,-2211.33 19652.06,-2137.6 19566.08,-2064.17 18729.57,-2163.67 18635.06,-2101.6 18236.36,-1839.75 18323.47,-1585.4 18174.06,-1132.4 18155.72,-1076.79 18182.03,-873.8 18123.48,-873.8"/>
+<polygon fill="black" stroke="black" points="19692.19,-2395.87 19701.95,-2400.88 19697.52,-2396.14 19701.85,-2396.37 19701.85,-2396.37 19701.85,-2396.37 19697.52,-2396.14 19702.41,-2391.89 19692.19,-2395.87"/>
+<text text-anchor="start" x="19420.19" y="-2380.4" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE SET NULL</text>
 </g>
 <!-- public.guide_versions&#45;&gt;public.categories -->
 <g id="edge36" class="edge">
 <title>public.guide_versions:category_id&#45;&gt;public.categories:id</title>
-<path fill="none" stroke="black" d="M19569.17,-2364.98C19485.05,-2354.07 19605.66,-2201.94 19529.06,-2137.6 19459.82,-2079.44 18778.57,-2166.94 18716.06,-2101.6 18429.35,-1801.91 18469.09,-1501.61 18716.06,-1168.4 18874.94,-954.04 19130.55,-1207.39 19290.45,-993.8 19318.31,-956.58 19337.94,-889.2 19291.45,-889.2"/>
-<polygon fill="black" stroke="black" points="19569.2,-2364.98 19578.91,-2370.07 19574.52,-2365.3 19578.85,-2365.56 19578.85,-2365.56 19578.85,-2365.56 19574.52,-2365.3 19579.45,-2361.09 19569.2,-2364.98"/>
-<text text-anchor="start" x="19295.52" y="-2349.6" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL</text>
+<path fill="none" stroke="black" d="M19692.17,-2364.98C19608.05,-2354.07 19728.66,-2201.94 19652.06,-2137.6 19582.82,-2079.44 18901.57,-2166.94 18839.06,-2101.6 18552.35,-1801.91 18592.09,-1501.61 18839.06,-1168.4 18997.94,-954.04 19253.55,-1207.39 19413.45,-993.8 19441.31,-956.58 19460.94,-889.2 19414.45,-889.2"/>
+<polygon fill="black" stroke="black" points="19692.2,-2364.98 19701.91,-2370.07 19697.52,-2365.3 19701.85,-2365.56 19701.85,-2365.56 19701.85,-2365.56 19697.52,-2365.3 19702.45,-2361.09 19692.2,-2364.98"/>
+<text text-anchor="start" x="19418.52" y="-2349.6" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL</text>
 </g>
 <!-- public.guide_versions&#45;&gt;public.guides -->
 <g id="edge37" class="edge">
 <title>public.guide_versions:guide_id&#45;&gt;public.guides:id</title>
-<path fill="none" stroke="black" d="M19569.29,-2548.45C19507.42,-2523.53 19532.66,-2267.02 19580.52,-2214.6 19583.34,-2211.51 20776.82,-2104.68 20779.65,-2101.6 20811.1,-2067.37 20827.14,-1997 20780.65,-1997"/>
-<polygon fill="black" stroke="black" points="19569.36,-2548.47 19578.34,-2554.76 19574.6,-2549.46 19578.86,-2550.27 19578.86,-2550.27 19578.86,-2550.27 19574.6,-2549.46 19580.03,-2545.92 19569.36,-2548.47"/>
-<text text-anchor="start" x="19226.87" y="-2560.4" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M19692.29,-2548.45C19630.42,-2523.53 19655.66,-2267.02 19703.52,-2214.6 19706.34,-2211.51 20899.82,-2104.68 20902.65,-2101.6 20934.1,-2067.37 20950.14,-1997 20903.65,-1997"/>
+<polygon fill="black" stroke="black" points="19692.36,-2548.47 19701.34,-2554.76 19697.6,-2549.46 19701.86,-2550.27 19701.86,-2550.27 19701.86,-2550.27 19697.6,-2549.46 19703.03,-2545.92 19692.36,-2548.47"/>
+<text text-anchor="start" x="19349.87" y="-2560.4" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.guide_versions&#45;&gt;public.guide_photos -->
 <g id="edge38" class="edge">
 <title>public.guide_versions:cover_photo_id&#45;&gt;public.guide_photos:id</title>
-<path fill="none" stroke="black" d="M20362.99,-2426.72C20473.59,-2415.88 20310.21,-2223.2 20404.06,-2137.6 20474.58,-2073.28 20748.94,-2148.51 20832.06,-2101.6 21358.4,-1804.61 22184.66,-966.2 21580.31,-966.2"/>
-<polygon fill="black" stroke="black" points="20362.93,-2426.72 20352.74,-2422.69 20357.6,-2426.97 20353.28,-2427.17 20353.28,-2427.17 20353.28,-2427.17 20357.6,-2426.97 20353.15,-2431.68 20362.93,-2426.72"/>
-<text text-anchor="start" x="20359.61" y="-2437.2" font-family="Arial" font-size="10.00">FOREIGN KEY (cover_photo_id) REFERENCES guide_photos(id) ON DELETE SET NULL</text>
+<path fill="none" stroke="black" d="M20485.99,-2426.72C20596.59,-2415.88 20433.21,-2223.2 20527.06,-2137.6 20597.58,-2073.28 20871.94,-2148.51 20955.06,-2101.6 21481.4,-1804.61 22307.66,-966.2 21703.31,-966.2"/>
+<polygon fill="black" stroke="black" points="20485.93,-2426.72 20475.74,-2422.69 20480.6,-2426.97 20476.28,-2427.17 20476.28,-2427.17 20476.28,-2427.17 20480.6,-2426.97 20476.15,-2431.68 20485.93,-2426.72"/>
+<text text-anchor="start" x="20482.61" y="-2437.2" font-family="Arial" font-size="10.00">FOREIGN KEY (cover_photo_id) REFERENCES guide_photos(id) ON DELETE SET NULL</text>
 </g>
 <!-- public.guide_ai_drafts -->
 <g id="node26" class="node">
 <title>public.guide_ai_drafts</title>
-<polygon fill="#efefef" stroke="none" points="18013.64,-2673.6 18013.64,-2719.6 19476.48,-2719.6 19476.48,-2673.6 18013.64,-2673.6"/>
-<polygon fill="none" stroke="black" points="18013.64,-2673.6 18013.64,-2719.6 19476.48,-2719.6 19476.48,-2673.6 18013.64,-2673.6"/>
-<text text-anchor="start" x="18602.09" y="-2697.4" font-family="Arial Bold" font-size="18.00">public.guide_ai_drafts</text>
-<text text-anchor="start" x="18763.55" y="-2697.4" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="18794.66" y="-2697.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="18020.64" y="-2683" font-family="Arial" font-size="14.00" fill="#333333">Every AI draft request: what was sent (topic, area, category, the admin&#39;s notes), the model, the reply or error, tokens and cost, who and when. Written by the admin app&#39;s server; read by admins. Kept if its guide is deleted (the cost log).</text>
-<polygon fill="none" stroke="black" points="18013.64,-2642.8 18013.64,-2673.6 19476.48,-2673.6 19476.48,-2642.8 18013.64,-2642.8"/>
-<text text-anchor="start" x="18020.64" y="-2655" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="18035.43" y="-2655" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2612 18013.64,-2642.8 19476.48,-2642.8 19476.48,-2612 18013.64,-2612"/>
-<text text-anchor="start" x="18020.64" y="-2624.2" font-family="Arial" font-size="14.00">guide_id </text>
-<text text-anchor="start" x="18077.47" y="-2624.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2581.2 18013.64,-2612 19476.48,-2612 19476.48,-2581.2 18013.64,-2581.2"/>
-<text text-anchor="start" x="18020.64" y="-2593.4" font-family="Arial" font-size="14.00">requested_by </text>
-<text text-anchor="start" x="18109.37" y="-2593.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2550.4 18013.64,-2581.2 19476.48,-2581.2 19476.48,-2550.4 18013.64,-2550.4"/>
-<text text-anchor="start" x="18020.64" y="-2562.6" font-family="Arial" font-size="14.00">topic </text>
-<text text-anchor="start" x="18054.1" y="-2562.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2519.6 18013.64,-2550.4 19476.48,-2550.4 19476.48,-2519.6 18013.64,-2519.6"/>
-<text text-anchor="start" x="18020.64" y="-2531.8" font-family="Arial" font-size="14.00">area_id </text>
-<text text-anchor="start" x="18071.23" y="-2531.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2488.8 18013.64,-2519.6 19476.48,-2519.6 19476.48,-2488.8 18013.64,-2488.8"/>
-<text text-anchor="start" x="18020.64" y="-2501" font-family="Arial" font-size="14.00">category_id </text>
-<text text-anchor="start" x="18096.91" y="-2501" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2458 18013.64,-2488.8 19476.48,-2488.8 19476.48,-2458 18013.64,-2458"/>
-<text text-anchor="start" x="18020.64" y="-2470.2" font-family="Arial" font-size="14.00">notes </text>
-<text text-anchor="start" x="18058.78" y="-2470.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2427.2 18013.64,-2458 19476.48,-2458 19476.48,-2427.2 18013.64,-2427.2"/>
-<text text-anchor="start" x="18020.64" y="-2439.4" font-family="Arial" font-size="14.00">model </text>
-<text text-anchor="start" x="18062.66" y="-2439.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2396.4 18013.64,-2427.2 19476.48,-2427.2 19476.48,-2396.4 18013.64,-2396.4"/>
-<text text-anchor="start" x="18020.64" y="-2408.6" font-family="Arial" font-size="14.00">reply </text>
-<text text-anchor="start" x="18054.88" y="-2408.6" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2365.6 18013.64,-2396.4 19476.48,-2396.4 19476.48,-2365.6 18013.64,-2365.6"/>
-<text text-anchor="start" x="18020.64" y="-2377.8" font-family="Arial" font-size="14.00">error </text>
-<text text-anchor="start" x="18054.09" y="-2377.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2334.8 18013.64,-2365.6 19476.48,-2365.6 19476.48,-2334.8 18013.64,-2334.8"/>
-<text text-anchor="start" x="18020.64" y="-2347" font-family="Arial" font-size="14.00">input_tokens </text>
-<text text-anchor="start" x="18103.92" y="-2347" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2304 18013.64,-2334.8 19476.48,-2334.8 19476.48,-2304 18013.64,-2304"/>
-<text text-anchor="start" x="18020.64" y="-2316.2" font-family="Arial" font-size="14.00">output_tokens </text>
-<text text-anchor="start" x="18112.49" y="-2316.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2273.2 18013.64,-2304 19476.48,-2304 19476.48,-2273.2 18013.64,-2273.2"/>
-<text text-anchor="start" x="18020.64" y="-2285.4" font-family="Arial" font-size="14.00">cost_usd </text>
-<text text-anchor="start" x="18080.56" y="-2285.4" font-family="Arial" font-size="14.00" fill="#666666">[numeric(10,4)]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2242.4 18013.64,-2273.2 19476.48,-2273.2 19476.48,-2242.4 18013.64,-2242.4"/>
-<text text-anchor="start" x="18020.64" y="-2254.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="18090.69" y="-2254.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="18013.64,-2211.6 18013.64,-2242.4 19476.48,-2242.4 19476.48,-2211.6 18013.64,-2211.6"/>
-<text text-anchor="start" x="18020.64" y="-2223.8" font-family="Arial" font-size="14.00">previous_draft </text>
-<text text-anchor="start" x="18113.25" y="-2223.8" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
-<text text-anchor="start" x="18154.5" y="-2223.8" font-family="Arial" font-size="14.00"> The guide&#39;s draft just before this AI draft replaced it: title, teaser, body, area, category, kind and its review state. Null if the draft didn&#39;t land.</text>
-<polygon fill="none" stroke="black" points="18013.64,-2180.8 18013.64,-2211.6 19476.48,-2211.6 19476.48,-2180.8 18013.64,-2180.8"/>
-<text text-anchor="start" x="18020.64" y="-2193" font-family="Arial" font-size="14.00">previous_draft_restored_at </text>
-<text text-anchor="start" x="18191.85" y="-2193" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<text text-anchor="start" x="18357.58" y="-2193" font-family="Arial" font-size="14.00"> When the admin put the previous draft back. Set once; the previous draft can be restored only while this is the guide&#39;s latest AI draft.</text>
+<polygon fill="#efefef" stroke="none" points="18136.64,-2673.6 18136.64,-2719.6 19599.48,-2719.6 19599.48,-2673.6 18136.64,-2673.6"/>
+<polygon fill="none" stroke="black" points="18136.64,-2673.6 18136.64,-2719.6 19599.48,-2719.6 19599.48,-2673.6 18136.64,-2673.6"/>
+<text text-anchor="start" x="18725.09" y="-2697.4" font-family="Arial Bold" font-size="18.00">public.guide_ai_drafts</text>
+<text text-anchor="start" x="18886.55" y="-2697.4" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="18917.66" y="-2697.4" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="18143.64" y="-2683" font-family="Arial" font-size="14.00" fill="#333333">Every AI draft request: what was sent (topic, area, category, the admin&#39;s notes), the model, the reply or error, tokens and cost, who and when. Written by the admin app&#39;s server; read by admins. Kept if its guide is deleted (the cost log).</text>
+<polygon fill="none" stroke="black" points="18136.64,-2642.8 18136.64,-2673.6 19599.48,-2673.6 19599.48,-2642.8 18136.64,-2642.8"/>
+<text text-anchor="start" x="18143.64" y="-2655" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="18158.43" y="-2655" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2612 18136.64,-2642.8 19599.48,-2642.8 19599.48,-2612 18136.64,-2612"/>
+<text text-anchor="start" x="18143.64" y="-2624.2" font-family="Arial" font-size="14.00">guide_id </text>
+<text text-anchor="start" x="18200.47" y="-2624.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2581.2 18136.64,-2612 19599.48,-2612 19599.48,-2581.2 18136.64,-2581.2"/>
+<text text-anchor="start" x="18143.64" y="-2593.4" font-family="Arial" font-size="14.00">requested_by </text>
+<text text-anchor="start" x="18232.37" y="-2593.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2550.4 18136.64,-2581.2 19599.48,-2581.2 19599.48,-2550.4 18136.64,-2550.4"/>
+<text text-anchor="start" x="18143.64" y="-2562.6" font-family="Arial" font-size="14.00">topic </text>
+<text text-anchor="start" x="18177.1" y="-2562.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2519.6 18136.64,-2550.4 19599.48,-2550.4 19599.48,-2519.6 18136.64,-2519.6"/>
+<text text-anchor="start" x="18143.64" y="-2531.8" font-family="Arial" font-size="14.00">area_id </text>
+<text text-anchor="start" x="18194.23" y="-2531.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2488.8 18136.64,-2519.6 19599.48,-2519.6 19599.48,-2488.8 18136.64,-2488.8"/>
+<text text-anchor="start" x="18143.64" y="-2501" font-family="Arial" font-size="14.00">category_id </text>
+<text text-anchor="start" x="18219.91" y="-2501" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2458 18136.64,-2488.8 19599.48,-2488.8 19599.48,-2458 18136.64,-2458"/>
+<text text-anchor="start" x="18143.64" y="-2470.2" font-family="Arial" font-size="14.00">notes </text>
+<text text-anchor="start" x="18181.78" y="-2470.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2427.2 18136.64,-2458 19599.48,-2458 19599.48,-2427.2 18136.64,-2427.2"/>
+<text text-anchor="start" x="18143.64" y="-2439.4" font-family="Arial" font-size="14.00">model </text>
+<text text-anchor="start" x="18185.66" y="-2439.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2396.4 18136.64,-2427.2 19599.48,-2427.2 19599.48,-2396.4 18136.64,-2396.4"/>
+<text text-anchor="start" x="18143.64" y="-2408.6" font-family="Arial" font-size="14.00">reply </text>
+<text text-anchor="start" x="18177.88" y="-2408.6" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2365.6 18136.64,-2396.4 19599.48,-2396.4 19599.48,-2365.6 18136.64,-2365.6"/>
+<text text-anchor="start" x="18143.64" y="-2377.8" font-family="Arial" font-size="14.00">error </text>
+<text text-anchor="start" x="18177.09" y="-2377.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2334.8 18136.64,-2365.6 19599.48,-2365.6 19599.48,-2334.8 18136.64,-2334.8"/>
+<text text-anchor="start" x="18143.64" y="-2347" font-family="Arial" font-size="14.00">input_tokens </text>
+<text text-anchor="start" x="18226.92" y="-2347" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2304 18136.64,-2334.8 19599.48,-2334.8 19599.48,-2304 18136.64,-2304"/>
+<text text-anchor="start" x="18143.64" y="-2316.2" font-family="Arial" font-size="14.00">output_tokens </text>
+<text text-anchor="start" x="18235.49" y="-2316.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2273.2 18136.64,-2304 19599.48,-2304 19599.48,-2273.2 18136.64,-2273.2"/>
+<text text-anchor="start" x="18143.64" y="-2285.4" font-family="Arial" font-size="14.00">cost_usd </text>
+<text text-anchor="start" x="18203.56" y="-2285.4" font-family="Arial" font-size="14.00" fill="#666666">[numeric(10,4)]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2242.4 18136.64,-2273.2 19599.48,-2273.2 19599.48,-2242.4 18136.64,-2242.4"/>
+<text text-anchor="start" x="18143.64" y="-2254.6" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="18213.69" y="-2254.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="18136.64,-2211.6 18136.64,-2242.4 19599.48,-2242.4 19599.48,-2211.6 18136.64,-2211.6"/>
+<text text-anchor="start" x="18143.64" y="-2223.8" font-family="Arial" font-size="14.00">previous_draft </text>
+<text text-anchor="start" x="18236.25" y="-2223.8" font-family="Arial" font-size="14.00" fill="#666666">[jsonb]</text>
+<text text-anchor="start" x="18277.5" y="-2223.8" font-family="Arial" font-size="14.00"> The guide&#39;s draft just before this AI draft replaced it: title, teaser, body, area, category, kind and its review state. Null if the draft didn&#39;t land.</text>
+<polygon fill="none" stroke="black" points="18136.64,-2180.8 18136.64,-2211.6 19599.48,-2211.6 19599.48,-2180.8 18136.64,-2180.8"/>
+<text text-anchor="start" x="18143.64" y="-2193" font-family="Arial" font-size="14.00">previous_draft_restored_at </text>
+<text text-anchor="start" x="18314.85" y="-2193" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="18480.58" y="-2193" font-family="Arial" font-size="14.00"> When the admin put the previous draft back. Set once; the previous draft can be restored only while this is the guide&#39;s latest AI draft.</text>
 </g>
 <!-- public.guide_ai_drafts&#45;&gt;public.service_areas -->
 <g id="edge39" class="edge">
 <title>public.guide_ai_drafts:area_id&#45;&gt;public.service_areas:id</title>
-<path fill="none" stroke="black" d="M18004.08,-2529.31C17931.83,-2423.38 18089.61,-873.8 18000.48,-873.8"/>
-<polygon fill="black" stroke="black" points="18004.04,-2529.28 18009.87,-2538.56 18008.48,-2532.23 18012.08,-2534.63 18012.08,-2534.63 18012.08,-2534.63 18008.48,-2532.23 18014.85,-2531.07 18004.04,-2529.28"/>
-<text text-anchor="start" x="17633.87" y="-2545" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE SET NULL</text>
+<path fill="none" stroke="black" d="M18127.08,-2529.31C18054.83,-2423.38 18212.61,-873.8 18123.48,-873.8"/>
+<polygon fill="black" stroke="black" points="18127.04,-2529.28 18132.87,-2538.56 18131.48,-2532.23 18135.08,-2534.63 18135.08,-2534.63 18135.08,-2534.63 18131.48,-2532.23 18137.85,-2531.07 18127.04,-2529.28"/>
+<text text-anchor="start" x="17756.87" y="-2545" font-family="Arial" font-size="10.00">FOREIGN KEY (area_id) REFERENCES service_areas(id) ON DELETE SET NULL</text>
 </g>
 <!-- public.guide_ai_drafts&#45;&gt;public.categories -->
 <g id="edge40" class="edge">
 <title>public.guide_ai_drafts:category_id&#45;&gt;public.categories:id</title>
-<path fill="none" stroke="black" d="M18002.77,-2502.57C17934.04,-2478.69 17966.27,-2199.52 18013.64,-2137.6 18050.44,-2089.5 18108.33,-2149.75 18145.06,-2101.6 18396.63,-1771.85 18193.22,-1580.35 18145.06,-1168.4 18130.49,-1043.74 17977.16,-889.2 18102.68,-889.2"/>
-<polygon fill="black" stroke="black" points="18002.44,-2502.52 18011.58,-2508.59 18007.71,-2503.39 18011.98,-2504.09 18011.98,-2504.09 18011.98,-2504.09 18007.71,-2503.39 18013.04,-2499.71 18002.44,-2502.52"/>
-<text text-anchor="start" x="17631.65" y="-2514.2" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL</text>
+<path fill="none" stroke="black" d="M18125.77,-2502.57C18057.04,-2478.69 18089.27,-2199.52 18136.64,-2137.6 18173.44,-2089.5 18231.33,-2149.75 18268.06,-2101.6 18519.63,-1771.85 18316.22,-1580.35 18268.06,-1168.4 18253.49,-1043.74 18100.16,-889.2 18225.68,-889.2"/>
+<polygon fill="black" stroke="black" points="18125.44,-2502.52 18134.58,-2508.59 18130.71,-2503.39 18134.98,-2504.09 18134.98,-2504.09 18134.98,-2504.09 18130.71,-2503.39 18136.04,-2499.71 18125.44,-2502.52"/>
+<text text-anchor="start" x="17754.65" y="-2514.2" font-family="Arial" font-size="10.00">FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL</text>
 </g>
 <!-- public.guide_ai_drafts&#45;&gt;public.guides -->
 <g id="edge41" class="edge">
 <title>public.guide_ai_drafts:guide_id&#45;&gt;public.guides:id</title>
-<path fill="none" stroke="black" d="M19486.59,-2622.64C19529.67,-2574.37 19511.74,-2174.62 19476.48,-2137.6 19422.16,-2080.56 18823.02,-2158.43 18768.48,-2101.6 18736.29,-2068.06 18720.99,-1997 18767.48,-1997"/>
-<polygon fill="black" stroke="black" points="19486.64,-2622.61 19475.69,-2623.26 19481.91,-2625.08 19478.08,-2627.09 19478.08,-2627.09 19478.08,-2627.09 19481.91,-2625.08 19479.87,-2631.23 19486.64,-2622.61"/>
-<text text-anchor="start" x="19305.76" y="-2611.4" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE SET NULL</text>
+<path fill="none" stroke="black" d="M19609.59,-2622.64C19652.67,-2574.37 19634.74,-2174.62 19599.48,-2137.6 19545.16,-2080.56 18946.02,-2158.43 18891.48,-2101.6 18859.29,-2068.06 18843.99,-1997 18890.48,-1997"/>
+<polygon fill="black" stroke="black" points="19609.64,-2622.61 19598.69,-2623.26 19604.91,-2625.08 19601.08,-2627.09 19601.08,-2627.09 19601.08,-2627.09 19604.91,-2625.08 19602.87,-2631.23 19609.64,-2622.61"/>
+<text text-anchor="start" x="19428.76" y="-2611.4" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE SET NULL</text>
 </g>
 <!-- public.homepage_features -->
 <g id="node27" class="node">
 <title>public.homepage_features</title>
-<polygon fill="#efefef" stroke="none" points="20455.93,-2473.4 20455.93,-2519.4 21960.19,-2519.4 21960.19,-2473.4 20455.93,-2473.4"/>
-<polygon fill="none" stroke="black" points="20455.93,-2473.4 20455.93,-2519.4 21960.19,-2519.4 21960.19,-2473.4 20455.93,-2473.4"/>
-<text text-anchor="start" x="21051.11" y="-2497.2" font-family="Arial Bold" font-size="18.00">public.homepage_features</text>
-<text text-anchor="start" x="21240.53" y="-2497.2" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="21271.65" y="-2497.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="20462.93" y="-2482.8" font-family="Arial" font-size="14.00" fill="#333333">The guides on the homepage: position 1 is the main guide (the hero), 2 and 3 the guides section&#39;s cards. Chosen by the admin; only published guides. Unpublishing or deleting a guide removes it; without a main guide, the cards aren&#39;t shown.</text>
-<polygon fill="none" stroke="black" points="20455.93,-2442.6 20455.93,-2473.4 21960.19,-2473.4 21960.19,-2442.6 20455.93,-2442.6"/>
-<text text-anchor="start" x="20462.93" y="-2454.8" font-family="Arial" font-size="14.00">position </text>
-<text text-anchor="start" x="20515.08" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
-<text text-anchor="start" x="20570.31" y="-2454.8" font-family="Arial" font-size="14.00"> 1 is the main guide (the hero); 2 and 3 are the guides section&#39;s two cards.</text>
-<polygon fill="none" stroke="black" points="20455.93,-2411.8 20455.93,-2442.6 21960.19,-2442.6 21960.19,-2411.8 20455.93,-2411.8"/>
-<text text-anchor="start" x="20462.93" y="-2424" font-family="Arial" font-size="14.00">guide_id </text>
-<text text-anchor="start" x="20519.76" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="20455.93,-2381 20455.93,-2411.8 21960.19,-2411.8 21960.19,-2381 20455.93,-2381"/>
-<text text-anchor="start" x="20462.93" y="-2393.2" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="20532.98" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="#efefef" stroke="none" points="20578.93,-2473.4 20578.93,-2519.4 22083.19,-2519.4 22083.19,-2473.4 20578.93,-2473.4"/>
+<polygon fill="none" stroke="black" points="20578.93,-2473.4 20578.93,-2519.4 22083.19,-2519.4 22083.19,-2473.4 20578.93,-2473.4"/>
+<text text-anchor="start" x="21174.11" y="-2497.2" font-family="Arial Bold" font-size="18.00">public.homepage_features</text>
+<text text-anchor="start" x="21363.53" y="-2497.2" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="21394.65" y="-2497.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="20585.93" y="-2482.8" font-family="Arial" font-size="14.00" fill="#333333">The guides on the homepage: position 1 is the main guide (the hero), 2 and 3 the guides section&#39;s cards. Chosen by the admin; only published guides. Unpublishing or deleting a guide removes it; without a main guide, the cards aren&#39;t shown.</text>
+<polygon fill="none" stroke="black" points="20578.93,-2442.6 20578.93,-2473.4 22083.19,-2473.4 22083.19,-2442.6 20578.93,-2442.6"/>
+<text text-anchor="start" x="20585.93" y="-2454.8" font-family="Arial" font-size="14.00">position </text>
+<text text-anchor="start" x="20638.08" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[smallint]</text>
+<text text-anchor="start" x="20693.31" y="-2454.8" font-family="Arial" font-size="14.00"> 1 is the main guide (the hero); 2 and 3 are the guides section&#39;s two cards.</text>
+<polygon fill="none" stroke="black" points="20578.93,-2411.8 20578.93,-2442.6 22083.19,-2442.6 22083.19,-2411.8 20578.93,-2411.8"/>
+<text text-anchor="start" x="20585.93" y="-2424" font-family="Arial" font-size="14.00">guide_id </text>
+<text text-anchor="start" x="20642.76" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="20578.93,-2381 20578.93,-2411.8 22083.19,-2411.8 22083.19,-2381 20578.93,-2381"/>
+<text text-anchor="start" x="20585.93" y="-2393.2" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="20655.98" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
 </g>
 <!-- public.homepage_features&#45;&gt;public.guides -->
 <g id="edge42" class="edge">
 <title>public.homepage_features:guide_id&#45;&gt;public.guides:id</title>
-<path fill="none" stroke="black" d="M20444.68,-2425.6C20419.73,-2416.41 20439.58,-2369.53 20455.93,-2337.8 20537.51,-2179.48 20698.19,-2259.98 20779.65,-2101.6 20800.91,-2060.26 20827.14,-1997 20780.65,-1997"/>
-<polygon fill="black" stroke="black" points="20444.72,-2425.61 20453.91,-2431.59 20449.99,-2426.43 20454.27,-2427.1 20454.27,-2427.1 20454.27,-2427.1 20449.99,-2426.43 20455.29,-2422.7 20444.72,-2425.61"/>
-<text text-anchor="start" x="20461.93" y="-2411.2" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M20567.68,-2425.6C20542.73,-2416.41 20562.58,-2369.53 20578.93,-2337.8 20660.51,-2179.48 20821.19,-2259.98 20902.65,-2101.6 20923.91,-2060.26 20950.14,-1997 20903.65,-1997"/>
+<polygon fill="black" stroke="black" points="20567.72,-2425.61 20576.91,-2431.59 20572.99,-2426.43 20577.27,-2427.1 20577.27,-2427.1 20577.27,-2427.1 20572.99,-2426.43 20578.29,-2422.7 20567.72,-2425.61"/>
+<text text-anchor="start" x="20584.93" y="-2411.2" font-family="Arial" font-size="10.00">FOREIGN KEY (guide_id) REFERENCES guides(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.saved_listings -->
 <g id="node28" class="node">
@@ -1682,7 +1682,7 @@
 <!-- public.saved_listings&#45;&gt;public.listings -->
 <g id="edge43" class="edge">
 <title>public.saved_listings:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M9401.97,-2426.73C9512.64,-2415.95 9350.31,-2224.39 9443.06,-2137.6 9451.73,-2129.49 11129.51,-1950.8 11141.38,-1950.8"/>
+<path fill="none" stroke="black" d="M9401.97,-2426.72C9512.62,-2415.93 9350.07,-2224.13 9443.06,-2137.6 9461.36,-2120.57 11208.38,-1950.8 11233.38,-1950.8"/>
 <polygon fill="black" stroke="black" points="9401.91,-2426.73 9391.72,-2422.69 9396.58,-2426.97 9392.26,-2427.17 9392.26,-2427.17 9392.26,-2427.17 9396.58,-2426.97 9392.13,-2431.68 9401.91,-2426.73"/>
 <text text-anchor="start" x="9398.59" y="-2437.2" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
@@ -1777,7 +1777,7 @@
 <!-- public.reviews&#45;&gt;public.listings -->
 <g id="edge46" class="edge">
 <title>public.reviews:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M5207.86,-4596.29C5615.36,-4571.43 5470.98,-3072.82 5785.06,-2798.8 5852.46,-2740 5923.43,-2829.46 5983.06,-2762.8 6075.91,-2659.01 5924.73,-2233.13 6026.06,-2137.6 6063.39,-2102.41 9667.85,-2104.56 9719.06,-2101.6 10353.69,-2064.95 10505.69,-1950.8 11141.38,-1950.8"/>
+<path fill="none" stroke="black" d="M5207.86,-4596.29C5615.36,-4571.43 5470.98,-3072.82 5785.06,-2798.8 5852.46,-2740 5923.43,-2829.46 5983.06,-2762.8 6075.91,-2659.01 5924.73,-2233.13 6026.06,-2137.6 6063.39,-2102.41 9667.84,-2104.39 9719.06,-2101.6 10394.42,-2064.76 10557.02,-1950.8 11233.38,-1950.8"/>
 <polygon fill="black" stroke="black" points="5207.84,-4596.29 5197.71,-4592.09 5202.51,-4596.45 5198.18,-4596.58 5198.18,-4596.58 5198.18,-4596.58 5202.51,-4596.45 5197.98,-4601.09 5207.84,-4596.29"/>
 <text text-anchor="start" x="5204.51" y="-4606.6" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT</text>
 </g>
@@ -1933,9 +1933,9 @@
 <!-- public.listing_ratings&#45;&gt;public.listings -->
 <g id="edge51" class="edge">
 <title>public.listing_ratings:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M10516.14,-2564.37C10594.55,-2539.89 10499.27,-2208.74 10558.06,-2137.6 10644.77,-2032.68 11005.27,-1950.8 11141.38,-1950.8"/>
-<polygon fill="black" stroke="black" points="10516.51,-2564.32 10505.96,-2561.3 10511.23,-2565.08 10506.94,-2565.7 10506.94,-2565.7 10506.94,-2565.7 10511.23,-2565.08 10507.26,-2570.21 10516.51,-2564.32"/>
-<text text-anchor="start" x="10513.28" y="-2575.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M10516.13,-2564.36C10594.36,-2539.8 10496.94,-2207.59 10557.06,-2137.6 10658.66,-2019.32 11077.46,-1950.8 11233.38,-1950.8"/>
+<polygon fill="black" stroke="black" points="10516.51,-2564.31 10505.96,-2561.3 10511.23,-2565.08 10506.94,-2565.7 10506.94,-2565.7 10506.94,-2565.7 10511.23,-2565.08 10507.26,-2570.2 10516.51,-2564.31"/>
+<text text-anchor="start" x="10333.19" y="-2549.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.provider_ratings -->
 <g id="node34" class="node">
@@ -2372,32 +2372,36 @@
 <!-- public.service_open_days -->
 <g id="node41" class="node">
 <title>public.service_open_days</title>
-<polygon fill="#efefef" stroke="none" points="10609.87,-2488.8 10609.87,-2534.8 12534.26,-2534.8 12534.26,-2488.8 10609.87,-2488.8"/>
-<polygon fill="none" stroke="black" points="10609.87,-2488.8 10609.87,-2534.8 12534.26,-2534.8 12534.26,-2488.8 10609.87,-2488.8"/>
-<text text-anchor="start" x="11416.6" y="-2512.6" font-family="Arial Bold" font-size="18.00">public.service_open_days</text>
-<text text-anchor="start" x="11603.04" y="-2512.6" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="11634.16" y="-2512.6" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="10616.87" y="-2498.2" font-family="Arial" font-size="14.00" fill="#333333">Each market day a Service has a bookable time, with the first and last of them, as of its last refresh (service_open_days_refreshed). Worked out by the slot core; only refresh_service_open_days writes it. Search reads it through service_open_matches. Derived data: rewritten freely, and deleted with its listing.</text>
-<polygon fill="none" stroke="black" points="10609.87,-2458 10609.87,-2488.8 12534.26,-2488.8 12534.26,-2458 10609.87,-2458"/>
-<text text-anchor="start" x="10616.87" y="-2470.2" font-family="Arial" font-size="14.00">listing_id </text>
-<text text-anchor="start" x="10675.23" y="-2470.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="10609.87,-2427.2 10609.87,-2458 12534.26,-2458 12534.26,-2427.2 10609.87,-2427.2"/>
-<text text-anchor="start" x="10616.87" y="-2439.4" font-family="Arial" font-size="14.00">on_date </text>
-<text text-anchor="start" x="10671.36" y="-2439.4" font-family="Arial" font-size="14.00" fill="#666666">[date]</text>
-<polygon fill="none" stroke="black" points="10609.87,-2396.4 10609.87,-2427.2 12534.26,-2427.2 12534.26,-2396.4 10609.87,-2396.4"/>
-<text text-anchor="start" x="10616.87" y="-2408.6" font-family="Arial" font-size="14.00">first_at </text>
-<text text-anchor="start" x="10662.77" y="-2408.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="10609.87,-2365.6 10609.87,-2396.4 12534.26,-2396.4 12534.26,-2365.6 10609.87,-2365.6"/>
-<text text-anchor="start" x="10616.87" y="-2377.8" font-family="Arial" font-size="14.00">last_at </text>
-<text text-anchor="start" x="10662" y="-2377.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<text text-anchor="start" x="10827.73" y="-2377.8" font-family="Arial" font-size="14.00"> The day&#39;s last bookable time when refreshed. Search checks it against now plus the notice, so a day whose times have all come within the notice no longer matches.</text>
+<polygon fill="#efefef" stroke="none" points="10609.41,-2504.2 10609.41,-2550.2 12656.72,-2550.2 12656.72,-2504.2 10609.41,-2504.2"/>
+<polygon fill="none" stroke="black" points="10609.41,-2504.2 10609.41,-2550.2 12656.72,-2550.2 12656.72,-2504.2 10609.41,-2504.2"/>
+<text text-anchor="start" x="11477.6" y="-2528" font-family="Arial Bold" font-size="18.00">public.service_open_days</text>
+<text text-anchor="start" x="11664.04" y="-2528" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="11695.16" y="-2528" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="10616.41" y="-2513.6" font-family="Arial" font-size="14.00" fill="#333333">Each market day a Service has a bookable time, with its start times (and the first and last of them), as of its last refresh (service_open_days_refreshed). Worked out by the slot core; only refresh_service_open_days writes it. Search reads it through service_open_matches. Derived data: rewritten freely, and deleted with its listing.</text>
+<polygon fill="none" stroke="black" points="10609.41,-2473.4 10609.41,-2504.2 12656.72,-2504.2 12656.72,-2473.4 10609.41,-2473.4"/>
+<text text-anchor="start" x="10616.41" y="-2485.6" font-family="Arial" font-size="14.00">listing_id </text>
+<text text-anchor="start" x="10674.77" y="-2485.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="10609.41,-2442.6 10609.41,-2473.4 12656.72,-2473.4 12656.72,-2442.6 10609.41,-2442.6"/>
+<text text-anchor="start" x="10616.41" y="-2454.8" font-family="Arial" font-size="14.00">on_date </text>
+<text text-anchor="start" x="10670.9" y="-2454.8" font-family="Arial" font-size="14.00" fill="#666666">[date]</text>
+<polygon fill="none" stroke="black" points="10609.41,-2411.8 10609.41,-2442.6 12656.72,-2442.6 12656.72,-2411.8 10609.41,-2411.8"/>
+<text text-anchor="start" x="10616.41" y="-2424" font-family="Arial" font-size="14.00">first_at </text>
+<text text-anchor="start" x="10662.31" y="-2424" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="10609.41,-2381 10609.41,-2411.8 12656.72,-2411.8 12656.72,-2381 10609.41,-2381"/>
+<text text-anchor="start" x="10616.41" y="-2393.2" font-family="Arial" font-size="14.00">last_at </text>
+<text text-anchor="start" x="10661.55" y="-2393.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<text text-anchor="start" x="10827.27" y="-2393.2" font-family="Arial" font-size="14.00"> The day&#39;s last bookable time when refreshed. Search checks it against now plus the notice, so a day whose times have all come within the notice no longer matches.</text>
+<polygon fill="none" stroke="black" points="10609.41,-2350.2 10609.41,-2381 12656.72,-2381 12656.72,-2350.2 10609.41,-2350.2"/>
+<text text-anchor="start" x="10616.41" y="-2362.4" font-family="Arial" font-size="14.00">starts </text>
+<text text-anchor="start" x="10654.53" y="-2362.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone[]]</text>
+<text text-anchor="start" x="10828.03" y="-2362.4" font-family="Arial" font-size="14.00"> The day&#39;s bookable start times when refreshed, in order (first_at is the first, last_at the last). Search takes the earliest at or after now plus the notice, the time the panel would show.</text>
 </g>
 <!-- public.service_open_days&#45;&gt;public.listings -->
 <g id="edge60" class="edge">
 <title>public.service_open_days:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M12545.45,-2472.53C12599.56,-2462.67 12574.83,-2371.17 12534.26,-2322.4 12131.39,-1838.18 11545.95,-2539.02 11142.38,-2055.4 11112.59,-2019.7 11094.89,-1950.8 11141.38,-1950.8"/>
-<polygon fill="black" stroke="black" points="12545.56,-2472.52 12535.21,-2468.89 12540.24,-2472.98 12535.92,-2473.34 12535.92,-2473.34 12535.92,-2473.34 12540.24,-2472.98 12535.97,-2477.86 12545.56,-2472.52"/>
-<text text-anchor="start" x="12542.26" y="-2483.4" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
+<path fill="none" stroke="black" d="M12667.94,-2488.09C12735.8,-2478.13 12706.47,-2365.99 12656.72,-2307 12242.85,-1816.25 11649.24,-2545.31 11234.38,-2055.4 11204.33,-2019.92 11186.89,-1950.8 11233.38,-1950.8"/>
+<polygon fill="black" stroke="black" points="12668.03,-2488.08 12657.74,-2484.29 12662.7,-2488.45 12658.38,-2488.75 12658.38,-2488.75 12658.38,-2488.75 12662.7,-2488.45 12658.36,-2493.27 12668.03,-2488.08"/>
+<text text-anchor="start" x="12484.62" y="-2472.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
 <!-- public.service_open_days_refreshed -->
 <g id="node42" class="node">
@@ -2434,7 +2438,7 @@
 <!-- public.service_open_days_refreshed&#45;&gt;public.listings -->
 <g id="edge62" class="edge">
 <title>public.service_open_days_refreshed:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M5941.79,-2486.88C6003.32,-2461.25 5930.96,-2186.75 5988.06,-2137.6 6027.34,-2103.79 9667.33,-2104.59 9719.06,-2101.6 10353.69,-2064.98 10505.69,-1950.8 11141.38,-1950.8"/>
+<path fill="none" stroke="black" d="M5941.79,-2486.88C6003.32,-2461.25 5930.96,-2186.75 5988.06,-2137.6 6027.34,-2103.79 9667.32,-2104.42 9719.06,-2101.6 10394.42,-2064.79 10557.02,-1950.8 11233.38,-1950.8"/>
 <polygon fill="black" stroke="black" points="5941.86,-2486.87 5931.2,-2484.32 5936.62,-2487.87 5932.37,-2488.67 5932.37,-2488.67 5932.37,-2488.67 5936.62,-2487.87 5932.88,-2493.16 5941.86,-2486.87"/>
 <text text-anchor="start" x="5758.62" y="-2472.8" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE</text>
 </g>
@@ -2458,30 +2462,30 @@
 <!-- public.support_reports&#45;&gt;public.providers -->
 <g id="edge63" class="edge">
 <title>public.support_reports:provider_id&#45;&gt;public.providers:id</title>
-<path fill="none" stroke="black" d="M17117.17,-4673.56C18028.03,-4665.99 17738.6,-3664.12 17923.06,-2762.8 17936.99,-2694.74 17967.09,-2191.33 17923.06,-2137.6 16533.96,-442.41 15266.76,-1406.2 13088.06,-1168.4 12295.67,-1081.91 6712.68,-1027.8 5915.59,-1027.8"/>
+<path fill="none" stroke="black" d="M17117.09,-4673.56C18051.43,-4666.36 17832.54,-3681.15 18046.06,-2762.8 18061.79,-2695.14 18090.12,-2191.3 18046.06,-2137.6 16647.35,-432.82 15372.37,-1406.05 13180.06,-1168.4 12377.45,-1081.4 6722.9,-1027.8 5915.59,-1027.8"/>
 <polygon fill="black" stroke="black" points="17117.07,-4673.56 17107.05,-4669.1 17111.74,-4673.58 17107.41,-4673.6 17107.41,-4673.6 17107.41,-4673.6 17111.74,-4673.58 17107.09,-4678.1 17117.07,-4673.56"/>
 <text text-anchor="start" x="17113.74" y="-4683.6" font-family="Arial" font-size="10.00">FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.support_reports&#45;&gt;public.listings -->
 <g id="edge64" class="edge">
 <title>public.support_reports:listing_id&#45;&gt;public.listings:id</title>
-<path fill="none" stroke="black" d="M15786.31,-4514.8C15745.09,-4467.84 15764.16,-4090.66 15744.06,-4045.2 15436.12,-3348.83 14899.53,-3466.23 14608.06,-2762.8 14581.42,-2698.51 14617.76,-2188.28 14570.06,-2137.6 14452.43,-2012.62 13208.38,-1950.8 13036.75,-1950.8"/>
-<polygon fill="black" stroke="black" points="15786.25,-4514.77 15792.99,-4523.42 15790.97,-4517.26 15794.8,-4519.29 15794.8,-4519.29 15794.8,-4519.29 15790.97,-4517.26 15797.19,-4515.46 15786.25,-4514.77"/>
-<text text-anchor="start" x="15802.39" y="-4529.6" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M15786.29,-4514.81C15744.93,-4467.9 15762.88,-4091.21 15744.06,-4045.2 15469.15,-3372.91 14990.08,-3441.37 14731.06,-2762.8 14706.24,-2697.78 14740.82,-2188.22 14693.06,-2137.6 14572.94,-2010.28 13303.79,-1950.8 13128.75,-1950.8"/>
+<polygon fill="black" stroke="black" points="15786.24,-4514.78 15793,-4523.43 15790.96,-4517.27 15794.8,-4519.29 15794.8,-4519.29 15794.8,-4519.29 15790.96,-4517.27 15797.19,-4515.46 15786.24,-4514.78"/>
+<text text-anchor="start" x="15440.55" y="-4529.6" font-family="Arial" font-size="10.00">FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.support_reports&#45;&gt;public.bookings -->
 <g id="edge65" class="edge">
 <title>public.support_reports:booking_id&#45;&gt;public.bookings:id</title>
-<path fill="none" stroke="black" d="M15785.23,-4487.28C15704.87,-4461.28 15814.45,-4109.82 15744.06,-4045.2 15744.06,-4045.2 11043.07,-3904.6 11043.07,-3904.6"/>
+<path fill="none" stroke="black" d="M15785.23,-4487.28C15704.87,-4461.28 15814.45,-4109.82 15744.06,-4045.2 15738.05,-4039.68 11051.23,-3904.6 11043.07,-3904.6"/>
 <polygon fill="black" stroke="black" points="15785.17,-4487.27 15794.39,-4493.2 15790.44,-4488.06 15794.73,-4488.7 15794.73,-4488.7 15794.73,-4488.7 15790.44,-4488.06 15795.72,-4484.3 15785.17,-4487.27"/>
-<text text-anchor="start" x="15802.39" y="-4498.8" font-family="Arial" font-size="10.00">FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT</text>
+<text text-anchor="start" x="15421.62" y="-4498.8" font-family="Arial" font-size="10.00">FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.support_reports&#45;&gt;public.support_reports -->
 <g id="edge66" class="edge">
 <title>public.support_reports:follows_report_id&#45;&gt;public.support_reports:id</title>
 <path fill="none" stroke="black" d="M16451.8,-4483.28C16460.06,-4782.15 16459.81,-5339.8 16451.06,-5339.8 16442.22,-5339.8 16442.07,-4998.6 16450.58,-4719.73"/>
 <polygon fill="black" stroke="black" points="16451.81,-4483.53 16456.02,-4473.4 16451.66,-4478.2 16451.53,-4473.87 16451.53,-4473.87 16451.53,-4473.87 16451.66,-4478.2 16447.03,-4473.66 16451.81,-4483.53"/>
-<text text-anchor="start" x="16020.52" y="-4457.2" font-family="Arial" font-size="10.00">FOREIGN KEY (follows_report_id) REFERENCES support_reports(id) ON DELETE RESTRICT</text>
+<text text-anchor="start" x="16020.52" y="-4483.2" font-family="Arial" font-size="10.00">FOREIGN KEY (follows_report_id) REFERENCES support_reports(id) ON DELETE RESTRICT</text>
 </g>
 <!-- public.support_messages -->
 <g id="node45" class="node">
