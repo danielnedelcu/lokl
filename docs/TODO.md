@@ -701,6 +701,13 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     bookings, contact details, addresses and login when they ask lokl to
     delete their data. (Today a login with bookings can't be deleted, and
     the logs can only be changed by a migration; see `append_only_logs`.)
+- **Staff access**
+  - [ ] Admin roles before hiring anyone (owner and support), enforced in
+    the database, with owner approval for suspensions, payout releases and
+    large refunds, alerts, limits, and logging access to contact details.
+    Design first. Staff never get Supabase, Vercel, GitHub or full Stripe
+    access.
+
 ## Notifications
 
 - [ ] Booking reminder emails the day before, to customer and provider
