@@ -12,7 +12,12 @@ import {
 // admin route, refused if someone else moved the card first. A move is
 // announced, keeps focus on the card, and is undone if it doesn't save.
 // Live: a new report or reply (the admin bell's notification, ids only)
-// reloads the board.
+// reloads the board, keeping what's on screen (found 2026-10-18):
+// - every page "Show more" added (each column reloads as many pages as it
+//   shows);
+// - a move not yet confirmed by a reload that started after it saved (a
+//   reload that started earlier put the card back, and lost its focus).
+// Reloads run one at a time; one asked for meanwhile runs after.
 definePageMeta({ title: "Problem reports" });
 useSeoMeta({ title: "Problem reports" });
 
@@ -45,40 +50,99 @@ async function fetchBoard(column?: SupportStatus, page = 1) {
 const columns = ref<Columns | null>(null);
 const pages = reactive<Record<SupportStatus, number>>({ todo: 1, in_progress: 1, waiting: 1, done: 1 });
 const loadError = ref(false);
-async function load() {
-  try {
-    const c = await fetchBoard();
-    columns.value = { todo: c.todo!, in_progress: c.in_progress!, waiting: c.waiting!, done: c.done! };
-    for (const s of SUPPORT_STATUSES) pages[s] = 1;
-    loadError.value = false;
-  } catch (e) {
-    console.error("[reports] board", e);
-    loadError.value = true;
+
+// Moves shown before a reload has seen them: the card's id, where it went,
+// and once saved, the last reload that started before the save (any later
+// one includes it).
+const pendingMoves = new Map<string, { card: AdminSupportCard; to: SupportStatus; savedAfter: number | null }>();
+let started = 0;
+
+/** Every page each column shows, with pending moves applied. */
+async function fetchShown(): Promise<Columns> {
+  const first = await fetchBoard();
+  const c = { todo: first.todo!, in_progress: first.in_progress!, waiting: first.waiting!, done: first.done! };
+  await Promise.all(SUPPORT_STATUSES.map(async (s) => {
+    for (let page = 2; page <= pages[s]; page++) {
+      const more = (await fetchBoard(s, page))[s]!;
+      c[s].rows.push(...more.rows.filter((r) => !c[s].rows.some((x) => x.id === r.id)));
+      c[s].total = more.total;
+    }
+  }));
+  return c;
+}
+function applyPending(c: Columns) {
+  for (const [id, m] of pendingMoves) {
+    for (const s of SUPPORT_STATUSES) {
+      const at = c[s].rows.findIndex((r) => r.id === id);
+      if (at >= 0 && s !== m.to) {
+        c[s].rows.splice(at, 1);
+        c[s].total -= 1;
+      }
+    }
+    if (!c[m.to].rows.some((r) => r.id === id)) {
+      c[m.to].rows.unshift(m.card);
+      c[m.to].total += 1;
+    }
   }
 }
-watch([category, urgentOnly, q, allDone], () => void load());
+
+let running: Promise<void> | null = null;
+let again = false;
+/** Reloads the board, one at a time; a reload asked for meanwhile runs after. */
+async function load(): Promise<void> {
+  if (running) {
+    again = true;
+    return running;
+  }
+  running = (async () => {
+    do {
+      again = false;
+      const mine = ++started;
+      try {
+        const c = await fetchShown();
+        // A move saved while this reload was running may not be in it.
+        for (const [id, m] of pendingMoves) if (m.savedAfter !== null && mine > m.savedAfter) pendingMoves.delete(id);
+        applyPending(c);
+        // Cards keep their elements (keyed by id), so focus stays put.
+        columns.value = c;
+        loadError.value = false;
+      } catch (e) {
+        console.error("[reports] board", e);
+        loadError.value = true;
+      }
+    } while (again);
+  })();
+  try {
+    await running;
+  } finally {
+    running = null;
+  }
+}
+// A filter starts the board again from the first page.
+watch([category, urgentOnly, q, allDone], () => {
+  for (const s of SUPPORT_STATUSES) pages[s] = 1;
+  void load();
+});
 await load();
 useLiveData({ refresh: load });
 onSupportReportChanged(() => void load());
 
-// "Show more": the column's next page, added below.
+// "Show more": the column's next page, added below (the next reload keeps it).
 const loadingMore = ref<SupportStatus | null>(null);
 async function showMore(status: SupportStatus) {
   if (!columns.value) return;
   loadingMore.value = status;
   const firstNew = columns.value[status].rows.length;
-  try {
-    const c = (await fetchBoard(status, pages[status] + 1))[status]!;
-    columns.value[status].rows.push(...c.rows.filter((r) => !columns.value![status].rows.some((x) => x.id === r.id)));
-    columns.value[status].total = c.total;
-    pages[status] += 1;
+  pages[status] += 1;
+  await load();
+  if (loadError.value) {
+    pages[status] -= 1;
+    announce("More reports didn't load. Try again.");
+  } else {
     await nextTick();
     document.querySelectorAll<HTMLElement>(`[data-column="${status}"] [data-card]`)[firstNew]?.focus();
-  } catch {
-    announce("More reports didn't load. Try again.");
-  } finally {
-    loadingMore.value = null;
   }
+  loadingMore.value = null;
 }
 
 // Moving a card.
@@ -93,7 +157,9 @@ const moving = ref<string | null>(null);
 async function move(card: AdminSupportCard, from: SupportStatus, to: SupportStatus) {
   if (!columns.value || from === to || moving.value) return;
   moving.value = card.id;
-  // At once on screen; put back if it doesn't save.
+  // At once on screen, and kept there by any reload until one that started
+  // after the save confirms it; put back if it doesn't save.
+  pendingMoves.set(card.id, { card, to, savedAfter: null });
   const source = columns.value[from];
   const target = columns.value[to];
   const at = source.rows.findIndex((r) => r.id === card.id);
@@ -105,18 +171,17 @@ async function move(card: AdminSupportCard, from: SupportStatus, to: SupportStat
   focusCard(card.id);
   try {
     await website(`support-reports/${card.id}/status`, { to, from });
+    pendingMoves.get(card.id)!.savedAfter = started;
     announce(`Moved "${cardName(card)}" to ${SUPPORT_STATUS_FOR_ADMIN[to]}.`);
+    // A reload that starts now confirms it (and then stops keeping it there).
+    void load();
   } catch (e) {
-    target.rows.splice(target.rows.findIndex((r) => r.id === card.id), 1);
-    target.total -= 1;
-    source.rows.splice(at, 0, card);
-    source.total += 1;
-    await nextTick();
-    focusCard(card.id);
-    announce(`That didn't save. The report is still in ${SUPPORT_STATUS_FOR_ADMIN[from]}. ${(e as Error).message}`);
-    // Someone else may have moved it: show where it really is.
+    pendingMoves.delete(card.id);
+    // Someone else may have moved it: show where it really is (a reload,
+    // since one may have replaced the columns this move changed).
     await load();
     focusCard(card.id);
+    announce(`That didn't save. The report wasn't moved. ${(e as Error).message}`);
   } finally {
     moving.value = null;
   }

@@ -306,3 +306,110 @@ test("a board column shows its total and pages with \"Show more\", never stoppin
   await expect(waiting.getByRole("button", { name: /Show more/ })).toHaveCount(0);
   await ctx.close();
 });
+
+// The board's live reloads (found 2026-10-18, CI run 39160490024): a reload
+// rebuilt every column from its first page, dropping what "Show more" had
+// added, and one that started before a move had saved put the card back
+// where it was, losing focus. A new report is what sets a reload off here.
+
+/** The board, open and joined to the live feed (Realtime doesn't replay). */
+async function liveBoard(context: BrowserContext, admin: { email: string; password: string }, name: string) {
+  const ctx = await adminContext(context, admin);
+  const page = await ctx.newPage();
+  const frames = realtimeFrames(page);
+  await page.goto(`${ADMIN}/reports?q=${encodeURIComponent(name)}`);
+  await expect.poll(() => frames.some((f) => f.includes('"status":"ok"') && f.includes("postgres_changes")), { timeout: 15_000 }).toBe(true);
+  return { ctx, page };
+}
+
+test("a live reload keeps what \"Show more\" added", async ({ context, data }) => {
+  const owner = await data.user("owner");
+  const admin = await data.user("admin", { admin: true });
+  const provider = await data.provider(owner, `Reload Studio ${data.run}`);
+  const { data: made, error } = await data.env.db.from("support_reports")
+    .insert(Array.from({ length: 55 }, (_, i) => ({ provider_id: provider, category: "safety", description: `Waiting report ${i + 1} for ${data.run}.` })))
+    .select("id");
+  if (error) throw new Error(error.message);
+  const { error: moveError } = await data.env.db.from("support_reports").update({ status: "waiting" }).in("id", made.map((r) => r.id));
+  if (moveError) throw new Error(moveError.message);
+  const { ctx, page } = await liveBoard(context, admin, `Reload Studio ${data.run}`);
+  const waiting = page.getByRole("region", { name: /^Waiting on provider/ });
+  await waiting.getByRole("button", { name: "Show more in Waiting on provider" }).click();
+  await expect(waiting.locator("[data-card]")).toHaveCount(55);
+
+  // A new report arrives: the board reloads (it appears in To do)...
+  const { error: newError } = await data.env.db.from("support_reports").insert({ provider_id: provider, category: "safety", description: `A new report for ${data.run}.` });
+  if (newError) throw new Error(newError.message);
+  await expect(page.getByRole("heading", { name: "To do, 1 report" })).toBeVisible();
+  // ...and every card "Show more" added is still there.
+  await expect(waiting.locator("[data-card]")).toHaveCount(55);
+  await expect(waiting.getByRole("button", { name: /Show more/ })).toHaveCount(0);
+  await ctx.close();
+});
+
+test("a move keeps its card and focus through a live reload, before and after it saves", async ({ context, data }) => {
+  const owner = await data.user("owner");
+  const admin = await data.user("admin", { admin: true });
+  const provider = await data.provider(owner, `Focus Studio ${data.run}`);
+  const insert = async (description: string) => {
+    const { data: r, error } = await data.env.db.from("support_reports").insert({ provider_id: provider, category: "safety", description }).select("id").single();
+    if (error) throw new Error(error.message);
+    return r.id as string;
+  };
+  const card = await insert(`The report the test moves, for ${data.run}.`);
+  const { ctx, page } = await liveBoard(context, admin, `Focus Studio ${data.run}`);
+  const todo = page.getByRole("region", { name: /^To do/ });
+  const inProgress = page.getByRole("region", { name: /^In progress/ });
+
+  // The move's save is held until the test lets it go.
+  let release: () => void = () => {};
+  const released = new Promise<void>((r) => { release = r; });
+  let reached: () => void = () => {};
+  const saving = new Promise<void>((r) => { reached = r; });
+  await page.route("**/api/admin/support-reports/*/status", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    reached();
+    await released;
+    await route.continue();
+  });
+
+  await todo.locator(`[data-card="${card}"]`).getByRole("button", { name: /^Move to…/ }).focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("menuitem", { name: "In progress" }).focus();
+  await page.keyboard.press("Enter");
+  await saving;
+  // A reload while the move is still saving: the card stays where it was moved, with focus.
+  await insert(`A report that arrived while the move was saving, ${data.run}.`);
+  await expect(page.getByRole("heading", { name: "To do, 1 report" })).toBeVisible();
+  await expect(inProgress.locator(`[data-card="${card}"]`)).toBeFocused();
+  release();
+  await expect(page.locator("[aria-live=polite]").filter({ hasText: /Moved "Safety from Focus Studio .*" to In progress\./ })).toHaveCount(1);
+  await expect(inProgress.locator(`[data-card="${card}"]`)).toBeFocused();
+  // And a reload after it saved keeps it there, focused.
+  await insert(`A report that arrived after the move saved, ${data.run}.`);
+  await expect(page.getByRole("heading", { name: "To do, 2 reports" })).toBeVisible();
+  await expect(inProgress.locator(`[data-card="${card}"]`)).toBeFocused();
+  await expect(page.getByRole("heading", { name: "In progress, 1 report" })).toBeVisible();
+  await ctx.close();
+});
+
+test("a move that doesn't save shows the card where it really is, focused, and says so", async ({ context, data }) => {
+  const owner = await data.user("owner");
+  const admin = await data.user("admin", { admin: true });
+  const provider = await data.provider(owner, `Refused Studio ${data.run}`);
+  const { data: r, error } = await data.env.db.from("support_reports")
+    .insert({ provider_id: provider, category: "safety", description: `The report whose move is refused, ${data.run}.` }).select("id").single();
+  if (error) throw new Error(error.message);
+  const { ctx, page } = await liveBoard(context, admin, `Refused Studio ${data.run}`);
+  await page.route("**/api/admin/support-reports/*/status", (route) =>
+    route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ statusMessage: "Someone else moved it first." }) }));
+  const todo = page.getByRole("region", { name: /^To do/ });
+  await todo.locator(`[data-card="${r.id}"]`).getByRole("button", { name: /^Move to…/ }).focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("menuitem", { name: "Done" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[aria-live=polite]").filter({ hasText: /^That didn't save\. The report wasn't moved\./ })).toHaveCount(1);
+  await expect(todo.locator(`[data-card="${r.id}"]`)).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Done, 0 reports" })).toBeVisible();
+  await ctx.close();
+});

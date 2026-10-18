@@ -235,7 +235,9 @@ never logged elsewhere, and never put in an email.
   access rules; on the admin's side the board reloads too. So a reply
   appears on the other side without a manual reload, and a page left open
   in the background also reloads when its tab regains focus
-  (`useLiveData`).
+  (`useLiveData`). The board's reloads keep every page "Show more" added,
+  and keep a move in place until a reload that started after it saved
+  (2026-10-18; journey 29).
 - **Sending at once:** reports and replies are written through website
   routes, which then send what they queued (as booking changes do); the
   email job retries anything that failed. (The job scheduler isn't
