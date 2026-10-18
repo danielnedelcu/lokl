@@ -719,9 +719,12 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     **Designed and approved 2026-10-18:**
     [docs/design/admin-roles.md](design/admin-roles.md) (roles read live
     from `admin_members`, the authenticator second factor enforced in the
-    database, the Team page, recovery and break-glass). First step before
-    building: confirm authenticator-app MFA is available on lokl's
-    Supabase plan.
+    database, the Team page, recovery and break-glass). Building in the
+    cutover's order: 1. authenticator MFA on (done 2026-10-18; enabled on
+    hosted, confirmed in the dashboard); 2. the admin app's set-up and
+    second-step pages, optional; 3. the owner enrols two authenticators;
+    4. the migration (shown before `db:push`); 5. the Team page, requests,
+    contact views, limits and alerts.
 
 ## Notifications
 

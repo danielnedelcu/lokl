@@ -1,8 +1,8 @@
 # Admin roles and the second sign-in factor
 
-Status: **approved design** (2026-10-18; decisions below, under "Decided").
-Nothing is built; nothing in the code, the database or Supabase's settings
-has changed. To be built
+Status: **approved design, being built** (2026-10-18; decisions below,
+under "Decided"), in the order of "Moving from today's admin to the new
+roles". Step 1 is done. To be built
 before anyone else is given admin access ([docs/TODO.md](../TODO.md),
 Launch prep, "Staff access").
 
@@ -252,11 +252,16 @@ email:
 ## The second factor
 
 - **What:** an authenticator app (time-based codes, TOTP), through
-  Supabase Auth's MFA. Text-message codes stay off. First, confirm in the
-  hosted project's Authentication settings that authenticator MFA is
-  available on lokl's plan (`config.toml`'s CLI template comment mentions
-  the Pro plan; authenticator codes are understood to be included on all
-  plans, text messages not).
+  Supabase Auth's MFA. Text-message codes stay off.
+- **Available on lokl's plan (confirmed 2026-10-18 from Supabase's
+  documentation):** authenticator MFA "is enabled on all Supabase projects
+  by default" and "is free to use"; the pricing page lists "Basic
+  Multi-Factor Auth" as included on every plan, Free included. Only phone
+  (SMS) MFA is a paid add-on, which this design doesn't use.
+  `config.toml`'s comment about the Pro plan is the CLI's template text.
+  The hosted project's public auth settings don't report MFA, so the
+  dashboard's Authentication → Multi-Factor page is checked once more when
+  it's turned on.
 - **Turning it on:** `[auth.mfa.totp]` `enroll_enabled` and
   `verify_enabled` in `supabase/config.toml` and on hosted.
 - **Signing in:** the emailed code as now (a session at `aal1`), then the
@@ -267,6 +272,12 @@ email:
   `aal` claim is `aal2`; `admin_role_of()` checks the session's `aal` in
   `auth.sessions`. So a stolen inbox alone can't reach any admin data, even
   through the API directly.
+  Supabase's MFA guide checks `aal2` with a *restrictive* rule, because
+  an ordinary rule only adds access. Here the check is inside the helpers
+  every admin rule calls, so no admin rule grants anything below `aal2`;
+  an admin who hasn't passed the second factor still gets what any
+  signed-in user gets (their own bookings as a customer, say), which is
+  intended.
 - **Two factors each:** everyone enrols a second authenticator (another
   device, or a password manager) at setup. Supabase allows up to 10.
 
@@ -357,7 +368,9 @@ functions to them. The menu follows the role from `admin_role()`.
 ## Moving from today's admin to the new roles, with no lost access
 
 1. **Confirm and turn on** authenticator MFA (hosted and `config.toml`),
-   with nothing yet requiring it.
+   with nothing yet requiring it. *Done 2026-10-18:* enabled on hosted
+   (checked in the dashboard), and in `config.toml`; `mfa.test.mts`
+   (core app tests) enrols, passes and refuses codes on the local stack.
 2. **Ship the admin app's "Set up your authenticator" and "Second step"
    pages**, optional at first: today's `is_admin()` still accepts `aal1`.
 3. **You enrol two authenticators**, sign out and in, and pass the second
