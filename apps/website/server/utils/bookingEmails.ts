@@ -67,6 +67,7 @@ export class MailerLimitError extends Error {
 const MIN_GAP_MS = 150;
 let nextSlot = 0;
 async function waitForSlot() {
+  // real time: spacing real requests to Resend.
   const now = Date.now();
   const at = Math.max(now, nextSlot);
   nextSlot = at + MIN_GAP_MS;
@@ -274,6 +275,7 @@ async function runOutbox<R extends OutboxRow>(
 
         try {
           const { id } = await mailer!.send({ ...prepared.email, to: to!, from: settings.from, replyTo: settings.replyTo, idempotencyKey: `${o.keyPrefix}-${row.id}` });
+          // real time: when it was really sent (a record).
           await finish(db, o.table, row.id, { status: "sent", sent_at: new Date().toISOString(), resend_id: id, to_address: to, last_error: null });
           out.sent.push(`${label}: sent`);
         } catch (e) {
@@ -284,12 +286,12 @@ async function runOutbox<R extends OutboxRow>(
             // this run; an email waiting 48 hours on a limit is given up on.
             // (Either limit: if Resend names a quota error differently, it's
             // still retried as a rate limit and still given up on in time.)
-            const waited = Date.now() - Date.parse(row.created_at);
+            const waited = now.getTime() - Date.parse(row.created_at);
             if (waited >= QUOTA_GIVE_UP_MS) {
               await finish(db, o.table, row.id, { status: "failed", attempts: row.attempts, last_error: `Waited 48 hours for Resend's limits. ${message}`.slice(0, 500), to_address: to });
               out.failed.push(`${label}: waited 48 hours for Resend's limits`);
             } else {
-              const next = new Date(Date.now() + (e.limit === "quota" ? QUOTA_RETRY_MS : RATE_RETRY_MS)).toISOString();
+              const next = new Date(now.getTime() + (e.limit === "quota" ? QUOTA_RETRY_MS : RATE_RETRY_MS)).toISOString();
               await finish(db, o.table, row.id, { status: "pending", attempts: row.attempts, next_attempt_at: next, last_error: message, to_address: to });
               out.retrying.push(`${label}: ${message}`);
             }
@@ -300,7 +302,7 @@ async function runOutbox<R extends OutboxRow>(
             await finish(db, o.table, row.id, { status: "failed", last_error: message, to_address: to });
             out.failed.push(`${label}: ${message}`);
           } else {
-            const next = new Date(Date.now() + RETRY_MINUTES[attempts - 1]! * 60_000).toISOString();
+            const next = new Date(now.getTime() + RETRY_MINUTES[attempts - 1]! * 60_000).toISOString();
             await finish(db, o.table, row.id, { status: "pending", next_attempt_at: next, last_error: message, to_address: to });
             out.retrying.push(`${label}: ${message}`);
           }

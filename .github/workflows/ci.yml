@@ -64,6 +64,8 @@ jobs:
         run: npm run check:logs
       - name: The booking document names the guard's newest migration
         run: npm run check:booking-doc
+      - name: Server utilities read the clock on purpose
+        run: npm run check:clock
       - name: UI tests
         run: npm run test:ui
       - name: Email templates

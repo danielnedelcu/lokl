@@ -21,6 +21,7 @@ export type AdminAction =
   | "cancel_booking" | "release_payout" | "resolve_problem_paid" | "resolve_problem_refunded"
   | "retry_email" | "suspend_provider" | "reinstate_provider";
 
+// real time: Stripe's idempotency-key window, on Stripe's clock.
 const key = (id: string, action: string) => `admin:${id}:${action}:${Math.floor(Date.now() / 600_000)}`;
 
 export function requireReason(reason: string | undefined): string {
@@ -142,6 +143,7 @@ export async function resolveProblemPaid(db: SupabaseClient, stripe: Stripe, boo
 export async function retryEmail(db: SupabaseClient, emailId: string, adminId: string) {
   const { data, error } = await db
     .from("booking_emails")
+    // real time: due straight away.
     .update({ status: "pending", attempts: 0, last_error: null, skip_reason: null, next_attempt_at: new Date().toISOString(), locked_at: null })
     .eq("id", emailId)
     .in("status", ["failed", "skipped"])

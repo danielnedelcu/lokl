@@ -162,10 +162,12 @@ export async function writeGuideDraft(
   if (req.categoryId && !category?.data) throw new GuideDraftError(400, "We couldn't find that category.");
 
   // The limits: one draft at a time per guide, and an hourly cap overall.
+  // real time: Stripe's idempotency-key window, on Stripe's clock.
   const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
   const { count, error: cErr } = await db.from("guide_ai_drafts").select("id", { count: "exact", head: true }).gt("created_at", hourAgo);
   if (cErr) throw failure("count drafts", cErr);
   if ((count ?? 0) >= AI_DRAFTS_PER_HOUR) throw new GuideDraftError(429, MESSAGES.cap);
+  // real time: the AI drafts' limits (a few an hour; a run that's stuck).
   const runningSince = new Date(Date.now() - AI_DRAFT_RUNNING_MS).toISOString();
   const { data: running, error: rErr } = await db
     .from("guide_ai_drafts")
@@ -351,6 +353,7 @@ export async function restorePreviousDraft(db: Db, opts: { guideId: string; logI
     .select("*");
   if (wErr) throw failure("restore draft", wErr);
   if (!rows.length) throw new GuideDraftError(409, MESSAGES.changedBefore);
+  // real time: when it happened (a record).
   const { error: mErr } = await db.from("guide_ai_drafts").update({ previous_draft_restored_at: new Date().toISOString() }).eq("id", logId);
   if (mErr) console.error("[admin api] couldn't mark the previous draft restored", errorText(mErr));
   return { guide: rows[0]! };

@@ -27,6 +27,7 @@ export async function loadListingForReview(event: H3Event) {
     supabase.from("listing_service_areas").select("service_area_id", { count: "exact", head: true }).eq("listing_id", l.id),
     supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", l.id),
     supabase.from("experience_sessions").select("id", { count: "exact", head: true })
+      // real time: a rule checked before it's submitted or approved (a session still to come).
       .eq("listing_id", l.id).eq("status", "scheduled").gt("starts_at", new Date().toISOString()),
   ]);
   for (const r of [provider, address, travel, photos, sessions]) {
@@ -65,6 +66,7 @@ export async function setStatus(
 ) {
   const { data, error } = await supabase
     .from("listings")
+    // real time: when it happened (a record).
     .update({ ...update, reviewed_at: new Date().toISOString() })
     .eq("id", listing.id)
     .eq("status", listing.status)

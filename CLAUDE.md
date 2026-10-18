@@ -54,6 +54,8 @@ npm run check:dates           # fails on a date or time that would follow the de
 npm run check:rpc-json        # fails on a database function's JSON read without its schema (rpcJson)
 npm run check:logs            # fails on a server log that prints an error as it is (use errorText)
 npm run check:booking-doc     # fails if the booking document's guard links miss the newest bookings_guard migration
+npm run check:clock           # fails on a clock read in server utilities that's neither a `now` parameter nor `// real time: <why>`
+npm run test:clock            # the time rules at eight fixed risky instants (the Clock sweep workflow also runs the real-clock tests at those times)
 npm run check:outside-hosts   # fails on a tracking host the privacy policy doesn't name in the build (part of build:check)
 ```
 
@@ -63,6 +65,13 @@ admin's own record-keeping times, labelled "Atlanta time". `formatDate` and
 `formatDateTime` require the zone (typecheck); `npm run check:dates` (CI)
 catches the rest: formatters without `timeZone`, local getters, `new Date(y,
 m, d)`, `toISOString()` cut to a day, and date-only strings.
+
+**The clock, on purpose** (2026-10-18): the database's `now()` decides
+every rule that's enforced. In server utilities, the time is either a
+`now` parameter defaulting to the real time (tests pass a fixed one;
+routes pass nothing), or the real time with a `// real time: <reason>`
+comment (a record, Stripe's clock, a rule the server checks too).
+`npm run check:clock` (CI) fails on anything else.
 
 **The API returns at most 1,000 rows per request, with no error**
 (`max_rows`, `API_MAX_ROWS` in `@repo/types`). Lists people page through are

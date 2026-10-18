@@ -128,8 +128,12 @@ try {
   // 3. The admin, including the three reads nothing else ran.
   const picker = await read(admin.client, "admin_providers_page", { p_q: `Shapes ${run}`, p_sort: "name", p_desc: false, p_page_size: 20 });
   check(picker.rows.some((p) => p.id === created.provider && !!p.owner_email), "3a. the provider picker's search: the provider and its owner's email");
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
-  const money = await read(admin.client, "admin_bookings_page", { p_paid_from: today, p_paid_to: today, p_page_size: 1 });
+  // The day it was paid, from its own confirmed_at (the database's clock):
+  // a day worked out from this process's clock is a day late if a run
+  // crosses Atlanta midnight in between (found 2026-10-18).
+  const { confirmed_at: paidAt } = await must(db.schema("private").from("booking_records").select("confirmed_at").eq("id", paid).single()) as { confirmed_at: string };
+  const paidDay = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(paidAt));
+  const money = await read(admin.client, "admin_bookings_page", { p_paid_from: paidDay, p_paid_to: paidDay, p_page_size: 1 });
   check(money.totals.charged_count >= 1 && money.totals.charged_cents >= 8000, "3b. the bookings page's money totals (the paid Experience)");
   const attention = await read(admin.client, "admin_bookings_page", { p_with_attention: true, p_page_size: 1 });
   check(attention.attention !== null && Object.keys(attention.attention).length === 5, "3c. ...and its five \"needs attention\" counts");

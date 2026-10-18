@@ -51,6 +51,7 @@ export interface JobOptions {
 
 // Idempotency keys: the booking, the action and a 10-minute window
 // (CLAUDE.md: never fixed per record).
+// real time: Stripe's idempotency-key window, on Stripe's clock.
 const jobKey = (bookingId: string, action: string) => `booking:${bookingId}:${action}:${Math.floor(Date.now() / 600_000)}`;
 
 async function move(db: SupabaseClient, id: string, from: string, update: Record<string, unknown>) {
@@ -228,6 +229,7 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
     const refunded = await refundInFull(stripe, b);
     return (await move(db, b.id, "confirmed", {
       status: "cancelled", cancelled_by: "system", cancel_reason: "The session was cancelled.", status_changed_by: "system",
+      // real time: when it happened (a record).
       refunded_cents: refunded, refunded_at: new Date().toISOString(),
     })) ? "cancelled with its session, refunded in full" : null;
   });
@@ -272,6 +274,7 @@ const PAYOUT_FIELDS =
   `problem_reported_at, problem_resolution, provider_id, provider:providers(stripe_account_id, status), ${FINANCES}`;
 
 async function hold(db: SupabaseClient, b: PayoutBooking, reason: string, failure?: string) {
+  // real time: when it happened (a record).
   const at = new Date().toISOString();
   const update: Record<string, unknown> = { payout_hold: reason, payout_held_at: at };
   if (failure) Object.assign(update, { payout_failed_at: at, payout_failure: logText(failure, 500) });

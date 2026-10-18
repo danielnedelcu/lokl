@@ -1,7 +1,7 @@
 import { atlantaDate, atlantaTime } from "../support/data";
 import { signIn } from "../support/auth";
 import { expect, stopAtStripe, test } from "../support/fixtures";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 // Journey 2: a customer books a Service from its free times
 // (docs/design/service-availability.md): Instant ones are paid at once;
@@ -21,6 +21,35 @@ async function openPanel(page: Page, slug: string, title: string) {
   return dialog;
 }
 
+/**
+ * Chooses the day `ahead` days from today in Atlanta, by keyboard (to the
+ * next week first if it's there), and returns its date ("2026-10-21").
+ * The first day with times depends on the hour: with 9 to 5 hours and a
+ * day's notice, between 3 and 4 PM it has only one or two (found
+ * 2026-10-18), and late on a Friday that day is a Saturday, the week's
+ * last. Three days ahead always has the whole day's times.
+ */
+async function chooseDayAhead(page: Page, dialog: Locator, ahead = 3) {
+  const at = new Date(Date.now() + ahead * 864e5);
+  const date = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(at);
+  const long = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York" }).format(at);
+  const dayButton = dialog.getByRole("button", { name: new RegExp(`^${long}, `) });
+  // Once the panel has settled (its first day's times are shown): while it
+  // opens, it moves focus itself, and a key pressed then lands elsewhere.
+  await expect(dialog.getByRole("radiogroup", { name: /^Times on / }).getByRole("radio").first()).toBeVisible();
+  const press = async (button: Locator) => {
+    await expect(async () => {
+      await button.focus();
+      await expect(button).toBeFocused({ timeout: 500 });
+    }).toPass();
+    await page.keyboard.press("Enter");
+  };
+  if (!(await dayButton.isVisible())) await press(dialog.getByRole("button", { name: "Next week" }));
+  await press(dayButton);
+  await expect(dayButton).toHaveAttribute("aria-pressed", "true");
+  return date;
+}
+
 test("book an Instant Service by keyboard: a day, a time, details, then payment @phone @zones", async ({ page, context, data }) => {
   const customer = await data.user("customer");
   const owner = await data.user("owner");
@@ -37,7 +66,9 @@ test("book an Instant Service by keyboard: a day, a time, details, then payment 
 
   // The first day with times is chosen, and says how many it has.
   const chosenDay = dialog.getByRole("button", { pressed: true });
-  await expect(chosenDay).toHaveAccessibleName(/, \d+ times$/);
+  await expect(chosenDay).toHaveAccessibleName(/, \d+ times?$/);
+  // A day with the whole day's times, whatever the hour now.
+  await chooseDayAhead(page, dialog);
   // Times are Atlanta's, and the group says so.
   const times = dialog.getByRole("radiogroup", { name: /^Times on .+, Atlanta time \(ET\)$/ });
   await expect(times.getByRole("radio").first()).toBeVisible();
@@ -86,6 +117,7 @@ test("request an Approve Service; a time taken meanwhile sends the customer back
   await signIn(context, customer.email, customer.password);
 
   const dialog = await openPanel(page, listing.slug, listing.title);
+  const day = await chooseDayAhead(page, dialog);
   const times = dialog.getByRole("radiogroup", { name: /^Times on / });
   await times.locator("label").first().click();
   const held = dialog.getByText("Your card is held, not charged, until").first();
@@ -94,12 +126,8 @@ test("request an Approve Service; a time taken meanwhile sends the customer back
   await dialog.getByRole("button", { name: "Continue" }).click();
   await dialog.getByLabel("Your name").fill("Sam Customer");
 
-  // Someone else books that time first.
-  const { data: slots } = await data.env.db.rpc("service_slots", {
-    p_listing_id: listing.id,
-    p_from: new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date()),
-    p_to: new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(Date.now() + 7 * 864e5)),
-  });
+  // Someone else books that time (the chosen day's first) first.
+  const { data: slots } = await data.env.db.rpc("service_slots", { p_listing_id: listing.id, p_from: day, p_to: day });
   const first = (slots as { starts_at: string }[])[0]!.starts_at;
   await data.heldRequest(someoneElse, listing.id, new Date(first).toISOString());
 
@@ -215,6 +243,7 @@ test("two quick presses on a busy page: focus and selection both move two times 
   };
 
   const dialog = await openPanel(page, listing.slug, listing.title);
+  await chooseDayAhead(page, dialog);
   const times = dialog.getByRole("radiogroup", { name: /^Times on / });
   await expect(times.getByRole("radio").nth(3)).toBeVisible();
   for (let round = 0; round < 4; round++) {

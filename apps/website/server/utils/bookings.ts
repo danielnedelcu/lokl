@@ -218,6 +218,7 @@ export async function startServiceCheckout(ctx: CheckoutContext, input: ServiceB
     p_customer_phone: input.phone ?? null,
     p_customer_notes: input.notes ?? null,
     p_address: input.address ?? null,
+    // real time: Stripe's Checkout expiry, on Stripe's clock (at least 30 minutes ahead).
     p_reserved_until: new Date(Date.now() + CHECKOUT_WINDOW_MS).toISOString(),
     p_checkout_key: input.checkoutKey,
     p_request_hash: input.checkoutKey ? checkoutRequestHash("service", input) : undefined,
@@ -242,6 +243,7 @@ export async function startExperienceCheckout(ctx: CheckoutContext, input: Exper
     p_customer_email: ctx.customer.email,
     p_customer_phone: input.phone ?? null,
     p_customer_notes: input.notes ?? null,
+    // real time: Stripe's Checkout expiry, on Stripe's clock (at least 30 minutes ahead).
     p_reserved_until: new Date(Date.now() + CHECKOUT_WINDOW_MS).toISOString(),
     p_checkout_key: input.checkoutKey,
     p_request_hash: input.checkoutKey ? checkoutRequestHash("experience", input) : undefined,
@@ -298,6 +300,7 @@ export async function syncCheckoutSession(db: SupabaseClient, stripe: Stripe, se
     // expires with the reservation). Give the money back.
     if (["expired", "cancelled"].includes(booking.status) && pi.status === "succeeded" && !booking["refunded_at"]) {
       await stripe.refunds.create({ payment_intent: pi.id }, { idempotencyKey: idempotencyKey(booking.id, "late-refund") });
+      // real time: when it happened (a record).
       await bookingRecords(db).update({ stripe_payment_intent_id: pi.id, refunded_cents: booking.total_cents, refunded_at: new Date().toISOString() }).eq("id", booking.id);
       return "refunded: paid after the booking had lapsed";
     }
@@ -312,6 +315,7 @@ export async function syncCheckoutSession(db: SupabaseClient, stripe: Stripe, se
       status: "requested",
       status_changed_by: "stripe",
       stripe_payment_intent_id: pi.id,
+      // real time: the provider's answer deadline, from when the payment is recorded (stored, then enforced).
       respond_by: new Date(Date.now() + RESPOND_WITHIN_MS).toISOString(),
     });
     return ok ? "requested" : "ignored: changed meanwhile";
@@ -358,6 +362,7 @@ export async function recordDispute(db: SupabaseClient, stripe: Stripe, disputeI
   const booking = piId ? await bookingBy(db, "stripe_payment_intent_id", piId) : null;
   if (!booking) return "ignored: no booking for this dispute";
   const closed = ["won", "lost", "warning_closed"].includes(dispute.status);
+  // real time: when it happened (a record).
   const now = new Date().toISOString();
   const update: Record<string, unknown> = {
     stripe_dispute_id: dispute.id,
@@ -445,6 +450,7 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
       if (finished) return `${finished}: finished from Stripe`;
       const refunded = Math.min(fresh.amount_refunded, booking.total_cents);
       const { error } = await bookingRecords(db)
+        // real time: when it happened (a record).
         .update({ refunded_cents: refunded, refunded_at: new Date().toISOString() })
         .eq("id", booking.id).lt("refunded_cents", refunded);
       if (error) throw new Error(error.message);

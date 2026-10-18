@@ -45,8 +45,9 @@ test("late at night and in the clock-change week, every page shows the Atlanta t
   // 10:00 AM in Atlanta on the Monday after the next clock change.
   const change = nextClockChange(3);
   const afterChange = zonedToInstant({ date: day(Date.parse(`${change}T12:00:00Z`) + 864e5), time: "10:00" }, ATL);
-  // 30 hours out: inside 48 hours, so a booking made now is free to cancel for its first hour.
-  const soon = new Date(Date.now() + 30 * 3600_000).toISOString();
+  // 30 hours out by the database's clock (which decides): inside 48 hours,
+  // so a booking made now is free to cancel for its first hour.
+  const soon = new Date(data.dbNow() + 30 * 3600_000).toISOString();
   const lateSession = await data.session(listing.id, late, 4);
   await data.session(listing.id, afterChange, 4);
   const soonSession = await data.session(listing.id, soon, 4);

@@ -46,6 +46,7 @@ export interface CancelMeaning {
   resolve_problem?: "true";
 }
 
+// real time: Stripe's idempotency-key window, on Stripe's clock.
 const key = (bookingId: string, action: string) => `booking:${bookingId}:${action}:${Math.floor(Date.now() / 600_000)}`;
 
 async function read(db: SupabaseClient, id: string) {
@@ -230,6 +231,7 @@ export async function customerCancel(db: SupabaseClient, stripe: Stripe, booking
       const refunded = await refundInFull(stripe, b, meaning);
       return (await move(db, b.id, "confirmed", {
         status: "cancelled", cancelled_by: "customer", status_changed_by: "customer",
+        // real time: when it happened (a record).
         refunded_cents: refunded, refunded_at: new Date().toISOString(),
       })) ? "cancelled, refunded in full" : "already cancelled";
     }
@@ -247,11 +249,13 @@ export async function providerCancel(db: SupabaseClient, stripe: Stripe, booking
   const lost = await finishLostCancel(db, stripe, b);
   if (lost) return lost;
   if (b.status !== "confirmed") throw new BookingError("Only a confirmed booking can be cancelled. Decline a request instead.", 409);
+  // real time: a rule the database checks too (a started booking can't be cancelled).
   if (b.starts_at && Date.now() >= Date.parse(b.starts_at)) throw new BookingError("This booking has started, so it can't be cancelled.", 409);
   await saveCancelReason(db, b.id, "confirmed", reason);
   const refunded = await refundInFull(stripe, b, { lokl_action: "cancel", cancelled_by: "provider" });
   return (await move(db, b.id, "confirmed", {
     status: "cancelled", cancelled_by: "provider", cancel_reason: reason, status_changed_by: "provider",
+    // real time: when it happened (a record).
     refunded_cents: refunded, refunded_at: new Date().toISOString(),
   })) ? "cancelled, refunded in full" : "already cancelled";
 }
@@ -286,6 +290,7 @@ export async function cancelSession(db: SupabaseClient, stripe: Stripe, sessionI
     const refunded = await refundInFull(stripe, b, { lokl_action: "cancel_session", cancelled_by: by });
     const moved = await move(db, b.id, "confirmed", {
       status: "cancelled", cancelled_by: by, cancel_reason: reason, status_changed_by: by,
+      // real time: when it happened (a record).
       refunded_cents: refunded, refunded_at: new Date().toISOString(),
     });
     done.push(`${b.id}: ${moved ? "cancelled, refunded in full" : "already cancelled"}`);
@@ -295,6 +300,7 @@ export async function cancelSession(db: SupabaseClient, stripe: Stripe, sessionI
 
 /** "The provider didn't show up": recorded once, and the payout held at once. */
 export async function reportProblem(db: SupabaseClient, bookingId: string, note: string) {
+  // real time: when it happened (a record).
   const now = new Date().toISOString();
   const { data, error } = await bookingRecords(db)
     .update({ problem_reported_at: now, problem_note: note, payout_hold: "problem_reported", payout_held_at: now })

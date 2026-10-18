@@ -328,6 +328,12 @@ three are done: explicit API grants, the build secrets check, and
   workers; fix before parallelising.** Found 2026-10-11: on four workers,
   test providers collided on `providers_stripe_account_id_key`. CI runs one
   worker today.
+- [ ] If sweep and CI ever clash on the shared Stripe test account, give the
+  sweep its own connected test account in the sandbox. (The Clock sweep
+  skips its journeys while a CI run is queued or in progress, but a push
+  that starts CI during the sweep's journeys can still overlap them;
+  accepted 2026-10-18: a rare overlap fails visibly and is re-run, better
+  than making CI wait.)
 - [ ] **A reload after a lost reply can hide a date.** Within 31 minutes of a
   lost reply, the booking page's spots still count the customer's own unpaid
   attempt as taken, so a date it filled shows as full and can't be chosen,
@@ -466,20 +472,28 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   before every `supabase start`, and `db:push` failing if hosted moves.
   (`database.ts` states hosted's PostgREST 14.5, checked on hosted by
   `db:types`.)
-- [ ] **Tests that depend on the time of day** have failed twice at
-  particular hours (for example, 2026-10-16: the search test's first
-  weekend night fell inside the notice late on a Friday in Atlanta).
-  Plan a fixed "now" for them: Playwright's
-  clock for the e2e journeys, and `p_now` (as `service_slots_at` takes)
-  for the slot functions in the app tests, so they don't depend on when
-  they run.
-  - [x] November's repeated hour (2026-10-18): slots in it are the first
-    (daylight-time) ones, as designed, with a pgTAP check; a time in that
-    hour is labelled EDT or EST wherever it's shown.
-  - [ ] The rest of the plan (approved 2026-10-18): fixtures that pass at
-    any hour, `now` parameters for search and display, Playwright's clock
-    in the browser only, and a clock sweep at risky instants, also run
-    nightly in CI.
+- [x] **Tests that depend on the time of day** (done 2026-10-18). Each
+  failure was recreated first, then fixed:
+  - Journey 2 chooses a day three days ahead (its keyboard and quick-press
+    tests failed from 3 to 4 PM; "a time taken meanwhile" late on a
+    Friday). The product was right: the panel offers the next free day.
+  - `public-browse` 2b and `rpc-shapes` 3b take the day from the
+    database's own time (they failed across Atlanta midnight); journey 19
+    takes "30 hours out" from the database's clock (`data.dbNow()`).
+  - November's repeated hour: slots are the first (daylight-time) ones, as
+    designed, and labelled EDT or EST wherever shown (this also fixed
+    `service_open_days` 3a, which failed in the clock-change week).
+  - Search ordered by a rough first time once a stored one had passed:
+    open days now keep their start times, and search takes the earliest
+    at or after now plus the notice (`search_exact_first_time`).
+  - `check:clock` (CI): server utilities take `now` as a parameter, or say
+    why they use the real time. Browse takes `now`.
+  - The clock sweep: `npm run test:clock` (the time rules at eight fixed
+    instants, two device zones), and the scheduled Clock sweep workflow,
+    which runs the real-clock tests at the risky times of day and nightly
+    across midnight, never on a push.
+  - Journeys 27 and 28, `booking-emails` and `booking-checkout` couldn't be
+    made to fail by the clock; left as they are.
 - [ ] Run the end-to-end tests in WebKit (Safari's engine) too, against the
   staging site: it needs HTTPS. Production cookies are Secure, and WebKit
   refuses Secure cookies on plain-http localhost (Chromium accepts them), so
@@ -687,7 +701,6 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     bookings, contact details, addresses and login when they ask lokl to
     delete their data. (Today a login with bookings can't be deleted, and
     the logs can only be changed by a migration; see `append_only_logs`.)
-
 ## Notifications
 
 - [ ] Booking reminder emails the day before, to customer and provider

@@ -841,7 +841,19 @@ address, `NUXT_EMAIL_MODE` is `off`, no reply-to is set, the address isn't on
 the allowlist (`allowlist` mode), or a new-request email would arrive after
 the request was answered. Sends start straight after each route, webhook or
 job (`kickBookingEmails`), and the `send-emails` job sweeps the rest. The
-admin can retry a failed or skipped email.
+admin can retry a failed or skipped email. Retry times and the 48 hours
+count from the sender's `now` (the run's start, or a fixed time a test
+passes); `sent_at` is the real time it was sent.
+
+**The clock in this code** (`check:clock`, 2026-10-18): each read is a
+`now` parameter defaulting to the real time (`checkAcceptable`,
+`customerCancelOutcome`, the booking lists, the email sender, the jobs'
+`opts.now`), or the real time on purpose, marked `// real time:`: records
+of when something happened (`refunded_at`, `accepted_at`, payout holds,
+disputes), Stripe's clock (idempotency-key windows, Checkout expiry from
+`reserved_until`), the provider's answer deadline, and rules the database
+checks too (a started booking can't be cancelled; a request can be
+accepted until it starts).
 
 Provider account emails (paused or active again) are a separate outbox,
 `provider_emails`, written by `admin_set_provider_status`

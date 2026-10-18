@@ -201,6 +201,16 @@ export class TestData {
       alter table public.bookings enable trigger bookings_guard;`]);
   }
 
+  /**
+   * The database's clock, in milliseconds: for a time the database will
+   * compare with its own now() (a notice, a free-cancellation hour), so a
+   * difference between this machine's clock and the database's can't move
+   * it across a line (2026-10-18).
+   */
+  dbNow(): number {
+    return Date.parse(execFileSync("psql", [this.env.dbUrl, "-qAt", "-c", "select to_json(now())#>>'{}'"], { encoding: "utf8" }).trim());
+  }
+
   /** Test-only: a problem report resolved `days` days ago (triggers off, local database). */
   resolvedDaysAgo(reportId: string, days: number) {
     execFileSync("psql", [this.env.dbUrl, "-q", "-c", `

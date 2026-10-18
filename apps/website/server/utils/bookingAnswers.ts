@@ -38,6 +38,7 @@ const STRIPE_DOWN = "Stripe didn't respond, so nothing changed. Please try again
 // window, so a double click or a retry acts once, but a later try isn't
 // handed a stored error (CLAUDE.md).
 const answerKey = (bookingId: string, action: string) =>
+  // real time: Stripe's idempotency-key window, on Stripe's clock.
   `booking:${bookingId}:${action}:${Math.floor(Date.now() / 600_000)}`;
 
 async function read(db: SupabaseClient, id: string) {
@@ -92,6 +93,7 @@ export async function finishAccept(
   if (b.status === "confirmed") return "already accepted";
 
   let refusal: BookingError | null = null;
+  // real time: a rule the database checks too (a request can be accepted until it starts).
   if (b.status === "requested" && b.starts_at && Date.parse(b.starts_at) > Date.now()) {
     try {
       const moved = await move(db, b.id, "requested", {
@@ -113,9 +115,11 @@ export async function finishAccept(
   const refunded = await refundInFull(stripe, now as never);
   if (now.status === "requested") {
     await move(db, b.id, "requested", {
+      // real time: when it happened (a record).
       status: "expired", status_changed_by: "system", refunded_cents: refunded, refunded_at: new Date().toISOString(),
     });
   } else if ((now.refunded_cents as number) < refunded) {
+    // real time: when it happened (a record).
     await bookingRecords(db).update({ refunded_cents: refunded, refunded_at: new Date().toISOString() }).eq("id", b.id);
   }
   throw refusal ?? new BookingError(ALREADY_ANSWERED, 409);
@@ -150,6 +154,7 @@ export async function acceptRequest(db: SupabaseClient, stripe: Stripe, bookingI
   try {
     intent = await stripe.paymentIntents.capture(
       b.stripe_payment_intent_id,
+      // real time: when it happened (a record).
       { metadata: { booking_id: b.id, lokl_action: "accept", accepted_at: new Date().toISOString() } },
       { idempotencyKey: answerKey(b.id, "capture") },
     );

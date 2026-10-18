@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { browsePublicListings, loadPublicMarket, PAGE_SIZE } from "../../../apps/website/server/utils/publicListings";
+import { addDays } from "../../../packages/ui/app/utils/zonedTime";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -75,10 +76,21 @@ try {
 
   const inArea = await browsePublicListings(visitor, { market, kind: "experience", area: other });
   check(inArea?.total === 1 && inArea.items[0]?.id === soonest, "2a. an area filter finds the one listing there");
-  const d = (days: number) => new Date(Date.now() + days * 864e5).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-  const dated = await browsePublicListings(visitor, { market, kind: "experience", from: d(1), to: d(2) });
+  // The range is the session's own day in Atlanta, read back from the
+  // database (whose clock wrote it), and the next: a day worked out from
+  // this process's clock is a day late if a run crosses Atlanta midnight
+  // between the two (found 2026-10-18).
+  const { data: session, error: sessionError } = await db.from("experience_sessions").select("starts_at").eq("listing_id", soonest).single();
+  if (sessionError) throw new Error(sessionError.message);
+  const sessionDay = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(session.starts_at));
+  const dated = await browsePublicListings(visitor, { market, kind: "experience", from: sessionDay, to: addDays(sessionDay, 1) });
   check(dated?.total === 1 && dated.items[0]?.id === soonest, "2b. a date range finds the one listing with a session then");
   check((await browsePublicListings(visitor, { market, kind: "experience", category: "no-such-category" })) === null, "2c. an unknown category is not found");
+  // A fixed "now" (2026-10-18): browse takes it for which sessions are still
+  // to come. Two days on, the soonest listing's only session has passed.
+  const twoDaysOn = await browsePublicListings(visitor, { market, kind: "experience", area: other, now: Date.parse(session.starts_at) + 864e5 });
+  check(twoDaysOn?.items[0]?.id === soonest && twoDaysOn.items[0].nextSessionAt === null && inArea?.items[0]?.nextSessionAt === new Date(session.starts_at).toISOString(),
+    "2e. given a fixed now, a card shows only sessions still to come then");
   check(page1?.items.every((c) => !("sessionTimes" in c) && !("areaIds" in c)), "2d. cards carry no internal fields");
 
   // 3. The market page's count per category.

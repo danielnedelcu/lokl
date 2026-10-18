@@ -1,0 +1,148 @@
+# The clock sweep (decided 2026-10-18): the tests that use the real clock,
+# run at the times of day that have broken them or could, and nightly
+# across Atlanta midnight. The database's now() can't be moved, so these
+# times are reached by running then. `npm run test:clock` (the time rules at
+# fixed instants) runs too.
+#
+# Scheduled and by hand only: it never runs on a push, so it never blocks
+# one. A failure shows in the Actions tab like any run; read each job's
+# conclusion there (CLAUDE.md, "CI results").
+#
+# CI's stripe and e2e jobs share the Stripe test account with this sweep,
+# and runs that overlapped have clashed (docs/TODO.md). This workflow can't
+# join CI's concurrency group without risking cancelling a push's queued
+# job, so just before its end-to-end journeys (its only Stripe step) it
+# looks for a CI run that's queued or in progress, and skips the journeys
+# if there is one, saying so in the run's summary and as a warning.
+#
+# GitHub's schedule is in UTC and often starts late, so each time is asked
+# for about 15 minutes early, once for Atlanta's daylight time (UTC-4) and
+# once for standard time (UTC-5); the run says which Atlanta time it began.
+
+name: Clock sweep
+
+on:
+  schedule:
+    # Friday about 3:15 PM in Atlanta: a day's notice leaves one or two times.
+    - cron: "15 19 * * 5"
+    - cron: "15 20 * * 5"
+    # Saturday about 11:15 PM: the week's last day, nearly over.
+    - cron: "15 3 * * 0"
+    - cron: "15 4 * * 0"
+    # Sunday about 8:15 AM: a new week, the notice crossing the first times.
+    - cron: "15 12 * * 0"
+    - cron: "15 13 * * 0"
+    # Every night about 11:45 PM: the run crosses Atlanta midnight.
+    - cron: "45 3 * * *"
+    - cron: "45 4 * * *"
+  workflow_dispatch:
+
+# One sweep at a time; a late one doesn't cancel the one running.
+concurrency:
+  group: clock-sweep
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # To see whether a CI run is using the Stripe sandbox (below).
+  actions: read
+
+env:
+  SUPABASE_CLI_VERSION: 2.120.0
+  SUPABASE_EXCLUDE: studio,imgproxy,edge-runtime,logflare,vector,supavisor
+
+jobs:
+  sweep:
+    name: sweep
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: stripe-sandbox
+    steps:
+      - name: The Atlanta time now
+        run: TZ=America/New_York date "+Started at %a %Y-%m-%d %H:%M %Z in Atlanta"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: The time rules at fixed instants
+        run: npm run test:clock
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - name: Hosted's service versions
+        run: node scripts/service-versions.mjs
+      - name: Start the local Supabase stack
+        run: supabase start -x "$SUPABASE_EXCLUDE"
+      - name: Database tests (pgTAP), now
+        run: npm run db:test
+      - name: App tests that have depended on the time, now
+        run: |
+          for t in public-browse search-availability rpc-shapes; do
+            TZ=Asia/Tokyo npx tsx --import ./supabase/tests/app/_rowLimitCheck.mts --import ./supabase/tests/app/_safeOutput.mts "supabase/tests/app/$t.test.mts"
+          done
+      - name: Check the Stripe sandbox key
+        id: key
+        env:
+          KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::notice::No STRIPE_SANDBOX_SECRET_KEY in the stripe-sandbox environment: the end-to-end journeys are skipped."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$KEY" in
+            rk_test_*|sk_test_*) echo "run=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::STRIPE_SANDBOX_SECRET_KEY isn't a test-mode key. Only a Lokl sandbox test key belongs here."; exit 1 ;;
+          esac
+      - name: Install Chromium for Playwright
+        if: steps.key.outputs.run == 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Is a CI run using the Stripe test account?
+        id: ci
+        if: steps.key.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          busy=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --limit 50 --json databaseId,status,url \
+            --jq '[.[] | select(.status != "completed")] | map("\(.databaseId) (\(.status)): \(.url)") | join("\n")')
+          if [ -n "$busy" ]; then
+            echo "clear=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=End-to-end journeys skipped::A CI run is queued or in progress, and the two share the Stripe test account."
+            {
+              echo "## End-to-end journeys skipped"
+              echo
+              echo "A CI run was queued or in progress when this sweep reached its end-to-end journeys, and the two share the Stripe test account (overlapping runs have clashed), so the journeys didn't run this time. Everything before them did."
+              echo
+              echo "CI runs that weren't finished:"
+              echo
+              echo "$busy" | sed 's/^/- /'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "clear=true" >> "$GITHUB_OUTPUT"
+            echo "No CI run queued or in progress: the end-to-end journeys run." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: End-to-end journeys that have depended on the time, now
+        if: steps.key.outputs.run == 'true' && steps.ci.outputs.clear == 'true'
+        env:
+          NUXT_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+        run: >-
+          npm run test:e2e --
+          e2e/journeys/2-service-request.spec.ts
+          e2e/journeys/19-late-night-and-clock-change.spec.ts
+          e2e/journeys/26-header-search.spec.ts
+          e2e/journeys/27-availability.spec.ts
+          e2e/journeys/28-search-availability.spec.ts
+      - name: The Atlanta time at the end
+        if: always()
+        run: TZ=America/New_York date "+Ended at %a %Y-%m-%d %H:%M %Z in Atlanta"
+      - name: Keep the traces of a failure
+        if: failure() && steps.key.outputs.run == 'true' && steps.ci.outputs.clear == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: clock-sweep-results
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
+          retention-days: 7

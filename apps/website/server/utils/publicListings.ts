@@ -114,9 +114,10 @@ interface Row {
 const toArea = (a: { name: string; kind: AreaKind }): PublicArea => ({ name: a.name, kind: a.kind });
 const toPhoto = (p: Row["photos"][number]): PublicPhoto => ({ path: p.storage_path, cardPath: p.card_path, alt: p.alt_text });
 
-function toCard(r: Row): PublicListingCard & { areaIds: string[]; sessionTimes: number[]; createdAt: string } {
+/** `now` (milliseconds): which sessions are still to come. Loaders take it, defaulting to the real time, so tests can fix it. */
+function toCard(r: Row, now: number): PublicListingCard & { areaIds: string[]; sessionTimes: number[]; createdAt: string } {
   const photos = [...r.photos].sort((a, b) => a.position - b.position);
-  const sessionTimes = r.sessions.map((s) => Date.parse(s.starts_at)).filter((t) => t > Date.now()).sort((a, b) => a - b);
+  const sessionTimes = r.sessions.map((s) => Date.parse(s.starts_at)).filter((t) => t > now).sort((a, b) => a - b);
   const travel = r.travel.map((t) => t.area).filter((a): a is NonNullable<typeof a> => !!a);
   return {
     id: r.id,
@@ -147,7 +148,7 @@ function stripInternal(c: ReturnType<typeof toCard>): PublicListingCard {
 }
 
 /** One visible listing, or null (anything not public reads as not found). */
-export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, slug: string): Promise<PublicListing | null> {
+export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, slug: string, now = Date.now()): Promise<PublicListing | null> {
   const { data, error } = await db
     .from("listings")
     .select(LISTING_SELECT)
@@ -158,10 +159,10 @@ export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, s
   if (error) throw new Error(error.message);
   if (!data) return null;
   const r = data as unknown as Row;
-  const card = toCard(r);
+  const card = toCard(r, now);
   // Spots left per upcoming session (session_spots_left counts bookings and
   // unexpired reservations the visitor can't read).
-  const upcoming = r.sessions.filter((s) => Date.parse(s.starts_at) > Date.now()).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const upcoming = r.sessions.filter((s) => Date.parse(s.starts_at) > now).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const spots = await Promise.all(upcoming.map(async (s) => {
     const { data: left } = await db.rpc("session_spots_left", { p_session_id: s.id });
     return { id: s.id, startsAt: new Date(s.starts_at).toISOString(), spotsLeft: (left as number | null) ?? 0 };
@@ -186,13 +187,13 @@ export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, s
     photos: [...r.photos].sort((a, b) => a.position - b.position).map(toPhoto),
     sessions: spots,
     provider: r.hostedBy ? toProvider(r.hostedBy) : null,
-    moreFromProvider: r.hostedBy ? await moreFromProvider(db, r.hostedBy.id, r.id) : { items: [], total: 0 },
+    moreFromProvider: r.hostedBy ? await moreFromProvider(db, r.hostedBy.id, r.id, now) : { items: [], total: 0 },
     stars: toStars(r.ratings),
   };
 }
 
 /** Up to three of the provider's other visible listings, newest first, and how many there are. */
-async function moreFromProvider(db: SupabaseClient, providerId: string, exceptId: string) {
+async function moreFromProvider(db: SupabaseClient, providerId: string, exceptId: string, now: number) {
   const { data, error, count } = await db
     .from("listings")
     .select(LISTING_SELECT, { count: "exact" })
@@ -202,7 +203,7 @@ async function moreFromProvider(db: SupabaseClient, providerId: string, exceptId
     .order("published_at", { ascending: false })
     .limit(3);
   if (error) throw new Error(error.message);
-  return { items: ((data ?? []) as unknown as Row[]).map((r) => stripInternal(toCard(r))), total: count ?? 0 };
+  return { items: ((data ?? []) as unknown as Row[]).map((r) => stripInternal(toCard(r, now))), total: count ?? 0 };
 }
 
 /**
@@ -210,7 +211,7 @@ async function moreFromProvider(db: SupabaseClient, providerId: string, exceptId
  * provider is suspended, or has no visible listing: the public read rule
  * returns nothing then).
  */
-export async function loadPublicProvider(db: SupabaseClient, slug: string): Promise<PublicProviderPage | null> {
+export async function loadPublicProvider(db: SupabaseClient, slug: string, now = Date.now()): Promise<PublicProviderPage | null> {
   const { data, error } = await db.from("providers").select(PROVIDER_PUBLIC).eq("slug", slug).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
@@ -224,7 +225,7 @@ export async function loadPublicProvider(db: SupabaseClient, slug: string): Prom
     .order("published_at", { ascending: false })
     .limit(100);
   if (lErr) throw new Error(lErr.message);
-  const cards = ((rows ?? []) as unknown as Row[]).map((r) => stripInternal(toCard(r)));
+  const cards = ((rows ?? []) as unknown as Row[]).map((r) => stripInternal(toCard(r, now)));
   return { provider, stars: toStars(row.ratings), market: row.market, experiences: cards.filter((c) => c.kind === "experience"), services: cards.filter((c) => c.kind === "service") };
 }
 
@@ -240,11 +241,11 @@ async function byIds<T>(ids: string[], read: (chunk: string[]) => PromiseLike<{ 
 }
 
 /** Saved listings that are visible now, as visitors see them (the Saved page). */
-export async function loadSavedListingCards(db: SupabaseClient, ids: string[]) {
+export async function loadSavedListingCards(db: SupabaseClient, ids: string[], now = Date.now()) {
   const found = new Map<string, PublicListingCard & { market: PublicMarket }>();
   // bounded: at most IDS_PER_REQUEST ids
   const rows = await byIds<Row>(ids, (chunk) => db.from("listings").select(LISTING_SELECT).in("id", chunk).eq("status", "live"));
-  for (const r of rows) found.set(r.id, { ...stripInternal(toCard(r)), market: r.city });
+  for (const r of rows) found.set(r.id, { ...stripInternal(toCard(r, now)), market: r.city });
   return found;
 }
 
@@ -305,6 +306,8 @@ export interface BrowseQuery {
   page?: number;
   /** Cards per page (default PAGE_SIZE); guides show fewer. */
   pageSize?: number;
+  /** Milliseconds: which sessions are still to come (the real time by default; tests fix it). */
+  now?: number;
 }
 
 /**
@@ -366,7 +369,7 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
     // bounded: one browse page's ids (public_browse caps a page at 100)
     const { data, error } = await db.from("listings").select(LISTING_SELECT).in("id", ids).eq("status", "live");
     if (error) throw new Error(error.message);
-    const byId = new Map((data as unknown as Row[]).map((r) => [r.id, toCard(r)]));
+    const byId = new Map((data as unknown as Row[]).map((r) => [r.id, toCard(r, q.now ?? Date.now())]));
     cards = ids.map((id) => byId.get(id)).filter((c): c is ReturnType<typeof toCard> => !!c);
   }
 
