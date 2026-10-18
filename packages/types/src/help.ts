@@ -58,10 +58,23 @@ export const HELP_FACTS: Record<string, string> = {
   SUPPORT_REOPEN: `${SUPPORT_REOPEN_DAYS} days`,
 };
 
-/** "{{CANCEL_FREE_BEFORE}}" in an article becomes "48 hours"; an unknown name is listed, never left in. */
-export function fillHelpFacts(text: string): { text: string; unknown: string[] } {
+/**
+ * Facts known only when a page is served, not when the site is built: the
+ * information pages ask for them by these names, and the page supplies them
+ * (the Fees page reads the commission rates live; Contact the support
+ * address). The help tests accept these names.
+ */
+export const PAGE_FACTS = ["COMMISSION_SERVICE", "COMMISSION_EXPERIENCE", "SUPPORT_EMAIL"] as const;
+export type PageFact = (typeof PAGE_FACTS)[number];
+
+/**
+ * "{{CANCEL_FREE_BEFORE}}" in an article becomes "48 hours"; an unknown name
+ * is listed, never left in. `extra`: facts the page supplies (PAGE_FACTS).
+ */
+export function fillHelpFacts(text: string, extra: Partial<Record<PageFact, string>> = {}): { text: string; unknown: string[] } {
   const unknown: string[] = [];
   const filled = text.replace(/\{\{\s*([A-Z0-9_]+)\s*\}\}/g, (_m, name: string) => {
+    if (name in extra) return extra[name as PageFact]!;
     if (name in HELP_FACTS) return HELP_FACTS[name]!;
     unknown.push(name);
     return "";

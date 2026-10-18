@@ -318,6 +318,12 @@ Plain language on every screen, especially the website, where providers are smal
   `HELP_FACTS` (`@repo/types`, help.ts), adding the fact there from the
   code's constant. Link only to pages that exist. `npm run test:ui` checks
   it all; e2e journey 36 opens every article.
+- **Information pages** (`apps/website/content/pages/<slug>.md`, shown by
+  `InfoPageView` at `/<slug>`, 2026-10-18): the same Markdown and facts as
+  the Help centre, plus facts a page supplies when it's served
+  (`PAGE_FACTS`: the commission rates, the support address). State only
+  what lokl does; the tests fail on a claim of background checks,
+  insurance or response times that doesn't say lokl doesn't.
 - **Google Analytics** (website only, 2026-10-17): send events only through
   `useAnalytics().send(...)`, built by a function in `@repo/types`
   (`analytics.ts`) that returns only allowed keys: fixed words, public ids,

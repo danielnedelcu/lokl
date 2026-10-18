@@ -2,7 +2,7 @@
 
 ## Description
 
-lokl's commission per kind of listing, in basis points (1200 = 12%). Admin-editable. Each booking copies the rate in force when it's created, so changes never touch past bookings. Never deleted.
+lokl's commission per kind of listing, in basis points (1200 = 12%). Public (the Fees page). Admin-editable. Each booking copies the rate in force when it's created, so changes never touch past bookings. Never deleted.
 
 ## Columns
 

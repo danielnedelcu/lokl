@@ -153,11 +153,12 @@ select throws_ok(format($$ select create_service_booking(%L, %L, now() + interva
 -- COMMISSION RATES
 -- ---------------------------------------------------------------------------
 
--- 11. Signed-in users read them; signed-out visitors don't.
+-- 11. Signed-in users read them; signed-out visitors read the rates only
+-- (public since 2026-10-17, commission_rates_public), never who changed them.
 select tests.authenticate_as(:'owner');
 select is((select rate_bps from commission_rates where kind = 'service'), 1200, '11a. a provider reads the commission rates');
 select tests.authenticate_as_anon();
-select throws_ok('select count(*) from commission_rates', '42501', 'permission denied for table commission_rates', '11b. a signed-out visitor cannot');
+select throws_ok('select updated_by from commission_rates', '42501', 'permission denied for table commission_rates', '11b. a signed-out visitor reads the rates, never who changed them');
 
 -- 12. Only the admin changes them, and the change is stamped.
 select tests.authenticate_as(:'owner');

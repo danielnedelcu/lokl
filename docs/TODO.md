@@ -564,9 +564,10 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     (2026-10-17).
   - [x] Help centre at `/help`: 15 articles (6 for customers, 9 for hosts),
     search, facts from the code (2026-10-17).
-  - [ ] The policy and information pages: About, How lokl works, How
-    hosting works, Fees and payouts (12% Services, 20% Experiences),
-    Contact, Safety, Cancellation policy, Accessibility.
+  - [x] The information pages (2026-10-18): About, How lokl works, How
+    hosting works, Fees and payouts (rates read live), Contact, Safety,
+    Cancellation policy, Accessibility. Review the Accessibility page's
+    "What isn't right yet" whenever one of its gaps is closed.
   - [ ] Legal drafts, each "Draft: to be reviewed by a lawyer before
     launch": privacy policy, customer terms, provider terms. They use the
     placeholders "[lokl's legal name]" and "[address]" until the company

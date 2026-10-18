@@ -1,5 +1,5 @@
 import MarkdownIt from "markdown-it";
-import { fillHelpFacts } from "@repo/types";
+import { fillHelpFacts, type PageFact } from "@repo/types";
 
 // One Help centre article (docs/design/website-pages.md): a Markdown file in
 // apps/website/content/help/<customers|hosts>/<slug>.md, with front matter
@@ -96,4 +96,38 @@ export function searchHelp(articles: HelpArticle[], query: string): HelpArticle[
     return { a, score };
   });
   return scored.filter((s) => s.score > 0).sort((x, y) => y.score - x.score || x.a.title.localeCompare(y.a.title)).map((s) => s.a);
+}
+
+/** An information page (/about, /fees, …): content/pages/<slug>.md. */
+export interface InfoPage {
+  slug: string;
+  title: string;
+  summary: string;
+  updated: string;
+  html: string;
+  problems: string[];
+}
+
+/**
+ * An information page, read like an article (front matter: title, summary,
+ * updated). `facts`: what only the page knows when it's served
+ * (PAGE_FACTS: the commission rates, the support address). An absent one
+ * is a problem, never left blank.
+ */
+export function parseInfoPage(file: string, raw: string, facts: Partial<Record<PageFact, string>> = {}): InfoPage {
+  const problems: string[] = [];
+  const slug = file.replace(/^.*\//, "").replace(/\.md$/, "");
+  const m = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!m) problems.push(`${file}: no front matter`);
+  const front: Record<string, string> = {};
+  for (const line of (m?.[1] ?? "").split("\n")) {
+    const kv = line.match(/^([a-z]+):\s*(.*)$/);
+    if (kv) front[kv[1]!] = kv[2]!.replace(/^"(.*)"$/, "$1");
+  }
+  for (const key of ["title", "summary", "updated"]) if (!front[key]) problems.push(`${file}: no ${key}`);
+  if (front.updated && !/^\d{4}-\d{2}-\d{2}$/.test(front.updated)) problems.push(`${file}: updated isn't YYYY-MM-DD`);
+  const body = fillHelpFacts(m?.[2] ?? "", facts);
+  for (const u of body.unknown) problems.push(`${file}: no fact called {{${u}}}`);
+  if (/^#\s/m.test(body.text)) problems.push(`${file}: a top-level heading in the body (the title is the page's only one)`);
+  return { slug, title: front.title ?? "", summary: front.summary ?? "", updated: front.updated ?? "", html: md.render(body.text), problems };
 }
