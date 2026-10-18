@@ -166,15 +166,12 @@ export default defineNuxtConfig({
 
   modules: [
     "@nuxt/eslint",
-    "@nuxt/scripts",
     "@nuxt/test-utils",
     // '@nuxtjs/sanity',
     "@nuxtjs/seo",
     "@nuxtjs/supabase",
     "dayjs-nuxt",
     "lenis/nuxt",
-    "nuxt-gtag",
-    "nuxt-locomotive-scroll",
     "nuxt-swiper",
     "nuxt-zod",
   ],

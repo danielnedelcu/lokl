@@ -1,5 +1,6 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
 import type { ServerEvent } from "./provider";
+import { errorText } from "@repo/types";
 
 // The website's side of the booking emails: settings from runtimeConfig, and
 // a "send what's due now" that never holds up or fails the request that
@@ -28,7 +29,7 @@ export function kickBookingEmails(event: ServerEvent, bookingId?: string) {
         console.info(`[emails] sent ${r.sent.length}, retrying ${r.retrying.length}, failed ${r.failed.length}, skipped ${r.skipped.length}`);
       }
     })
-    .catch((e) => console.error("[emails] kick", e));
+    .catch((e) => console.error("[emails] kick", errorText(e)));
   // Let the response go first; on hosts that stop work after responding,
   // waitUntil keeps it running.
   (event as unknown as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil?.(run);

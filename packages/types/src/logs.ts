@@ -28,3 +28,19 @@ export function stripeErrorSummary(e: unknown): string {
   const what = [err.type ?? err.name ?? "Error", err.statusCode, err.code, err.requestId].filter(Boolean).join(" ");
   return logText(`${what}: ${err.message ?? String(e)}`, 1000);
 }
+
+/**
+ * One line for a server log about any failure (a database, Resend or other
+ * error): its name, status and code, then its message, details and hint,
+ * through logText. Never the error object itself, which can carry the
+ * row's values or the request that failed (decided 2026-10-17: server logs
+ * hold no contact details).
+ */
+export function errorText(e: unknown): string {
+  if (typeof e === "string") return logText(e, 1000);
+  if (e === null || e === undefined) return "Unknown error";
+  const err = e as { name?: string; status?: number; statusCode?: number; code?: string; message?: string; details?: string | null; hint?: string | null };
+  const what = [err.name && err.name !== "Error" ? err.name : null, err.status ?? err.statusCode, err.code].filter(Boolean).join(" ");
+  const words = [err.message ?? (e instanceof Object ? "" : String(e)), err.details, err.hint].filter(Boolean).join(" | ");
+  return logText([what, words].filter(Boolean).join(": ") || "Unknown error", 1000);
+}

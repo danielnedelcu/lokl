@@ -552,8 +552,12 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [ ] Send from `hello@hilokl.com`: sign-in emails (Supabase → Auth → SMTP
     sender) and booking emails (`NUXT_EMAIL_FROM`), instead of
     `lokl@innatetheory.com`.
-  - [ ] Reply-to `help@hilokl.com`, forwarding to `hilokl.help@gmail.com`
-    (`NUXT_EMAIL_REPLY_TO`, and `NUXT_PUBLIC_SUPPORT_EMAIL` on pages).
+  - [ ] Support address `help@hilokl.com` on a business email account for
+    hilokl.com (for example Google Workspace), **not a forward to a personal
+    Gmail** (decided 2026-10-17: the privacy policy names the provider that
+    holds support emails). Reply-to for booking emails
+    (`NUXT_EMAIL_REPLY_TO`) and the address on pages
+    (`NUXT_PUBLIC_SUPPORT_EMAIL`).
   - [ ] `NUXT_EMAIL_MODE=send` in production.
 - **Database**
   - [ ] Run `npm run schema:compare` before every deploy: zero differences

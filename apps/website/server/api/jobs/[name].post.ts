@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { serverSupabaseServiceRole } from "#supabase/server";
-import { logText } from "@repo/types";
+import { errorText, logText } from "@repo/types";
 
 // POST /api/jobs/:name: one timed booking job (server/utils/bookingJobs.ts).
 // Called by `npm run job -- <name>` in development and, after launch, by the
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
       // A batch was full: more waits for the next run (the admin sees it).
       more_waiting: r?.moreWaiting ?? false,
     });
-    if (logError) console.error("[jobs] couldn't log the run", logError.message);
+    if (logError) console.error("[jobs] couldn't log the run", errorText(logError));
   };
 
   try {

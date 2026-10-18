@@ -290,6 +290,14 @@ Plain language on every screen, especially the website, where providers are smal
 - The website is mobile-first. Many providers will manage their listings from a phone.
 - The admin app is desktop-first, with pages that still work on a tablet.
 - Both dashboards need a mobile menu before launch (already in the launch prep list).
+- **Smooth scrolling** (Lenis, website only) runs only when the visitor's
+  device doesn't ask to reduce motion (2026-10-17); otherwise the browser
+  scrolls as usual. Anything that animates follows the same setting.
+- **Nothing from other sites:** icons are bundled (Lucide, plus one each
+  from line-md and ph; a new icon set means installing its
+  `@iconify-json/<set>` package), fonts are self-hosted, and there are no
+  analytics. E2e journey 33 fails on any request outside the app and
+  lokl's Supabase project.
 - **Both dashboards' frame stays put** (2026-10-17): the top bar is
   `sticky`, and the sidebar fills the screen (`sticky`, `h-dvh`) with the
   email and "Sign out" at its bottom; a long menu scrolls inside it. The

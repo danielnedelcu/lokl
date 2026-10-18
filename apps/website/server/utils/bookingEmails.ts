@@ -15,7 +15,7 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { marketZone, type SupportCategory } from "@repo/types";
+import { errorText, marketZone, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
 import { renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
@@ -185,7 +185,7 @@ async function finish(db: SupabaseClient, table: OutboxTable, id: string, update
   // Resend's messages can quote an address; the row keeps only its id.
   if (typeof update.last_error === "string") update = { ...update, last_error: logText(update.last_error, 500) };
   const { error } = await db.from(table).update({ ...update, locked_at: null }).eq("id", id);
-  if (error) console.error("[emails] couldn't record the outcome", id, error.message);
+  if (error) console.error("[emails] couldn't record the outcome", id, errorText(error));
 }
 
 interface OutboxRow { id: string; kind: string; status: string; attempts: number; locked_at: string | null; created_at: string }
@@ -307,12 +307,12 @@ async function runOutbox<R extends OutboxRow>(
         }
       } catch (e) {
         // Couldn't even load or claim it: leave it for the next run.
-        console.error("[emails]", label, e);
+        console.error("[emails]", label, errorText(e));
         out.retrying.push(`${label}: ${(e as Error).message}`);
       }
     }
   } catch (e) {
-    console.error("[emails] send run failed", e);
+    console.error("[emails] send run failed", errorText(e));
   }
   return out;
 }

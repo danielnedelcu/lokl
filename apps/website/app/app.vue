@@ -1,7 +1,9 @@
 <template>
   <div>
     <NuxtRouteAnnouncer />
-    <VueLenis root :auto-raf="false" />
+    <!-- Smooth scrolling only for those who haven't asked their device to
+         reduce motion; otherwise the browser's own scrolling (WCAG 2.3.3). -->
+    <ClientOnly><VueLenis v-if="motion !== 'reduce'" root :auto-raf="false" /></ClientOnly>
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
@@ -15,6 +17,8 @@
 import Tempus from "tempus";
 
 const lenis = useLenis();
+// "reduce" when the device asks for less motion; follows a change of setting.
+const motion = usePreferredReducedMotion();
 
 let stop: (() => void) | undefined;
 

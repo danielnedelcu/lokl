@@ -10,7 +10,7 @@
 
 import { createHash } from "node:crypto";
 import type Stripe from "stripe";
-import { stripeErrorSummary } from "@repo/types";
+import { errorText, stripeErrorSummary } from "@repo/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExperienceBookingRequest, ServiceBookingRequest } from "@repo/types";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
@@ -60,7 +60,7 @@ export const idempotencyKey = (bookingId: string, action: string, attempt = 1) =
 // listing...); pass those on, and hide anything else.
 function fromDatabase(error: { message: string; code?: string }): BookingError {
   if (error.code === "23514" || error.code === "P0001") return new BookingError(error.message, 409);
-  console.error("[bookings] database", error);
+  console.error("[bookings] database", errorText(error));
   return new BookingError("Something went wrong on our side. Please try again.", 500);
 }
 

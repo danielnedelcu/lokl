@@ -1,4 +1,5 @@
 import type { ServerEvent } from "./provider";
+import { errorText } from "@repo/types";
 
 // The signed-out client for public routes, built from the site's public
 // Supabase settings. It never sees the visitor's cookies, so a signed-in
@@ -10,6 +11,6 @@ export function usePublicDb(_event: ServerEvent) {
 
 // A plain failure for public pages; the detail goes to the server log.
 export function publicFailure(error: unknown) {
-  console.error("[public api]", error);
+  console.error("[public api]", errorText(error));
   return createError({ statusCode: 500, statusMessage: "Something went wrong. Please try again in a moment." });
 }

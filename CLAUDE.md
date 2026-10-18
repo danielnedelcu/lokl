@@ -52,6 +52,8 @@ npm run build:secrets-check   # build both apps with sentinel secrets; fails if 
 npm run check:reads           # fails on a read of a growing table that could stop at the API's 1,000 rows
 npm run check:dates           # fails on a date or time that would follow the device's zone
 npm run check:rpc-json        # fails on a database function's JSON read without its schema (rpcJson)
+npm run check:logs            # fails on a server log that prints an error as it is (use errorText)
+npm run check:outside-hosts   # fails on an analytics or tracking host in the build (part of build:check)
 ```
 
 **Every date and time names its zone** (`docs/frontend.md`): a booking's,

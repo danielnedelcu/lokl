@@ -1,4 +1,5 @@
 import { serverSupabaseClient } from "#supabase/server";
+import { errorText } from "@repo/types";
 
 // GET /api/provider/bookings?tab=requests|upcoming|past&page=1: one page of
 // the signed-in provider's bookings, with every tab's count, filtered,
@@ -10,7 +11,7 @@ export default defineEventHandler(async (event) => {
   try {
     return await providerBookingsPage(await serverSupabaseClient(event), provider.id, tab, Number(q.page) || 1);
   } catch (e) {
-    console.error("[provider bookings]", e);
+    console.error("[provider bookings]", errorText(e));
     throw createError({ statusCode: 500, statusMessage: "Your bookings didn't load. Please try again." });
   }
 });

@@ -23,4 +23,9 @@ for (const app of apps) {
     console.error(`${app}: build failed\n${r.stderr.split("\n").filter((l) => /error/i.test(l)).slice(0, 20).join("\n")}`);
   }
 }
+// What was built mustn't contain an analytics or tracking host.
+if (!failed) {
+  const r = spawnSync(process.execPath, [new URL("check-outside-hosts.mjs", import.meta.url).pathname, ...apps], { stdio: "inherit" });
+  if (r.status !== 0) failed = true;
+}
 process.exit(failed ? 1 : 0);

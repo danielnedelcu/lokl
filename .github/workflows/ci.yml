@@ -60,6 +60,8 @@ jobs:
         run: npm run check:dates
       - name: Database functions' JSON read through its schema
         run: npm run check:rpc-json
+      - name: Server logs print no error as it is (errorText)
+        run: npm run check:logs
       - name: UI tests
         run: npm run test:ui
       - name: Email templates

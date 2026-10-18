@@ -1,4 +1,5 @@
 import { serverSupabaseServiceRole } from "#supabase/server";
+import { errorText } from "@repo/types";
 
 // GET /api/provider/reviews: the signed-in provider's reviews, with the
 // booking each is for (so the page links to where they reply) and whether
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) {
-    console.error("[provider reviews]", error);
+    console.error("[provider reviews]", errorText(error));
     throw createError({ statusCode: 500, statusMessage: "Your reviews didn't load. Please try again." });
   }
   type Row = {

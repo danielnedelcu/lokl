@@ -8,6 +8,9 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@iconify-json/line-md": "^1.2.16",
+    "@iconify-json/lucide": "^1.2.145",
+    "@iconify-json/ph": "^1.2.2",
     "@internationalized/date": "^3.12.4",
     "@internationalized/number": "^3.6.8",
     "@nuxt/fonts": "^0.14.0",

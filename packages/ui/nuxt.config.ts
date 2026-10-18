@@ -96,15 +96,19 @@ export default defineNuxtConfig({
     classSuffix: "",
   },
 
+  // Icons are bundled with the site, from the installed icon sets (Lucide,
+  // plus one each from line-md and ph), and never fetched from Iconify's
+  // API: visitors' browsers contact no other site for them (decided
+  // 2026-10-17; e2e journey 33 checks the requests pages make).
   icon: {
     clientBundle: {
       scan: true,
       sizeLimitKb: 0,
     },
-
     mode: "svg",
     class: "shrink-0",
-    fetchTimeout: 2000,
     serverBundle: "local",
+    fallbackToApi: false,
+    provider: "none",
   },
 });

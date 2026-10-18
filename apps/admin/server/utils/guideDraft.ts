@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   AI_DRAFT_RUNNING_MS,
   AI_DRAFTS_PER_HOUR,
+  errorText,
   findStalePhrases,
   guideBodySchema,
   guideSlugSchema,
@@ -198,7 +199,7 @@ export async function writeGuideDraft(
   if (lErr) throw failure("log draft", lErr);
   const finish = async (fields: Database["public"]["Tables"]["guide_ai_drafts"]["Update"]) => {
     const { error } = await db.from("guide_ai_drafts").update(fields).eq("id", log.id);
-    if (error) console.error("[admin api] couldn't update the AI draft log", error);
+    if (error) console.error("[admin api] couldn't update the AI draft log", errorText(error));
   };
   const fail = async (status: number, message: string, detail: string, usage?: Anthropic.Usage, reply?: Json) => {
     await finish({
@@ -236,7 +237,7 @@ export async function writeGuideDraft(
   } catch (e) {
     const { status, message: text } = modelErrorMessage(e);
     // The SDK's message, never its request headers (which hold the key).
-    console.error("[admin api] AI draft call failed", (e as { status?: number }).status, (e as Error).message);
+    console.error("[admin api] AI draft call failed", errorText(e));
     throw await fail(status, text, `${(e as { status?: number }).status ?? ""} ${(e as Error).message}`.trim());
   }
 
@@ -291,7 +292,7 @@ export async function writeGuideDraft(
     .select("*");
   const loggedReply = { ...reply, title, teaser, phrases } as unknown as Json;
   if (wErr) {
-    console.error("[admin api] AI draft didn't land", wErr);
+    console.error("[admin api] AI draft didn't land", errorText(wErr));
     throw await fail(500, MESSAGES.failed, `Not applied: ${wErr.message}`, usage, loggedReply);
   }
   if (!landed.length) throw await fail(409, MESSAGES.changed, "Not applied: the guide changed while the draft was being written", usage, loggedReply);
@@ -351,11 +352,11 @@ export async function restorePreviousDraft(db: Db, opts: { guideId: string; logI
   if (wErr) throw failure("restore draft", wErr);
   if (!rows.length) throw new GuideDraftError(409, MESSAGES.changedBefore);
   const { error: mErr } = await db.from("guide_ai_drafts").update({ previous_draft_restored_at: new Date().toISOString() }).eq("id", logId);
-  if (mErr) console.error("[admin api] couldn't mark the previous draft restored", mErr);
+  if (mErr) console.error("[admin api] couldn't mark the previous draft restored", errorText(mErr));
   return { guide: rows[0]! };
 }
 
 function failure(what: string, error: unknown) {
-  console.error(`[admin api] AI draft: couldn't ${what}`, error);
+  console.error(`[admin api] AI draft: couldn't ${what}`, errorText(error));
   return new GuideDraftError(500, "Something went wrong on our side. Try again, or check the server logs.");
 }

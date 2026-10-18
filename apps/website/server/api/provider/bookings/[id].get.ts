@@ -1,4 +1,5 @@
 import { serverSupabaseClient } from "#supabase/server";
+import { errorText } from "@repo/types";
 
 // GET /api/provider/bookings/:id: one booking on the provider's listings,
 // read through RLS (contact details and address only once accepted), with
@@ -23,7 +24,7 @@ export default defineEventHandler(async (event) => {
     .neq("status", "pending_payment")
     .maybeSingle();
   if (error) {
-    console.error("[provider booking]", error);
+    console.error("[provider booking]", errorText(error));
     throw createError({ statusCode: 500, statusMessage: "This booking didn't load. Please try again." });
   }
   if (!b) throw createError({ statusCode: 404, statusMessage: "We couldn't find that booking." });

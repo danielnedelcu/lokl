@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { H3Event } from "h3";
 import { serverSupabaseServiceRole } from "#supabase/server";
-import { listingReasonSchema, reviewBlockers, type Database, type Listing, type Provider } from "@repo/types";
+import { listingReasonSchema, reviewBlockers, type Database, type Listing, type Provider, errorText } from "@repo/types";
 
 // A database failure: the detail goes to the server log, the admin sees a
 // plain message.
 function serverFailure(error: unknown) {
-  console.error("[admin api] listing review query failed", error);
+  console.error("[admin api] listing review query failed", errorText(error));
   return createError({ statusCode: 500, statusMessage: "Something went wrong on our side. Try again, or check the server logs." });
 }
 
