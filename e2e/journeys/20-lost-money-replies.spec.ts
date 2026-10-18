@@ -126,3 +126,42 @@ test("lokl's refund: the reply is lost, the admin page says it's done, logged on
   const { count } = await data.env.db.from("admin_actions").select("id", { count: "exact", head: true }).eq("target_id", booking.id);
   expect(count, "logged once").toBe(1);
 });
+
+test("lokl's refund: the dialog closed while it runs, then the reply is lost: still says it's done", async ({ page, context, data }) => {
+  // Found 2026-10-18 (docs/frontend.md, confirmation dialogs): after a lost
+  // reply the page re-read the chosen action, which closing the dialog had
+  // cleared, so a refund that went through was reported as "try again".
+  const customer = await data.user("customer");
+  const owner = await data.user("owner");
+  const admin = await data.user("admin", { admin: true });
+  const provider = await data.provider(owner);
+  const listing = await data.listing(provider, "experience", (await data.category("experience")).id, await data.area());
+  const booking = await data.paidBooking(customer, await data.session(listing.id, daysFromNow(4)));
+
+  await signIn(context, admin.email, admin.password, { app: "admin" });
+  await page.goto(`${ADMIN}/bookings/${booking.id}`);
+  // The server does it; the reply is held until the dialog is closed, then lost.
+  let closed: () => void = () => {};
+  const dialogClosed = new Promise<void>((r) => { closed = r; });
+  let reached: () => void = () => {};
+  const atServer = new Promise<void>((r) => { reached = r; });
+  await page.route(`**/api/admin/bookings/${booking.id}/cancel`, async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    await route.fetch();
+    reached();
+    await dialogClosed;
+    await route.abort("connectionreset");
+  });
+  await page.getByRole("button", { name: "Refund and cancel" }).click();
+  await page.getByLabel("Reason").fill("The provider asked us to cancel.");
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Refund and cancel" }).click();
+  await atServer;
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  closed();
+  await expect(page.getByText("Done.", { exact: true })).toBeVisible();
+  await expect(page.getByText(/try again/i)).toHaveCount(0);
+  const b = await data.booking(booking.id);
+  expect([b.status, b.cancelled_by]).toEqual(["cancelled", "admin"]);
+});

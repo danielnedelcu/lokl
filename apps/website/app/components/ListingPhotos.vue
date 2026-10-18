@@ -108,8 +108,11 @@ const nextFreePosition = () => {
 };
 
 const uploadPending = altForm.handleSubmit(async ({ alt_text }) => {
-  if (!pending.value) return;
-  const { prepared } = pending.value;
+  // The photo this upload is for, captured first (docs/frontend.md, confirmation dialogs):
+  // the dialog can be closed during the upload, and the next queued photo shown.
+  const current = pending.value;
+  if (!current) return;
+  const { prepared } = current;
   const base = `${props.providerId}/${props.listingId}/${crypto.randomUUID()}`;
   const path = `${base}.${prepared.ext}`;
   // The card copy's name is fixed by the database: <photo>.card.webp or .card.jpg.
@@ -145,7 +148,9 @@ const uploadPending = altForm.handleSubmit(async ({ alt_text }) => {
     useSonner.error(`The photo wasn't added: ${(e as Error).message}`);
   } finally {
     busy.value = false;
-    closeDescribe();
+    // Only if it's still this photo's dialog: closing it during the upload has
+    // already moved on to the next photo, which mustn't be dropped.
+    if (pending.value === current) closeDescribe();
   }
 });
 

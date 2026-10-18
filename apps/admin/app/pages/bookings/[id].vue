@@ -52,8 +52,15 @@ const canRelease = computed(() => !!b.value?.payout_hold && b.value.payout_hold 
   && !(b.value.disputed_at && !b.value.dispute_closed_at));
 
 type Dialog = "cancel" | "release" | "pay" | "refund" | null;
+// The chosen action, kept apart from whether the dialog is open
+// (docs/frontend.md, confirmation dialogs): closing it mustn't clear the
+// action a request is still running for.
 const dialog = ref<Dialog>(null);
-const open = computed({ get: () => dialog.value !== null, set: (v) => { if (!v) dialog.value = null; } });
+const open = ref(false);
+function ask(action: Exclude<Dialog, null>) {
+  dialog.value = action;
+  open.value = true;
+}
 const busy = ref(false);
 const problem = ref("");
 const done = ref("");
@@ -90,22 +97,25 @@ const copy = computed(() => {
 });
 
 async function act(reason: string) {
+  // Captured first, and used alone from here on: the dialog can be closed
+  // while the request runs.
+  const action = dialog.value;
+  if (!action) return;
   busy.value = true;
   problem.value = "";
   try {
-    const path = dialog.value === "cancel" ? `bookings/${id}/cancel`
-      : dialog.value === "release" ? `bookings/${id}/release-payout`
+    const path = action === "cancel" ? `bookings/${id}/cancel`
+      : action === "release" ? `bookings/${id}/release-payout`
       : `bookings/${id}/resolve-problem`;
-    const body = dialog.value === "pay" ? { outcome: "pay_provider", reason }
-      : dialog.value === "refund" ? { outcome: "refund", reason }
+    const body = action === "pay" ? { outcome: "pay_provider", reason }
+      : action === "refund" ? { outcome: "refund", reason }
       : { reason };
     const r = await call(path, body);
     done.value = r.result.charAt(0).toUpperCase() + r.result.slice(1) + ".";
-    dialog.value = null;
+    open.value = false;
   } catch (e) {
     if (isLostReply(e)) {
       // The reply was lost: check whether it went through.
-      const action = dialog.value;
       await refresh();
       const x = b.value;
       const through = !!x && (
@@ -114,7 +124,7 @@ async function act(reason: string) {
         : !!x.problem_resolution);
       if (through) {
         done.value = "Done.";
-        dialog.value = null;
+        open.value = false;
       } else {
         problem.value = LOST_REPLY_TRY_AGAIN;
       }
@@ -175,8 +185,8 @@ const actionLabels: Record<string, string> = {
           <p class="whitespace-pre-line">“{{ b.problem_note }}”</p>
           <p class="mt-1 text-xs">Reported {{ at(b.problem_reported_at) }}. Only lokl sees this note. The payout is held until you decide.</p>
           <div class="mt-3 flex flex-wrap gap-2">
-            <UiButton size="sm" :disabled="busy" @click="dialog = 'pay'">Pay the provider</UiButton>
-            <UiButton size="sm" variant="destructive" :disabled="busy" @click="dialog = 'refund'">Refund the customer</UiButton>
+            <UiButton size="sm" :disabled="busy" @click="ask('pay')">Pay the provider</UiButton>
+            <UiButton size="sm" variant="destructive" :disabled="busy" @click="ask('refund')">Refund the customer</UiButton>
           </div>
         </UiAlertDescription>
       </UiAlert>
@@ -186,8 +196,8 @@ const actionLabels: Record<string, string> = {
       </UiAlert>
 
       <div v-if="canCancel || canRelease" class="mt-6 flex flex-wrap gap-2">
-        <UiButton v-if="canRelease" :disabled="busy" @click="dialog = 'release'">Release payout</UiButton>
-        <UiButton v-if="canCancel && !openReport" variant="outline" :disabled="busy" @click="dialog = 'cancel'">
+        <UiButton v-if="canRelease" :disabled="busy" @click="ask('release')">Release payout</UiButton>
+        <UiButton v-if="canCancel && !openReport" variant="outline" :disabled="busy" @click="ask('cancel')">
           {{ b.status === "requested" ? "Cancel request" : "Refund and cancel" }}
         </UiButton>
       </div>

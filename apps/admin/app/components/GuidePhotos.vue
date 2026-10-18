@@ -87,8 +87,11 @@ function closeAdd() {
 }
 
 const upload = form.handleSubmit(async (values) => {
-  if (!pending.value) return;
-  const { prepared } = pending.value;
+  // The photo this upload is for, captured first (docs/frontend.md, confirmation dialogs):
+  // the dialog can be closed during the upload, and the next queued photo shown.
+  const current = pending.value;
+  if (!current) return;
+  const { prepared } = current;
   const base = `${props.guideId}/${crypto.randomUUID()}`;
   const path = `${base}.${prepared.ext}`;
   const cardPath = `${base}.card.${prepared.cardExt}`;
@@ -121,7 +124,9 @@ const upload = form.handleSubmit(async (values) => {
     useSonner.error(reportProblem("The photo wasn't added. Try again.", e));
   } finally {
     busy.value = false;
-    closeAdd();
+    // Only if it's still this photo's dialog: closing it during the upload has
+    // already moved on to the next photo, which mustn't be dropped.
+    if (pending.value === current) closeAdd();
   }
 });
 

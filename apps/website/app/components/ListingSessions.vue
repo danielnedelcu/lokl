@@ -204,14 +204,16 @@ async function sessionCancelled(sessionId: string) {
   return s?.status === "cancelled" && count === 0;
 }
 async function confirmCancelBooked(reason: string) {
-  if (!cancelling.value) return;
+  // Captured first, and used alone from here on (docs/frontend.md, confirmation dialogs).
+  const target = cancelling.value;
+  if (!target) return;
   busy.value = true;
   try {
-    await $fetch(`/api/sessions/${cancelling.value.id}/cancel`, { method: "POST", body: { reason } });
+    await $fetch(`/api/sessions/${target.id}/cancel`, { method: "POST", body: { reason } });
     cancelBookedOpen.value = false;
     useSonner.success("Session cancelled. Everyone booked is refunded in full.");
   } catch (e) {
-    if (isLostReply(e) && (await sessionCancelled(cancelling.value.id))) {
+    if (isLostReply(e) && (await sessionCancelled(target.id))) {
       cancelBookedOpen.value = false;
       useSonner.success("Session cancelled. Everyone booked is refunded in full.");
     } else if (isLostReply(e)) {
@@ -225,9 +227,10 @@ async function confirmCancelBooked(reason: string) {
   }
 }
 async function confirmCancel() {
-  if (!cancelling.value) return;
+  const target = cancelling.value;
+  if (!target) return;
   busy.value = true;
-  const error = changedRows(await supabase.from("experience_sessions").delete().eq("id", cancelling.value.id).select("id"), "deleted");
+  const error = changedRows(await supabase.from("experience_sessions").delete().eq("id", target.id).select("id"), "deleted");
   busy.value = false;
   cancelOpen.value = false;
   if (error) return useSonner.error(problemText(error, `The session wasn't cancelled. ${error.message}`));
