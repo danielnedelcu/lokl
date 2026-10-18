@@ -13,6 +13,16 @@
   lokl change (2026-10-15): `grid` lets all four arrow keys move, for radios
   laid out in rows and columns (the scheduling panel's times): Reka is given
   no orientation, which its roving focus reads as both.
+  lokl change (2026-10-18): Reka's own delayed select can't undo a later
+  press. Reka still clicks a radio a moment after it gets focus, if an
+  arrow key is held then. On a busy page those timers run late: with two
+  quick presses, the first radios' timers fired while the second key was
+  held and clicked radios that no longer had focus, so the selection fell
+  back behind focus (CI, journey 2 at phone size, and journey 29). Such a
+  click (made by code, while an arrow key is held, on a radio of this group
+  that hasn't focus and isn't the one just selected here) is stopped before
+  Reka sees it. People's clicks, and a timer's click on the focused radio,
+  go through. E2e journey 2 recreates the late timers.
 -->
 <template>
   <RadioGroupRoot
@@ -30,7 +40,7 @@
 <script lang="ts" setup>
   import { RadioGroupRoot, useForwardPropsEmits } from "reka-ui";
   import type { RadioGroupRootEmits, RadioGroupRootProps } from "reka-ui";
-  import { normalizeClass, useTemplateRef } from "vue";
+  import { normalizeClass, onBeforeUnmount, onMounted, useTemplateRef } from "vue";
   import type { HTMLAttributes } from "vue";
 
   const props = withDefaults(
@@ -71,6 +81,30 @@
     if (next >= 0 && next < enabled.length) return enabled[next];
     return props.loop ? enabled[(next + enabled.length) % enabled.length] : undefined;
   }
+  // See the note at the top (2026-10-18): stop Reka's late select of a radio
+  // focus has left. Arrow keys held, as Reka tracks them (on the window).
+  const ARROWS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+  let arrowHeld = false;
+  useEventListener("keydown", (e: KeyboardEvent) => {
+    if (ARROWS.includes(e.key)) arrowHeld = true;
+  });
+  useEventListener("keyup", () => {
+    arrowHeld = false;
+  });
+  // The radio this group's own keydown just selected (focus reaches it after).
+  let selecting: HTMLElement | null = null;
+  function stopStaleSelect(event: MouseEvent) {
+    const el = root.value?.$el;
+    const radio = event.target;
+    if (event.isTrusted || !arrowHeld || !(el instanceof HTMLElement) || !(radio instanceof HTMLElement)) return;
+    if (radio.getAttribute("role") !== "radio" || radio.closest('[role="radiogroup"]') !== el) return;
+    if (radio === selecting || radio === document.activeElement) return;
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  }
+  onMounted(() => root.value?.$el?.addEventListener("click", stopStaleSelect, true));
+  onBeforeUnmount(() => root.value?.$el?.removeEventListener("click", stopStaleSelect, true));
+
   function selectTarget(event: KeyboardEvent) {
     if (props.disabled) return;
     const el = root.value?.$el;
@@ -80,6 +114,10 @@
     const radios = [...el.querySelectorAll<HTMLElement>('[role="radio"]')].filter((r) => r.closest('[role="radiogroup"]') === el);
     if (!radios.includes(from)) return;
     const target = arrowTarget(event, radios, from);
-    if (target && target !== from && target.getAttribute("aria-checked") !== "true") target.click();
+    if (target && target !== from && target.getAttribute("aria-checked") !== "true") {
+      selecting = target;
+      target.click();
+      selecting = null;
+    }
   }
 </script>

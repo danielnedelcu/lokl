@@ -187,3 +187,43 @@ test("the provider accepts a request; another is declined, and shows as not havi
   await expect(page.locator("dt").filter({ hasText: /^When$/ })).toHaveCount(0);
   await expect(page.locator("dt").filter({ hasText: /^You asked for$/ })).toBeVisible();
 });
+
+test("two quick presses on a busy page: focus and selection both move two times @phone", async ({ page, context, data }) => {
+  // Found in CI (2026-10-18): Reka clicks a radio a moment after it gets
+  // focus if an arrow key is held then; on a busy page those timers ran
+  // late, fired during the second press, and selected times focus had left.
+  // Here every short timer runs 40ms late (a busy page), and each key is
+  // held 30ms, as a person presses. UiRadioGroup stops the late selects.
+  const customer = await data.user("customer");
+  const owner = await data.user("owner");
+  const provider = await data.provider(owner);
+  await data.hours(provider);
+  const listing = await data.listing(provider, "service", (await data.category("service")).id, await data.area(), undefined, "instant");
+  await signIn(context, customer.email, customer.password);
+  await page.addInitScript(() => {
+    const original = window.setTimeout;
+    (window as unknown as { setTimeout: unknown }).setTimeout = ((fn: () => void, ms?: number, ...rest: unknown[]) =>
+      original(fn, (ms ?? 0) < 5 ? 40 : ms, ...rest)) as typeof window.setTimeout;
+  });
+  const cdp = await context.newCDPSession(page);
+  const key = (type: "keyDown" | "keyUp", name: string, code: number) =>
+    cdp.send("Input.dispatchKeyEvent", { type, key: name, code: name, windowsVirtualKeyCode: code });
+  const press = async (name: string, code: number) => {
+    await key("keyDown", name, code);
+    await page.waitForTimeout(30);
+    await key("keyUp", name, code);
+  };
+
+  const dialog = await openPanel(page, listing.slug, listing.title);
+  const times = dialog.getByRole("radiogroup", { name: /^Times on / });
+  await expect(times.getByRole("radio").nth(3)).toBeVisible();
+  for (let round = 0; round < 4; round++) {
+    await times.getByRole("radio").first().click();
+    await times.getByRole("radio").first().focus();
+    await press("ArrowRight", 39);
+    await press("ArrowRight", 39);
+    await page.waitForTimeout(300);
+    await expect(times.getByRole("radio").nth(2), `round ${round + 1}: focus moved two times`).toBeFocused();
+    await expect(times.getByRole("radio").nth(2), `round ${round + 1}: and so did the selection`).toBeChecked();
+  }
+});
