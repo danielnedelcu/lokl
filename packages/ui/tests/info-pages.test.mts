@@ -30,10 +30,10 @@ const helpSlugs = new Set(fs.readdirSync(path.join(website, "content/help"), { r
   .filter((f) => f.endsWith(".md")).map((f) => f.split("/").pop()!.replace(/\.md$/, "")));
 
 // 1. Every page.
-const expected = ["about", "accessibility", "cancellation-policy", "contact", "fees", "hosting", "how-lokl-works", "safety"];
-check(expected.every((s) => files.includes(`${s}.md`)), "1a. the eight information pages are there");
+const expected = ["about", "accessibility", "cancellation-policy", "contact", "fees", "hosting", "how-lokl-works", "privacy", "safety", "terms", "terms-hosts"];
+check(expected.every((s) => files.includes(`${s}.md`)), "1a. the information pages and legal drafts are there");
 for (const { f, page } of pages) check(!page.problems.length, `1b. ${f}: front matter and facts${page.problems.length ? ` (${page.problems.join("; ")})` : ""}`);
-for (const s of expected) check(staticPages.has(`/${s}`), `1c. /${s} has its page`);
+for (const s of expected) check(staticPages.has(`/${s.replace(/^terms-hosts$/, "terms/hosts")}`), `1c. ${s} has its page`);
 
 // 2. Facts the page supplies: filled in, and missed if absent.
 const fees = pages.find((p) => p.f === "fees.md")!;
@@ -77,7 +77,7 @@ const h2s = [...about.page.html.matchAll(/<h2[^>]*>([^<]+)<\/h2>/g)].map((m) => 
 check(JSON.stringify(h2s) === JSON.stringify(["Who we are", "Why lokl exists", "Who we serve", "What we stand for", "How it works", "Where to go next"]), `6a. About has its six sections in order (${h2s.join(", ")})`);
 check(about.page.html.includes("browse 14 categories") && about.page.html.includes("in 25 neighborhoods"), "6b. ...with the live numbers it's given");
 check(parseInfoPage("about.md", about.raw, { SUPPORT_EMAIL: "x", COMMISSION_SERVICE: "1%", COMMISSION_EXPERIENCE: "2%" }).problems.some((p) => p.includes("{{MARKET_CATEGORIES}}")), "6c. ...and without them, a problem (never a made-up number)");
-check(["/fees", "/review-rules", "/safety", "/accessibility", "/how-lokl-works", "/atlanta", "/hosting", "/help", "/contact"].every((h) => about.page.html.includes(`href="${h}"`)), "6d. it links each value to its page, How lokl works, and the four next steps");
+check(["/fees", "/review-rules", "/privacy", "/accessibility", "/how-lokl-works", "/atlanta", "/hosting", "/help", "/contact"].every((h) => about.page.html.includes(`href="${h}"`)), "6d. it links each value to its page, How lokl works, and the four next steps");
 // 6f. The numbers show only once both reach MARKET_COUNTS_MIN (5): below it
 // the sentence is left out, with no problem and no blank; at it, they show.
 const aboutWith = (categories: number, neighborhoods: number) =>
@@ -91,6 +91,18 @@ for (const [c, n] of [[min - 1, min], [min, min - 1], [2, 1]] as const) {
 const atMin = aboutWith(min, min);
 check(!atMin.problems.length && atMin.html.includes(`browse ${min} categories of Services and Experiences, in ${min} neighborhoods.`), `6g. ${min} and ${min}: it shows by itself`);
 if (about.page.html.includes("LAUNCH-PLACEHOLDER")) console.log("note 6e. About still has the placeholder for the founder's words (replace before launch).");
+
+// 8. The legal drafts (step 4; decided 2026-10-17): each says it's a draft
+// for a lawyer, carries the marker until it's final, names the legal
+// entity's placeholders, links the others, and the Privacy Policy says
+// what About promises.
+const legal = ["privacy.md", "terms.md", "terms-hosts.md"].map((f) => pages.find((p) => p.f === f)!);
+check(legal.every((p) => p.raw.includes("**Draft: to be reviewed by a lawyer before launch** (LAUNCH-PLACEHOLDER)")), "8a. each legal page says it's a draft for a lawyer, with the marker");
+check(legal.every((p) => p.raw.includes("[lokl's legal name] (LAUNCH-PLACEHOLDER)") && p.raw.includes("[address] (LAUNCH-PLACEHOLDER)")), "8b. ...and names the legal entity's placeholders, each marked");
+const privacy = legal[0]!.page.html;
+check(privacy.includes("We don't sell your personal information.") && about.page.html.includes('href="/privacy"'), "8c. the Privacy Policy says what About promises, and About links to it");
+check(privacy.includes("Google shares your name, email address and profile photo") && privacy.includes("_ga") && privacy.includes("Global Privacy Control"), "8d. it names what Google sign-in shares, the analytics cookies and Global Privacy Control");
+check(legal[1]!.page.html.includes('href="/terms/hosts"') && legal[2]!.page.html.includes('href="/terms"') && legal[1]!.page.html.includes('href="/privacy"'), "8e. the terms link each other and the Privacy Policy");
 
 // 7. Every placeholder carries the fixed marker LAUNCH-PLACEHOLDER
 // (scripts/launch-placeholders.mjs), which a deployable build is searched

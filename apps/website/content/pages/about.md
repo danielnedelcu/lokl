@@ -39,7 +39,7 @@ Only people whose booking took place can leave a review. A review is never remov
 
 ### Your privacy
 
-We don't sell your personal information. Addresses stay private until you book: a host's exact address is shown only to customers with a confirmed booking, and a customer's address is shared with the host only once a booking is accepted. See [Safety on lokl](/safety).
+We don't sell your personal information. Addresses stay private until you book: a host's exact address is shown only to customers with a confirmed booking, and a customer's address is shared with the host only once a booking is accepted. See our [Privacy Policy](/privacy).
 
 ### Accessibility
 

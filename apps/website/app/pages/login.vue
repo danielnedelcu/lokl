@@ -24,6 +24,7 @@ function signedIn(email: string) {
       <UiCardContent>
         <SignInForm :create-user="true" new-account-hint id-prefix="login" @signed-in="signedIn" />
         <GoogleSignIn @signed-in="signedIn" />
+        <SignInAgreement class="mt-4" />
       </UiCardContent>
     </UiCard>
   </div>

@@ -96,10 +96,6 @@ async function signOut() {
     <main id="main" tabindex="-1" class="flex-1 outline-none">
       <slot />
     </main>
-    <footer class="border-border text-muted-foreground border-t">
-      <div class="mx-auto max-w-6xl px-4 py-8 text-sm">
-        <p>lokl · Services and Experiences from local people in Atlanta.</p>
-      </div>
-    </footer>
+    <SiteFooter />
   </div>
 </template>

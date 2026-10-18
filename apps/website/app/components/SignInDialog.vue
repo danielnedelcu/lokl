@@ -116,6 +116,7 @@ function signedInUserShown() {
           :before-send="beforeSend" @signed-in="signedIn" />
         <!-- Below the code form, so the email field keeps first focus. -->
         <GoogleSignIn v-if="current" :before-sign-in="() => current?.beforeSend?.()" @signed-in="signedIn" />
+        <SignInAgreement v-if="current" />
       </UiDialogContent>
     </UiDialog>
     <p class="sr-only" aria-live="polite" aria-atomic="true">{{ announcement }}</p>

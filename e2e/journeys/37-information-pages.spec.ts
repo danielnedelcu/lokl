@@ -1,6 +1,7 @@
 import { expect, test } from "../support/fixtures";
 
-// Journey 37: the information pages (docs/design/website-pages.md, step 3).
+// Journey 37: the information pages and legal drafts (docs/design/
+// website-pages.md, steps 3 and 4), the footer and the sign-in line.
 // Each opens with its title and no fact left unfilled; the Fees page shows
 // the commission rates from the database, so an admin's change shows at
 // once; the support address is a link; links inside the pages lead
@@ -15,6 +16,9 @@ const PAGES: [string, string][] = [
   ["/safety", "Safety on lokl"],
   ["/cancellation-policy", "Cancellation policy"],
   ["/accessibility", "Accessibility"],
+  ["/privacy", "Privacy Policy"],
+  ["/terms", "Terms of Use"],
+  ["/terms/hosts", "Terms for hosts"],
 ];
 
 test("every information page opens, with its facts filled in and its links working", async ({ page, request }) => {
@@ -64,4 +68,25 @@ test("on a phone, no information page scrolls sideways @phone", async ({ page })
     await page.goto(path);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${path}: no sideways scroll`).toBe(true);
   }
+});
+
+test("the footer: four labelled columns, every link leading somewhere", async ({ page, request }) => {
+  await page.goto("/about");
+  const footer = page.locator("footer");
+  for (const name of ["lokl", "Customers", "Hosts", "Support"]) await expect(footer.getByRole("navigation", { name })).toBeVisible();
+  const hrefs = await footer.locator("a").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
+  expect(hrefs).toEqual(expect.arrayContaining(["/terms", "/privacy", "/help/hosts", "/review-rules"]));
+  for (const href of hrefs) {
+    // /dashboard asks a visitor to sign in first (a redirect), as it should.
+    expect((await request.get(href, { maxRedirects: 0 })).status(), `the footer links to ${href}`).toBeLessThan(400);
+  }
+});
+
+test("signing in says you're 18 or over and agree to the Terms and Privacy Policy, both opening in a new tab", async ({ page }) => {
+  await page.goto("/login");
+  const line = page.getByText("By continuing, you confirm you're 18 or over and agree to lokl's");
+  await expect(line).toBeVisible();
+  await expect(line.getByRole("link", { name: "Terms (opens in a new tab)" })).toHaveAttribute("href", "/terms");
+  await expect(line.getByRole("link", { name: "Privacy Policy (opens in a new tab)" })).toHaveAttribute("href", "/privacy");
+  await expect(line.getByRole("link", { name: /opens in a new tab/ }).first()).toHaveAttribute("target", "_blank");
 });

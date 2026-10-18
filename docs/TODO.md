@@ -601,20 +601,28 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [ ] `LOKL_ALLOW_PLACEHOLDERS` is **never set** on staging or
     production (it lets a build through with placeholders; only
     `build:check` sets it).
-  - [ ] Legal drafts, each "Draft: to be reviewed by a lawyer before
-    launch": privacy policy, customer terms, provider terms. They use the
-    placeholders "[lokl's legal name]" and "[address]" until the company
-    is formed: replace both before launch. Each carries the marker
-    `LAUNCH-PLACEHOLDER` beside it when the drafts are written, so a
-    deployable build fails until they're replaced.
-  - [ ] When the Privacy Policy is written: switch the About page's "We
-    don't sell your personal information" link from Safety to the Privacy
-    Policy, which must say the same.
-  - [ ] The footer (four columns), and the sign-in line "By continuing,
-    you confirm you're 18 or over and agree to lokl's Terms and Privacy
-    Policy".
-  - [ ] Providers' access to customers' email, phone and address ends 30
-    days after the booking (a migration of its own).
+  - [x] Legal drafts (2026-10-18): the Privacy Policy (`/privacy`), the
+    Terms of Use (`/terms`) and the Terms for hosts (`/terms/hosts`),
+    written from what the code does, each marked "Draft: to be reviewed by
+    a lawyer before launch".
+  - [ ] A lawyer reviews the three drafts and writes their marked parts
+    (liability, disputes, governing law, which privacy laws apply, cookie
+    consent, Stripe's Connected Account Agreement); the accountant sets
+    the retention periods and tax wording. Replace "[lokl's legal name]",
+    "[address]" and "[hosting provider]" once known. Every one of these
+    carries `LAUNCH-PLACEHOLDER`, so a deployable build fails until done.
+  - [x] About's "We don't sell your personal information" links to the
+    Privacy Policy, which says the same (2026-10-18).
+  - [x] The footer (four columns) and the sign-in line "By continuing, you
+    confirm you're 18 or over and agree to lokl's Terms and Privacy
+    Policy", on the sign-in page and dialog (2026-10-18).
+  - [ ] **Next, after step 4: providers' access to customers' email,
+    phone and address ends 30 days after the booking** (a migration of
+    its own, with pgTAP tests for the allowed and refused cases). Show the
+    migration and tests before `db:push`; then remove the
+    `LAUNCH-PLACEHOLDER` from that line of the Terms for hosts ("Your
+    access to them ends 30 days after the booking") and from the Privacy
+    Policy's "being built" note.
 - **Google Analytics** (decided 2026-10-17; docs/decisions.md)
   - [ ] A Google Analytics 4 property for hilokl.com; its measurement id in
     `NUXT_PUBLIC_GTAG_ID` on **production only**, never on staging, so test
@@ -701,6 +709,10 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     bookings, contact details, addresses and login when they ask lokl to
     delete their data. (Today a login with bookings can't be deleted, and
     the logs can only be changed by a migration; see `append_only_logs`.)
+    The Privacy Policy's "How long we keep it" and "Your choices and
+    rights" sections depend on this design: they only propose periods and
+    promise to act on requests, and stay marked `LAUNCH-PLACEHOLDER` until
+    it's built.
 - **Staff access**
   - [ ] Admin roles before hiring anyone (owner and support), enforced in
     the database, with owner approval for suspensions, payout releases and
