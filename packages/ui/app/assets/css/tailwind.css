@@ -350,3 +350,23 @@ a * {
 html {
   scroll-padding-top: var(--header-height, 0px);
 }
+
+/* Reduce motion (WCAG 2.3.3, 2026-10-18): when the device asks, overlays
+   (dialogs, sheets, menus, selects, tooltips, popovers such as the
+   notification panel, the navigation menu's panel) open, close and slide
+   without animation. They all animate with tw-animate-css's animate-in and
+   animate-out (with fade, zoom and slide), and some with a transition;
+   both are switched off. Reka unmounts a closing overlay at once when it
+   has no animation. E2e journey 34 checks it. */
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-in"],
+  [class*="animate-out"] {
+    animation: none !important;
+  }
+  [data-slot$="-content"],
+  [data-slot$="-overlay"],
+  [data-slot="navigation-menu-viewport"],
+  [data-slot="navigation-menu-indicator"] {
+    transition: none !important;
+  }
+}
