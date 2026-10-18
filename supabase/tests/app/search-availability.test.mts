@@ -107,9 +107,17 @@ try {
     return null;
   };
   const weekend = quickDates(TZ).weekend;
+  // The first whole weekend at least two days ahead, whatever the time now:
+  // p5's weekend nights there are always outside its 24 hours' notice (late
+  // on a Friday or a Saturday, this weekend's nights aren't, so "this
+  // weekend" alone can't be relied on; found 2026-10-17, CI at 11 PM on a
+  // Saturday).
+  const ahead = Array.from({ length: 9 }, (_, i) => addDays(today, i + 2)).find((d) => new Date(`${d}T12:00:00Z`).getUTCDay() === 6)!;
+  const laterWeekend = { from: ahead, to: addDays(ahead, 1) };
   const ranges = [
     ...Array.from({ length: 15 }, (_, i) => ({ name: `day ${i}`, from: addDays(today, i), to: addDays(today, i) })),
     { name: "this weekend", ...weekend },
+    { name: "a later weekend", ...laterWeekend },
     { name: "31 days", from: addDays(today, 1), to: addDays(today, 31) },
   ];
   const compare = async (label: string) => {
@@ -132,11 +140,10 @@ try {
   const undated = await browsePublicListings(visitor, { market, kind: "service", pageSize: 100 });
   check(undated!.items.at(-1)?.title === "D braids" && undated!.items.filter((c) => c.notTakingBookings).map((c) => c.title).join() === "D braids",
     "1b. undated: the Service with no hours comes last, marked Not taking bookings yet");
-  const p5Night = await firstSlot(services[5]!.id, weekend.from, weekend.to);
-  // Whichever weekend night comes first (late on a Friday, Saturday's is
-  // inside the notice): its Atlanta day isn't its UTC day.
+  const p5Night = await firstSlot(services[5]!.id, laterWeekend.from, laterWeekend.to);
+  // A weekend night, compared above: its Atlanta day isn't its UTC day.
   const nightDay = p5Night ? instantToZoned(p5Night, TZ).date : "";
-  check(!!p5Night && nightDay >= weekend.from && nightDay <= weekend.to && new Date(p5Night).getUTCDate() !== Number(nightDay.slice(8)),
+  check(!!p5Night && nightDay >= laterWeekend.from && nightDay <= laterWeekend.to && new Date(p5Night).getUTCDate() !== Number(nightDay.slice(8)),
     "1c. (the fixture has a night time that's the next day in UTC, matched to its Atlanta day)");
 
   // 2. As if the daily job had never run: the table covers nothing ahead.
