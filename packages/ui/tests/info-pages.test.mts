@@ -102,6 +102,8 @@ check(legal.every((p) => p.raw.includes("[lokl's legal name] (LAUNCH-PLACEHOLDER
 const privacy = legal[0]!.page.html;
 check(privacy.includes("We don't sell your personal information.") && about.page.html.includes('href="/privacy"'), "8c. the Privacy Policy says what About promises, and About links to it");
 check(privacy.includes("Google shares your name, email address and profile photo") && privacy.includes("_ga") && privacy.includes("Global Privacy Control"), "8d. it names what Google sign-in shares, the analytics cookies and Global Privacy Control");
+check(legal[2]!.page.html.includes("You see them until 30 days after the booking ends.") && legal[0]!.page.html.includes("hosts lose access 30 days after the booking ends"),
+  "8f. the host Terms and the Privacy Policy state the 30-day limit on customers' details, from CONTACT_ACCESS, as built");
 check(legal[1]!.page.html.includes('href="/terms/hosts"') && legal[2]!.page.html.includes('href="/terms"') && legal[1]!.page.html.includes('href="/privacy"'), "8e. the terms link each other and the Privacy Policy");
 
 // 7. Every placeholder carries the fixed marker LAUNCH-PLACEHOLDER

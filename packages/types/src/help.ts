@@ -1,6 +1,6 @@
 import {
-  ANSWER_BEFORE_START_HOURS, ANSWER_WITHIN_HOURS, CHECKOUT_HOLD_MINUTES, FREE_CANCEL_BEFORE_MS, GRACE_AFTER_BOOKING_MS,
-  PARTY_SIZE_MAX, PAYOUT_AFTER_END_HOURS, SESSION_SERIES_MAX_WEEKS,
+  ANSWER_BEFORE_START_HOURS, ANSWER_WITHIN_HOURS, CHECKOUT_HOLD_MINUTES, CONTACT_ACCESS_DAYS, FREE_CANCEL_BEFORE_MS,
+  GRACE_AFTER_BOOKING_MS, PARTY_SIZE_MAX, PAYOUT_AFTER_END_HOURS, SESSION_SERIES_MAX_WEEKS,
 } from "./bookings";
 import { REPLY_MAX, REVIEW_MAX, REVIEW_MIN, REVIEW_WINDOW_DAYS, RATING_MIN_REVIEWS, TOP_RATED } from "./reviews";
 import { SCHEDULE_CHOICES, SCHEDULE_DEFAULTS, durationWords } from "./availability";
@@ -32,6 +32,8 @@ export const HELP_FACTS: Record<string, string> = {
   // An Approve slot is at least this far ahead (service_open_days migration: greatest(notice, 4 hours)).
   APPROVE_MIN_AHEAD: hours(4),
   PAYOUT_AFTER_END: hours(PAYOUT_AFTER_END_HOURS),
+  // contact_access_30_days migration: providers read customers' contact details until this long after the booking ends.
+  CONTACT_ACCESS: `${CONTACT_ACCESS_DAYS} days`,
   NO_SHOW_REPORT_UNTIL: `${hours(PAYOUT_AFTER_END_HOURS)} after it ends`,
   // Reviews.
   REVIEW_WINDOW: `${REVIEW_WINDOW_DAYS} days`,

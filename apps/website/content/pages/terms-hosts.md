@@ -44,7 +44,7 @@ lokl is run by [lokl's legal name] (LAUNCH-PLACEHOLDER), [address] (LAUNCH-PLACE
 ## Customers' details
 
 - Once you accept a booking, you see the customer's email, phone and address for it. Use them only for that booking.
-- Your access to them ends 30 days after the booking (LAUNCH-PLACEHOLDER: true once that limit is built). You keep the customer's name and the booking itself.
+- You see them until {{CONTACT_ACCESS}} after the booking ends. You keep the customer's name and the booking itself.
 - Don't add customers to mailing lists, or share their details with anyone else.
 
 ## Reviews

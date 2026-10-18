@@ -756,7 +756,7 @@ note), which only the service role can use.
 | `bookings` | own | own business's | all | no | service role only | never (refused) |
 | `booking_finances` | **no** | own business's | all | no | service role only | never (refused) |
 | `booking_reports` | own | **no** | all | no | service role, once; final | never (append-only) |
-| `booking_contacts`, `booking_addresses` | own | once the booking is confirmed | all | no | service role | never |
+| `booking_contacts`, `booking_addresses` | own | once the booking is confirmed, until 30 days after it ends (`CONTACT_ACCESS_DAYS`; migration `contact_access_30_days`, 2026-10-18) | all | no | service role | never |
 | `booking_events` | as the booking | as the booking | all | no | trigger only | never (append-only) |
 | `booking_emails` | no | no | all | no | triggers and the server (delivery columns only) | never (refused) |
 | `experience_sessions` | future, visible ones | own (all) | all | future, visible ones | provider (not moved or cancelled once booked) | with its listing, unless booked |

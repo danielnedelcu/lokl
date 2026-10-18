@@ -616,13 +616,11 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   - [x] The footer (four columns) and the sign-in line "By continuing, you
     confirm you're 18 or over and agree to lokl's Terms and Privacy
     Policy", on the sign-in page and dialog (2026-10-18).
-  - [ ] **Next, after step 4: providers' access to customers' email,
-    phone and address ends 30 days after the booking** (a migration of
-    its own, with pgTAP tests for the allowed and refused cases). Show the
-    migration and tests before `db:push`; then remove the
-    `LAUNCH-PLACEHOLDER` from that line of the Terms for hosts ("Your
-    access to them ends 30 days after the booking") and from the Privacy
-    Policy's "being built" note.
+  - [x] Providers' access to customers' email, phone and address ends 30
+    days after the booking (2026-10-18; migration `contact_access_30_days`,
+    pgTAP `bookings_access` 6f-6k, `contact-access.test.mts` keeping the
+    rules' interval and `CONTACT_ACCESS_DAYS` the same). The Terms for
+    hosts and the Privacy Policy now state it as built.
 - **Google Analytics** (decided 2026-10-17; docs/decisions.md)
   - [ ] A Google Analytics 4 property for hilokl.com; its measurement id in
     `NUXT_PUBLIC_GTAG_ID` on **production only**, never on staging, so test

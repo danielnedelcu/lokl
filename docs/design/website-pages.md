@@ -10,9 +10,9 @@ Status: **approved plan** (2026-10-17). Build order:
    `/terms`, `/terms/hosts`, the four-column footer and the sign-in line;
    each draft awaits a lawyer, its unfinished parts marked
    `LAUNCH-PLACEHOLDER`).
-6. Next: providers' access to customers' contact details ends 30 days
-   after the booking (a migration of its own, shown before `db:push`);
-   then its placeholder comes out of the Terms for hosts.
+6. Providers' access to customers' contact details ends 30 days after
+   the booking (done 2026-10-18; migration `contact_access_30_days`); the
+   Terms for hosts and the Privacy Policy state it as built.
 
 The migration limiting providers' access to customers' contact details is
 shown separately.
@@ -35,7 +35,8 @@ launch".
   Every booking needs an account, so there's no separate line at checkout.
 - **Providers' access to customers' details:** email, phone and address
   only until 30 days after the booking ends. They keep the name and the
-  booking; admins keep access. This is a migration of its own, with tests.
+  booking; admins keep access. Built 2026-10-18 (migration
+  `contact_access_30_days`, with tests).
 - **Retention:** the privacy draft proposes periods for the lawyer and
   accountant to set, never "forever" for personal details.
 - **Google Analytics:** measurement only (docs/decisions.md, 2026-10-17).

@@ -105,6 +105,20 @@ export function customerCancelOutcome(
   return { kind: "no_refund" };
 }
 
+/**
+ * How long after a booking ends its provider can still read the customer's
+ * email, phone and address (decided 2026-10-17). The database enforces it
+ * (migration contact_access_30_days: booking_contacts and booking_addresses'
+ * provider read rules); this is for the provider's pages and the help.
+ */
+export const CONTACT_ACCESS_DAYS = 30;
+
+/** True once a booking's provider no longer sees the customer's contact details (its end, or its start, plus CONTACT_ACCESS_DAYS). */
+export function contactAccessEnded(b: { starts_at: string | null; ends_at: string | null }, now = Date.now()): boolean {
+  const end = b.ends_at ?? b.starts_at;
+  return !!end && now >= Date.parse(end) + CONTACT_ACCESS_DAYS * 864e5;
+}
+
 /** When "The provider didn't show up" can be reported: from the start until the payout. */
 export function canReportProblem(
   b: { status: string; starts_at: string | null; payout_due_at: string | null; problem_reported_at: string | null },

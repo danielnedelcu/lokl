@@ -50,7 +50,7 @@ Please only put in your notes what the host needs for the booking. If you choose
 ## Who sees what
 
 - **Everyone** can see hosts' public profiles and listings, and published reviews.
-- **Hosts** see your name, notes and party size when you book or request. For a Service at your place, they see only your city and zip code until they accept. Your email, phone and full address are shared with the host once your booking is accepted, and only for that booking.
+- **Hosts** see your name, notes and party size when you book or request. For a Service at your place, they see only your city and zip code until they accept. Your email, phone and full address are shared with the host once your booking is accepted, only for that booking, and until {{CONTACT_ACCESS}} after it ends.
 - **Customers** see a host's exact address only once their booking is confirmed.
 - **lokl's team** can see bookings, messages and reports, to run lokl and help when something goes wrong.
 
@@ -95,7 +95,7 @@ If your browser sends a Global Privacy Control signal, we don't load Google Anal
 > **Proposed, for our lawyer and accountant to set before launch** (LAUNCH-PLACEHOLDER). Nothing here is kept forever without a reason.
 
 - **Booking and payment records:** for as long as tax and accounting law requires (proposed: 7 years after the booking).
-- **Your contact details and address for a booking:** hosts are to lose access 30 days after the booking (being built; LAUNCH-PLACEHOLDER). We propose keeping them for 2 years after the booking, in case of a dispute or refund, then removing them.
+- **Your contact details and address for a booking:** hosts lose access {{CONTACT_ACCESS}} after the booking ends. We propose keeping them for 2 years after the booking, in case of a dispute or refund, then removing them.
 - **Your account:** while you use lokl. If you ask us to close it, we remove what we're not required to keep.
 - **Reviews:** while they're published. You can delete your own review for {{REVIEW_WINDOW}} after your booking.
 - **Messages and reports:** proposed: 2 years after they're closed.

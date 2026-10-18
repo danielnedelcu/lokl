@@ -10,7 +10,7 @@
 // database's now() can't, so the real-clock tests run at these times in the
 // scheduled Clock sweep workflow instead (.github/workflows/clock-sweep.yml).
 // Run: TEST_NOW=2026-10-23T19:30:00Z npx tsx packages/ui/tests/clock-sweep.test.mts
-import { customerCancelOutcome, FREE_CANCEL_BEFORE_MS, GRACE_AFTER_BOOKING_MS, repeatedHourZone } from "@repo/types";
+import { CONTACT_ACCESS_DAYS, contactAccessEnded, customerCancelOutcome, FREE_CANCEL_BEFORE_MS, GRACE_AFTER_BOOKING_MS, repeatedHourZone } from "@repo/types";
 import { addDays, formatSessionTime, instantToZoned, monthStartIn, quickDates, todayIn, zonedToInstant } from "../app/utils/zonedTime";
 
 let failures = 0;
@@ -74,6 +74,13 @@ check(outcome(FREE_CANCEL_BEFORE_MS, 10 * HOUR) === "full_refund" && outcome(FRE
 check(outcome(5 * HOUR, GRACE_AFTER_BOOKING_MS) === "full_refund" && outcome(5 * HOUR, GRACE_AFTER_BOOKING_MS + 1) === "no_refund",
   "4b. free for exactly the hour after booking, inside 48 hours");
 check(outcome(0, 0) === "not_allowed" && outcome(1, 0) === "full_refund", "4c. not once it's started; just before, still free (booked just now)");
+
+// 5. A provider sees the customer's details until 30 days after the booking
+// ends (the database's rule; contactAccessEnded words the page).
+const ACCESS = CONTACT_ACCESS_DAYS * 864e5;
+const ended = (endedAgo: number) => contactAccessEnded({ starts_at: iso(now - endedAgo - HOUR), ends_at: iso(now - endedAgo) }, now);
+check(!ended(ACCESS - 1) && ended(ACCESS) && !ended(-HOUR), "5a. the details are shown until exactly 30 days after the end, and before it");
+check(contactAccessEnded({ starts_at: iso(now - ACCESS), ends_at: null }, now), "5b. ...counting from the start when there's no end");
 
 console.log(failures ? `${failures} failed` : "All clock sweep checks passed.");
 process.exit(failures ? 1 : 0);

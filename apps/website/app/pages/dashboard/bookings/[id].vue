@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HOME_TIME_ZONE } from "@repo/types";
+import { CONTACT_ACCESS_DAYS, contactAccessEnded, HOME_TIME_ZONE } from "@repo/types";
 // One booking on the provider's listings. For a request: the time the
 // customer booked (held for them, so it can't clash), which the provider
 // accepts (the card is charged) or declines (the hold is released). A
@@ -38,6 +38,9 @@ const tz = computed(() => (b.value ? bookingZone(b.value) : HOME_TIME_ZONE));
 const { data: myProvider } = await useProvider();
 const zone = computed(() => timeZoneLabel(b.value?.listing?.city?.name ?? "Atlanta", tz.value));
 const money = (cents: number) => formatMoney(cents, "usd");
+// An accepted booking whose customer's details the provider no longer sees
+// (the database's rule: until CONTACT_ACCESS_DAYS after it ends).
+const contactEnded = computed(() => !!b.value?.confirmed_at && contactAccessEnded(b.value));
 const at = (t: string) => bookingAt(t, tz.value);
 
 // Answering.
@@ -200,6 +203,7 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
           <dd><a :href="`mailto:${b.contact.email}`" class="link-text">{{ b.contact.email }}</a></dd>
           <dd v-if="b.contact.phone"><a :href="`tel:${b.contact.phone}`" class="link-text">{{ b.contact.phone }}</a></dd>
         </template>
+        <dd v-else-if="contactEnded" class="text-xs text-muted-foreground">Their email and phone were shown until {{ CONTACT_ACCESS_DAYS }} days after the booking.</dd>
         <dd v-else class="text-xs text-muted-foreground">Their email and phone are shown here once you accept.</dd>
       </div>
       <div v-if="b.listing?.location_mode === 'customer_location'">
@@ -214,7 +218,8 @@ const history = computed(() => (b.value?.events ?? []).filter((e) => e.to_status
         </dd>
         <template v-else>
           <dd class="mt-1">{{ customerArea(b) ?? "Not given" }}</dd>
-          <dd class="text-xs text-muted-foreground">The street address is shown here once you accept.</dd>
+          <dd v-if="contactEnded" class="text-xs text-muted-foreground">The street address was shown until {{ CONTACT_ACCESS_DAYS }} days after the booking.</dd>
+          <dd v-else class="text-xs text-muted-foreground">The street address is shown here once you accept.</dd>
         </template>
       </div>
       <div v-if="b.customer_notes">

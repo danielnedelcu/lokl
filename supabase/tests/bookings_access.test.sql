@@ -6,7 +6,7 @@
 begin;
 \ir _helpers/users.psql
 \ir _helpers/slots.psql
-select plan(37);
+select plan(43);
 
 -- ---------------------------------------------------------------------------
 -- SETUP (as the test runner)
@@ -106,6 +106,37 @@ select is((select count(*)::int from booking_contacts), 0, '6c. another provider
 select is((select count(*)::int from booking_addresses), 0, '6d. another provider still reads no addresses');
 select tests.authenticate_as(:'cust2');
 select is((select count(*)::int from booking_contacts), 0, '6e. another customer reads no contact details');
+
+-- 6f-6k. Only until 30 days after the booking ends (decided 2026-10-17;
+-- migration contact_access_30_days): then the provider keeps the name, the
+-- booking and its city and zip code, but no longer its email, phone or
+-- address. The customer and admins keep them. ba ended 30 days less a
+-- minute ago, bh 30 days and a minute ago (as the runner, with the guard
+-- off, then put back).
+select tests.clear_authentication();
+select starts_at as ba_starts, ends_at as ba_ends from bookings where id = :'ba' \gset
+select starts_at as bh_starts, ends_at as bh_ends from bookings where id = :'bh' \gset
+set local session_replication_role = replica;
+update bookings set starts_at = now() - interval '30 days' + interval '1 minute' - interval '1 hour', ends_at = now() - interval '30 days' + interval '1 minute' where id = :'ba';
+update bookings set starts_at = now() - interval '30 days' - interval '1 minute' - interval '1 hour', ends_at = now() - interval '30 days' - interval '1 minute' where id = :'bh';
+set local session_replication_role = origin;
+select tests.authenticate_as(:'owner');
+select is((select email from booking_contacts where booking_id = :'ba'), 'sam@test.local', '6f. the provider still reads the email of a booking that ended 30 days less a minute ago');
+select is((select count(*)::int from booking_contacts where booking_id = :'bh'), 0, '6g. ...but not of one that ended 30 days and a minute ago');
+select is((select count(*)::int from booking_addresses where booking_id = :'bh'), 0, '6h. ...nor its address');
+select is((select customer_name || ' / ' || customer_city || ' ' || customer_postal_code from bookings where id = :'bh'), 'Sam Customer / Atlanta 30312',
+  '6i. ...and still reads the booking itself: the name, city and zip code');
+select tests.authenticate_as(:'cust');
+select is((select email || ' / ' || (select line1 from booking_addresses where booking_id = :'bh') from booking_contacts where booking_id = :'bh'), 'sam@test.local / 12 Elm Street',
+  '6j. the customer still reads their own details on it');
+select tests.authenticate_as_admin(:'admin');
+select is((select email || ' / ' || (select line1 from booking_addresses where booking_id = :'bh') from booking_contacts where booking_id = :'bh'), 'sam@test.local / 12 Elm Street',
+  '6k. ...and so does the admin');
+select tests.clear_authentication();
+set local session_replication_role = replica;
+update bookings set starts_at = :'ba_starts', ends_at = :'ba_ends' where id = :'ba';
+update bookings set starts_at = :'bh_starts', ends_at = :'bh_ends' where id = :'bh';
+set local session_replication_role = origin;
 
 -- ---------------------------------------------------------------------------
 -- THE LISTING'S ADDRESS: customers with a confirmed booking
