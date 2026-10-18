@@ -114,12 +114,24 @@ server with the service key. That means `auth.jwt()` is the server's, not
 the admin's, so they take `p_admin_id` and check it themselves. Today that
 check reads `auth.users.raw_app_meta_data`. It becomes:
 
-- `public.admin_role_of(p_admin_id, p_session_id)`: the person's active
-  role from `admin_members`, **and** that `p_session_id` is a live session
-  of theirs in `auth.sessions` with `aal = 'aal2'`.
-- The website takes `p_session_id` from the admin's verified token (its
+- `public.admin_role_of(p_admin_id)`: the person's active role from
+  `admin_members`, **and** that the session named in the request header
+  `x-lokl-admin-session` is a live session of theirs in `auth.sessions`
+  with `aal = 'aal2'`. As built (2026-10-18), a header rather than a
+  parameter, so the functions' arguments didn't change.
+- **It reads the header only for the server.** It first checks the
+  request's role is `service_role` and refuses anyone else, so a header
+  sent from a browser is never trusted, even if a function's permissions
+  were widened by mistake (`admin_members.test.sql`, 3g–3j, forges one).
+- The website takes the session id from the admin's verified token (its
   `session_id` claim). A removed admin is signed out everywhere, so their
   sessions are gone too.
+- **One exception, for money Stripe has already moved:** finishing a
+  lost admin refund or release (`admin_finishing_stripe`, used only by
+  `admin_cancel_booking`) accepts `x-lokl-finishing: stripe` from the
+  server for an id that is or was on the team. The admin's session may
+  have ended by the time Stripe's reply arrives; the record must still be
+  written.
 
 ## Inventory: every admin check today, and the permission each needs
 
@@ -386,7 +398,15 @@ functions to them. The menu follows the role from `admin_role()`.
 4. **A migration** creates `admin_members` and seeds it from today's
    admins (`raw_app_meta_data->>'role' = 'admin'`) as **active owners**,
    with `joined_at` now. In the same migration, `is_admin()` and the
-   server-side check switch to the table and `aal2`.
+   server-side check switch to the table and `aal2`. *Built 2026-10-18*
+   (`admin_members` migration, `admin_members.test.sql`), with
+   `ADMIN_MFA_REQUIRED` true: a team member without an authenticator is
+   sent to `/security` to set one up, and removing your last is refused.
+   `/security` is open to team members, invited or active, without admin
+   navigation for someone with no role yet, so an invited member can set up
+   and add a backup; anyone else is turned away, and nothing else opens
+   without a role. A failed access check says "We couldn't check your
+   access" and offers to try again, rather than "no admin access".
 5. **Before `db:push`,** the admin app shows a check (`admin_role_preview()`):
    "After the switch you'll be: owner; second factor: passed". It must say
    so for your current session, or the push waits. A pgTAP test proves

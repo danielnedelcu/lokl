@@ -156,12 +156,21 @@ export async function recordAdminCancel(
     bookingId: string; adminId: string; reason: string; from: string; resolveProblem: boolean;
     refundedCents: number | null; cancelledAt?: string | null; reversalId?: string | null; reversalFailure?: string | null;
   },
+  /**
+   * Recording what Stripe already did for an admin's cancellation whose
+   * reply was lost (a webhook, a later cancellation, a retry): no admin
+   * session then, so the server says so (x-lokl-finishing: stripe;
+   * admin_finishing_stripe(), docs/design/admin-roles.md). An admin's own
+   * press uses their session instead (the route's client).
+   */
+  { finishing = false }: { finishing?: boolean } = {},
 ): Promise<"cancelled" | "already cancelled" | "logged" | "changed"> {
-  const { data, error } = await db.rpc("admin_cancel_booking", {
+  const call = db.rpc("admin_cancel_booking", {
     p_booking_id: a.bookingId, p_admin_id: a.adminId, p_reason: a.reason, p_from: a.from, p_resolve_problem: a.resolveProblem,
     p_refunded_cents: a.refundedCents, p_cancelled_at: a.cancelledAt ?? null,
     p_reversal_id: a.reversalId ?? null, p_reversal_failure: a.reversalFailure ?? null,
   });
+  const { data, error } = await (finishing ? call.setHeader("x-lokl-finishing", "stripe") : call);
   if (error) {
     if (error.code === "23514") throw new BookingError(error.message, 409);
     if (error.code === "P0002") throw new BookingError("We couldn't find that booking.", 404);
@@ -201,7 +210,7 @@ export async function finishLostCancel(db: SupabaseClient, stripe: Stripe, b: Ca
       bookingId: b.id, adminId: meaning.admin_id, reason: (b.cancel_reason as string | null) ?? "Cancelled by lokl (the reason wasn't saved).",
       from: b.status, resolveProblem: meaning.resolve_problem === "true", refundedCents: owed, cancelledAt: at,
       reversalId: reversal && "id" in reversal ? reversal.id : null, reversalFailure: reversal && "failure" in reversal ? reversal.failure : null,
-    });
+    }, { finishing: true });
     return done === "changed" ? null : "cancelled and refunded";
   }
   const moved = await move(db, b.id, b.status, {

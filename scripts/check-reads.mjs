@@ -26,7 +26,8 @@ const root = new URL("..", import.meta.url).pathname;
 const API_MAX_ROWS = 1000;
 
 // Tables an admin keeps short by hand. Every other table grows.
-const REFERENCE = new Set(["cities", "categories", "service_areas", "commission_rates", "homepage_features"]);
+// admin_members: one row per team member (docs/design/admin-roles.md), a handful.
+const REFERENCE = new Set(["cities", "categories", "service_areas", "commission_rates", "homepage_features", "admin_members"]);
 const GROWS = new Set([
   "admin_actions", "booking_addresses", "booking_contacts", "booking_emails", "booking_events", "booking_finances",
   "booking_reports", "bookings", "commission_rate_changes", "experience_sessions", "guide_ai_drafts", "guide_photos",

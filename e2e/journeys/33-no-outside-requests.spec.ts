@@ -87,7 +87,8 @@ test("the admin app requests nothing outside", async ({ context, data }) => {
   }
   // Setting up an authenticator: its QR code is drawn here from Supabase's
   // own response, never fetched from a QR service (2026-10-18).
-  await page.getByRole("button", { name: "Set up an authenticator" }).click();
+  await page.getByRole("button", { name: "Add another authenticator" }).click();
+  await page.getByLabel("Name it").fill("Tablet");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("img", { name: /QR code for your authenticator app/ })).toBeVisible();
   await page.waitForLoadState("networkidle");

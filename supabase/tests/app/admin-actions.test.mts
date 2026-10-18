@@ -12,7 +12,7 @@ import fs from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { safeStripe } from "@repo/types";
+import { ADMIN_SESSION_HEADER, safeStripe } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
 import { adminCancelBooking, releasePayout, resolveProblemPaid, retryEmail, setProviderStatus } from "../../../apps/website/server/utils/adminBookings";
 import { payOut } from "../../../apps/website/server/utils/bookingJobs";
@@ -21,6 +21,7 @@ import { providerMay } from "../../../apps/website/server/utils/providerAccess";
 import { loadEmailContext, sendProviderEmails, type OutgoingEmail } from "../../../apps/website/server/utils/bookingEmails";
 import { renderEmail } from "../../../apps/website/server/utils/bookingEmailTemplates";
 import { slotAfter } from "./_slots";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -66,7 +67,8 @@ try {
     created.users.push(u.id);
     return { id: u.id, email: u.email! };
   };
-  const admin = await user("admin", { role: "admin" });
+  const admin = await makeAdmin(local, `admin-act-admin-${run}@test.local`);
+  created.users.push(admin.id);
   const customer = await user("customer");
   const owner = await user("provider");
   const provider = (await must(db.from("providers").insert({ owner_id: owner.id, display_name: "Admin Test", city_id: atl.id }).select("id").single())).id as string;
@@ -112,17 +114,45 @@ try {
   })) as { id: string }).id;
   const hold = await stripe.paymentIntents.create({ amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true, payment_method_types: ["card"] });
   await must(db.schema("private").from("booking_records").update({ status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: hold.id, respond_by: new Date(Date.now() + 2 * day).toISOString() }).eq("id", reqId));
-  check((await refused(() => adminCancelBooking(db, stripe, reqId, admin.id, "no"))).includes("Say why"), "1a. an admin action needs a reason");
-  check((await adminCancelBooking(db, stripe, reqId, admin.id, "Duplicate request.")) === "cancelled and refunded", "1b. lokl cancels a request");
+  check((await refused(() => adminCancelBooking(admin.server, stripe, reqId, admin.id, "no"))).includes("Say why"), "1a. an admin action needs a reason");
+  check((await adminCancelBooking(admin.server, stripe, reqId, admin.id, "Duplicate request.")) === "cancelled and refunded", "1b. lokl cancels a request");
   check((await stripe.paymentIntents.retrieve(hold.id)).status === "canceled" && (await row(reqId)).cancelled_by === "admin", "1c. ...the hold is released, cancelled by lokl");
-  check((await adminCancelBooking(db, stripe, reqId, admin.id, "Duplicate request.")) === "already cancelled", "1d. cancelling again changes nothing");
+  check((await adminCancelBooking(admin.server, stripe, reqId, admin.id, "Duplicate request.")) === "already cancelled", "1d. cancelling again changes nothing");
   const a1 = await actions(reqId);
   check(a1.length === 1 && a1[0]!.reason === "Duplicate request." && a1[0]!.admin_id === admin.id, "1e. ...and it's logged once, with the admin and the reason");
 
+  // 1f-1h. An admin's own cancel uses their session, never the lost-reply
+  // exception (x-lokl-finishing, admin_finishing_stripe; approved 2026-10-18).
+  const gone = await makeAdmin(local, `admin-act-gone-${run}@test.local`);
+  created.users.push(gone.id);
+  await gone.client.auth.signOut(); // ends that session in the database
+  check((await refused(() => adminCancelBooking(gone.server, stripe, reqId, gone.id, "Cancelling after signing out.")))
+    .includes("Only an admin can cancel"), "1f. an admin whose session has ended is refused, even recording a cancellation already made");
+  check((await actions(reqId)).length === 1, "1g. ...and nothing is logged for them");
+  const finishingSources = ["bookingCancellations.ts", "bookings.ts", "adminBookings.ts"].flatMap((f) =>
+    fs.readFileSync(new URL(`../../../apps/website/server/utils/${f}`, import.meta.url), "utf8").split("\n")
+      .map((line, i) => ({ f, i, line })).filter((l) => /finishing: true/.test(l.line)));
+  check(finishingSources.length === 2 && finishingSources.every((l) => l.f !== "adminBookings.ts"),
+    `1h. only the two lost-reply paths ask for the exception, none in the admin routes' code (found ${finishingSources.map((l) => `${l.f}:${l.i + 1}`).join(", ")})`);
+
   // 2. A confirmed booking: refunded in full, and the provider is never paid for it.
+  // Run as the cancel route runs it, watching what reaches the database.
   const conf = await paid();
-  await adminCancelBooking(db, stripe, conf.id, admin.id, "The venue closed for repairs.");
+  const sent: Headers[] = [];
+  const watched = createClient(local.API_URL!, local.SERVICE_ROLE_KEY!, {
+    auth: { persistSession: false },
+    global: {
+      headers: { [ADMIN_SESSION_HEADER]: admin.sessionId },
+      fetch: (input, init) => {
+        if (String(input instanceof Request ? input.url : input).includes("/rpc/admin_cancel_booking")) sent.push(new Headers(init?.headers));
+        return fetch(input, init);
+      },
+    },
+  });
+  await adminCancelBooking(watched, stripe, conf.id, admin.id, "The venue closed for repairs.");
   check((await refundedInStripe(conf.pi)) === 5000 && (await row(conf.id)).status === "cancelled", "2a. lokl cancels a confirmed booking: refunded $50.00 in full");
+  check(sent.length > 0 && sent.every((h) => h.get(ADMIN_SESSION_HEADER) === admin.sessionId && !h.has("x-lokl-finishing")),
+    `2a'. ...on the admin's own session, never sending x-lokl-finishing (${sent.length} call(s) seen)`);
   await payOut(db, stripe, { bookingId: conf.id, now: await dueAfter(conf.id) });
   check(!(await row(conf.id)).stripe_transfer_id && (await emails(conf.id)).includes("provider_booking_cancelled"), "2b. ...the provider isn't paid, and both are emailed");
 
@@ -132,7 +162,7 @@ try {
   await payOut(db, stripe, { bookingId: out.id, now: await dueAfter(out.id) });
   const outRow = await row(out.id);
   check(outRow.status === "paid_out" && !!outRow.stripe_transfer_id, "3a. (set-up) the booking is paid out with a real transfer");
-  const r3 = await adminCancelBooking(db, stripe, out.id, admin.id, "Customer complaint upheld.");
+  const r3 = await adminCancelBooking(admin.server, stripe, out.id, admin.id, "Customer complaint upheld.");
   const after3 = await row(out.id);
   const transfer = await stripe.transfers.retrieve(outRow.stripe_transfer_id);
   check(r3 === "cancelled and refunded" && after3.status === "cancelled" && !!after3.stripe_transfer_reversal_id, "3b. lokl cancels after the payout");
@@ -145,28 +175,28 @@ try {
   const ns = await paid();
   happened(ns.id);
   await must(db.schema("private").from("booking_records").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there at all.", payout_hold: "problem_reported", payout_held_at: new Date().toISOString() }).eq("id", ns.id));
-  check((await refused(() => releasePayout(db, stripe, ns.id, admin.id, "Looks fine to me."))).includes("resolve the report"), "4a. a reported no-show isn't simply released; it's resolved");
-  check((await resolveProblemPaid(db, stripe, ns.id, admin.id, "The provider sent photos from the meeting point.")) === "resolved: the provider will be paid", "4b. resolved in the provider's favour");
+  check((await refused(() => releasePayout(admin.server, stripe, ns.id, admin.id, "Looks fine to me."))).includes("resolve the report"), "4a. a reported no-show isn't simply released; it's resolved");
+  check((await resolveProblemPaid(admin.server, stripe, ns.id, admin.id, "The provider sent photos from the meeting point.")) === "resolved: the provider will be paid", "4b. resolved in the provider's favour");
   const ns1 = await row(ns.id);
   check(ns1.problem_resolution === "paid_provider" && !ns1.payout_hold && (await emails(ns.id)).includes("provider_problem_paid"), "4c. ...the hold is cleared and the provider is told");
   await payOut(db, stripe, { bookingId: ns.id, now: await dueAfter(ns.id) });
   check((await row(ns.id)).status === "paid_out", "4d. ...and it's paid out when due");
   // A repeat (a retry after a lost reply) answers that it's done; it's resolved and logged once.
-  check((await resolveProblemPaid(db, stripe, ns.id, admin.id, "Again, by mistake.")) === "already resolved"
+  check((await resolveProblemPaid(admin.server, stripe, ns.id, admin.id, "Again, by mistake.")) === "already resolved"
     && (await actions(ns.id)).filter((a) => a.action === "resolve_problem_paid").length === 1, "4e. a report is resolved once; a repeat answers that it's done");
 
   // 5. A no-show report resolved with a refund: cancelled, refunded, the report's own emails.
   const nr = await paid();
   happened(nr.id);
   await must(db.schema("private").from("booking_records").update({ problem_reported_at: new Date().toISOString(), problem_note: "Nobody was there at all.", payout_hold: "problem_reported", payout_held_at: new Date().toISOString() }).eq("id", nr.id));
-  await adminCancelBooking(db, stripe, nr.id, admin.id, "The provider confirmed they missed it.", { resolveProblem: true });
+  await adminCancelBooking(admin.server, stripe, nr.id, admin.id, "The provider confirmed they missed it.", { resolveProblem: true });
   const nr1 = await row(nr.id);
   const nrEmails = await emails(nr.id);
   check(nr1.status === "cancelled" && nr1.problem_resolution === "refunded" && (await refundedInStripe(nr.pi)) === 5000, "5a. resolved with a full refund, and the booking cancelled");
   check(nrEmails.includes("customer_problem_refunded") && nrEmails.includes("provider_problem_refunded") && !nrEmails.includes("customer_booking_cancelled"),
     "5b. ...both hear the report's outcome, not a plain cancellation");
   check((await actions(nr.id))[0]?.action === "resolve_problem_refunded", "5c. ...logged as a report resolved with a refund");
-  check((await refused(() => resolveProblemPaid(db, stripe, nr.id, admin.id, "Pay them after all."))).includes("no open report"),
+  check((await refused(() => resolveProblemPaid(admin.server, stripe, nr.id, admin.id, "Pay them after all."))).includes("no open report"),
     "5c2. a report resolved with a refund can't then be resolved for the provider");
 
   // 6. Releasing a held payout: paid when due; not while a dispute is open.
@@ -174,20 +204,20 @@ try {
   happened(held.id);
   await must(db.schema("private").from("booking_records").update({ status: "completed", status_changed_by: "system" }).eq("id", held.id));
   await must(db.schema("private").from("booking_records").update({ payout_hold: "account_cannot_receive", payout_held_at: new Date().toISOString() }).eq("id", held.id));
-  check((await releasePayout(db, stripe, held.id, admin.id, "Their account is fixed now.")).length > 0 && !(await row(held.id)).payout_hold, "6a. a hold is released");
+  check((await releasePayout(admin.server, stripe, held.id, admin.id, "Their account is fixed now.")).length > 0 && !(await row(held.id)).payout_hold, "6a. a hold is released");
   await payOut(db, stripe, { bookingId: held.id, now: await dueAfter(held.id) });
   check((await row(held.id)).status === "paid_out", "6b. ...and the payout goes out when due");
   const disputed = await paid();
   await must(db.schema("private").from("booking_records").update({ payout_hold: "dispute", payout_held_at: new Date().toISOString(), disputed_at: new Date().toISOString(), stripe_dispute_id: "dp_test" }).eq("id", disputed.id));
-  check((await refused(() => releasePayout(db, stripe, disputed.id, admin.id, "Trying to release it."))).includes("dispute is still open"), "6c. a payout held by an open dispute can't be released");
+  check((await refused(() => releasePayout(admin.server, stripe, disputed.id, admin.id, "Trying to release it."))).includes("dispute is still open"), "6c. a payout held by an open dispute can't be released");
 
   // 7. Sending an email again.
   const [anEmail] = await must(db.from("booking_emails").select("id").eq("booking_id", conf.id).limit(1)) as { id: string }[];
   await must(db.from("booking_emails").update({ status: "failed", last_error: "Resend 500: test" }).eq("id", anEmail!.id));
-  await retryEmail(db, anEmail!.id, admin.id);
+  await retryEmail(admin.server, anEmail!.id, admin.id);
   const again = await must(db.from("booking_emails").select("status, attempts, last_error").eq("id", anEmail!.id).single()) as Record<string, any>;
   check(again.status === "pending" && again.attempts === 0 && !again.last_error && (await actions(anEmail!.id)).length === 1, "7a. a failed email goes back in the queue, logged");
-  check((await refused(() => retryEmail(db, anEmail!.id, admin.id))).includes("Only a failed or skipped email"), "7b. an email that's already queued isn't queued twice");
+  check((await refused(() => retryEmail(admin.server, anEmail!.id, admin.id))).includes("Only a failed or skipped email"), "7b. an email that's already queued isn't queued twice");
 
   // 8. Suspending and reinstating a provider.
   const openReq = (await must(db.rpc("create_service_booking", {
@@ -196,13 +226,13 @@ try {
   })) as { id: string }).id;
   const hold2 = await stripe.paymentIntents.create({ amount: 5000, currency: "usd", capture_method: "manual", payment_method: "pm_card_visa", confirm: true, payment_method_types: ["card"] });
   await must(db.schema("private").from("booking_records").update({ status: "requested", status_changed_by: "stripe", stripe_payment_intent_id: hold2.id, respond_by: new Date(Date.now() + 2 * day).toISOString() }).eq("id", openReq));
-  check((await refused(() => setProviderStatus(db, stripe, provider, "suspended", admin.id, "x"))).includes("Say why"), "8a. suspending needs a reason");
+  check((await refused(() => setProviderStatus(admin.server, stripe, provider, "suspended", admin.id, "x"))).includes("Say why"), "8a. suspending needs a reason");
   // A confirmed booking that should survive the suspension.
   const keep = await paid();
-  const s1 = await setProviderStatus(db, stripe, provider, "suspended", admin.id, "Several customers reported no-shows.", "Please call us about the last two bookings.");
+  const s1 = await setProviderStatus(admin.server, stripe, provider, "suspended", admin.id, "Several customers reported no-shows.", "Please call us about the last two bookings.");
   check(s1.startsWith("suspended") && (await row(openReq)).status === "declined" && (await stripe.paymentIntents.retrieve(hold2.id)).status === "canceled",
     "8b. a suspended provider's open requests are withdrawn at once, holds released");
-  check((await setProviderStatus(db, stripe, provider, "suspended", admin.id, "Several customers reported no-shows.")) === "already suspended", "8c. suspending again changes nothing");
+  check((await setProviderStatus(admin.server, stripe, provider, "suspended", admin.id, "Several customers reported no-shows.")) === "already suspended", "8c. suspending again changes nothing");
 
   // 9. The "paused" email: once, with lokl's message, never the internal reason.
   const sentToProvider: OutgoingEmail[] = [];
@@ -237,7 +267,7 @@ try {
   check(route("utils/providerBookings.ts").includes('requireProvider(event, "answer_requests")')
     && ["api/listings/[id]/publish.post.ts", "api/listings/[id]/submit.post.ts", "api/provider/stripe/onboard.post.ts"].every((f) => route(f).includes("requireProvider(event)")),
     "10h. answering requests, listings and Stripe setup still refuse a suspended provider");
-  check((await setProviderStatus(db, stripe, provider, "active", admin.id, "Spoke to them; it's resolved.")) === "reinstated", "8d. a provider is reinstated");
+  check((await setProviderStatus(admin.server, stripe, provider, "active", admin.id, "Spoke to them; it's resolved.")) === "reinstated", "8d. a provider is reinstated");
   await sendProviderEmails(db, fake, settings, { providerId: provider });
   check(sentToProvider.length === 2 && sentToProvider[1]!.subject === "Your lokl account is active again" && !sentToProvider[1]!.text.includes("A message from lokl"),
     "8f. reinstating emails \"Your lokl account is active again\" (no message written, so none included)");
@@ -247,6 +277,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(err as Error).message}`);
 } finally {
+  forgetTestAdmins();
   if (created.listings.length) {
     const ids = created.listings.map((i) => `'${i}'`).join(",");
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `

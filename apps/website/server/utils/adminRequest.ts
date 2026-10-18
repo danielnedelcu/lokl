@@ -8,21 +8,29 @@
 // 2. The admin's own Supabase token is sent explicitly
 //    (Authorization: Bearer ...): no cookies cross between the apps.
 // 3. Supabase verifies the token (getUser, not just decoding it), and the
-//    user must be an admin (app_metadata.role).
+//    database says the person is an admin now (admin_role(), asked with
+//    their own token: an active team member on a session that passed the
+//    second factor; docs/design/admin-roles.md). The token's own claims are
+//    read only after it's verified, for the session the server then names
+//    to the admin functions.
 //
 // checkAdminRequest is plain TypeScript, so supabase/tests/app/admin-request.test.mts
 // runs it with real tokens from the local stack; requireAdminRequest is the
 // routes' wrapper.
 
-import { isAdmin } from "@repo/types";
+import { tokenClaims, type AdminRole } from "@repo/types";
 
 export type AdminCheck =
-  | { ok: true; userId: string }
+  | { ok: true; userId: string; role: AdminRole; sessionId: string }
   | { ok: false; status: 401 | 403; message: string };
 
 export async function checkAdminRequest(
   req: { origin: string | undefined; authorization: string | undefined },
-  deps: { adminOrigin: string; getUser: (token: string) => Promise<{ id: string; app_metadata?: Record<string, unknown> } | null> },
+  deps: {
+    adminOrigin: string;
+    getUser: (token: string) => Promise<{ id: string } | null>;
+    getRole: (token: string) => Promise<AdminRole | null>;
+  },
 ): Promise<AdminCheck> {
   if (!deps.adminOrigin || req.origin !== deps.adminOrigin) {
     return { ok: false, status: 403, message: "This can only be done from the lokl admin app." };
@@ -31,6 +39,9 @@ export async function checkAdminRequest(
   if (!token) return { ok: false, status: 401, message: "Sign in required" };
   const user = await deps.getUser(token).catch(() => null);
   if (!user) return { ok: false, status: 401, message: "Your sign-in has expired. Sign in again." };
-  if (!isAdmin(user)) return { ok: false, status: 403, message: "Admins only" };
-  return { ok: true, userId: user.id };
+  const role = await deps.getRole(token).catch(() => null);
+  if (!role) return { ok: false, status: 403, message: "Admins only, after the second sign-in step" };
+  const sessionId = tokenClaims(token).session_id;
+  if (!sessionId) return { ok: false, status: 401, message: "Your sign-in has expired. Sign in again." };
+  return { ok: true, userId: user.id, role, sessionId };
 }

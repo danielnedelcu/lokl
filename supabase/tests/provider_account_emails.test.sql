@@ -10,7 +10,8 @@ select tests.create_user('provider@test.local') as owner \gset
 select tests.create_user('customer@test.local') as cust \gset
 select tests.create_user('admin@test.local') as admin \gset
 -- The admin login carries the role, as CLAUDE.md's grant sets it.
-update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}' where id = :'admin';
+-- Admins are team members now (admin_members; docs/design/admin-roles.md).
+select tests.make_admin(:'admin');
 select id as atl from cities where slug = 'atlanta' \gset
 insert into providers (owner_id, display_name, city_id) values (:'owner', 'Tours and Cuts', :'atl') returning id as p \gset
 insert into categories (kind, name, slug) values ('experience', 'Food and drink', 'food') returning id as exp \gset
@@ -22,7 +23,7 @@ insert into listing_photos (listing_id, storage_path, position, alt_text) values
 update listings set status = 'live', published_at = now() where id = :'le';
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '7 days', 5) returning id as s1 \gset
 
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 select (reserve_experience_booking(:'s1', :'cust', 1::smallint, 'Sam Customer', 'sam@test.local', null, null, now() + interval '30 minutes')).id as b \gset
 update bookings set status = 'confirmed', status_changed_by = 'stripe' where id = :'b';
 
@@ -44,7 +45,7 @@ select is((select count(*)::int from provider_emails where provider_id = :'p'), 
 -- 3. A suspended provider still reads their own bookings (to see and cancel them).
 select tests.authenticate_as(:'owner');
 select is((select count(*)::int from bookings where id = :'b'), 1, '3. a suspended provider can still read their own bookings');
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 
 -- 4. Reinstating; a blank message is no message.
 select is(admin_set_provider_status(:'p', 'active', :'admin', 'Spoke to them; it''s resolved.', '   '), true, '4a. lokl reinstates the provider');
@@ -57,7 +58,7 @@ select throws_ok(format($$ select admin_set_provider_status(%L, 'suspended', %L,
 select is((select status from providers where id = :'p'), 'active', '5b. ...and without one the provider isn''t suspended');
 
 -- 5c. The admin id passed in must be an admin's (a second line of defence).
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 select throws_ok(format($$ select admin_set_provider_status(%L, 'suspended', %L, 'Not an admin, though.', null) $$, :'p', :'owner'),
   '42501', 'Only an admin can suspend or reinstate a provider.', '5c. an id that isn''t an admin''s is refused');
 select is((select status from providers where id = :'p'), 'active', '5d. ...and nothing changes');

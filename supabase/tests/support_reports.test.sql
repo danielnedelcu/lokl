@@ -12,7 +12,9 @@ select tests.create_user('sr-cust@test.local') as cust \gset
 select tests.create_user('sr-admin1@test.local') as a1 \gset
 select tests.create_user('sr-admin2@test.local') as a2 \gset
 -- Two admin logins (the bell and the emails go to each).
-update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}' where id in (:'a1', :'a2');
+-- Admins are team members now (admin_members; docs/design/admin-roles.md).
+select tests.make_admin(:'a1');
+select tests.make_admin(:'a2');
 select id as atl from cities where slug = 'atlanta' \gset
 insert into providers (owner_id, display_name, city_id) values (:'owner', 'Report Studio', :'atl') returning id as p \gset
 insert into providers (owner_id, display_name, city_id) values (:'other', 'Other Studio', :'atl') returning id as q \gset

@@ -12,6 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@repo/types";
 import { loadHomepageGuides, loadPublicGuide, loadPublicGuides } from "../../../apps/website/server/utils/publicGuides";
 import { publicSitemapEntries, publicSupabase } from "../../../apps/website/server/utils/publicListings";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const env = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -41,7 +42,7 @@ try {
   created.categories.push(category.id);
   const area = await must(server.from("service_areas").insert({ city_id: market.id, kind: "neighborhood", name: `Old Ward ${run}` }).select("id").single());
   created.areas.push(area.id);
-  const { user: admin } = await must(server.auth.admin.createUser({ email: `gp-admin-${run}@test.local`, email_confirm: true, app_metadata: { role: "admin" } }));
+  const admin = await makeAdmin(env, `gp-admin-${run}@test.local`);
   created.users.push(admin.id);
 
   // Two guides: one published (then edited as a draft), one never published.
@@ -60,7 +61,7 @@ try {
   };
   const live = await guide(`walk-the-ward-${run}`, "Walk the ward");
   const draft = await guide(`not-yet-${run}`, "Not yet");
-  await must(server.rpc("publish_guide", { p_guide_id: live, p_admin_id: admin.id }));
+  await must(admin.server.rpc("publish_guide", { p_guide_id: live, p_admin_id: admin.id }));
   await must(server.from("guides").update({ draft_title: "SECRET DRAFT", draft_body: { blocks: [{ type: "paragraph", data: { text: "SECRET DRAFT BODY" } }] } }).eq("id", live));
   await must(server.from("homepage_features").delete().gte("position", 1));
   await must(server.from("homepage_features").insert({ position: 1, guide_id: live }));
@@ -109,7 +110,7 @@ try {
   check(!sitemap.includes(`/${market.slug}/guides/not-yet-${run}`), "3c. ...but not the draft");
 
   // 4. Unpublished: gone from everything visitors see.
-  await must(server.rpc("unpublish_guide", { p_guide_id: live, p_admin_id: admin.id }));
+  await must(admin.server.rpc("unpublish_guide", { p_guide_id: live, p_admin_id: admin.id }));
   check((await loadPublicGuide(visitor, market.slug, `walk-the-ward-${run}`)) === null, "4a. an unpublished guide isn't found");
   check(!(await loadHomepageGuides(visitor)).some((g) => g.slug === `walk-the-ward-${run}`), "4b. ...and is off the homepage");
   check(!(await publicSitemapEntries(visitor)).some((e) => e.loc.includes(`walk-the-ward-${run}`)), "4c. ...and out of the sitemap");
@@ -117,6 +118,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   if (created.guides.length) {
     const ids = created.guides.map((id) => `'${id}'`).join(",");
     execFileSync("psql", [env.DB_URL!, "-q", "-c", `

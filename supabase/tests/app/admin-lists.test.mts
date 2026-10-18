@@ -6,6 +6,7 @@
 // were counted by the rows read, and the picker stopped at the API's 1,000.
 // Run: npx tsx supabase/tests/app/admin-lists.test.mts
 
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -41,8 +42,13 @@ try {
   const atl = await must(db.from("cities").select("id").eq("slug", "atlanta").single());
   const password = randomBytes(18).toString("base64url");
   const login = async (label: string, admin = false) => {
+    if (admin) {
+      const a = await makeAdmin(local, `lists-${label}-${run}@test.local`);
+      created.users.push(a.id);
+      return { id: a.id, client: a.client };
+    }
     const { user } = await must(db.auth.admin.createUser({
-      email: `lists-${label}-${run}@test.local`, password, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}),
+      email: `lists-${label}-${run}@test.local`, password, email_confirm: true,
     }));
     created.users.push(user.id);
     const client = createClient<Database>(local.API_URL!, local.ANON_KEY!, { auth: { persistSession: false } });
@@ -118,6 +124,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   psql(`set local session_replication_role = replica;
     delete from public.booking_emails where booking_id in (select id from public.bookings where listing_id = '${created.listing}');
     delete from public.bookings where listing_id = '${created.listing}';

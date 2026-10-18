@@ -20,6 +20,7 @@ import { stripeTestKey } from "./_stripeKey";
 import { handlePaymentsEvent } from "../../../apps/website/server/utils/bookings";
 import { payOut } from "../../../apps/website/server/utils/bookingJobs";
 import { releasePayout } from "../../../apps/website/server/utils/adminBookings";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -59,8 +60,13 @@ const day = 864e5;
 try {
   const atl = await must(db.from("cities").select("id").eq("slug", "atlanta").single());
   const user = async (label: string, admin = false) => {
+    if (admin) {
+      const a = await makeAdmin(local, `holds-${label}-${run}@test.local`);
+      created.users.push(a.id);
+      return { id: a.id, email: a.email, server: a.server };
+    }
     const { user: u } = await must(db.auth.admin.createUser({
-      email: `holds-${label}-${run}@test.local`, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}),
+      email: `holds-${label}-${run}@test.local`, email_confirm: true,
     }));
     created.users.push(u.id);
     return { id: u.id, email: u.email! };
@@ -139,7 +145,7 @@ try {
   check(won.dispute_outcome === "won" && !!won.dispute_closed_at, "1c. the won dispute is recorded");
 
   // The admin releases the hold: it's paid out, not held again.
-  await releasePayout(db, stripe, disputed.id, admin.id, "Dispute won, pay the provider.");
+  await releasePayout(admin.server, stripe, disputed.id, admin.id, "Dispute won, pay the provider.");
   const afterWon = await row(disputed.id);
   check(afterWon.status === "paid_out" && !!afterWon.stripe_transfer_id && afterWon.payout_hold === null,
     `1d. after a won dispute, releasing the hold pays the provider (status ${afterWon.status}, hold ${afterWon.payout_hold})`);
@@ -162,7 +168,7 @@ try {
   await handlePaymentsEvent(db, stripe, event("charge.refunded", partly.charge));
   await payOut(db, stripe, { bookingId: partly.id });
   check((await row(partly.id)).payout_hold === "refunded", "3a. a partial refund holds the payout");
-  await releasePayout(db, stripe, partly.id, admin.id, "The refund was a goodwill gesture; pay the provider.");
+  await releasePayout(admin.server, stripe, partly.id, admin.id, "The refund was a goodwill gesture; pay the provider.");
   const afterRefund = await row(partly.id);
   check(afterRefund.status === "paid_out" && afterRefund.payout_hold === null,
     `3b. released, it's paid out and not held again for the refund (status ${afterRefund.status}, hold ${afterRefund.payout_hold})`);
@@ -179,7 +185,7 @@ try {
   await must(db.from("providers").update({ status: "suspended" }).eq("id", goodProvider));
   await payOut(db, stripe, { bookingId: susBooking.id });
   check((await row(susBooking.id)).payout_hold === "provider_suspended", "4a. a suspended provider's payout is held");
-  await releasePayout(db, stripe, susBooking.id, admin.id, "Reviewed: this booking was fine, pay it.");
+  await releasePayout(admin.server, stripe, susBooking.id, admin.id, "Reviewed: this booking was fine, pay it.");
   const afterSus = await row(susBooking.id);
   check(afterSus.status === "paid_out" && afterSus.payout_hold === null,
     `4b. released while still suspended, it's paid out, not held again (status ${afterSus.status}, hold ${afterSus.payout_hold})`);
@@ -190,7 +196,7 @@ try {
   // Before the admin gets to it, the customer is partly refunded: the release is for one reason only.
   await stripe.refunds.create({ payment_intent: other.pi, amount: 500 });
   await handlePaymentsEvent(db, stripe, event("charge.refunded", other.charge));
-  await releasePayout(db, stripe, other.id, admin.id, "Reviewed the suspension: fine for this booking.");
+  await releasePayout(admin.server, stripe, other.id, admin.id, "Reviewed the suspension: fine for this booking.");
   const afterOther = await row(other.id);
   check(afterOther.payout_hold === "refunded" && afterOther.status === "completed",
     `5b. a release for the suspension doesn't cover a refund: it's held again, for the refund (hold ${afterOther.payout_hold})`);
@@ -198,6 +204,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   // Bookings are never deleted in real use; the test removes its own rows directly.
   if (created.listings.length) {
     const ids = created.listings.map((i) => `'${i}'`).join(",");

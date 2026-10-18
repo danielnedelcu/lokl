@@ -19,6 +19,12 @@ import { createClient } from "@supabase/supabase-js";
 import type Anthropic from "@anthropic-ai/sdk";
 import { AI_DRAFTS_PER_HOUR, findStalePhrases, type Database, type StaleKind } from "@repo/types";
 import { restorePreviousDraft, writeGuideDraft, type DraftModel } from "../../../apps/admin/server/utils/guideDraft";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
+
+// The apps' addresses: CI's (3100, 3101) unless set, to run these beside
+// dev servers (scripts/ci-start-apps.mjs with WEBSITE_PORT and ADMIN_PORT).
+const WEBSITE_URL = process.env.WEBSITE_URL ?? "http://localhost:3100";
+const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:3101";
 
 const env = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -133,7 +139,7 @@ try {
   created.city = other.id;
   const area = await must(db.from("service_areas").insert({ city_id: atl.id, kind: "neighborhood", name: `Drafts ${run}` }).select("id").single());
   created.areas.push(area.id);
-  const { user: admin } = await must(db.auth.admin.createUser({ email: `drafts-admin-${run}@test.local`, email_confirm: true, app_metadata: { role: "admin" } }));
+  const admin = await makeAdmin(env, `drafts-admin-${run}@test.local`);
   created.users.push(admin.id);
   const newGuide = async (label: string) => {
     const g = await must(db.from("guides").insert({
@@ -276,7 +282,7 @@ try {
   // -------------------------------------------------------------------------
   const status = async (path: string) => {
     try {
-      return (await fetch(`http://localhost:3101${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status;
+      return (await fetch(`${ADMIN_URL}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).status;
     } catch {
       return 0;
     }
@@ -289,6 +295,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   if (created.guides.length) {
     const ids = created.guides.map((id) => `'${id}'`).join(",");
     execFileSync("psql", [env.DB_URL!, "-q", "-c", `delete from public.guide_ai_drafts where guide_id in (${ids}); delete from public.guides where id in (${ids});`]);

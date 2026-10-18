@@ -15,7 +15,8 @@ select plan(37);
 
 select tests.create_user('admin@test.local') as admin \gset
 select tests.create_user('customer@test.local') as cust \gset
-update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}' where id = :'admin';
+-- Admins are team members now (admin_members; docs/design/admin-roles.md).
+select tests.make_admin(:'admin');
 select id as atl from cities where slug = 'atlanta' \gset
 insert into cities (slug, name, state, timezone, active) values ('closedtown', 'Closedtown', 'GA', 'America/New_York', true) returning id as closed \gset
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old Fourth Ward') returning id as o4w \gset
@@ -54,7 +55,7 @@ select pg_temp.guide(:'atl', 'second-guide', 'Second guide') as g4 \gset
 select pg_temp.guide(:'closed', 'closed-guide', 'Closed guide') as g5 \gset
 update guides set draft_category_id = :'cat', draft_listing_kind = null where id = :'g1';
 
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 select publish_guide(:'g1', :'admin');
 select publish_guide(:'g3', :'admin');
 select publish_guide(:'g4', :'admin');
@@ -135,7 +136,7 @@ select throws_ok($$ select admin_set_homepage_features(array[gen_random_uuid(), 
 -- A third published guide, for a main guide and two cards.
 select tests.clear_authentication();
 select pg_temp.guide(:'atl', 'third-guide', 'Third guide') as g6 \gset
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 select publish_guide(:'g6', :'admin');
 select tests.authenticate_as_admin(:'admin');
 select lives_ok(format($$ select admin_set_homepage_features(array[%L, %L, %L]::uuid[]) $$, :'g4', :'g1', :'g6'),
@@ -145,21 +146,21 @@ select is((select array_agg(x ->> 'slug' order by (x ->> 'position')::int) from 
   array['second-guide', 'murals-of-the-trail', 'third-guide'], '3k. visitors see the main guide, then the two cards, in order');
 
 -- Unpublishing a card takes it off; the main guide and the other card stay.
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 select unpublish_guide(:'g1', :'admin');
 select tests.authenticate_as_anon();
 select is((select array_agg(x ->> 'slug' order by (x ->> 'position')::int) from jsonb_array_elements(public_homepage_guides()) x),
   array['second-guide', 'third-guide'], '3l. unpublishing a card takes it off the homepage at once');
 
 -- Unpublishing the main guide hides the cards: none is promoted.
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 select unpublish_guide(:'g4', :'admin');
 select tests.authenticate_as_anon();
 select is(public_homepage_guides(), '[]'::jsonb, '3m. without a main guide, visitors get no guides (the first card isn''t promoted)');
 select is((select array_agg(guide_id) from homepage_features), array[:'g6'::uuid], '3n. ...while the card stays saved, for the admin to see');
 
 -- A main guide in a closed market is no main guide either.
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 select publish_guide(:'g4', :'admin');
 select tests.authenticate_as_admin(:'admin');
 select lives_ok(format($$ select admin_set_homepage_features(array[%L, %L]::uuid[]) $$, :'g5', :'g4'), '3o. a main guide from a closed market can be saved');

@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { ADMIN } from "../support/env";
 import { codeBoxes, pasteCode, signInEmail, typeCode, wrongCode } from "../support/mail";
 import { expect, test } from "../support/fixtures";
+import { authenticatorKeys, freshTotp } from "../support/totp";
 
 // Journey 10: the sign-in form's code step (docs/design/sign-in-with-code.md):
 // six boxes (Reka's pin input) and their labels, keys and paste; wrong codes
@@ -197,6 +198,10 @@ test("the admin app signs in by code, and doesn't create accounts", async ({ pag
   const email = await signInEmail(data.env.mailpitUrl, admin.email);
   await typeCode(page, page, email.code);
   await page.getByRole("button", { name: "Sign in" }).click();
+  // The emailed code is the first step; the authenticator is the second.
+  await expect(page).toHaveURL(/\/security\/verify/, { timeout: 20_000 });
+  await typeCode(page, page, await freshTotp(authenticatorKeys.get(admin.email)!));
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(new RegExp(`^${ADMIN}/?$`), { timeout: 20_000 });
   const { data: users } = await data.env.db.auth.admin.listUsers({ perPage: 1000 });
   expect(users.users.some((u) => u.email === unknown), "no account was made for the unknown address").toBe(false);

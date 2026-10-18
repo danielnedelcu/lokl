@@ -10,6 +10,7 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@repo/types";
 import { aiDraftCostSince } from "../../../apps/admin/app/utils/aiDraftCost";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -35,8 +36,13 @@ const since = new Date(Date.now() + 365 * 864e5).toISOString();
 try {
   const password = randomBytes(18).toString("base64url");
   const login = async (label: string, admin = false) => {
+    if (admin) {
+      const a = await makeAdmin(local, `aicost-${label}-${run}@test.local`);
+      users.push(a.id);
+      return a.client;
+    }
     const { user } = await must(db.auth.admin.createUser({
-      email: `aicost-${label}-${run}@test.local`, password, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}),
+      email: `aicost-${label}-${run}@test.local`, password, email_confirm: true,
     }));
     users.push(user.id);
     const client = createClient<Database>(local.API_URL!, local.ANON_KEY!, { auth: { persistSession: false } });
@@ -57,6 +63,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   psql(`delete from public.guide_ai_drafts where topic like 'AI cost test ${run} %';`);
   for (const id of users) await db.auth.admin.deleteUser(id);
 }

@@ -10,6 +10,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@repo/types";
 import { REVIEW_QUEUE_PAGE_SIZE, reviewQueuePage } from "../../../apps/admin/app/utils/reviewQueue";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -35,8 +36,13 @@ try {
   const atl = await must(db.from("cities").select("id").eq("slug", "atlanta").single());
   const password = randomBytes(18).toString("base64url");
   const login = async (label: string, admin = false) => {
+    if (admin) {
+      const a = await makeAdmin(local, `queue-${label}-${run}@test.local`);
+      created.users.push(a.id);
+      return { id: a.id, client: a.client };
+    }
     const { user } = await must(db.auth.admin.createUser({
-      email: `queue-${label}-${run}@test.local`, password, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}),
+      email: `queue-${label}-${run}@test.local`, password, email_confirm: true,
     }));
     created.users.push(user.id);
     const client = createClient<Database>(local.API_URL!, local.ANON_KEY!, { auth: { persistSession: false } });
@@ -75,6 +81,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   if (created.provider) psql(`set local session_replication_role = replica; delete from public.listings where provider_id = '${created.provider}';`);
   if (created.provider) await db.from("providers").delete().eq("id", created.provider);
   for (const id of created.users) await db.auth.admin.deleteUser(id);

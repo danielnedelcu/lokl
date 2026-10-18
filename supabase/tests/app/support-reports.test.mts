@@ -12,6 +12,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPPORT_LIMIT_REPORTS, supportRefusalText, type Database } from "@repo/types";
 import { sendSupportEmails, type EmailSettings, type Mailer, type OutgoingEmail } from "../../../apps/website/server/utils/bookingEmails";
 import { addProviderMessage, adminMove, adminNote, adminReply, createSupportReport, markSupportReportSorted, SupportError } from "../../../apps/website/server/utils/supportReports";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -63,8 +64,13 @@ try {
   // Test logins on the local stack only, with a throwaway password.
   const password = randomBytes(18).toString("base64url");
   const user = async (label: string, admin = false) => {
+    if (admin) {
+      const a = await makeAdmin(local, `support-${label}-${run}@test.local`);
+      created.users.push(a.id);
+      return { id: a.id, email: a.email, client: a.client, server: a.server };
+    }
     const { user: u } = await must(db.auth.admin.createUser({
-      email: `support-${label}-${run}@test.local`, password, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}),
+      email: `support-${label}-${run}@test.local`, password, email_confirm: true,
     }));
     created.users.push(u.id);
     const client = createClient<Database>(local.API_URL!, local.ANON_KEY!, { auth: { persistSession: false } });
@@ -183,18 +189,18 @@ try {
   // 10. A login that's no longer an admin isn't emailed.
   // Queued while still an admin, demoted before sending.
   const lastId = await createSupportReport(other.client, { category: "listing", description: "My listing photos won't upload." });
-  await must(db.auth.admin.updateUserById(admin2.id, { app_metadata: { role: null } }));
+  await must(db.from("admin_members").update({ status: "removed", removed_at: new Date().toISOString() }).eq("user_id", admin2.id).select("user_id"));
   const m10 = fakeMailer();
   await sendSupportEmails(db, m10, settings, { adminUrl: ADMIN_URL, reportId: lastId });
   const admin2Row = (await emailRows(lastId)).find((r) => r.admin_id === admin2.id);
   check(!m10.sent.some((e) => e.to === admin2.email) && admin2Row?.status === "skipped", "10. a login that's no longer an admin is skipped");
 
   // 11. The admin's side, through the admin routes' own code (the server key).
-  await must(db.auth.admin.updateUserById(admin2.id, { app_metadata: { role: "admin" } }));
+  await must(db.from("admin_members").update({ status: "active", removed_at: null }).eq("user_id", admin2.id).select("user_id"));
   // The other provider (this one used up today's reports in 9).
   const adminReport = await createSupportReport(other.client, { category: "booking", description: `A customer never showed up. ${SECRET}` });
   const m11 = fakeMailer();
-  const afterReply = await adminReply(db, adminReport, admin1.id, `Did they message you first? ${SECRET}`, true);
+  const afterReply = await adminReply(admin1.server, adminReport, admin1.id, `Did they message you first? ${SECRET}`, true);
   check(afterReply === "waiting", "11a. \"Reply and wait\" sends lokl's reply and moves it to Waiting on provider");
   await sendSupportEmails(db, m11, settings, { adminUrl: ADMIN_URL, reportId: adminReport });
   const replyMail = m11.sent.find((e) => e.to === other.email);
@@ -202,13 +208,13 @@ try {
     "11b. the provider is emailed that lokl replied, without the reply");
   const notOne = await refusal(adminReply(db, adminReport, other.id, "Pretending to be lokl.", false));
   check(notOne?.status === 403, "11c. a login that isn't an admin is refused");
-  const moved = await refusal(adminMove(db, adminReport, admin2.id, "done", "todo"));
+  const moved = await refusal(adminMove(admin2.server, adminReport, admin2.id, "done", "todo"));
   check(moved?.status === 409 && moved.message === "Someone else moved it to Waiting on provider first. The board now shows where it is.",
     "11d. a move from a column it has left is refused, saying where it is");
-  check(await adminMove(db, adminReport, admin2.id, "in_progress", "waiting") === "in_progress", "11e. a move from where it is goes through");
-  await adminNote(db, adminReport, admin1.id, `Checked the booking: no messages. ${SECRET}`);
+  check(await adminMove(admin2.server, adminReport, admin2.id, "in_progress", "waiting") === "in_progress", "11e. a move from where it is goes through");
+  await adminNote(admin1.server, adminReport, admin1.id, `Checked the booking: no messages. ${SECRET}`);
   check((await must(other.client.from("support_notes").select("id").eq("report_id", adminReport))).length === 0, "11f. the provider never sees the note");
-  const missing = await refusal(adminMove(db, randomUUIDLike(), admin1.id, "done", null));
+  const missing = await refusal(adminMove(admin1.server, randomUUIDLike(), admin1.id, "done", null));
   check(missing?.status === 404 && missing.message === "We couldn't find that report.", "11g. a report that doesn't exist is a 404");
   const actions = await must(db.from("admin_actions").select("action, reason, message").eq("target", "support_report").eq("target_id", adminReport));
   check(["support_note", "support_move", "support_reply_wait"].every((a) => actions.some((x) => x.action === a)) && actions.every((x) => !x.reason && !x.message),
@@ -230,6 +236,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(err as Error).message}`);
 } finally {
+  forgetTestAdmins();
   if (created.providers.length) {
     const ids = created.providers.map((i) => `'${i}'`).join(",");
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `

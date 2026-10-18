@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { authenticatorNameProblem, authenticatorRemoval, AUTHENTICATOR_NAME_MAX, groupedKey } from "@repo/types";
+import { authenticatorNameProblem, authenticatorRemoval, AUTHENTICATOR_ISSUER, AUTHENTICATOR_NAME_MAX, groupedKey } from "@repo/types";
 
-// Your second factor (docs/design/admin-roles.md, cutover step 2): set up
-// an authenticator app, add a backup, remove one. Optional for now.
+// Your second factor (docs/design/admin-roles.md, cutover steps 2 and 4): set
+// up an authenticator app, add a backup, remove one. Required for admin
+// access since step 4; a team member without one is sent here first.
+// Open to team members, invited or active, with or without a role yet (an
+// invited member sets up before joining): it shows only their own
+// authenticators, and without a role the page has no admin frame (the
+// middleware's "account" layout).
 // - The QR code is Supabase's own SVG, drawn here from its response; nothing
 //   is fetched from another site.
 // - The key is shown only while setting up, in groups of four, with Copy and,
 //   on phones, a link that opens the authenticator app. It's never shown
 //   again (Supabase doesn't give it back), and is dropped once set up.
 // - Adding a second authenticator or removing one needs the second step
-//   first (Supabase refuses otherwise); removing your last is warned about
-//   now, and refused once authenticators are required (authenticatorRemoval).
+//   first (Supabase refuses otherwise); removing your last is refused
+//   (authenticatorRemoval).
 useHead({ title: "Second factor · Admin" });
 
 const supabase = useSupabaseClient();
@@ -58,7 +63,7 @@ async function enrol() {
   nameError.value = authenticatorNameProblem(name.value, authenticators.value.map((a) => a.name)) ?? "";
   if (nameError.value) return;
   busy.value = true;
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: name.value.trim() });
+  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: name.value.trim(), issuer: AUTHENTICATOR_ISSUER });
   busy.value = false;
   if (error || !data) {
     nameError.value = error?.code === "insufficient_aal"
@@ -162,7 +167,7 @@ async function remove() {
       <p v-if="!loaded" class="text-muted-foreground mt-3 text-sm">Loading…</p>
       <template v-else>
         <p v-if="!authenticators.length" class="text-muted-foreground mt-3 text-sm">
-          None yet. Set one up now: admin access will soon require it. Set up two (say, your phone and a password manager), so losing one doesn't lock you out.
+          None yet. Admin access needs one: set it up now. Then add a second (say, your phone and a password manager), so losing one doesn't lock you out.
         </p>
         <ul v-else class="divide-border mt-3 divide-y">
           <li v-for="a in authenticators" :key="a.id" class="flex flex-wrap items-center justify-between gap-2 py-3">

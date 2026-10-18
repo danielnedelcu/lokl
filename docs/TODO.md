@@ -461,6 +461,13 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   and make the file match production's. From then on `--check-hosted`
   (`scripts/service-versions.mjs`, run first by `db:push`) checks
   production, not the testing project.
+- [ ] **Admin-role migrations and the website deploy together** (from
+  2026-10-18, `admin_members`): the website's admin routes name the
+  admin's session in a header that `admin_role_of()` reads, and the admin
+  app asks `admin_role()`. Older website code against a newer database (or
+  the reverse) refuses every admin action, so a change to either side ships
+  in one release: the migration first, then the website and admin app,
+  with no admin actions in between. Write it into the deploy steps.
 - [ ] Switch to branches and pull requests, with `checks` and `database` required to merge.
 - [x] **CI doesn't run hosted's service versions** (found 2026-10-16; done
   2026-10-17: `supabase/service-versions.json`, see CLAUDE.md). CI
@@ -642,8 +649,6 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     `auto_expose_new_tables` from `supabase/config.toml`; every grant is in
     the migrations since `explicit_api_grants`.
 - **Sign-in**
-  - [ ] A second factor (authenticator app) for admin accounts, since admin
-    access currently depends only on the email inbox.
   - [ ] Once the terms and privacy policy exist, show "By continuing, you
     agree to lokl's Terms and Privacy Policy" in the sign-in dialog, with
     links.
@@ -723,9 +728,11 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     cutover's order: 1. authenticator MFA on (done 2026-10-18; enabled on
     hosted, confirmed in the dashboard); 2. the admin app's set-up and
     second-step pages, optional (done 2026-10-18: `/security`,
-    `/security/verify`); 3. the owner enrols two authenticators (next);
-    4. the migration (shown before `db:push`); 5. the Team page, requests,
-    contact views, limits and alerts.
+    `/security/verify`); 3. the owner enrols two authenticators (done
+    2026-10-18); 4. the migration (built 2026-10-18, waiting for
+    `db:push`); 5. the Team page, requests, contact views, limits and
+    alerts (next). After one release, remove `app_metadata.role` from the
+    owner's login (unused since step 4).
 
 ## Notifications
 

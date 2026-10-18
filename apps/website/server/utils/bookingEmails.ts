@@ -410,7 +410,10 @@ export async function sendSupportEmails(
         if (!opts.adminUrl) return { skip: "NUXT_ADMIN_ORIGIN isn't set, so there's no link to the report." };
         const { data: u, error: userError } = await db.auth.admin.getUserById(row.admin_id);
         if (userError || !u.user) return { skip: "That admin login no longer exists." };
-        if (u.user.app_metadata?.role !== "admin") return { skip: "No longer an admin." };
+        // Still on the team (admin_members, live; docs/design/admin-roles.md).
+        // bounded: one row by its primary key
+        const { data: member } = await db.from("admin_members").select("status").eq("user_id", row.admin_id).maybeSingle();
+        if (member?.status !== "active") return { skip: "No longer an admin." };
         to = u.user.email ?? null;
       }
       return {

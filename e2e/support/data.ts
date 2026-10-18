@@ -1,6 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
+import { ADMIN_SESSION_HEADER } from "@repo/types";
 import { testEnv, type TestEnv } from "./env";
+import { authenticatorKeys, totp } from "./totp";
 
 // Test data for one journey, on the LOCAL stack, tagged with a run id and
 // removed afterwards (cleanup). The same steps as the app tests
@@ -12,6 +15,8 @@ export interface TestUser {
   id: string;
   email: string;
   password: string;
+  /** An admin's session that passed the second step (for admin functions run as the server). */
+  adminSession?: string;
 }
 export interface TestListing {
   id: string;
@@ -63,16 +68,40 @@ export class TestData {
     return new TestData(env, atl.id as string);
   }
 
-  async user(label: string, { admin = false } = {}): Promise<TestUser> {
+  /**
+   * A login. With `admin`, a member of lokl's team (admin_members; "owner"
+   * unless "support" is given) who has set up an authenticator, as joining
+   * requires (docs/design/admin-roles.md): its key is remembered for
+   * signIn, and the session that set it up is kept for admin functions.
+   * `authenticator: false` leaves that to the test (journey 38);
+   * `invited` makes them invited, not yet joined.
+   */
+  async user(label: string, { admin = false as boolean | "owner" | "support", authenticator = true, invited = false } = {}): Promise<TestUser> {
     const email = `e2e-${label}-${this.run}@test.local`;
     const password = `e2e-${randomBytes(12).toString("hex")}`;
-    const { data: made, error } = await this.env.db.auth.admin.createUser({
-      email, password, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}),
-    });
+    const { data: made, error } = await this.env.db.auth.admin.createUser({ email, password, email_confirm: true });
     const user = made.user;
     if (error || !user) throw new Error(`The test user wasn't created: ${error?.message ?? "no user"}`);
     this.users.push(user.id);
-    return { id: user.id, email, password };
+    if (!admin) return { id: user.id, email, password };
+    await must(this.env.db.from("admin_members").insert({
+      user_id: user.id, role: admin === "support" ? "support" : "owner",
+      ...(invited ? { status: "invited" } : { status: "active", joined_at: new Date().toISOString() }),
+    }));
+    if (!authenticator) return { id: user.id, email, password };
+    const client = createClient(this.env.apiUrl, this.env.publishableKey, { auth: { persistSession: false } });
+    const signedIn = await client.auth.signInWithPassword({ email, password });
+    if (signedIn.error) throw new Error(`The test admin couldn't sign in: ${signedIn.error.message}`);
+    const enrolled = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "Phone" });
+    if (enrolled.error) throw new Error(`The test admin's authenticator wasn't set up: ${enrolled.error.message}`);
+    // The previous 30 seconds' code (accepted, as a clock a little behind
+    // would be), so signIn's code for this window hasn't been used yet.
+    const verified = await client.auth.mfa.challengeAndVerify({ factorId: enrolled.data.id, code: totp(enrolled.data.totp.secret, Date.now() - 30_000) });
+    if (verified.error) throw new Error(`The test admin's authenticator wasn't confirmed: ${verified.error.message}`);
+    authenticatorKeys.set(email, enrolled.data.totp.secret);
+    const token = verified.data.access_token;
+    const adminSession = JSON.parse(Buffer.from(token.split(".")[1]!, "base64url").toString()).session_id as string;
+    return { id: user.id, email, password, adminSession };
   }
 
   /**
@@ -289,7 +318,12 @@ export class TestData {
       guide_id: g, storage_path: `${g}/${randomUUID()}.webp`, width: 2400, height: 1350, alt_text: `The cover of ${title}`, source: "own",
     }).select("id").single())).id as string;
     await must(this.env.db.from("guides").update({ draft_cover_photo_id: photo }).eq("id", g));
-    await must(this.env.db.rpc("publish_guide", { p_guide_id: g, p_admin_id: admin.id }));
+    // The server key acting for the admin's session, as the admin app's route does.
+    if (!admin.adminSession) throw new Error("publishedGuide needs an admin with an authenticator.");
+    const server = createClient(this.env.apiUrl, this.env.secretKey, {
+      auth: { persistSession: false }, global: { headers: { [ADMIN_SESSION_HEADER]: admin.adminSession } },
+    });
+    await must(server.rpc("publish_guide", { p_guide_id: g, p_admin_id: admin.id }));
     return { id: g, slug, title, teaser };
   }
   /** A market of its own (for closing it in a test); removed afterwards. */
@@ -377,6 +411,12 @@ export class TestData {
         delete from admin_actions where target = 'provider' and target_id in (${ids});`]);
     }
     for (const id of this.providers) await this.env.db.from("providers").delete().eq("id", id);
+    // Team members are never deleted, and a login on the team can't be (local
+    // only). Any of this run's logins, since a journey may add one by hand.
+    if (this.users.length) {
+      const ids = this.users.map((i) => `'${i}'`).join(",");
+      execFileSync("psql", [this.env.dbUrl, "-q", "-c", `set session_replication_role = replica; delete from admin_members where user_id in (${ids});`]);
+    }
     for (const id of this.users) await this.env.db.auth.admin.deleteUser(id);
     for (const id of this.areas) await this.env.db.from("service_areas").delete().eq("id", id);
     for (const id of this.categories) await this.env.db.from("categories").delete().eq("id", id);

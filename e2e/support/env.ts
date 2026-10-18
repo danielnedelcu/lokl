@@ -19,6 +19,8 @@ export const LOKL_SANDBOX = "acct_1UKIdIEfG7OyQ6pv";
 export interface TestEnv {
   apiUrl: string;
   publishableKey: string;
+  /** The local stack's server key (test only), for a client acting for an admin's session. */
+  secretKey: string;
   dbUrl: string;
   mailpitUrl: string;
   /** Service-role client, untyped: test setup writes rows in several schemas. */
@@ -64,6 +66,7 @@ async function load(): Promise<TestEnv> {
     publishableKey: (local.PUBLISHABLE_KEY || local.ANON_KEY)!,
     dbUrl: local.DB_URL!,
     mailpitUrl: (local.MAILPIT_URL || local.INBUCKET_URL)!,
+    secretKey: (local.SERVICE_ROLE_KEY || local.SECRET_KEY)!,
     db: createClient(apiUrl, (local.SERVICE_ROLE_KEY || local.SECRET_KEY)!, { auth: { persistSession: false } }),
     stripe,
     connectedAccount: connected.id,

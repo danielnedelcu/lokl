@@ -192,16 +192,24 @@ for usability and defence in depth, never as the only protection.
 
 ## Roles
 
-- **Admin:** `app_metadata.role = "admin"` on the Supabase user. Only the
-  service role can write `app_metadata`. SQL checks it with `public.is_admin()`;
-  TypeScript with `isAdmin()` from `@repo/types`.
+- **Admin:** an active row in `admin_members` (role `owner` or `support`),
+  on a session that passed the authenticator second step (`aal2`).
+  Checked live, never from a token claim: SQL uses `public.admin_role()`,
+  `is_admin()` and `is_owner()`; server routes ask `admin_role()` with the
+  admin's own token (`adminRoleFor`), then call admin functions with
+  `serviceClientForAdmin(event, sessionId)`, which names the admin's
+  session in the `x-lokl-admin-session` header. `admin_role_of()` reads
+  that header only after checking the caller is the server
+  (`service_role`). Design: `docs/design/admin-roles.md`.
 - **Provider:** anyone who owns a `providers` row (`owner_id = auth.uid()`).
   Provider isn't stored as a role.
 - **Customer:** any other signed-in user.
-- **Granting admin** is done by hand in the SQL Editor, never from an app.
-  Use this, not a bare `update auth.users`: it refuses a login that owns a
-  business. (The database also refuses to give a provider to an admin, but
-  deliberately has no trigger on `auth.users`; see `docs/decisions.md`.)
+- **Adding someone to the team** will be the owner's Team page (admin
+  roles, step 5). Until it exists, add an owner by hand in the SQL Editor
+  with this block, never a bare insert: it refuses a login that owns a
+  business. They then set up an authenticator on first sign-in. The
+  database keeps at least one active owner, and team rows are never
+  deleted (`status = 'removed'` instead).
 
   ```sql
   do $$
@@ -214,12 +222,12 @@ for usability and defence in depth, never as the only protection.
       raise exception 'No login for %. Sign in once on the website first, then run this again.', v_email;
     end if;
     if exists (select 1 from public.providers where owner_id = v_id) then
-      raise exception '% owns a business, so it can''t be made an admin. Use a login that owns no business, or move the business to another login first.', v_email;
+      raise exception '% owns a business, so it can''t be on the team. Use a login that owns no business.', v_email;
     end if;
-    update auth.users
-       set raw_app_meta_data = coalesce(raw_app_meta_data, '{}') || '{"role":"admin"}'
-     where id = v_id;
-    raise notice '% is now an admin. Sign out and back in to pick up the role.', v_email;
+    insert into public.admin_members (user_id, role, status, joined_at)
+    values (v_id, 'owner', 'active', now())
+    on conflict (user_id) do update set role = 'owner', status = 'active', joined_at = now(), removed_by = null, removed_at = null;
+    raise notice '% is now an owner. They set up an authenticator when they next sign in to the admin app.', v_email;
   end;
   $$;
   ```

@@ -68,9 +68,15 @@ BEHAVIOUR.
 
 These are defined once, in the providers migration, with `create or replace function`:
 
-- `public.is_admin()`: `language sql stable`, returns
-  `coalesce((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin', false)`.
-  Use it in every admin policy; don't re-inline the JWT check.
+- `public.is_admin()`: `admin_role() is not null`, where `admin_role()`
+  (security definer) is the signed-in person's role from `admin_members`
+  when they're active and their session passed the second factor (`aal2`,
+  checked against `auth.sessions`); `is_owner()` likewise (admin roles
+  migration, 2026-10-18). Use them in every admin policy; never read a
+  role from the token.
+- Admin functions the website's server calls take `p_admin_id` and check
+  `public.admin_role_of(p_admin_id) is null` first; it refuses any caller
+  but `service_role` before reading the `x-lokl-admin-session` header.
 - `public.set_updated_at()`: a plpgsql trigger function setting `new.updated_at = now()`.
 
 ## Table shape
@@ -259,7 +265,9 @@ rolls back with the test.
 | --- | --- |
 | `tests.create_user(email)` → uuid | A bare `auth.users` row |
 | `tests.authenticate_as(user_id)` | That signed-in user: role `authenticated`, JWT claims with `sub` |
-| `tests.authenticate_as_admin(user_id)` | The same, plus `app_metadata.role = 'admin'` |
+| `tests.make_admin(user_id, role)` → session id | An active team member (`owner` by default) with a session that passed the second factor |
+| `tests.authenticate_as_admin(user_id, role)` | That member, signed in on that `aal2` session |
+| `tests.authenticate_as_server_for(user_id)` | The server key, naming that admin's session in the header (for functions taking `p_admin_id`) |
 | `tests.authenticate_as_anon()` | A signed-out visitor (`anon`) |
 | `tests.authenticate_as_service_role()` | The server with the secret key; RLS doesn't apply |
 | `tests.clear_authentication()` | Back to the runner's superuser, to inspect rows RLS hides |

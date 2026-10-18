@@ -47,10 +47,6 @@ const sections = [
 
 
 const supabase = useSupabaseClient();
-// A reminder to set up an authenticator, until there is one (optional for
-// now; docs/design/admin-roles.md).
-const { authenticators, loaded, refresh: refreshAuthenticators } = useAuthenticators();
-onMounted(() => { refreshAuthenticators().catch(() => {}); });
 // The top bar stays put, so a jump to a heading stops below it.
 useHead({ htmlAttrs: { class: "scroll-pt-16" } });
 const user = useSupabaseUser();
@@ -91,13 +87,6 @@ const route = useRoute();
         <ClientOnly><AdminNotificationBell /></ClientOnly>
       </header>
       <main class="min-w-0 flex-1 p-4 md:p-8">
-        <UiAlert v-if="loaded && !authenticators.length && route.path !== '/security'" class="mb-6">
-          <UiAlertTitle>Set up an authenticator</UiAlertTitle>
-          <UiAlertDescription>
-            Admin access will soon need a second step after the emailed code.
-            <NuxtLink to="/security" class="link-text">Set up your authenticator</NuxtLink>
-          </UiAlertDescription>
-        </UiAlert>
         <slot />
       </main>
     </div>

@@ -22,6 +22,12 @@ import { inlineVNodes, parseInline } from "../../../packages/ui/app/utils/guideI
 import { runGuideAction } from "../../../apps/admin/server/utils/guides";
 import { guideListings } from "../../../apps/website/server/utils/guideListings";
 import { publicSupabase } from "../../../apps/website/server/utils/publicListings";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
+
+// The apps' addresses: CI's (3100, 3101) unless set, to run these beside
+// dev servers (scripts/ci-start-apps.mjs with WEBSITE_PORT and ADMIN_PORT).
+const WEBSITE_URL = process.env.WEBSITE_URL ?? "http://localhost:3100";
+const ADMIN_URL = process.env.ADMIN_URL ?? "http://localhost:3101";
 
 const env = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -112,7 +118,9 @@ try {
     created.users.push(u.id);
     return u.id;
   };
-  const admin = await user("admin", { role: "admin" });
+  const adminAccount = await makeAdmin(env, `guides-admin-${run}@test.local`);
+  created.users.push(adminAccount.id);
+  const admin = adminAccount.id;
   const customer = await user("customer");
 
   const guide = await must(server.from("guides").insert({ market_id: market.id, slug: `g-${run}` }).select("*").single());
@@ -138,7 +146,7 @@ try {
     const g = await must(server.from("guides").select("*").eq("id", guide.id).single());
     const cover = [small, big].find((p) => p.id === g.draft_cover_photo_id) ?? null;
     const mine = guidePublishBlockers(g, cover)[0];
-    const theirs = (await refused(() => runGuideAction(server, "publish", guide.id, admin)))?.message;
+    const theirs = (await refused(() => runGuideAction(adminAccount.server, "publish", guide.id, admin)))?.message;
     check(!!mine && mine === theirs, `3a. ${label}: the checklist and the database say the same thing`);
   }
   await must(server.from("guides").update({ draft_cover_photo_id: big.id }).eq("id", guide.id));
@@ -153,15 +161,15 @@ try {
   // -------------------------------------------------------------------------
   // 4. Publishing and unpublishing
   // -------------------------------------------------------------------------
-  const asCustomer = await refused(() => runGuideAction(server, "publish", guide.id, customer));
+  const asCustomer = await refused(() => runGuideAction(adminAccount.server, "publish", guide.id, customer));
   check(asCustomer?.status === 403, "4a. publishing as someone who isn't an admin is refused (403)");
-  const unknown = await refused(() => runGuideAction(server, "publish", randomUUID(), admin));
+  const unknown = await refused(() => runGuideAction(adminAccount.server, "publish", randomUUID(), admin));
   check(unknown?.status === 404, "4b. an unknown guide is not found (404)");
-  const notAnId = await refused(() => runGuideAction(server, "publish", "../etc", admin));
+  const notAnId = await refused(() => runGuideAction(adminAccount.server, "publish", "../etc", admin));
   check(notAnId?.status === 404, "4c. something that isn't a guide id is not found (404)");
   const tooSmall = await refused(async () => {
     await must(server.from("guides").update({ draft_cover_photo_id: small.id }).eq("id", guide.id));
-    await runGuideAction(server, "publish", guide.id, admin);
+    await runGuideAction(adminAccount.server, "publish", guide.id, admin);
   });
   check(tooSmall?.status === 409 && /at least 1,600 by 900 pixels \(this one is 1599 by 900\)/.test(tooSmall.message), "4d. a refusal is a 409 with the database's own sentence");
   await must(server.from("guides").update({ draft_cover_photo_id: big.id }).eq("id", guide.id));
@@ -172,11 +180,11 @@ try {
   await must(server.from("guides").update({
     draft_body: { blocks: [{ type: "paragraph", data: { text: "Hello" } }, { type: "photo", data: { photoId: tiny.id } }] },
   }).eq("id", guide.id));
-  check((await runGuideAction(server, "publish", guide.id, admin)).result === "published", "4e. a complete draft publishes, with a 300 x 200 photo in its body");
+  check((await runGuideAction(adminAccount.server, "publish", guide.id, admin)).result === "published", "4e. a complete draft publishes, with a 300 x 200 photo in its body");
   const live = await must(server.from("guides").select("status, title, category_id").eq("id", guide.id).single());
   check(live.status === "published" && live.title === "Murals of the trail" && live.category_id === category.id,
     "4f. the live copy is the draft, listings block included");
-  check((await runGuideAction(server, "unpublish", guide.id, admin)).result === "unpublished", "4g. unpublishing works");
+  check((await runGuideAction(adminAccount.server, "unpublish", guide.id, admin)).result === "unpublished", "4g. unpublishing works");
   check((await must(server.from("guides").select("status").eq("id", guide.id).single())).status === "unpublished", "4h. it's unpublished");
 
   // -------------------------------------------------------------------------
@@ -233,16 +241,17 @@ try {
       return 0;
     }
   };
-  const adminApp = await status(`http://localhost:3101/api/guides/${guide.id}/publish`);
+  const adminApp = await status(`${ADMIN_URL}/api/guides/${guide.id}/publish`);
   check(adminApp === 401, `6a. the admin app's publish route refuses a signed-out request (got ${adminApp || "no answer: is the admin app running?"})`);
-  const adminUnpublish = await status(`http://localhost:3101/api/guides/${guide.id}/unpublish`);
+  const adminUnpublish = await status(`${ADMIN_URL}/api/guides/${guide.id}/unpublish`);
   check(adminUnpublish === 401, `6b. the admin app's unpublish route refuses a signed-out request (got ${adminUnpublish || "no answer"})`);
-  const website = await status("http://localhost:3100/api/admin/guide-listings", { Origin: "http://localhost:3101" });
+  const website = await status(`${WEBSITE_URL}/api/admin/guide-listings`, { Origin: ADMIN_URL });
   check(website === 401, `6c. the website's guide-listings route refuses a request without a token (got ${website || "no answer: is the website running?"})`);
 } catch (e) {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   // Published guides can't be deleted and hold their market, so remove this
   // run's guides with the guard off (local database only).
   if (created.market) {

@@ -12,6 +12,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { RPC_SHAPES, RpcShapeError, rpcJson, setRpcShapeCheck, type Database, type RpcJsonName } from "@repo/types";
 import { runJob } from "../../../apps/website/server/utils/bookingJobs";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -52,8 +53,13 @@ try {
   // Test logins on the local stack only, with a throwaway password.
   const password = randomBytes(18).toString("base64url");
   const login = async (label: string, admin = false) => {
+    if (admin) {
+      const a = await makeAdmin(local, `shapes-${label}-${run}@test.local`);
+      created.users.push(a.id);
+      return { id: a.id, email: a.email, client: a.client };
+    }
     const { user } = await must(db.auth.admin.createUser({
-      email: `shapes-${label}-${run}@test.local`, password, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}),
+      email: `shapes-${label}-${run}@test.local`, password, email_confirm: true,
     }));
     created.users.push(user.id);
     const client = createClient<Database>(local.API_URL!, local.ANON_KEY!, { auth: { persistSession: false } });
@@ -165,6 +171,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   if (created.listings.length) {
     const ids = created.listings.map((i) => `'${i}'`).join(",");
     psql(`set local session_replication_role = replica;

@@ -17,11 +17,13 @@ $$;
 -- Act as a signed-in user for the rest of the transaction, the way PostgREST
 -- does: switch to the authenticated role and set the JWT claims that
 -- auth.uid() and auth.jwt() read. p_app_role fills app_metadata.role.
-create function tests.authenticate_as(p_user_id uuid, p_app_role text default null) returns void
+create function tests.authenticate_as(p_user_id uuid, p_app_role text default null, p_aal text default 'aal1', p_session uuid default null) returns void
 language plpgsql as $$
 begin
   perform set_config('request.jwt.claims', json_build_object(
     'sub', p_user_id,
+    'aal', p_aal,
+    'session_id', p_session,
     'role', 'authenticated',
     'app_metadata', case when p_app_role is null then '{}'::json
                          else json_build_object('role', p_app_role) end
@@ -30,9 +32,60 @@ begin
 end;
 $$;
 
--- Admin = a signed-in user whose app_metadata.role is 'admin'.
-create function tests.authenticate_as_admin(p_user_id uuid) returns void
-language sql as $$ select tests.authenticate_as(p_user_id, 'admin'); $$;
+-- Admin (docs/design/admin-roles.md): an active admin_members row (owner
+-- unless said), signed in on a session that passed the second factor
+-- (aal2) and is current in auth.sessions. make_admin adds both as the
+-- runner (security definer: the tests switch roles) and returns the
+-- session; authenticate_as_admin then acts as them, and names that session
+-- in the request header the server sends (x-lokl-admin-session), so later
+-- calls with the server key act for this admin.
+create function tests.make_admin(p_user_id uuid, p_role text default 'owner') returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_session uuid;
+begin
+  insert into public.admin_members (user_id, role, status, joined_at)
+  values (p_user_id, p_role, 'active', now())
+  on conflict (user_id) do update set role = excluded.role, status = 'active', joined_at = coalesce(public.admin_members.joined_at, now()), removed_at = null;
+  select s.id into v_session from auth.sessions s where s.user_id = p_user_id and s.aal = 'aal2' limit 1;
+  if v_session is null then
+    insert into auth.sessions (id, user_id, aal, created_at, updated_at)
+    values (gen_random_uuid(), p_user_id, 'aal2', now(), now()) returning id into v_session;
+  end if;
+  return v_session;
+end;
+$$;
+
+create function tests.authenticate_as_admin(p_user_id uuid, p_role text default 'owner') returns void
+language plpgsql as $$
+declare
+  v_session uuid := tests.make_admin(p_user_id, p_role);
+begin
+  perform set_config('request.headers', json_build_object('x-lokl-admin-session', v_session)::text, true);
+  perform tests.authenticate_as(p_user_id, 'admin', 'aal2', v_session);
+end;
+$$;
+
+-- The same admin, signed in with the emailed code only (aal1): no admin access.
+create function tests.authenticate_as_admin_code_only(p_user_id uuid) returns void
+language plpgsql as $$
+begin
+  perform tests.make_admin(p_user_id);
+  perform tests.authenticate_as(p_user_id, 'admin', 'aal1', null);
+end;
+$$;
+
+-- The server (secret key) acting for this admin: their session named in the header.
+create function tests.authenticate_as_server_for(p_user_id uuid) returns void
+language plpgsql as $$
+declare
+  v_session uuid := tests.make_admin(p_user_id);
+begin
+  perform set_config('request.headers', json_build_object('x-lokl-admin-session', v_session)::text, true);
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  perform set_config('role', 'service_role', true);
+end;
+$$;
 
 -- A signed-out visitor using the publishable (anon) key.
 create function tests.authenticate_as_anon() returns void

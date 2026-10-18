@@ -14,7 +14,8 @@ select plan(42);
 select tests.create_user('provider@test.local') as owner \gset
 select tests.create_user('customer@test.local') as cust \gset
 select tests.create_user('admin@test.local') as admin \gset
-update auth.users set raw_app_meta_data = '{"role":"admin"}' where id = :'admin';
+-- Admins are team members now (admin_members; docs/design/admin-roles.md).
+select tests.make_admin(:'admin');
 select id as atl from cities where slug = 'atlanta' \gset
 insert into providers (owner_id, display_name, city_id) values (:'owner', 'Tours and Cuts', :'atl') returning id as p \gset
 insert into categories (kind, name, slug) values ('experience', 'Food and drink', 'food') returning id as exp \gset
@@ -50,7 +51,7 @@ create function pg_temp.logs(p_id uuid) returns int language sql as $$
 $$;
 grant execute on function pg_temp.logs(uuid) to service_role;
 
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 -- Three requests, made two days ago, whose answer-by time passed an hour ago.
 create temp table req (label text primary key, id uuid);
 -- One statement each: each takes the next free slot (the one before holds its own).
@@ -85,7 +86,7 @@ select pg_temp.set_times(:'b_started', null, null, now() - interval '1 hour', nu
 select pg_temp.set_times(:'b_late48', null, null, now() + interval '30 hours', null);
 select pg_temp.set_times(:'b_nopolicy', null, null, now() + interval '30 hours', null);
 select pg_temp.set_times(:'b_resolved', null, null, now() - interval '2 hours', null);
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 
 -- ---------------------------------------------------------------------------
 -- 1. ACCEPTING, judged at the time Stripe captured the card
@@ -166,7 +167,7 @@ select is(admin_release_payout(:'b_changed', :'admin', 'Checked with the custome
   '3o. a retry changes nothing, logged once');
 select tests.clear_authentication();
 select pg_temp.set_times(:'b_short', null, null, now() - interval '2 hours', null);
-select tests.authenticate_as_service_role();
+select tests.authenticate_as_server_for(:'admin');
 update private.booking_records set problem_reported_at = now(), problem_note = 'Nobody was there at all.', payout_hold = 'problem_reported', payout_held_at = now() where id = :'b_short';
 select throws_ok(format($$ select admin_resolve_problem_paid(%L, %L, 'No.') $$, :'b_short', :'admin'),
   '23514', null, '3p. resolving with a log that can''t be written changes nothing');

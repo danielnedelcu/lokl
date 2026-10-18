@@ -20,6 +20,7 @@ import { adminCancelBooking } from "../../../apps/website/server/utils/adminBook
 import { expireRequests } from "../../../apps/website/server/utils/bookingJobs";
 import { handlePaymentsEvent } from "../../../apps/website/server/utils/bookings";
 import { slotAfter } from "./_slots";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -56,7 +57,12 @@ const day = 864e5;
 try {
   const atl = await must(db.from("cities").select("id").eq("slug", "atlanta").single());
   const user = async (label: string, admin = false) => {
-    const { user: u } = await must(db.auth.admin.createUser({ email: `retry-money-${label}-${run}@test.local`, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}) }));
+    if (admin) {
+      const a = await makeAdmin(local, `retry-money-${label}-${run}@test.local`);
+      created.users.push(a.id);
+      return { id: a.id, email: a.email, server: a.server };
+    }
+    const { user: u } = await must(db.auth.admin.createUser({ email: `retry-money-${label}-${run}@test.local`, email_confirm: true }));
     created.users.push(u.id);
     return { id: u.id, email: u.email! };
   };
@@ -235,13 +241,13 @@ try {
   await part("part 7", async () => {
     const b = await paid(await session(144));
     await refundAsCancel(b, "admin", { admin_id: admin.id });
-    check((await adminCancelBooking(db, stripe, b.id, admin.id, "The venue closed for the day.")) === "cancelled and refunded", "7a. a retry cancels it");
+    check((await adminCancelBooking(admin.server, stripe, b.id, admin.id, "The venue closed for the day.")) === "cancelled and refunded", "7a. a retry cancels it");
     check((await refunds(b.pi)).length === 1 && adminLogs(b.id) === "1", "7b. ...refunded once, logged once");
     // Cancelled, but the log never written: a retry writes it.
     const unlogged = await paid(await session(144));
     await refundAsCancel(unlogged, "admin", { admin_id: admin.id });
     setTimes(unlogged.id, "status = 'cancelled', cancelled_by = 'admin', cancelled_at = now(), refunded_cents = 5000, refunded_at = now(), status_changed_by = 'admin'");
-    const again = await adminCancelBooking(db, stripe, unlogged.id, admin.id, "The venue closed for the day.");
+    const again = await adminCancelBooking(admin.server, stripe, unlogged.id, admin.id, "The venue closed for the day.");
     check(again === "already cancelled" && adminLogs(unlogged.id) === "1", `7c. already cancelled with no log: the retry logs it (${adminLogs(unlogged.id)} logged)`);
     // Nobody retries: the refund webhook cancels and logs it.
     const quiet = await paid(await session(144));
@@ -356,6 +362,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   if (created.listings.length) {
     const ids = created.listings.map((id) => `'${id}'`).join(",");
     psql(`set local session_replication_role = replica;

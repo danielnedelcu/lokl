@@ -428,7 +428,7 @@ export async function handlePaymentsEvent(db: SupabaseClient, stripe: Stripe, ev
         const done = await recordAdminCancel(db, {
           bookingId: booking.id, adminId: meta.admin_id, from: "requested", resolveProblem: false, refundedCents: null,
           reason: (booking.cancel_reason as string | null) ?? "Cancelled by lokl (the reason wasn't saved).",
-        });
+        }, { finishing: true }); // what Stripe already did: no admin session here
         return done === "changed" ? "ignored: changed meanwhile" : "cancelled by lokl: hold released";
       }
       const update =

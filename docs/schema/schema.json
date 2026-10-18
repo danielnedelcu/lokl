@@ -9444,6 +9444,187 @@
           "def": "CREATE TRIGGER support_emails_outbox_guard_truncate BEFORE TRUNCATE ON public.support_emails FOR EACH STATEMENT EXECUTE FUNCTION outbox_guard()"
         }
       ]
+    },
+    {
+      "name": "public.admin_members",
+      "type": "BASE TABLE",
+      "comment": "Who may use lokl's admin, and as what: owner (everything) or support. Read live on every request (admin_role()). Never deleted: a removal is a status, so the history stays; at least one active owner, always. Written only by the server and the team functions (owner only), never directly by a signed-in user.",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'invited'::text",
+          "comment": "invited (asked, not yet joined: no access), active (access, after passing the second factor), removed (no access)."
+        },
+        {
+          "name": "invited_by",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "invited_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "joined_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "removed_by",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "removed_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_members_pkey",
+          "def": "CREATE UNIQUE INDEX admin_members_pkey ON public.admin_members USING btree (user_id)",
+          "table": "public.admin_members",
+          "columns": [
+            "user_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "admin_members_check",
+          "type": "CHECK",
+          "def": "CHECK (((status \u003c\u003e 'active'::text) OR (joined_at IS NOT NULL)))",
+          "table": "public.admin_members",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "joined_at"
+          ]
+        },
+        {
+          "name": "admin_members_check1",
+          "type": "CHECK",
+          "def": "CHECK (((status \u003c\u003e 'removed'::text) OR (removed_at IS NOT NULL)))",
+          "table": "public.admin_members",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "removed_at"
+          ]
+        },
+        {
+          "name": "admin_members_role_check",
+          "type": "CHECK",
+          "def": "CHECK ((role = ANY (ARRAY['owner'::text, 'support'::text])))",
+          "table": "public.admin_members",
+          "referenced_table": "",
+          "columns": [
+            "role"
+          ]
+        },
+        {
+          "name": "admin_members_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['invited'::text, 'active'::text, 'removed'::text])))",
+          "table": "public.admin_members",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "admin_members_invited_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (invited_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.admin_members",
+          "referenced_table": "auth.users",
+          "columns": [
+            "invited_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_members_removed_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (removed_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.admin_members",
+          "referenced_table": "auth.users",
+          "columns": [
+            "removed_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_members_user_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+          "table": "public.admin_members",
+          "referenced_table": "auth.users",
+          "columns": [
+            "user_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_members_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (user_id)",
+          "table": "public.admin_members",
+          "referenced_table": "",
+          "columns": [
+            "user_id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "admin_members_keep_an_owner",
+          "def": "CREATE TRIGGER admin_members_keep_an_owner BEFORE UPDATE ON public.admin_members FOR EACH ROW EXECUTE FUNCTION admin_members_keep_an_owner()"
+        },
+        {
+          "name": "admin_members_never_delete",
+          "def": "CREATE TRIGGER admin_members_never_delete BEFORE DELETE ON public.admin_members FOR EACH ROW EXECUTE FUNCTION admin_members_never_delete()"
+        },
+        {
+          "name": "admin_members_never_truncate",
+          "def": "CREATE TRIGGER admin_members_never_truncate BEFORE TRUNCATE ON public.admin_members FOR EACH STATEMENT EXECUTE FUNCTION admin_members_never_delete()"
+        },
+        {
+          "name": "admin_members_owns_no_provider",
+          "def": "CREATE TRIGGER admin_members_owns_no_provider BEFORE INSERT OR UPDATE OF user_id, status ON public.admin_members FOR EACH ROW EXECUTE FUNCTION admin_members_owns_no_provider()"
+        },
+        {
+          "name": "admin_members_set_updated_at",
+          "def": "CREATE TRIGGER admin_members_set_updated_at BEFORE UPDATE ON public.admin_members FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
     }
   ],
   "relations": [
@@ -12281,6 +12462,54 @@
       "name": "public.session_time_label",
       "return_type": "text",
       "arguments": "p_at timestamp with time zone, p_zone text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_role",
+      "return_type": "text",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.is_owner",
+      "return_type": "bool",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_role_of",
+      "return_type": "text",
+      "arguments": "p_admin_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_finishing_stripe",
+      "return_type": "bool",
+      "arguments": "p_admin_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_role_preview",
+      "return_type": "jsonb",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_members_keep_an_owner",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_members_never_delete",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_members_owns_no_provider",
+      "return_type": "trigger",
+      "arguments": "",
       "type": "FUNCTION"
     }
   ],

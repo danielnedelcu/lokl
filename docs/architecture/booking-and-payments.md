@@ -602,7 +602,7 @@ sequenceDiagram
 
   A->>AA: chooses an action, gives a reason (5+ characters)
   AA->>W: POST with Authorization: Bearer (the admin's session token)
-  W->>W: Origin is exactly NUXT_ADMIN_ORIGIN? (else 403)<br/>token valid? (else 401) admin role? (else 403)
+  W->>W: Origin is exactly NUXT_ADMIN_ORIGIN? (else 403)<br/>token valid? (else 401) admin_role() for that token? (else 403)
   alt cancel, or refund after a report
     W->>DB: the reason saved on the booking
     W->>S: release the hold, or refund, and reverse a transfer if paid out
@@ -621,6 +621,21 @@ sequenceDiagram
   end
 ```
 
+- **Which admin, on which session** (admin roles, 2026-10-18;
+  [design](../design/admin-roles.md)). The website checks the admin's own
+  token with `admin_role()` (an active team member whose session passed
+  the second factor), then calls each admin function with the server key
+  and the header `x-lokl-admin-session`: the session id from that token
+  (`serviceClientForAdmin`). Each function checks `admin_role_of(p_admin_id)`,
+  which refuses any caller but the server (`service_role`) before reading
+  the header, and refuses a session that isn't that admin's, current and
+  `aal2`. A removed admin's sessions stop working at once.
+- **Finishing a lost admin refund** (`finishLostCancel`, and the
+  `payment_intent.canceled` webhook for an admin cancel): Stripe has
+  already refunded or released, possibly after the admin's session ended,
+  so `admin_cancel_booking` also accepts `x-lokl-finishing: stripe` from the
+  server for an id that is or was on the team (`admin_finishing_stripe`).
+  The record says what Stripe already did; nothing new is decided.
 - **The money actions write the booking and its log together**
   (2026-10-11): `admin_cancel_booking`, `admin_release_payout` and
   `admin_resolve_problem_paid`

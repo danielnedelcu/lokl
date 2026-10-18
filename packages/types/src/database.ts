@@ -192,6 +192,43 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_members: {
+        Row: {
+          invited_at: string;
+          invited_by: string | null;
+          joined_at: string | null;
+          removed_at: string | null;
+          removed_by: string | null;
+          role: string;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          invited_at?: string;
+          invited_by?: string | null;
+          joined_at?: string | null;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          role: string;
+          status?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          invited_at?: string;
+          invited_by?: string | null;
+          joined_at?: string | null;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          role?: string;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       admin_notifications: {
         Row: {
           created_at: string;
@@ -2641,6 +2678,10 @@ export type Database = {
         Returns: string;
       };
       admin_dashboard: { Args: Record<PropertyKey, never>; Returns: Json };
+      admin_finishing_stripe: {
+        Args: { p_admin_id: string };
+        Returns: boolean;
+      };
       admin_listings_page: {
         Args: {
           p_city_id?: string;
@@ -2715,6 +2756,9 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_role: { Args: Record<PropertyKey, never>; Returns: string };
+      admin_role_of: { Args: { p_admin_id: string }; Returns: string };
+      admin_role_preview: { Args: Record<PropertyKey, never>; Returns: Json };
       admin_search_patterns: { Args: { p_q: string }; Returns: string[] };
       admin_set_homepage_features: {
         Args: { p_guide_ids: string[] };
@@ -2857,6 +2901,7 @@ export type Database = {
         Returns: string;
       };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+      is_owner: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_time_zone: { Args: { p_name: string }; Returns: boolean };
       listing_parents_active: {
         Args: {

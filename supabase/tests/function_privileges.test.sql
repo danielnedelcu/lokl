@@ -29,7 +29,7 @@ select set_eq(
        and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE')) $$,
   $$ values
        -- Admin pages (each checks is_admin() itself).
-       ('admin_bookings_page|authenticated'), ('admin_dashboard|authenticated'), ('admin_listings_page|authenticated'),
+       ('admin_bookings_page|authenticated'), ('admin_role|authenticated'), ('admin_role_preview|authenticated'), ('admin_dashboard|authenticated'), ('admin_listings_page|authenticated'),
        ('admin_providers_page|authenticated'), ('admin_reviews_page|authenticated'),
        -- Public pages.
        ('public_guide|anon,authenticated'), ('public_guides|anon,authenticated'), ('public_homepage_guides|anon,authenticated'),

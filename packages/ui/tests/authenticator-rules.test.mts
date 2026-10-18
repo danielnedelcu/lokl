@@ -20,7 +20,7 @@ check(groupedKey("JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP") === "JBSW Y3DP EHPK 3PXP JB
 check(groupedKey("ABCDEF") === "ABCD EF", "2b. ...the last group as long as it is");
 
 // 3. Removing one.
-check(ADMIN_MFA_REQUIRED === false, "3a. authenticators aren't required yet (until the admin roles migration)");
+check(ADMIN_MFA_REQUIRED === true, "3a. authenticators are required (since the admin roles migration)");
 const lastOptional = authenticatorRemoval(1, false);
 check(lastOptional.allowed && /only authenticator/.test(lastOptional.warning ?? ""), "3b. while optional, removing your last is allowed, with a warning");
 const lastRequired = authenticatorRemoval(1, true);

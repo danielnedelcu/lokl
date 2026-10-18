@@ -37,3 +37,9 @@ export async function freshTotp(secret: string): Promise<string> {
   used.set(secret, step);
   return totp(secret);
 }
+
+/**
+ * The authenticator key of each test admin, by email (data.user), so
+ * signIn(..., { app: "admin" }) can pass the second step as they would.
+ */
+export const authenticatorKeys = new Map<string, string>();

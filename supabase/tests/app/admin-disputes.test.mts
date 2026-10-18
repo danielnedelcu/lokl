@@ -9,6 +9,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { DISPUTES_PAGE_SIZE, loadDisputes } from "../../../apps/admin/app/utils/disputes";
+import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
 const local = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -37,8 +38,13 @@ try {
   // admin is only an admin (no business).
   const password = randomBytes(18).toString("base64url");
   const login = async (label: string, admin = false) => {
+    if (admin) {
+      const a = await makeAdmin(local, `disputes-${label}-${run}@test.local`);
+      created.users.push(a.id);
+      return { id: a.id, client: a.client };
+    }
     const { user } = await must(db.auth.admin.createUser({
-      email: `disputes-${label}-${run}@test.local`, password, email_confirm: true, ...(admin ? { app_metadata: { role: "admin" } } : {}),
+      email: `disputes-${label}-${run}@test.local`, password, email_confirm: true,
     }));
     created.users.push(user.id);
     const client = createClient(local.API_URL!, local.ANON_KEY!, { auth: { persistSession: false } });
@@ -100,6 +106,7 @@ try {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
+  forgetTestAdmins();
   if (created.listing) {
     psql(`set local session_replication_role = replica;
       delete from public.booking_finances where booking_id in (select id from public.bookings where listing_id = '${created.listing}');

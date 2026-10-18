@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // The second step (docs/design/admin-roles.md): after the emailed code, a
-// person with an authenticator enters its code before going on. Optional
-// for now: only those who've set one up are asked (the middleware sends
-// them here). Passing it takes the session to aal2.
+// person with an authenticator enters its code before going on (the
+// middleware sends them here). Passing it takes the session to aal2. Open
+// to anyone signed in, like /security: it shows only their own
+// authenticators.
 definePageMeta({ layout: "auth" });
 useHead({ title: "Second step · Admin" });
 

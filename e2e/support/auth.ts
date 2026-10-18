@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { BrowserContext } from "@playwright/test";
 import { ADMIN_COOKIE, testEnv } from "./env";
+import { authenticatorKeys, freshTotp } from "./totp";
 
 // Signing a test user in without email (decided 2026-10-04): the password
 // sign-in runs here, in the test, through @supabase/ssr (the library the
@@ -28,6 +29,19 @@ export async function signIn(context: BrowserContext, email: string, password: s
   // The library writes its cookies just after the sign-in resolves.
   for (let i = 0; i < 20 && !jar.size; i++) await new Promise((r) => setTimeout(r, 25));
   if (!jar.size) throw new Error("Test sign-in wrote no cookies.");
+  // An admin with an authenticator passes the second step too, as they
+  // would on /security/verify (journey 38 goes through that page itself).
+  const key = app === "admin" ? authenticatorKeys.get(email) : undefined;
+  if (key) {
+    const before = JSON.stringify([...jar]);
+    const { data: factors } = await client.auth.mfa.listFactors();
+    const factor = factors?.totp.find((f) => f.status === "verified");
+    if (!factor) throw new Error("The test admin has no authenticator.");
+    const { error: stepError } = await client.auth.mfa.challengeAndVerify({ factorId: factor.id, code: await freshTotp(key) });
+    if (stepError) throw new Error(`Test second step failed: ${stepError.message}`);
+    for (let i = 0; i < 20 && JSON.stringify([...jar]) === before; i++) await new Promise((r) => setTimeout(r, 25));
+    if (JSON.stringify([...jar]) === before) throw new Error("The second step wrote no cookies.");
+  }
   await context.addCookies(
     [...jar].map(([name, value]) => ({ name, value, domain: "localhost", path: "/", sameSite: "Lax" as const })),
   );
