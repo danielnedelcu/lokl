@@ -737,6 +737,23 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     `db:push`); 5. the Team page, requests, contact views, limits and
     alerts (next). After one release, remove `app_metadata.role` from the
     owner's login (unused since step 4).
+  - [ ] **An authenticator code works more than once** (found 2026-10-19):
+    Supabase Auth v2.197.0 (hosted and local) accepts a code from the
+    previous, current or next 30-second window and records none as used,
+    so the same code works again for up to about 90 seconds (seen on the
+    local stack; the hosted version's code is the same, not tested live,
+    which would need a hosted test login). The MFA verification hook
+    can't refuse a reused code (it gets the factor and whether the code
+    was valid, not the code or its window) and is on the Team and
+    Enterprise plans only. **Decided 2026-10-19:** accepted for now (the
+    emailed code comes first, a removal ends sessions at once, step 5
+    adds alerts; docs/design/admin-roles.md, The second factor); to be
+    reported to Supabase privately by the owner, through their disclosure
+    programme (HackerOne), not a public issue (report drafted
+    2026-10-19); the hook only if lokl
+    moves to the Team plan (one valid code per authenticator per 90
+    seconds; a refusal signs the person out everywhere). Revisit when
+    Supabase records used codes, or answers the report.
 
 ## Notifications
 

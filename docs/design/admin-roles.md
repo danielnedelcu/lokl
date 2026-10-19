@@ -290,6 +290,21 @@ email:
   an admin who hasn't passed the second factor still gets what any
   signed-in user gets (their own bookings as a customer, say), which is
   intended.
+- **A code can be used more than once (accepted, 2026-10-19):** Supabase
+  Auth (v2.197.0) accepts the previous, current and next 30-second
+  windows' codes and doesn't record which were used, so a code works
+  again for up to about 90 seconds, against the authenticator standard
+  (RFC 6238, 5.2). Accepted for now: someone would need the emailed
+  sign-in code as well as a code just used, within those 90 seconds; a
+  page that relays the whole session gets in either way; removing someone
+  ends their sessions at once; and step 5 alerts the owner to team
+  changes. The MFA verification hook can't refuse a reused code (it isn't
+  given the code or its window) and is only on the Team and Enterprise
+  plans. To be reported to Supabase privately by the owner, through
+  their disclosure programme. If lokl moves to the Team plan, the hook may refuse a second
+  valid code for the same authenticator within 90 seconds (a refusal
+  signs the person out everywhere). The browser tests use each code once,
+  in order, so nothing comes to depend on reuse.
 - **Two factors each:** everyone enrols a second authenticator (another
   device, or a password manager) at setup. Supabase allows up to 10.
 
