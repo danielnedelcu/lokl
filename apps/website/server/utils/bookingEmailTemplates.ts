@@ -118,7 +118,7 @@ interface Parts {
   message?: string | null;
   button: { label: string; url: string };
   link?: { label: string; url: string };
-  recipient: "customer" | "provider" | "account" | "admin";
+  recipient: "customer" | "provider" | "account" | "admin" | "invitee";
 }
 
 function render(p: Parts): RenderedEmail {
@@ -128,6 +128,8 @@ function render(p: Parts): RenderedEmail {
       ? "You're getting this because of a booking on your lokl listing."
       : p.recipient === "admin"
         ? "You're getting this because you're a lokl admin."
+        : p.recipient === "invitee"
+          ? "You're getting this because a lokl owner invited this email address to the admin team."
         : "You're getting this because you have a provider account on lokl.";
   const footer = ["Questions? Reply to this email.", "lokl · Services and Experiences from local people in Atlanta.", why];
 
@@ -583,5 +585,34 @@ export function renderSupportEmail(
     subject: `${c.businessName} replied to their report`,
     intro: [`${c.businessName} replied to their report about ${about}.`],
     button: adminButton,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// The team's emails (admin roles, step 5a; docs/design/admin-roles.md).
+// Never the reason: what happened, and where to look.
+// ---------------------------------------------------------------------------
+
+export type AdminEmailKind = "admin_invite" | "admin_team_change";
+
+export function renderAdminInviteEmail(c: { adminUrl: string; invitedBy: string; role: string }): RenderedEmail {
+  return render({
+    recipient: "invitee",
+    subject: "You're invited to the lokl admin team",
+    intro: [
+      `${c.invitedBy} invited you to the lokl admin team ${c.role}.`,
+      "To join, sign in to lokl Admin with this email address. We'll email you a code. Then you'll set up an authenticator app, such as one on your phone, for the second sign-in step.",
+      "The invitation lasts 7 days. If you weren't expecting it, you can ignore this email.",
+    ],
+    button: { label: "Sign in to lokl Admin", url: `${c.adminUrl}/login` },
+  });
+}
+
+export function renderAdminTeamChangeEmail(c: { adminUrl: string; text: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "A change to the lokl admin team",
+    intro: [c.text, "Every change to the team is emailed to every owner. If you didn't expect this one, open the Team page now and check the record."],
+    button: { label: "Open the Team page", url: `${c.adminUrl}/team` },
   });
 }

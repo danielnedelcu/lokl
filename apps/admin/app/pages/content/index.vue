@@ -2,6 +2,9 @@
 import { HOME_TIME_ZONE } from "@repo/types";
 import { guideState, type Guide } from "@repo/types";
 
+// The owner's alone (docs/design/admin-roles.md); the database refuses support's writes too.
+definePageMeta({ ownerOnly: true });
+
 // Every destination guide, drafts included (docs/design/destination-guides.md,
 // What the admin app needs). "New guide" creates an empty guide straight
 // away, with a placeholder address that follows its title (guideSlug.ts),

@@ -1,10 +1,52 @@
+import { z } from "zod";
+
 // Admins are team members (admin_members; docs/design/admin-roles.md), read
 // live by the database's admin_role(): an active member on a session that
 // passed the second factor. Nothing here reads a role from the sign-in token,
 // so removing someone ends their access at once. Providers are identified by
 // owning a `providers` row.
 
-export type AdminRole = "owner" | "support";
+export const ADMIN_ROLES = ["owner", "support"] as const;
+export type AdminRole = (typeof ADMIN_ROLES)[number];
+
+/** How a role reads on the Team page and in emails. */
+export const ADMIN_ROLE_LABEL: Record<AdminRole, string> = { owner: "Owner", support: "Support" };
+
+// ---------------------------------------------------------------------------
+// The team (admin roles, step 5a; docs/design/admin-roles.md)
+// ---------------------------------------------------------------------------
+
+/** Why, for every team change: logged with it, never emailed. */
+export const adminTeamReason = z.string("Say why, in a few words.").trim()
+  .min(5, "Say why, in a few words.").max(500, "Keep it under 500 characters.");
+
+/** The owner's invitation: an email address and a role. */
+export const adminInviteSchema = z.object({
+  email: z.email("Enter an email address, like name@example.com.").trim().toLowerCase().max(320),
+  role: z.enum(ADMIN_ROLES, "Choose a role."),
+  reason: adminTeamReason,
+});
+export type AdminInviteInput = z.input<typeof adminInviteSchema>;
+
+/** The team changes admin_actions logs (target admin_member). */
+export type AdminTeamAction = "invite_admin" | "change_admin_role" | "remove_admin" | "reset_admin_mfa" | "join_admin" | "break_glass_owner";
+
+/**
+ * A team change in words, for the owners' bell and email: "Sam invited
+ * alex@example.com as support." `who` and `whom` are emails (or "You").
+ * `message` is the log's own: "as support", or "support to owner".
+ */
+export function adminTeamChangeText(action: AdminTeamAction, who: string, whom: string, message: string | null): string {
+  const [from, to] = (message ?? "").split(" to ");
+  switch (action) {
+    case "invite_admin": return `${who} invited ${whom} to the team${message ? ` ${message}` : ""}.`;
+    case "change_admin_role": return from && to ? `${who} changed ${whom}'s role from ${from} to ${to}.` : `${who} changed ${whom}'s role.`;
+    case "remove_admin": return `${who} removed ${whom} from the team.`;
+    case "reset_admin_mfa": return `${who} reset ${whom}'s authenticators.`;
+    case "join_admin": return `${whom} joined the team.`;
+    case "break_glass_owner": return `${whom} was made an owner in the database.`;
+  }
+}
 
 /** The request header in which lokl's server names the admin session it acts for (admin_role_of()). */
 export const ADMIN_SESSION_HEADER = "x-lokl-admin-session";

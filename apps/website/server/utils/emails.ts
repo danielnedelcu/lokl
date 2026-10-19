@@ -16,12 +16,14 @@ export function kickBookingEmails(event: ServerEvent, bookingId?: string) {
   const { settings, mailer, adminUrl } = bookingEmailDeps();
   const db = serverSupabaseServiceRole(event);
   // Booking emails, then any provider account emails and problem reports'
-  // emails waiting (a Safety report's go out here, at once), which are few.
+  // emails and the team's emails waiting (a Safety report's go out here, at
+  // once), which are few.
   const run = sendBookingEmails(db, mailer, settings, { bookingId, limit: 20 })
     .then(async (r) => {
       const p = await sendProviderEmails(db, mailer, settings, { limit: 10 });
       const s = await sendSupportEmails(db, mailer, settings, { adminUrl, limit: 20 });
-      for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k], ...s[k]);
+      const a = await sendAdminEmails(db, mailer, settings, { adminUrl, limit: 20 });
+      for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k], ...s[k], ...a[k]);
       return r;
     })
     .then((r) => {

@@ -21,8 +21,7 @@ const NO_JOURNEY_YET = {
   "admin /listings/[id]": "a listing's admin page: no journey yet",
   "admin /listings/experiences": "the Experiences list: no journey yet",
   "admin /listings/services": "the Services list: no journey yet",
-  "admin /settings": "settings: no journey yet",
-  "admin /users": "the users page: no journey yet",
+  "admin /settings": "settings: no journey yet (journey 40 checks only that support is turned away from it)",
 };
 
 const all = journeys();

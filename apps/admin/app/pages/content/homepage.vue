@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { HomepageGuide, PublicGuidePhoto } from "@repo/types";
 
+// The owner's alone (docs/design/admin-roles.md); the database refuses support's writes too.
+definePageMeta({ ownerOnly: true });
+
 // Which guides are on the homepage (docs/design/destination-guides.md, The
 // homepage; three places since 2026-10-11): a main guide, alone at the top,
 // and up to two more in the guides section below "On lokl now". Never the

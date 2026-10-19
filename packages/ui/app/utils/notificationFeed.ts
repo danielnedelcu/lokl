@@ -37,8 +37,11 @@ export interface NotificationRow {
 export interface AdminNotificationRow {
   id: string;
   recipient_id: string;
-  kind: "support_new" | "support_safety" | "support_reply";
-  report_id: string;
+  kind: "support_new" | "support_safety" | "support_reply" | "team_change";
+  /** A problem report's (null for a team change). */
+  report_id: string | null;
+  /** A team change's admin_actions row (null for a report). */
+  admin_action_id: string | null;
   created_at: string;
   read_at: string | null;
 }

@@ -246,20 +246,36 @@ for usability and defence in depth, never as the only protection.
 - **Provider:** anyone who owns a `providers` row (`owner_id = auth.uid()`).
   Provider isn't stored as a role.
 - **Customer:** any other signed-in user.
-- **Adding someone to the team** will be the owner's Team page (admin
-  roles, step 5). Until it exists, add an owner by hand in the SQL Editor
-  with this block, never a bare insert: it refuses a login that owns a
-  business. They then set up an authenticator on first sign-in. The
-  database keeps at least one active owner, and team rows are never
-  deleted (`status = 'removed'` instead).
+- **The team is the owner's Team page** (`/team` in the admin app; admin
+  roles step 5a). The owner invites by email and role; the website's
+  server makes the login if needed and `admin_invite()` queues the
+  invitation (`admin_emails`); the person signs in, sets up an
+  authenticator and joins on `/join` (`admin_join()`, within 7 days). Role
+  changes, removals (every session ended at once) and authenticator
+  resets are the owner's own session calling `admin_change_role`,
+  `admin_remove` and `admin_reset_second_factor`. Every change is logged
+  and goes to every active owner's bell and inbox. Nobody changes their
+  own role or removes themselves; the database keeps at least one active
+  owner; team rows are never deleted (`status = 'removed'`). Pages that
+  are the owner's alone say so with `definePageMeta({ ownerOnly: true })`
+  (support is sent to `/owner-only`), server routes with
+  `requireAdmin(event, { owner: true })`, and the database refuses
+  support either way.
+- **Break-glass only** (the only owner's login is lost entirely;
+  docs/design/admin-roles.md, Break-glass): in the SQL Editor, this block
+  makes a login an owner, refuses one that owns a business, logs
+  `break_glass_owner` and tells every owner. It's the only time a role is
+  granted in SQL. They then set up an authenticator on first sign-in.
 
   ```sql
   do $$
   declare
-    v_email constant text := '<admin email>';
+    v_email constant text := '<new owner email>';
+    v_reason constant text := '<why: what happened to the owner''s login>';
     v_id uuid;
+    v_action uuid;
   begin
-    select id into v_id from auth.users where email = v_email;
+    select id into v_id from auth.users where lower(email) = lower(v_email);
     if v_id is null then
       raise exception 'No login for %. Sign in once on the website first, then run this again.', v_email;
     end if;
@@ -269,6 +285,10 @@ for usability and defence in depth, never as the only protection.
     insert into public.admin_members (user_id, role, status, joined_at)
     values (v_id, 'owner', 'active', now())
     on conflict (user_id) do update set role = 'owner', status = 'active', joined_at = now(), removed_by = null, removed_at = null;
+    insert into public.admin_actions (admin_id, target, target_id, action, reason)
+    values (v_id, 'admin_member', v_id, 'break_glass_owner', v_reason)
+    returning id into v_action;
+    perform public.admin_team_alert(v_action);
     raise notice '% is now an owner. They set up an authenticator when they next sign in to the admin app.', v_email;
   end;
   $$;

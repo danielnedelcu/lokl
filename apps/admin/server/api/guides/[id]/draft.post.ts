@@ -7,7 +7,7 @@ import { aiDraftRequestSchema, type Database } from "@repo/types";
 // (docs/design/destination-guides.md, The AI draft). Admins only. The key is
 // server-only runtime config (NUXT_ANTHROPIC_API_KEY), never sent to the page.
 export default defineEventHandler(async (event) => {
-  const admin = await requireAdmin(event);
+  const admin = await requireAdmin(event, { owner: true });
   const request = await readValidatedBody(event, aiDraftRequestSchema.parse);
   const { anthropicApiKey, anthropicModel } = useRuntimeConfig(event);
   if (!anthropicApiKey) {

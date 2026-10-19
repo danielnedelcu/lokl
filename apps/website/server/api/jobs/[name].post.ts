@@ -71,8 +71,9 @@ export default defineEventHandler(async (event) => {
       if (!opts.bookingId) {
         const p = await sendProviderEmails(db, mailer, settings, { limit: 50 });
         const s = await sendSupportEmails(db, mailer, settings, { adminUrl, limit: 50 });
-        for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k], ...s[k]);
-        r.more ||= p.more || s.more;
+        const a = await sendAdminEmails(db, mailer, settings, { adminUrl, limit: 50 });
+        for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k], ...s[k], ...a[k]);
+        r.more ||= p.more || s.more || a.more;
       }
       result = {
         job: name, checked: r.sent.length + r.retrying.length + r.failed.length + r.skipped.length,

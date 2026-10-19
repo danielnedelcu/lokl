@@ -21,6 +21,10 @@ useHead({ title: "Second factor · Admin" });
 const supabase = useSupabaseClient();
 const { authenticators, level, loaded, refresh } = useAuthenticators();
 const loadError = ref("");
+// Invited and not joined yet: once an authenticator is set up (and so the
+// second step passed), the next step is joining (/join).
+const invited = ref(false);
+const canJoin = computed(() => invited.value && authenticators.value.length > 0 && level.value.current === "aal2");
 
 // A set-up left half-way (enrolled, never confirmed) is cleared, so its
 // name is free again and its key goes nowhere.
@@ -32,6 +36,9 @@ onMounted(async () => {
   try {
     await clearUnfinished();
     await refresh();
+    // bounded: their own row, at most one
+    const { data: member } = await supabase.from("admin_members").select("status").neq("status", "removed").maybeSingle();
+    invited.value = member?.status === "invited";
   } catch {
     loadError.value = "Your authenticators didn't load. Reload the page to try again.";
   }
@@ -151,6 +158,14 @@ async function remove() {
 
     <p v-if="loadError" role="alert" class="text-destructive text-sm">{{ loadError }}</p>
     <p class="sr-only" aria-live="polite">{{ done }}</p>
+
+    <UiAlert v-if="canJoin" class="mb-6">
+      <UiAlertTitle>You're ready to join the team</UiAlertTitle>
+      <UiAlertDescription>
+        Your authenticator is set up.
+        <NuxtLink to="/join" class="link-text">Continue to join the lokl admin team</NuxtLink>.
+      </UiAlertDescription>
+    </UiAlert>
 
     <UiAlert v-if="mustPassSecondStep" class="mb-6">
       <UiAlertTitle>Pass the second step to change your authenticators</UiAlertTitle>

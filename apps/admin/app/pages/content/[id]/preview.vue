@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { Guide, GuidePhoto } from "@repo/types";
 
+// The owner's alone (docs/design/admin-roles.md); the database refuses support's writes too.
+definePageMeta({ ownerOnly: true });
+
 // The draft as visitors would see it, drawn by the same renderer as the
 // public guide page (GuideBody). Visitors never see drafts.
 const route = useRoute();

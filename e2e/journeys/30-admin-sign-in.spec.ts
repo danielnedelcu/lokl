@@ -8,7 +8,8 @@ import { freshTotp } from "../support/totp";
 
 // Journey 30: a real admin signs in to the admin app, set up as the dev
 // servers are: the website and the admin app on localhost (two ports), one
-// Supabase project, the admin made by hand with CLAUDE.md's SQL after their
+// Supabase project, the admin made by hand with CLAUDE.md's SQL (the
+// break-glass block, since 2026-10-19) after their
 // login exists, signing in by emailed code and then setting up the
 // authenticator a new team member needs (admin roles, 2026-10-18). Found 2026-10-17: with a
 // provider signed in on the website in the same browser, the admin was sent
@@ -17,14 +18,22 @@ import { freshTotp } from "../support/totp";
 // app's supabase.cookiePrefix).
 
 /**
- * Adds a login to the team as CLAUDE.md says (the SQL Editor), on the local
- * database: its own block, read from CLAUDE.md, so the two can't drift.
+ * Makes a login an owner with CLAUDE.md's break-glass block (the SQL
+ * Editor), on the local database: its own block, read from CLAUDE.md, so
+ * the two can't drift. It logs break_glass_owner and alerts every owner.
  */
 function grantAdmin(dbUrl: string, email: string) {
   const rules = readFileSync("CLAUDE.md", "utf8"); // run from the repo root (scripts/e2e.mjs)
   const block = rules.match(/```sql\n(\s*do \$\$[\s\S]*?admin_members[\s\S]*?\$\$;)\n\s*```/)?.[1];
   if (!block) throw new Error("CLAUDE.md has no block adding someone to admin_members.");
-  execFileSync("psql", [dbUrl, "-q", "-v", "ON_ERROR_STOP=1"], { input: block.replace("<admin email>", email.replaceAll("'", "''")) });
+  if (!block.includes("<new owner email>") || !block.includes("break_glass_owner")) throw new Error("CLAUDE.md's block isn't the break-glass one this journey expects.");
+  const sql = block.replace("<new owner email>", email.replaceAll("'", "''"))
+    .replace(/<why: [^>]*>/, "E2E: the only owner lost their login");
+  execFileSync("psql", [dbUrl, "-q", "-v", "ON_ERROR_STOP=1"], { input: sql });
+  // Logged, as the block says.
+  const logged = execFileSync("psql", [dbUrl, "-X", "-At", "-c",
+    `select count(*) from admin_actions a join auth.users u on u.id = a.target_id where a.action = 'break_glass_owner' and u.email = '${email.replaceAll("'", "''")}'`], { encoding: "utf8" }).trim();
+  if (logged !== "1") throw new Error(`The break-glass block didn't log break_glass_owner (${logged}).`);
 }
 
 /** Signs in by emailed code; a new team member then sets up an authenticator, and the admin opens. */
