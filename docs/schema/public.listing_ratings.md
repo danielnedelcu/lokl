@@ -40,6 +40,13 @@ Each listing's published reviews: count, star total and average (rounded half up
 | -------------------- | ------------------------------------------------------------------------------------------- |
 | listing_ratings_pkey | CREATE UNIQUE INDEX listing_ratings_pkey ON public.listing_ratings USING btree (listing_id) |
 
+## Triggers
+
+| Name                                    | Definition                                                                                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| listing_ratings_public_content          | CREATE TRIGGER listing_ratings_public_content AFTER INSERT OR DELETE OR UPDATE ON public.listing_ratings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings') |
+| listing_ratings_public_content_truncate | CREATE TRIGGER listing_ratings_public_content_truncate AFTER TRUNCATE ON public.listing_ratings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')          |
+
 ## Relations
 
 ![er](public.listing_ratings.svg)

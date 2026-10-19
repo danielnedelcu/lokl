@@ -42,11 +42,13 @@ Photos of a listing, at most 8. Position 0 is the cover. At least one is require
 
 ## Triggers
 
-| Name                          | Definition                                                                                                                                                            |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| listing_photos_check          | CREATE TRIGGER listing_photos_check BEFORE INSERT OR UPDATE OF storage_path, listing_id ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION listing_photos_check() |
-| listing_photos_guard          | CREATE TRIGGER listing_photos_guard BEFORE INSERT OR DELETE OR UPDATE ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION listing_photos_guard()                   |
-| listing_photos_set_updated_at | CREATE TRIGGER listing_photos_set_updated_at BEFORE UPDATE ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                    |
+| Name                                   | Definition                                                                                                                                                                    |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| listing_photos_check                   | CREATE TRIGGER listing_photos_check BEFORE INSERT OR UPDATE OF storage_path, listing_id ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION listing_photos_check()         |
+| listing_photos_guard                   | CREATE TRIGGER listing_photos_guard BEFORE INSERT OR DELETE OR UPDATE ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION listing_photos_guard()                           |
+| listing_photos_public_content          | CREATE TRIGGER listing_photos_public_content AFTER INSERT OR DELETE OR UPDATE ON public.listing_photos FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings') |
+| listing_photos_public_content_truncate | CREATE TRIGGER listing_photos_public_content_truncate AFTER TRUNCATE ON public.listing_photos FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')          |
+| listing_photos_set_updated_at          | CREATE TRIGGER listing_photos_set_updated_at BEFORE UPDATE ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                            |
 
 ## Relations
 

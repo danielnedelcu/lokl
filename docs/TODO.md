@@ -468,6 +468,12 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   the reverse) refuses every admin action, so a change to either side ships
   in one release: the migration first, then the website and admin app,
   with no admin actions in between. Write it into the deploy steps.
+- [ ] **Edge caching of the public routes, once hosting is chosen**
+  (decided 2026-10-18): `/api/public/*` answers say `Cache-Control:
+  private, no-cache`, so no CDN keeps them, because a CDN can't see the
+  content versions that make changes show at once (`publicCache.ts`).
+  Revisit with the host: keep it so, or let the edge cache with a purge
+  on each version change, and check the staging site's headers either way.
 - [ ] Switch to branches and pull requests, with `checks` and `database` required to merge.
 - [x] **CI doesn't run hosted's service versions** (found 2026-10-16; done
   2026-10-17: `supabase/service-versions.json`, see CLAUDE.md). CI
@@ -692,12 +698,10 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     development the SEO module sends `Disallow: /` on purpose.)
   - [ ] Replace the Nuxt favicon in both apps (`apps/website/public/favicon.ico`,
     `apps/admin/public/favicon.ico`) with lokl's, once there's a logo.
-  - [ ] Clear cached browse pages as soon as a listing is taken down or
-    unpublished (depends on the host's cache or CDN). Until then they refresh
-    within 60 seconds; listing pages aren't cached. The same for provider
-    profile pages (`/api/public/providers/**`, cached 60 seconds): a
-    suspended provider's profile, or one whose last listing comes down,
-    stays up for up to a minute. Clear it on suspension and on a takedown.
+  - [x] Clear cached browse pages as soon as a listing is taken down or
+    unpublished, and provider pages on a suspension (done 2026-10-18:
+    content versions, `publicCache.ts`; spots and open days still follow
+    60 seconds).
   - [ ] UX polish pass across the public pages: font sizes, spacing and
     visual design.
 - **Blockers for live payments** (sandbox testing can go ahead)

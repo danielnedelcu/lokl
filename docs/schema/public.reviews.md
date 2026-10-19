@@ -55,12 +55,14 @@ A customer's review of a completed booking: one to five stars and their words, p
 
 ## Triggers
 
-| Name                    | Definition                                                                                                                                          |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| reviews_fill            | CREATE TRIGGER reviews_fill BEFORE INSERT ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_fill()                                            |
-| reviews_guard           | CREATE TRIGGER reviews_guard BEFORE UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_guard()                                          |
-| reviews_notify_provider | CREATE TRIGGER reviews_notify_provider AFTER INSERT ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_notify_provider()                       |
-| reviews_recount         | CREATE TRIGGER reviews_recount AFTER INSERT OR DELETE OR UPDATE OF rating, status ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_recount() |
+| Name                            | Definition                                                                                                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| reviews_fill                    | CREATE TRIGGER reviews_fill BEFORE INSERT ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_fill()                                                        |
+| reviews_guard                   | CREATE TRIGGER reviews_guard BEFORE UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_guard()                                                      |
+| reviews_notify_provider         | CREATE TRIGGER reviews_notify_provider AFTER INSERT ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_notify_provider()                                   |
+| reviews_public_content          | CREATE TRIGGER reviews_public_content AFTER INSERT OR DELETE OR UPDATE ON public.reviews FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings') |
+| reviews_public_content_truncate | CREATE TRIGGER reviews_public_content_truncate AFTER TRUNCATE ON public.reviews FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')          |
+| reviews_recount                 | CREATE TRIGGER reviews_recount AFTER INSERT OR DELETE OR UPDATE OF rating, status ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_recount()             |
 
 ## Relations
 

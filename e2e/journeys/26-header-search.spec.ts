@@ -16,13 +16,13 @@ const bar = (page: Page) => page.locator("form[role=search]:visible");
 const segment = (page: Page, name: "where" | "when" | "what") => bar(page).locator(`[data-segment="${name}"]`);
 const expanded = (page: Page) => bar(page).locator("[data-segment]").evaluateAll((b) => b.map((x) => x.getAttribute("aria-expanded")).join(","));
 const focusedText = (page: Page) => page.evaluate(() => document.activeElement?.textContent?.replace(/\s+/g, " ").trim() ?? "");
-/** Waits for the market's (cached, a minute) areas and categories to include this test's, then loads `path`. */
+/** Waits for the market's areas and categories to include this test's (within about a second), then loads `path`. */
 async function marketHas(page: Page, path: string, { area, category }: { area?: string; category?: string }) {
   await expect.poll(async () => {
     const info = await (await page.request.get("/api/public/markets/atlanta")).json();
     return (!area || info.areas.some((a: { name: string }) => a.name === area))
       && (!category || info.categories.some((c: { slug: string; count: number }) => c.slug === category && c.count > 0));
-  }, { message: "the market's areas and categories include this test's", timeout: 80_000, intervals: [3_000, 5_000] }).toBe(true);
+  }, { message: "the market's areas and categories include this test's", timeout: 5_000, intervals: [250, 500] }).toBe(true);
   await page.goto(path);
 }
 const panel = (page: Page) => page.locator("form[role=search]:visible div[style*='--reka-navigation-menu-viewport-width']");
@@ -153,7 +153,6 @@ test("@zones the quick dates and today are Atlanta's, whatever the device's zone
 });
 
 test("the results: the address holds the filters, browse's results and counts, dates filter both kinds, an editable empty state", async ({ page, data }) => {
-  test.setTimeout(150_000);
   const owner = await data.user("search-results");
   const provider = await data.provider(owner, `E2E Results ${data.run}`);
   const area = await data.area();

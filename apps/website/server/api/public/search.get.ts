@@ -19,7 +19,7 @@ const query = z.object({
 }).refine((q) => !q.category || q.kind, { message: "A category needs its kind." })
   .refine((q) => !q.from || !q.to || (q.to >= q.from && searchDays(q.from, q.to) <= MAX_SEARCH_DAYS), { message: SEARCH_RANGE_TOO_LONG });
 
-export default defineEventHandler(async (event): Promise<PublicSearchResult> => {
+export default definePublicCachedHandler(["listings", "markets"], async (event): Promise<PublicSearchResult> => {
   const parsed = query.safeParse(getQuery(event));
   if (!parsed.success) {
     // A range that's too long says so; anything else is a bad address.

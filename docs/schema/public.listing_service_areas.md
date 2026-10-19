@@ -29,10 +29,12 @@ Where an "I come to you" Service travels. At least one row is required before a 
 
 ## Triggers
 
-| Name                        | Definition                                                                                                                                                     |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| listing_service_areas_check | CREATE TRIGGER listing_service_areas_check BEFORE INSERT ON public.listing_service_areas FOR EACH ROW EXECUTE FUNCTION listing_service_areas_check()           |
-| listing_service_areas_guard | CREATE TRIGGER listing_service_areas_guard BEFORE INSERT OR DELETE ON public.listing_service_areas FOR EACH ROW EXECUTE FUNCTION listing_service_areas_guard() |
+| Name                                          | Definition                                                                                                                                                                                  |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| listing_service_areas_check                   | CREATE TRIGGER listing_service_areas_check BEFORE INSERT ON public.listing_service_areas FOR EACH ROW EXECUTE FUNCTION listing_service_areas_check()                                        |
+| listing_service_areas_guard                   | CREATE TRIGGER listing_service_areas_guard BEFORE INSERT OR DELETE ON public.listing_service_areas FOR EACH ROW EXECUTE FUNCTION listing_service_areas_guard()                              |
+| listing_service_areas_public_content          | CREATE TRIGGER listing_service_areas_public_content AFTER INSERT OR DELETE OR UPDATE ON public.listing_service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings') |
+| listing_service_areas_public_content_truncate | CREATE TRIGGER listing_service_areas_public_content_truncate AFTER TRUNCATE ON public.listing_service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')          |
 
 ## Relations
 

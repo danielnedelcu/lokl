@@ -10,7 +10,8 @@ import { expect, test } from "../support/fixtures";
 // rings have room, "reduce motion" makes the arrows jump, a sideways
 // trackpad gesture scrolls the row (not the page), and on a phone the row
 // runs to both screen edges with the first card on the page's margin.
-// The homepage's listings are cached for a minute, so it's polled for.
+// The homepage's listings show new ones within about a second (the content
+// versions are read once a second), so they're polled for briefly.
 
 test.describe.configure({ mode: "serial" });
 
@@ -31,7 +32,7 @@ async function servicesRow(page: Page, run: string) {
   await expect.poll(async () => {
     await page.goto("/");
     return page.getByRole("region", { name: "Services", exact: true }).getByRole("listitem").filter({ hasText: run }).count();
-  }, { message: "the Services row shows this test's listings", timeout: 80_000, intervals: [3_000, 5_000] }).toBe(10);
+  }, { message: "the Services row shows this test's listings", timeout: 5_000, intervals: [250, 500] }).toBe(10);
   const row = page.getByRole("region", { name: "Services", exact: true });
   return { row, track: row.getByRole("list"), prev: row.getByRole("button", { name: "Scroll Services left" }), next: row.getByRole("button", { name: "Scroll Services right" }) };
 }
@@ -63,13 +64,12 @@ function visibleItems(track: Locator) {
 }
 
 test("desktop: arrows, ends, snapping, keyboard, screen readers, focus rings, reduced motion, trackpad", async ({ page, data }) => {
-  test.setTimeout(150_000);
   await twelveServices(data, { experiences: true });
   const { row, track, prev, next } = await servicesRow(page, data.run);
 
   // "On lokl now", above the carousels, is unchanged: exactly two listings,
   // one Experience and one Service (picked at random on the server), beside
-  // the host card. Its picks are cached for a minute, so it's polled for too.
+  // the host card. Its picks show new listings within about a second too.
   const onLokl = page.getByRole("region", { name: "On lokl now" });
   const picked = () => onLokl.getByRole("listitem").getByRole("link").evaluateAll((links) => links.map((a) => a.getAttribute("href") ?? ""));
   await expect.poll(async () => {
@@ -77,7 +77,7 @@ test("desktop: arrows, ends, snapping, keyboard, screen readers, focus rings, re
     const hrefs = await picked();
     return [hrefs.length, hrefs.filter((h) => h.startsWith("/experiences/")).length, hrefs.filter((h) => h.startsWith("/services/")).length,
       hrefs.every((h) => h.includes(data.run))].join(" ");
-  }, { message: "one Experience and one Service from this test's listings", timeout: 80_000, intervals: [3_000, 5_000] }).toBe("2 1 1 true");
+  }, { message: "one Experience and one Service from this test's listings", timeout: 5_000, intervals: [250, 500] }).toBe("2 1 1 true");
   await expect(onLokl.getByRole("heading", { name: "Offer your Services or host Experiences" })).toBeVisible();
 
   // A labelled section, the cards as a list: 10 and "See all", none hidden.

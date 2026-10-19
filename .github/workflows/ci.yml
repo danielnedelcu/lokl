@@ -99,6 +99,8 @@ jobs:
         run: npm run db:test
       - name: database.ts matches the migrations
         run: npm run db:types:check
+      - name: Every table behind a cached public route raises its version or follows the 60 seconds
+        run: npm run check:public-cache
       - name: Build check
         run: npm run build:check
       - name: Start both apps against the local stack

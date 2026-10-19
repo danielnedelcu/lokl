@@ -4,7 +4,7 @@ import { photoCredit, type GuideBodyPhoto, type PublicGuide, type PublicListingC
 // A destination guide, e.g. /atlanta/guides/a-day-in-old-fourth-ward
 // (docs/design/destination-guides.md, Public pages and SEO): its live copy,
 // drawn by lokl's own renderer, then its listings block. Drafts and
-// unpublished guides are not found. Cached for up to a minute.
+// unpublished guides are not found. Cached, and answered fresh as soon as it changes (publicCache.ts).
 definePageMeta({ layout: "public" });
 
 const route = useRoute();

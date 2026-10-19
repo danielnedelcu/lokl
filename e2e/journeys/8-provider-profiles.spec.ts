@@ -32,7 +32,6 @@ async function addPhoto(page: Page, area: string, file: Awaited<ReturnType<typeo
 }
 
 test("a provider fills in their profile; visitors see it on the listing and the profile page", async ({ page, context, data }) => {
-  test.setTimeout(180_000);
   const owner = await data.user("owner");
   const providerId = await data.provider(owner, `E2E Peach ${data.run}`);
   const category = await data.category("experience");
@@ -86,10 +85,10 @@ test("a provider fills in their profile; visitors see it on the listing and the 
   await expect(page.getByText("Small groups, good food.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Experiences (2)" })).toBeVisible();
 
-  // Suspended: no public profile, once the page's one-minute cache has passed.
+  // Suspended: no public profile, at once (within about a second).
   await data.env.db.from("providers").update({ status: "suspended" }).eq("id", providerId);
   await expect.poll(async () => (await page.request.get(`/providers/${slug}`)).status(),
-    { message: "a suspended provider's profile page is not found", timeout: 75_000, intervals: [5_000] }).toBe(404);
+    { message: "a suspended provider's profile page is not found", timeout: 5_000, intervals: [250, 500] }).toBe(404);
 });
 
 test("the admin removes profile content that breaks a rule, and the provider is emailed", async ({ page, context, data }) => {

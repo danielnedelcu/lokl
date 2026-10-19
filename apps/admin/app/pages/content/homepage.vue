@@ -138,7 +138,7 @@ async function save() {
     const plain = e.message.startsWith("Only a published") || e.message.startsWith("The homepage shows") || e.message.startsWith("Each guide");
     return void useSonner.error(reportProblem(plain ? e.message : "The homepage wasn't saved. Try again.", e));
   }
-  useSonner.success(toSave.value.length ? "Saved. The homepage shows these within a minute." : "Saved. The homepage shows its headline first again.");
+  useSonner.success(toSave.value.length ? "Saved. The homepage shows these now." : "Saved. The homepage shows its headline first again.");
   await refresh();
 }
 

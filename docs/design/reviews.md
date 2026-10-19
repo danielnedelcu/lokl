@@ -195,10 +195,9 @@ first, 10 at a time with **Show more**. No sorting by stars, and no hiding
 low ones.
 
 **Caching:** listing pages aren't cached, so a review shows there at once.
-Profile pages are cached for 60 seconds (`/api/public/providers/**`), so it
-shows there within a minute. Removals are the same: at once on the listing,
-within a minute on the profile (the TODO item on clearing cached pages
-covers this too).
+Profile pages are cached, but answered fresh as soon as a review or rating
+changes (content versions, 2026-10-18), so it shows there at once too.
+Removals are the same.
 
 ## The review form
 

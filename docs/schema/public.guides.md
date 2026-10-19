@@ -69,12 +69,14 @@ Destination guides: articles about a place or theme in a market that recommend l
 
 ## Triggers
 
-| Name                  | Definition                                                                                                                                                      |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| guides_area_in_market | CREATE TRIGGER guides_area_in_market BEFORE INSERT OR UPDATE OF draft_area_id, market_id ON public.guides FOR EACH ROW EXECUTE FUNCTION guides_area_in_market() |
-| guides_cover_is_own   | CREATE TRIGGER guides_cover_is_own BEFORE INSERT OR UPDATE OF draft_cover_photo_id ON public.guides FOR EACH ROW EXECUTE FUNCTION guides_cover_is_own()         |
-| guides_guard          | CREATE TRIGGER guides_guard BEFORE INSERT OR DELETE OR UPDATE ON public.guides FOR EACH ROW EXECUTE FUNCTION guides_guard()                                     |
-| guides_set_updated_at | CREATE TRIGGER guides_set_updated_at BEFORE UPDATE ON public.guides FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                              |
+| Name                           | Definition                                                                                                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| guides_area_in_market          | CREATE TRIGGER guides_area_in_market BEFORE INSERT OR UPDATE OF draft_area_id, market_id ON public.guides FOR EACH ROW EXECUTE FUNCTION guides_area_in_market() |
+| guides_cover_is_own            | CREATE TRIGGER guides_cover_is_own BEFORE INSERT OR UPDATE OF draft_cover_photo_id ON public.guides FOR EACH ROW EXECUTE FUNCTION guides_cover_is_own()         |
+| guides_guard                   | CREATE TRIGGER guides_guard BEFORE INSERT OR DELETE OR UPDATE ON public.guides FOR EACH ROW EXECUTE FUNCTION guides_guard()                                     |
+| guides_public_content          | CREATE TRIGGER guides_public_content AFTER INSERT OR DELETE OR UPDATE ON public.guides FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')     |
+| guides_public_content_truncate | CREATE TRIGGER guides_public_content_truncate AFTER TRUNCATE ON public.guides FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')              |
+| guides_set_updated_at          | CREATE TRIGGER guides_set_updated_at BEFORE UPDATE ON public.guides FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                              |
 
 ## Relations
 

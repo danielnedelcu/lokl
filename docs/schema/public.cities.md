@@ -39,9 +39,11 @@ The markets lokl operates in, each named after its main city and covering its me
 
 ## Triggers
 
-| Name                  | Definition                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| cities_set_updated_at | CREATE TRIGGER cities_set_updated_at BEFORE UPDATE ON public.cities FOR EACH ROW EXECUTE FUNCTION set_updated_at() |
+| Name                           | Definition                                                                                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| cities_public_content          | CREATE TRIGGER cities_public_content AFTER INSERT OR DELETE OR UPDATE ON public.cities FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets') |
+| cities_public_content_truncate | CREATE TRIGGER cities_public_content_truncate AFTER TRUNCATE ON public.cities FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')          |
+| cities_set_updated_at          | CREATE TRIGGER cities_set_updated_at BEFORE UPDATE ON public.cities FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                           |
 
 ## Relations
 

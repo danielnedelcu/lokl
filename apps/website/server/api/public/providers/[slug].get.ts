@@ -5,7 +5,7 @@ import { z } from "zod";
 // or one with no visible listing, is not found.
 const params = z.object({ slug: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(70) });
 
-export default defineEventHandler(async (event) => {
+export default definePublicCachedHandler(["listings", "markets"], async (event) => {
   const parsed = params.safeParse(getRouterParams(event));
   if (!parsed.success) throw createError({ statusCode: 404, statusMessage: "We couldn't find that provider." });
   let found;

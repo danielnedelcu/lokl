@@ -54,9 +54,11 @@ Photos of a guide, in the public guide-photos bucket under <guide id>/: resized 
 
 ## Triggers
 
-| Name                       | Definition                                                                                                                                                                               |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| guide_photos_in_own_folder | CREATE TRIGGER guide_photos_in_own_folder BEFORE INSERT OR UPDATE OF storage_path, card_path, guide_id ON public.guide_photos FOR EACH ROW EXECUTE FUNCTION guide_photos_in_own_folder() |
+| Name                                 | Definition                                                                                                                                                                               |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| guide_photos_in_own_folder           | CREATE TRIGGER guide_photos_in_own_folder BEFORE INSERT OR UPDATE OF storage_path, card_path, guide_id ON public.guide_photos FOR EACH ROW EXECUTE FUNCTION guide_photos_in_own_folder() |
+| guide_photos_public_content          | CREATE TRIGGER guide_photos_public_content AFTER INSERT OR DELETE OR UPDATE ON public.guide_photos FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')                  |
+| guide_photos_public_content_truncate | CREATE TRIGGER guide_photos_public_content_truncate AFTER TRUNCATE ON public.guide_photos FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')                           |
 
 ## Relations
 

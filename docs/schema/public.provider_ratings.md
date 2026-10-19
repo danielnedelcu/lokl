@@ -40,6 +40,13 @@ Each provider's published reviews across all their listings (including ones no l
 | --------------------- | ---------------------------------------------------------------------------------------------- |
 | provider_ratings_pkey | CREATE UNIQUE INDEX provider_ratings_pkey ON public.provider_ratings USING btree (provider_id) |
 
+## Triggers
+
+| Name                                     | Definition                                                                                                                                                                        |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| provider_ratings_public_content          | CREATE TRIGGER provider_ratings_public_content AFTER INSERT OR DELETE OR UPDATE ON public.provider_ratings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings') |
+| provider_ratings_public_content_truncate | CREATE TRIGGER provider_ratings_public_content_truncate AFTER TRUNCATE ON public.provider_ratings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')          |
+
 ## Relations
 
 ![er](public.provider_ratings.svg)

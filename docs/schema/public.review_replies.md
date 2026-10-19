@@ -41,9 +41,11 @@ The provider's one public reply to a review. Editable and deletable by them at a
 
 ## Triggers
 
-| Name                | Definition                                                                                                                              |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| review_replies_fill | CREATE TRIGGER review_replies_fill BEFORE INSERT OR UPDATE ON public.review_replies FOR EACH ROW EXECUTE FUNCTION review_replies_fill() |
+| Name                                   | Definition                                                                                                                                                                    |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| review_replies_fill                    | CREATE TRIGGER review_replies_fill BEFORE INSERT OR UPDATE ON public.review_replies FOR EACH ROW EXECUTE FUNCTION review_replies_fill()                                       |
+| review_replies_public_content          | CREATE TRIGGER review_replies_public_content AFTER INSERT OR DELETE OR UPDATE ON public.review_replies FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings') |
+| review_replies_public_content_truncate | CREATE TRIGGER review_replies_public_content_truncate AFTER TRUNCATE ON public.review_replies FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')          |
 
 ## Relations
 

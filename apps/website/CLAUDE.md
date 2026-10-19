@@ -18,6 +18,11 @@ Public site plus the provider dashboard. Port 3100 (fixed). Root `CLAUDE.md` app
   verifies the signature on the raw body before doing anything.
 - **Validate request bodies** with zod via `readValidatedBody`, as in
   `server/api/provider/index.post.ts`.
+- **Server unit tests** (code with no database or Nuxt in it, on a fake
+  clock where time matters) live in `server/tests/`, as
+  `public-cache-store.test.mts`, and run with `npm run test:ui`. Nitro
+  doesn't bundle that folder. Tests that need the database or the running
+  apps are app tests, in `supabase/tests/app/`.
 - **Don't import from `"h3"`** here (it isn't a direct dependency, and a
   second copy breaks every route's event type). Use `ServerEvent` for event
   types.

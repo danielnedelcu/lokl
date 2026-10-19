@@ -303,10 +303,12 @@ Following the blog's pattern, with its gaps closed:
     `BreadcrumbList` (Atlanta › Guides › title).
   - The sitemap lists the index and every published guide, with `lastmod`.
   - The market page `/atlanta` links to the guides index.
-- **Caching:** like browse pages, guide pages may be cached for up to 60
-  seconds; the listings block inside them is part of that. A cached copy is
-  never served past its minute (no stale-while-revalidate), so an
-  unpublished guide's address is a 404 within a minute (2026-10-03).
+- **Caching:** like browse pages, guide pages are cached for up to 60
+  seconds and answered fresh as soon as a guide, the homepage's guides, or a
+  listing, provider, category or area changes (content versions,
+  2026-10-18), so an unpublished guide's address is a 404 at once. A cached
+  copy is never served past its minute (no stale-while-revalidate,
+  2026-10-03).
 - **First publish and the address:** the address can't change once
   published, so the first publish asks to confirm it. If it doesn't match
   the address the current title suggests, the confirmation says so and

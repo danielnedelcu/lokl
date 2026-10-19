@@ -13,7 +13,7 @@ const query = z.object({
   page: z.coerce.number().int().min(1).max(1000).optional(),
 });
 
-export default defineEventHandler(async (event) => {
+export default definePublicCachedHandler(["listings", "markets"], async (event) => {
   const parsed = query.safeParse(getQuery(event));
   if (!parsed.success) throw createError({ statusCode: 400, statusMessage: "Those filters aren't valid." });
   let result;

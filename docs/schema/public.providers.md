@@ -61,13 +61,15 @@ A business or host that sells Services or Experiences. One per login (owner_id i
 
 ## Triggers
 
-| Name                       | Definition                                                                                                                                                                      |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| providers_city_active      | CREATE TRIGGER providers_city_active BEFORE INSERT OR UPDATE OF city_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_check_city_active()                         |
-| providers_open_days_update | CREATE TRIGGER providers_open_days_update AFTER UPDATE ON public.providers REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('id') |
-| providers_owner_not_admin  | CREATE TRIGGER providers_owner_not_admin BEFORE INSERT OR UPDATE OF owner_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_owner_not_admin()                      |
-| providers_set_slug         | CREATE TRIGGER providers_set_slug BEFORE INSERT ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_set_slug()                                                          |
-| providers_set_updated_at   | CREATE TRIGGER providers_set_updated_at BEFORE UPDATE ON public.providers FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                                        |
+| Name                              | Definition                                                                                                                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| providers_city_active             | CREATE TRIGGER providers_city_active BEFORE INSERT OR UPDATE OF city_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_check_city_active()                         |
+| providers_open_days_update        | CREATE TRIGGER providers_open_days_update AFTER UPDATE ON public.providers REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('id') |
+| providers_owner_not_admin         | CREATE TRIGGER providers_owner_not_admin BEFORE INSERT OR UPDATE OF owner_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_owner_not_admin()                      |
+| providers_public_content          | CREATE TRIGGER providers_public_content AFTER INSERT OR DELETE OR UPDATE ON public.providers FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')             |
+| providers_public_content_truncate | CREATE TRIGGER providers_public_content_truncate AFTER TRUNCATE ON public.providers FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')                      |
+| providers_set_slug                | CREATE TRIGGER providers_set_slug BEFORE INSERT ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_set_slug()                                                          |
+| providers_set_updated_at          | CREATE TRIGGER providers_set_updated_at BEFORE UPDATE ON public.providers FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                                        |
 
 ## Relations
 

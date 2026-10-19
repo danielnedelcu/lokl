@@ -30,9 +30,11 @@ The guides on the homepage: position 1 is the main guide (the hero), 2 and 3 the
 
 ## Triggers
 
-| Name                             | Definition                                                                                                                                                           |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| homepage_features_published_only | CREATE TRIGGER homepage_features_published_only BEFORE INSERT OR UPDATE ON public.homepage_features FOR EACH ROW EXECUTE FUNCTION homepage_features_published_only() |
+| Name                                      | Definition                                                                                                                                                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| homepage_features_public_content          | CREATE TRIGGER homepage_features_public_content AFTER INSERT OR DELETE OR UPDATE ON public.homepage_features FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides') |
+| homepage_features_public_content_truncate | CREATE TRIGGER homepage_features_public_content_truncate AFTER TRUNCATE ON public.homepage_features FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')          |
+| homepage_features_published_only          | CREATE TRIGGER homepage_features_published_only BEFORE INSERT OR UPDATE ON public.homepage_features FOR EACH ROW EXECUTE FUNCTION homepage_features_published_only()              |
 
 ## Relations
 

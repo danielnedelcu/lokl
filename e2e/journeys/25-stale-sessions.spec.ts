@@ -58,7 +58,6 @@ test("a deleted user's expired session: the homepage loads, signed out", async (
 });
 
 test("a signed-in provider whose listings are in the carousels: the homepage loads", async ({ page, context, data }) => {
-  test.setTimeout(150_000);
   const owner = await data.user("carousel-provider");
   const provider = await data.provider(owner, `E2E Own Listings ${data.run}`);
   const category = (await data.category("service")).id;
@@ -67,12 +66,13 @@ test("a signed-in provider whose listings are in the carousels: the homepage loa
   await signIn(context, owner.email, owner.password);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  // The homepage's listings are cached for a minute, so it's polled for.
+  // The homepage's listings show a new listing within about a second (the
+  // content versions are read once a second), so it's polled for briefly.
   await expect.poll(async () => {
     const res = await page.goto("/");
     if (res?.status() !== 200 || (await page.getByRole("heading", { name: "Something went wrong" }).count())) return "error page";
     return (await page.getByText(`Own cut 1 ${data.run}`).count()) ? "shown" : "not yet";
-  }, { message: "the provider's own listing in the carousels", timeout: 90_000, intervals: [5_000] }).toBe("shown");
+  }, { message: "the provider's own listing in the carousels", timeout: 5_000, intervals: [250, 500] }).toBe("shown");
   await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
   // No heart on their own listing; it's still a link to it.
   const card = page.getByRole("listitem").filter({ hasText: `Own cut 1 ${data.run}` }).first();

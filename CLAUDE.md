@@ -52,6 +52,7 @@ npm run build:secrets-check   # build both apps with sentinel secrets; fails if 
 npm run check:reads           # fails on a read of a growing table that could stop at the API's 1,000 rows
 npm run check:dates           # fails on a date or time that would follow the device's zone
 npm run check:rpc-json        # fails on a database function's JSON read without its schema (rpcJson)
+npm run check:public-cache    # fails on a table behind a cached public route that raises no content version and isn't on the 60-second list (after db:test)
 npm run check:logs            # fails on a server log that prints an error as it is (use errorText)
 npm run check:booking-doc     # fails if the booking document's guard links miss the newest bookings_guard migration
 npm run check:clock           # fails on a clock read in server utilities that's neither a `now` parameter nor `// real time: <why>`
@@ -72,6 +73,15 @@ every rule that's enforced. In server utilities, the time is either a
 routes pass nothing), or the real time with a `// real time: <reason>`
 comment (a record, Stripe's clock, a rule the server checks too).
 `npm run check:clock` (CI) fails on anything else.
+
+**Public routes are cached by content version** (2026-10-18): a cached
+public route uses `definePublicCachedHandler(scopes, handler)`
+(`apps/website/server/utils/publicCache.ts`) and names every scope it shows
+(`listings`, `markets`, `guides`). Triggers raise a scope's number in
+`public_content_versions` when its tables change, so changes show at once;
+spots and open days follow 60 seconds. A new table behind a cached route
+gets a trigger in a migration, or a line on the 60-second list in
+`scripts/check-public-cache.mjs` with its reason.
 
 **The API returns at most 1,000 rows per request, with no error**
 (`max_rows`, `API_MAX_ROWS` in `@repo/types`). Lists people page through are

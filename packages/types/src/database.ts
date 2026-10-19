@@ -1993,6 +1993,25 @@ export type Database = {
           },
         ];
       };
+      public_content_versions: {
+        Row: {
+          changed_at: string;
+          scope: string;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          changed_at?: string;
+          scope: string;
+          version?: number;
+        };
+        Update: {
+          changed_at?: string;
+          scope?: string;
+          version?: number;
+        };
+        Relationships: [];
+      };
       review_replies: {
         Row: {
           body: string;

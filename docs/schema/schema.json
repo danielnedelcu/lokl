@@ -353,6 +353,14 @@
           "def": "CREATE TRIGGER providers_owner_not_admin BEFORE INSERT OR UPDATE OF owner_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_owner_not_admin()"
         },
         {
+          "name": "providers_public_content",
+          "def": "CREATE TRIGGER providers_public_content AFTER INSERT OR DELETE OR UPDATE ON public.providers FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
+          "name": "providers_public_content_truncate",
+          "def": "CREATE TRIGGER providers_public_content_truncate AFTER TRUNCATE ON public.providers FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
           "name": "providers_set_slug",
           "def": "CREATE TRIGGER providers_set_slug BEFORE INSERT ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_set_slug()"
         },
@@ -515,6 +523,14 @@
       ],
       "triggers": [
         {
+          "name": "cities_public_content",
+          "def": "CREATE TRIGGER cities_public_content AFTER INSERT OR DELETE OR UPDATE ON public.cities FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
+        },
+        {
+          "name": "cities_public_content_truncate",
+          "def": "CREATE TRIGGER cities_public_content_truncate AFTER TRUNCATE ON public.cities FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
+        },
+        {
           "name": "cities_set_updated_at",
           "def": "CREATE TRIGGER cities_set_updated_at BEFORE UPDATE ON public.cities FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
@@ -664,6 +680,14 @@
         }
       ],
       "triggers": [
+        {
+          "name": "service_areas_public_content",
+          "def": "CREATE TRIGGER service_areas_public_content AFTER INSERT OR DELETE OR UPDATE ON public.service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
+        },
+        {
+          "name": "service_areas_public_content_truncate",
+          "def": "CREATE TRIGGER service_areas_public_content_truncate AFTER TRUNCATE ON public.service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
+        },
         {
           "name": "service_areas_set_updated_at",
           "def": "CREATE TRIGGER service_areas_set_updated_at BEFORE UPDATE ON public.service_areas FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
@@ -835,6 +859,14 @@
         }
       ],
       "triggers": [
+        {
+          "name": "categories_public_content",
+          "def": "CREATE TRIGGER categories_public_content AFTER INSERT OR DELETE OR UPDATE ON public.categories FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
+        },
+        {
+          "name": "categories_public_content_truncate",
+          "def": "CREATE TRIGGER categories_public_content_truncate AFTER TRUNCATE ON public.categories FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
+        },
         {
           "name": "categories_set_updated_at",
           "def": "CREATE TRIGGER categories_set_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
@@ -1356,6 +1388,14 @@
           "def": "CREATE TRIGGER listings_open_days_update AFTER UPDATE ON public.listings REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')"
         },
         {
+          "name": "listings_public_content",
+          "def": "CREATE TRIGGER listings_public_content AFTER INSERT OR DELETE OR UPDATE ON public.listings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
+          "name": "listings_public_content_truncate",
+          "def": "CREATE TRIGGER listings_public_content_truncate AFTER TRUNCATE ON public.listings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
           "name": "listings_require_photo",
           "def": "CREATE TRIGGER listings_require_photo BEFORE UPDATE OF status ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_require_photo()"
         },
@@ -1617,6 +1657,14 @@
         {
           "name": "listing_service_areas_guard",
           "def": "CREATE TRIGGER listing_service_areas_guard BEFORE INSERT OR DELETE ON public.listing_service_areas FOR EACH ROW EXECUTE FUNCTION listing_service_areas_guard()"
+        },
+        {
+          "name": "listing_service_areas_public_content",
+          "def": "CREATE TRIGGER listing_service_areas_public_content AFTER INSERT OR DELETE OR UPDATE ON public.listing_service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
+          "name": "listing_service_areas_public_content_truncate",
+          "def": "CREATE TRIGGER listing_service_areas_public_content_truncate AFTER TRUNCATE ON public.listing_service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
         }
       ]
     },
@@ -1813,6 +1861,14 @@
         {
           "name": "listing_photos_guard",
           "def": "CREATE TRIGGER listing_photos_guard BEFORE INSERT OR DELETE OR UPDATE ON public.listing_photos FOR EACH ROW EXECUTE FUNCTION listing_photos_guard()"
+        },
+        {
+          "name": "listing_photos_public_content",
+          "def": "CREATE TRIGGER listing_photos_public_content AFTER INSERT OR DELETE OR UPDATE ON public.listing_photos FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
+          "name": "listing_photos_public_content_truncate",
+          "def": "CREATE TRIGGER listing_photos_public_content_truncate AFTER TRUNCATE ON public.listing_photos FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
         },
         {
           "name": "listing_photos_set_updated_at",
@@ -5043,6 +5099,14 @@
           "def": "CREATE TRIGGER guides_guard BEFORE INSERT OR DELETE OR UPDATE ON public.guides FOR EACH ROW EXECUTE FUNCTION guides_guard()"
         },
         {
+          "name": "guides_public_content",
+          "def": "CREATE TRIGGER guides_public_content AFTER INSERT OR DELETE OR UPDATE ON public.guides FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')"
+        },
+        {
+          "name": "guides_public_content_truncate",
+          "def": "CREATE TRIGGER guides_public_content_truncate AFTER TRUNCATE ON public.guides FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')"
+        },
+        {
           "name": "guides_set_updated_at",
           "def": "CREATE TRIGGER guides_set_updated_at BEFORE UPDATE ON public.guides FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
         }
@@ -5329,6 +5393,14 @@
         {
           "name": "guide_photos_in_own_folder",
           "def": "CREATE TRIGGER guide_photos_in_own_folder BEFORE INSERT OR UPDATE OF storage_path, card_path, guide_id ON public.guide_photos FOR EACH ROW EXECUTE FUNCTION guide_photos_in_own_folder()"
+        },
+        {
+          "name": "guide_photos_public_content",
+          "def": "CREATE TRIGGER guide_photos_public_content AFTER INSERT OR DELETE OR UPDATE ON public.guide_photos FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')"
+        },
+        {
+          "name": "guide_photos_public_content_truncate",
+          "def": "CREATE TRIGGER guide_photos_public_content_truncate AFTER TRUNCATE ON public.guide_photos FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')"
         }
       ]
     },
@@ -5825,6 +5897,14 @@
       ],
       "triggers": [
         {
+          "name": "homepage_features_public_content",
+          "def": "CREATE TRIGGER homepage_features_public_content AFTER INSERT OR DELETE OR UPDATE ON public.homepage_features FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')"
+        },
+        {
+          "name": "homepage_features_public_content_truncate",
+          "def": "CREATE TRIGGER homepage_features_public_content_truncate AFTER TRUNCATE ON public.homepage_features FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('guides')"
+        },
+        {
           "name": "homepage_features_published_only",
           "def": "CREATE TRIGGER homepage_features_published_only BEFORE INSERT OR UPDATE ON public.homepage_features FOR EACH ROW EXECUTE FUNCTION homepage_features_published_only()"
         }
@@ -6304,6 +6384,14 @@
           "def": "CREATE TRIGGER reviews_notify_provider AFTER INSERT ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_notify_provider()"
         },
         {
+          "name": "reviews_public_content",
+          "def": "CREATE TRIGGER reviews_public_content AFTER INSERT OR DELETE OR UPDATE ON public.reviews FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
+          "name": "reviews_public_content_truncate",
+          "def": "CREATE TRIGGER reviews_public_content_truncate AFTER TRUNCATE ON public.reviews FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
           "name": "reviews_recount",
           "def": "CREATE TRIGGER reviews_recount AFTER INSERT OR DELETE OR UPDATE OF rating, status ON public.reviews FOR EACH ROW EXECUTE FUNCTION reviews_recount()"
         }
@@ -6484,6 +6572,14 @@
         {
           "name": "review_replies_fill",
           "def": "CREATE TRIGGER review_replies_fill BEFORE INSERT OR UPDATE ON public.review_replies FOR EACH ROW EXECUTE FUNCTION review_replies_fill()"
+        },
+        {
+          "name": "review_replies_public_content",
+          "def": "CREATE TRIGGER review_replies_public_content AFTER INSERT OR DELETE OR UPDATE ON public.review_replies FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
+          "name": "review_replies_public_content_truncate",
+          "def": "CREATE TRIGGER review_replies_public_content_truncate AFTER TRUNCATE ON public.review_replies FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
         }
       ]
     },
@@ -6899,6 +6995,16 @@
             "listing_id"
           ]
         }
+      ],
+      "triggers": [
+        {
+          "name": "listing_ratings_public_content",
+          "def": "CREATE TRIGGER listing_ratings_public_content AFTER INSERT OR DELETE OR UPDATE ON public.listing_ratings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
+          "name": "listing_ratings_public_content_truncate",
+          "def": "CREATE TRIGGER listing_ratings_public_content_truncate AFTER TRUNCATE ON public.listing_ratings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        }
       ]
     },
     {
@@ -7085,6 +7191,16 @@
           "columns": [
             "provider_id"
           ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "provider_ratings_public_content",
+          "def": "CREATE TRIGGER provider_ratings_public_content AFTER INSERT OR DELETE OR UPDATE ON public.provider_ratings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
+        },
+        {
+          "name": "provider_ratings_public_content_truncate",
+          "def": "CREATE TRIGGER provider_ratings_public_content_truncate AFTER TRUNCATE ON public.provider_ratings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
         }
       ]
     },
@@ -9623,6 +9739,63 @@
         {
           "name": "admin_members_set_updated_at",
           "def": "CREATE TRIGGER admin_members_set_updated_at BEFORE UPDATE ON public.admin_members FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.public_content_versions",
+      "type": "BASE TABLE",
+      "comment": "One number per scope of public content (listings, markets, guides), raised by triggers whenever that content changes. The website's cached public routes include the numbers in their cache keys, so a change shows at once. Three fixed rows, never deleted; only the triggers write them.",
+      "columns": [
+        {
+          "name": "scope",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "bigint",
+          "nullable": false,
+          "default": "0",
+          "comment": "Raised by one for every statement that changes this scope's content."
+        },
+        {
+          "name": "changed_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "public_content_versions_pkey",
+          "def": "CREATE UNIQUE INDEX public_content_versions_pkey ON public.public_content_versions USING btree (scope)",
+          "table": "public.public_content_versions",
+          "columns": [
+            "scope"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "public_content_versions_scope_check",
+          "type": "CHECK",
+          "def": "CHECK ((scope = ANY (ARRAY['listings'::text, 'markets'::text, 'guides'::text])))",
+          "table": "public.public_content_versions",
+          "referenced_table": "",
+          "columns": [
+            "scope"
+          ]
+        },
+        {
+          "name": "public_content_versions_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (scope)",
+          "table": "public.public_content_versions",
+          "referenced_table": "",
+          "columns": [
+            "scope"
+          ]
         }
       ]
     }
@@ -12508,6 +12681,12 @@
     },
     {
       "name": "public.admin_members_owns_no_provider",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.public_content_changed",
       "return_type": "trigger",
       "arguments": "",
       "type": "FUNCTION"

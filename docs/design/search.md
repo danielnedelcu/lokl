@@ -137,7 +137,8 @@ so the filtering, paging, counts and visibility rules are browse's.
   the other kind's count for the switch.
 - Until 2026-10-16 no kind meant Experiences, so a search with only
   Services looked empty.
-- It's cached for a minute, like browse.
+- It's cached like browse: answered fresh as soon as a listing, provider,
+  category or area changes; spots and open days follow 60 seconds.
 
 **Page:**
 - The heading, then each filter in use as a chip that removes just it.

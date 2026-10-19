@@ -8,8 +8,9 @@ import { expect, test } from "../support/fixtures";
 // links, then the guides section (text, then up to two cards). Without a
 // main guide, the homepage is as before and shows no guides. The admin
 // chooses a main guide and up to two more, never the same twice, and
-// previews the real order. The homepage's guides are cached for a minute,
-// so a changed homepage is polled for (as journey 8 does); the layouts with
+// previews the real order. A changed homepage shows within about a second
+// (the content versions are read once a second), so it's polled for briefly;
+// the layouts with
 // one card or none are checked in the admin's preview, which uses the same
 // components without the cache.
 
@@ -28,12 +29,12 @@ async function headings(area: Locator) {
 const announced = (page: Page, text: string) =>
   expect(page.getByRole("status").filter({ hasText: new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) })).toHaveCount(1);
 
-/** The homepage, once its cached guides have caught up with `ready`. */
+/** The homepage, once it shows `ready` (within about a second of the change). */
 async function homepageWhen(page: Page, ready: (page: Page) => Promise<boolean>, what: string) {
   await expect.poll(async () => {
     await page.goto("/");
     return ready(page);
-  }, { message: what, timeout: 80_000, intervals: [3_000, 5_000] }).toBe(true);
+  }, { message: what, timeout: 5_000, intervals: [250, 500] }).toBe(true);
 }
 
 test("without a main guide, the homepage is as before and shows no guides", async ({ page, data }) => {
@@ -52,7 +53,6 @@ test("without a main guide, the homepage is as before and shows no guides", asyn
 });
 
 test("the admin chooses a main guide and two more, and the homepage shows them in order", async ({ page, context, data }) => {
-  test.setTimeout(180_000);
   const admin = await data.user("admin", { admin: true });
   const main = await data.publishedGuide("Old Fourth Ward murals", admin);
   const one = await data.publishedGuide("Westside walk", admin);
@@ -123,9 +123,9 @@ test("the admin chooses a main guide and two more, and the homepage shows them i
   await pick("Choose the main guide", main.title);
   await page.getByRole("region", { name: "Main guide" }).getByRole("button", { name: "Choose" }).click();
   await save.click();
-  await expect(page.getByText("Saved. The homepage shows these within a minute.")).toBeVisible();
+  await expect(page.getByText("Saved. The homepage shows these now.")).toBeVisible();
 
-  // The homepage, once its cached guides catch up.
+  // The homepage, at once.
   await context.clearCookies();
   await homepageWhen(page, async (p) => (await p.getByRole("region", { name: "Featured guide" }).getByText(main.title).count()) > 0, "the main guide shown");
   const body = page.getByRole("main");

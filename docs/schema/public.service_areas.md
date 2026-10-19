@@ -37,9 +37,11 @@ Areas within a market: neighborhoods, cities or towns, and zip codes. Where "I c
 
 ## Triggers
 
-| Name                         | Definition                                                                                                                       |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| service_areas_set_updated_at | CREATE TRIGGER service_areas_set_updated_at BEFORE UPDATE ON public.service_areas FOR EACH ROW EXECUTE FUNCTION set_updated_at() |
+| Name                                  | Definition                                                                                                                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| service_areas_public_content          | CREATE TRIGGER service_areas_public_content AFTER INSERT OR DELETE OR UPDATE ON public.service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets') |
+| service_areas_public_content_truncate | CREATE TRIGGER service_areas_public_content_truncate AFTER TRUNCATE ON public.service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')          |
+| service_areas_set_updated_at          | CREATE TRIGGER service_areas_set_updated_at BEFORE UPDATE ON public.service_areas FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                           |
 
 ## Relations
 

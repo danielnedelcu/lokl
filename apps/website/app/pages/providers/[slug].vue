@@ -6,7 +6,7 @@ import type { PublicProviderPage } from "@repo/types";
 // (docs/design/provider-profiles.md, A public profile page): cover, avatar,
 // name, headline, "Based in · On lokl since", the bio, then their visible
 // Experiences and Services. Only while they can be booked (active, with a
-// visible listing); otherwise not found. Cached for up to a minute. Their
+// visible listing); otherwise not found. Cached, and answered fresh as soon as it changes (publicCache.ts). Their
 // rating and reviews, and a heart to save them, come later.
 definePageMeta({ layout: "public" });
 

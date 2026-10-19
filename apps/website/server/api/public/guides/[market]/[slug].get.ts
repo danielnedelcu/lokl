@@ -7,7 +7,7 @@ const params = z.object({
   slug: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(80),
 });
 
-export default defineEventHandler(async (event) => {
+export default definePublicCachedHandler(["guides", "listings", "markets"], async (event) => {
   const parsed = params.safeParse(getRouterParams(event));
   if (!parsed.success) throw createError({ statusCode: 404, statusMessage: "We couldn't find that guide." });
   let found;

@@ -26,7 +26,7 @@ const cards = computed(() => guides.value.slice(1, 3));
 const headline = "Book local Experiences and Services in Atlanta";
 
 // "On lokl now": one Experience and one Service beside the host card, each
-// chosen at random on the server (homepage-listings, cached for a minute),
+// chosen at random on the server (homepage-listings, picked again at most once a minute),
 // so the server and the browser show the same two (2026-10-12; four in turn
 // before). A kind with none shows just the other.
 const featured = computed(() => [picks.value?.experience, picks.value?.service].filter((c): c is PublicListingCard => !!c));
