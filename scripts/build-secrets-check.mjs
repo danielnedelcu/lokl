@@ -1,7 +1,8 @@
 // npm run build:secrets-check: no secret reaches a build (docs/TODO.md; a
 // practice from The Reserve, 2026-10-09).
 //
-// Builds both apps (the check folders, like build:check) with a unique
+// Builds both apps (into folders of their own, .output-secrets, so the
+// check build the tests run is left alone) with a unique
 // sentinel value for every private setting, then fails if any sentinel is
 // anywhere in the build output. A build made without secrets proves nothing,
 // so every private name gets one: each non-public name in the .env.example
@@ -34,13 +35,13 @@ for (const file of examples) {
 const run = randomBytes(6).toString("hex");
 const sentinels = Object.fromEntries([...names].sort().map((n) => [n, `lokl-sentinel-${n.toLowerCase().replace(/_/g, "-")}-${run}`]));
 console.log(`Building both apps with sentinel values for ${names.size} private settings...`);
-const build = spawnSync(process.execPath, ["scripts/build-check.mjs"], { cwd: root, env: { ...process.env, ...sentinels }, stdio: "inherit" });
+const build = spawnSync(process.execPath, ["scripts/build-check.mjs"], { cwd: root, env: { ...process.env, ...sentinels, LOKL_BUILD_SET: "secrets" }, stdio: "inherit" });
 if (build.status !== 0) process.exit(build.status ?? 1);
 
 const found = new Map();
 let files = 0;
 for (const app of ["website", "admin"]) {
-  const dir = path.join(root, "apps", app, ".output-check");
+  const dir = path.join(root, "apps", app, ".output-secrets");
   for (const entry of fs.readdirSync(dir, { recursive: true, withFileTypes: true })) {
     if (!entry.isFile()) continue;
     const file = path.join(entry.parentPath, entry.name);

@@ -21,21 +21,36 @@ export function totp(secret: string, at = Date.now()): string {
   return String(n % 1_000_000).padStart(6, "0");
 }
 
-/** A code not used before for this secret: waits for the next 30-second window if this one's was (a code works once). */
+/**
+ * A code not used before for this secret. Supabase accepts the previous,
+ * current and next 30-second windows' codes (clocks a little out; checked
+ * on the local stack 2026-10-19, which even accepted a code twice). To be
+ * safe if repeats are ever refused, each code is used once and in order:
+ * the previous window's first, then the current's, then the next's, so it
+ * waits only after three uses in one window (it used to wait after one).
+ */
 const used = new Map<string, number>();
 export async function freshTotp(secret: string): Promise<string> {
-  let step = Math.floor(Date.now() / 30_000);
-  if (used.get(secret) === step) {
-    await new Promise((r) => setTimeout(r, (step + 1) * 30_000 - Date.now() + 500));
-    step = Math.floor(Date.now() / 30_000);
+  for (;;) {
+    const now = Date.now();
+    const current = Math.floor(now / 30_000);
+    const into = now % 30_000;
+    let step = Math.max((used.get(secret) ?? -Infinity) + 1, current - 1);
+    // The previous window's code lasts only to this window's end: not in its last 5 seconds.
+    if (step === current - 1 && into > 25_000) step = current;
+    // Nor the current one's in its last second (the next window's code
+    // lasts two more), so nothing expires on its way.
+    if (step === current && into > 29_000) {
+      await new Promise((r) => setTimeout(r, 1_500));
+      continue;
+    }
+    if (step > current + 1) {
+      await new Promise((r) => setTimeout(r, 30_000 - into + 500));
+      continue;
+    }
+    used.set(secret, step);
+    return totp(secret, step * 30_000 + 1);
   }
-  // Not in the window's last second, so it can't expire on its way.
-  if (Date.now() % 30_000 > 29_000) {
-    await new Promise((r) => setTimeout(r, 1_500));
-    step = Math.floor(Date.now() / 30_000);
-  }
-  used.set(secret, step);
-  return totp(secret);
 }
 
 /**

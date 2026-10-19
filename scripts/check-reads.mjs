@@ -57,7 +57,7 @@ for (const m of tablesBlock.matchAll(/^ {6}([a-z_]+): \{$/gm)) {
 const files = [];
 const walk = (dir) => {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (["node_modules", ".nuxt", ".output", ".nuxt-check", ".output-check", "tests", "dist"].includes(e.name)) continue;
+    if (["node_modules", ".nuxt", ".output", ".nuxt-check", ".output-check", ".nuxt-secrets", ".output-secrets", "tests", "dist"].includes(e.name)) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) walk(p);
     else if (/\.(ts|vue|mts)$/.test(e.name) && !e.name.endsWith(".d.ts") && e.name !== "database.ts") files.push(p);

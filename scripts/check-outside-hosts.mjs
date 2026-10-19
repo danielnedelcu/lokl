@@ -52,7 +52,8 @@ function walk(dir, out) {
 }
 
 for (const app of apps) {
-  const output = path.join(root, "apps", app, ".output-check");
+  // The check build, or build:secrets-check's own (LOKL_BUILD_SET=secrets).
+  const output = path.join(root, "apps", app, process.env.LOKL_BUILD_SET === "secrets" ? ".output-secrets" : ".output-check");
   if (!fs.existsSync(output)) {
     problems.push(`${app}: no build to check (run npm run build:check first).`);
     continue;

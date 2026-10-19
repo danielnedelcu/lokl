@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { ADMIN_SESSION_HEADER } from "@repo/types";
 import { testEnv, type TestEnv } from "./env";
-import { authenticatorKeys, totp } from "./totp";
+import { authenticatorKeys, freshTotp } from "./totp";
 
 // Test data for one journey, on the LOCAL stack, tagged with a run id and
 // removed afterwards (cleanup). The same steps as the app tests
@@ -94,9 +94,9 @@ export class TestData {
     if (signedIn.error) throw new Error(`The test admin couldn't sign in: ${signedIn.error.message}`);
     const enrolled = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "Phone" });
     if (enrolled.error) throw new Error(`The test admin's authenticator wasn't set up: ${enrolled.error.message}`);
-    // The previous 30 seconds' code (accepted, as a clock a little behind
-    // would be), so signIn's code for this window hasn't been used yet.
-    const verified = await client.auth.mfa.challengeAndVerify({ factorId: enrolled.data.id, code: totp(enrolled.data.totp.secret, Date.now() - 30_000) });
+    // freshTotp starts from the previous 30 seconds' code, so signIn's next
+    // code needs no wait.
+    const verified = await client.auth.mfa.challengeAndVerify({ factorId: enrolled.data.id, code: await freshTotp(enrolled.data.totp.secret) });
     if (verified.error) throw new Error(`The test admin's authenticator wasn't confirmed: ${verified.error.message}`);
     authenticatorKeys.set(email, enrolled.data.totp.secret);
     const token = verified.data.access_token;

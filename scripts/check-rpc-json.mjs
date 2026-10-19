@@ -51,7 +51,7 @@ const walk = (dir) => {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (!["node_modules", ".nuxt", ".output", ".nuxt-check", ".output-check"].includes(entry.name)) walk(p);
+      if (!["node_modules", ".nuxt", ".output", ".nuxt-check", ".output-check", ".nuxt-secrets", ".output-secrets"].includes(entry.name)) walk(p);
     } else if (/\.(ts|vue|mts)$/.test(entry.name) && !entry.name.endsWith(".d.ts")) files.push(p);
   }
 };

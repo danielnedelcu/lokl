@@ -5,9 +5,12 @@ import { fileURLToPath } from "node:url";
 // `npm run build:check` (LOKL_BUILD_CHECK=1) builds into its own folders, so
 // a build check never touches the .nuxt, .output or Vite cache that a running
 // dev server uses (a plain `nuxt build` in the app folder can break it).
-const buildCheck = process.env.LOKL_BUILD_CHECK === "1";
-const buildCheckFolders = buildCheck
-  ? { buildDir: ".nuxt-check", nitro: { output: { dir: ".output-check" } }, vite: { cacheDir: "node_modules/.cache/vite-check" } }
+// `npm run build:secrets-check` (LOKL_BUILD_CHECK=secrets) uses folders of
+// its own again (-secrets), so it never replaces the build the tests run.
+const buildCheck = process.env.LOKL_BUILD_CHECK;
+const buildSet = buildCheck === "secrets" ? "secrets" : "check";
+const buildCheckFolders = buildCheck === "1" || buildCheck === "secrets"
+  ? { buildDir: `.nuxt-${buildSet}`, nitro: { output: { dir: `.output-${buildSet}` } }, vite: { cacheDir: `node_modules/.cache/vite-${buildSet}` } }
   : {};
 
 // See `hooks` below: the OG image secret, kept out of module setup.
