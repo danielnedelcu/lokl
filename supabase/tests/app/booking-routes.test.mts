@@ -11,7 +11,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { safeStripe } from "@repo/types";
+import { safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
 import { slotAfter } from "./_slots";
 import {
@@ -32,7 +32,7 @@ const db = createClient(local.API_URL!, local.SERVICE_ROLE_KEY!, { auth: { persi
 const key = stripeTestKey();
 if (!/^(sk|rk)_test_/.test(key)) { console.error("Refusing to run: not a test-mode key."); process.exit(1); }
 // Errors redacted where they happen (no key fragments in test output).
-const stripe = safeStripe(new Stripe(key));
+const stripe = safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS));
 if ((await stripe.accounts.retrieve()).id !== "acct_1UKIdIEfG7OyQ6pv") { console.error("Refusing to run: not the Lokl sandbox."); process.exit(1); }
 
 const run = randomBytes(4).toString("hex");
@@ -115,7 +115,7 @@ try {
   // asked for, and plays back a completed checkout with a real test-mode
   // payment (tests never pay on Stripe's page; decided 2026-10-04).
   const instantId = await listing({ kind: "service", booking_mode: "instant", category_id: svcCat, title: `Routes instant cut ${run}`, description: "An Instant Service made by the routes test.", price_cents: 3000, location_mode: "provider_location", duration_minutes: 60 });
-  const recorder = safeStripe(new Stripe(key));
+  const recorder = safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS));
   const asked: Stripe.Checkout.SessionCreateParams[] = [];
   const realCreate = recorder.checkout.sessions.create.bind(recorder.checkout.sessions);
   recorder.checkout.sessions.create = ((params: Stripe.Checkout.SessionCreateParams, opts?: Stripe.RequestOptions) => {
@@ -135,7 +135,7 @@ try {
       payment_method_types: ["card"], metadata: { booking_id: bookingId, test: "booking-routes" },
     });
     paidIntents.push(pi);
-    const replay = safeStripe(new Stripe(key));
+    const replay = safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS));
     replay.checkout.sessions.retrieve = (async () => ({
       id: sessionId, status: "complete", payment_status: capture === "manual" ? "unpaid" : "paid", payment_intent: pi,
     })) as unknown as typeof replay.checkout.sessions.retrieve;

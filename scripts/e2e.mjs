@@ -11,6 +11,7 @@
 // four tests at a time; then the "serial" project (tests tagged @serial,
 // which change or read what the whole site shares), one at a time. Each run
 // gets the same arguments; naming a --project yourself runs just that.
+// E2E_SHARD=2/3 (CI's shards) runs that shard's part of both.
 //
 // Needs the local stack (`npx supabase start`) and a Stripe TEST key for the
 // Lokl sandbox: NUXT_STRIPE_SECRET_KEY from the environment (CI's
@@ -52,7 +53,8 @@ const step = (cmd, cmdArgs, extraEnv = {}) => spawnSync(cmd, cmdArgs, { cwd: roo
 if (build && step("npm", ["run", "build:check"]) !== 0) process.exit(1);
 if (step(process.execPath, ["scripts/ci-start-apps.mjs"]) !== 0) process.exit(1);
 let status = 1;
-const playwright = (extra, extraEnv) => step("npx", ["playwright", "test", "--config", "e2e/playwright.config.ts", "--pass-with-no-tests", ...extra, ...playwrightArgs], extraEnv);
+const shard = /^\d+\/\d+$/.test(process.env.E2E_SHARD ?? "") ? [`--shard=${process.env.E2E_SHARD}`] : [];
+const playwright = (extra, extraEnv) => step("npx", ["playwright", "test", "--config", "e2e/playwright.config.ts", "--pass-with-no-tests", ...shard, ...extra, ...playwrightArgs], extraEnv);
 try {
   if (playwrightArgs.some((a) => a === "--project" || a.startsWith("--project="))) status = playwright([]);
   else {

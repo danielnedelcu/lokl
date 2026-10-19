@@ -14,7 +14,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { safeStripe } from "@repo/types";
+import { safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
 import { slotAfter } from "./_slots";
 import { abandonCheckout, startExperienceCheckout, startServiceCheckout } from "../../../apps/website/server/utils/bookings";
@@ -29,7 +29,7 @@ const db = createClient(local.API_URL!, local.SERVICE_ROLE_KEY!, { auth: { persi
 const key = stripeTestKey();
 if (!/^(sk|rk)_test_/.test(key)) { console.error("Refusing to run: not a test-mode key."); process.exit(1); }
 // Errors redacted where they happen (no key fragments in test output).
-const stripe = safeStripe(new Stripe(key));
+const stripe = safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS));
 if ((await stripe.accounts.retrieve()).id !== "acct_1UKIdIEfG7OyQ6pv") { console.error("Refusing to run: not the Lokl sandbox."); process.exit(1); }
 const psql = (sql: string) => execFileSync("psql", [local.DB_URL!, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", "-"], { input: sql });
 const value = (sql: string) => execFileSync("psql", [local.DB_URL!, "-X", "-At", "-f", "-"], { input: sql, encoding: "utf8" }).trim();

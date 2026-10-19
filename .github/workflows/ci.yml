@@ -13,7 +13,8 @@
 #             refuse any key that isn't test-mode for that account.
 # - e2e:      the Playwright journeys (e2e/), with the same key and the same
 #             conditions: both apps built and started on 3200/3201 against a
-#             local stack, Chromium only. Traces and screenshots of a failure
+#             local stack, Chromium only, in three shards side by side
+#             (each with its own stack). Traces and screenshots of a failure
 #             are kept for a week (test users and data only).
 #
 # No real keys live in this repository. Nothing here talks to the hosted
@@ -127,10 +128,8 @@ jobs:
     # Forks never get secrets; only pushes and this repo's own pull requests.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     environment: stripe-sandbox
-    # One Stripe run at a time across branches: they share the sandbox.
-    concurrency:
-      group: stripe-sandbox
-      cancel-in-progress: false
+    # Runs side by side with the e2e shards (2026-10-19): they share only
+    # the sandbox's request rate (see the e2e job).
     steps:
       - name: Check the Stripe sandbox key
         id: key
@@ -172,15 +171,22 @@ jobs:
         run: npm run db:test:app:stripe
 
   e2e:
-    name: e2e
+    name: e2e (${{ matrix.shard }}/3)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     environment: stripe-sandbox
-    # Shares the sandbox with the stripe job: one at a time.
-    concurrency:
-      group: stripe-sandbox
-      cancel-in-progress: false
+    # Three shards, each with its own local stack, side by side with each
+    # other and the stripe job (2026-10-19): each test makes its own data
+    # and test providers have Stripe accounts of their own, so they share
+    # nothing but the sandbox's request rate. Each shard runs its third of
+    # the tests four at a time, then its share of the @serial ones alone.
+    # Watch for Stripe 429s (rate limits); the remedy is fewer workers per
+    # shard (E2E_WORKERS), not running one at a time again.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: Check the Stripe sandbox key
         id: key
@@ -205,9 +211,23 @@ jobs:
           cache: npm
       - if: steps.key.outputs.run == 'true'
         run: npm ci
-      - name: Install Chromium for Playwright
+      - name: Playwright's version, for the browser cache
         if: steps.key.outputs.run == 'true'
+        id: pw
+        run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright's browser
+        if: steps.key.outputs.run == 'true'
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Install Chromium for Playwright
+        if: steps.key.outputs.run == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+      - name: Chromium's system libraries (browser from the cache)
+        if: steps.key.outputs.run == 'true' && steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - if: steps.key.outputs.run == 'true'
         uses: supabase/setup-cli@v1
         with:
@@ -222,12 +242,13 @@ jobs:
         if: steps.key.outputs.run == 'true'
         env:
           NUXT_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
+          E2E_SHARD: ${{ matrix.shard }}/3
         run: npm run test:e2e
       - name: Keep the traces of a failure
         if: failure() && steps.key.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-results
+          name: e2e-results-${{ matrix.shard }}
           path: |
             e2e/test-results/
             e2e/playwright-report/

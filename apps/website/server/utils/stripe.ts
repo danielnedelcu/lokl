@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { safeStripe } from "@repo/types";
+import { safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 import { serverSupabaseServiceRole } from "#supabase/server";
 import type { ServerEvent } from "./provider";
 
@@ -13,7 +13,7 @@ export function useStripe() {
     }
     // Every Stripe error is redacted where it happens (no key fragments in
     // messages, logs or stored text): safeStripe in @repo/types.
-    client = safeStripe(new Stripe(stripeSecretKey));
+    client = safeStripe(new Stripe(stripeSecretKey, STRIPE_CLIENT_OPTIONS));
   }
   return client;
 }

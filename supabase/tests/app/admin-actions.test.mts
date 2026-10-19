@@ -12,7 +12,7 @@ import fs from "node:fs";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { ADMIN_SESSION_HEADER, safeStripe } from "@repo/types";
+import { ADMIN_SESSION_HEADER, safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
 import { adminCancelBooking, releasePayout, resolveProblemPaid, retryEmail, setProviderStatus } from "../../../apps/website/server/utils/adminBookings";
 import { payOut } from "../../../apps/website/server/utils/bookingJobs";
@@ -33,7 +33,7 @@ const db = createClient(local.API_URL!, local.SERVICE_ROLE_KEY!, { auth: { persi
 const key = stripeTestKey();
 if (!/^(sk|rk)_test_/.test(key)) { console.error("Refusing to run: not a test-mode key."); process.exit(1); }
 // Errors redacted where they happen (no key fragments in test output).
-const stripe = safeStripe(new Stripe(key));
+const stripe = safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS));
 if ((await stripe.accounts.retrieve()).id !== "acct_1UKIdIEfG7OyQ6pv") { console.error("Refusing to run: not the Lokl sandbox."); process.exit(1); }
 const connected = (await stripe.accounts.list({ limit: 100 })).data.find((a) => a.capabilities?.transfers === "active");
 if (!connected) { console.error("Refusing to run: no connected test account in the Lokl sandbox can receive transfers."); process.exit(1); }

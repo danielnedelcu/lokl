@@ -33,6 +33,17 @@ export function redactError<T>(e: T): T {
 }
 
 /**
+ * Options for every Stripe client (2026-10-19): `new Stripe(key,
+ * STRIPE_CLIENT_OPTIONS)`. Two retries, with a back-off and the same
+ * idempotency key (so a retry can't charge twice), for what Stripe says may
+ * be retried: a dropped connection, a 5xx, a 409, a 429 lock timeout. Two
+ * is the Node library's default today; it's set here so an update can't
+ * lower it, now that CI's Stripe jobs run side by side. A 429 for the rate
+ * limit itself isn't retried by the library (docs.stripe.com/rate-limits).
+ */
+export const STRIPE_CLIENT_OPTIONS = { maxNetworkRetries: 2 } as const;
+
+/**
  * A Stripe client whose errors are redacted where they happen: every call
  * that fails rethrows the same error (same class, type, code, statusCode)
  * with its message, raw.message and stack cleaned. Lists stay iterable.

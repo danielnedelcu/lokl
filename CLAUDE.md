@@ -277,8 +277,10 @@ user id is `user.sub`, not `user.id`.
   attempt ID, because Stripe replays a stored error for 24 hours.
 - **No key fragments in logs or stored text.** Stripe's errors quote a key
   masked to its prefix and last four, which GitHub doesn't mask. Make Stripe
-  clients with `safeStripe(new Stripe(key))` (`useStripe()` does; so must
-  tests); log a failure with `stripeErrorSummary(e)`, never the error object
+  clients with `safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS))`
+  (`useStripe()` does; so must tests): the options keep two retries for what
+  Stripe says may be retried (not the rate limit itself), under the same
+  idempotency key; log a failure with `stripeErrorSummary(e)`, never the error object
   or its raw message; store failure text through `logText()`. Both apps'
   servers and the test runners redact their output too
   (`installRedactingOutput`); `secret-leaks.test.mts` checks every layer.

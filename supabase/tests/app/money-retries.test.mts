@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { safeStripe } from "@repo/types";
+import { safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
 import { acceptRequest, declineRequest } from "../../../apps/website/server/utils/bookingAnswers";
 import { cancelSession, customerCancel, providerCancel, refundInFull, reverseTransfer } from "../../../apps/website/server/utils/bookingCancellations";
@@ -31,7 +31,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(local.API_URL ?? "")) {
 const db = createClient(local.API_URL!, local.SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 const key = stripeTestKey();
 if (!/^(sk|rk)_test_/.test(key)) { console.error("Refusing to run: not a test-mode key."); process.exit(1); }
-const stripe = safeStripe(new Stripe(key));
+const stripe = safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS));
 if ((await stripe.accounts.retrieve()).id !== "acct_1UKIdIEfG7OyQ6pv") { console.error("Refusing to run: not the Lokl sandbox."); process.exit(1); }
 // The SQL goes on standard input: Linux caps one command-line argument at 128 KB.
 const psql = (sql: string) => execFileSync("psql", [local.DB_URL!, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", "-"], { input: sql });

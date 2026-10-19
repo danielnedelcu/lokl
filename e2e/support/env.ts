@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
-import { safeStripe } from "@repo/types";
+import { safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 
 // What the journeys run against: the LOCAL Supabase stack and the Lokl
 // Stripe sandbox, checked before anything is created. Keys are never printed.
@@ -53,7 +53,7 @@ async function load(): Promise<TestEnv> {
   const key = process.env.NUXT_STRIPE_SECRET_KEY ?? "";
   if (!/^(sk|rk)_test_/.test(key)) throw new Error("Refusing to run: needs a Stripe test-mode key (run through `npm run test:e2e`).");
   // Errors redacted where they happen (no key fragments in test output).
-  const stripe = safeStripe(new Stripe(key));
+  const stripe = safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS));
   if ((await stripe.accounts.retrieveCurrent()).id !== LOKL_SANDBOX) throw new Error("Refusing to run: the Stripe key isn't the Lokl sandbox's.");
   const connected = (await stripe.accounts.list({ limit: 100 })).data.find((a) => a.capabilities?.transfers === "active");
   if (!connected) throw new Error("Refusing to run: no connected test account in the Lokl sandbox can receive transfers.");

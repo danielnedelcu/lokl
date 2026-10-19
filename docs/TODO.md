@@ -324,10 +324,14 @@ three are done: explicit API grants, the build secrets check, and
   "already done" refusals count as done; pages say done after a lost reply
   when it is. Tests: `money-retries.test.mts`,
   `money_lost_replies.test.sql`, e2e journey 20.
-- [ ] **E2E tests clash on the shared Stripe test account when run on several
+- [x] **E2E tests clash on the shared Stripe test account when run on several
   workers; fix before parallelising.** Found 2026-10-11: on four workers,
-  test providers collided on `providers_stripe_account_id_key`. CI runs one
-  worker today.
+  test providers collided on `providers_stripe_account_id_key`. Done
+  2026-10-19: each test provider gets a made-up account of its own (only
+  journey 4, tagged @serial, uses the connected one); the browser tests
+  run four at a time, and CI's three e2e shards and the stripe job run side
+  by side (no shared concurrency group; watch for Stripe 429s, and lower
+  E2E_WORKERS per shard if they appear).
 - [ ] If sweep and CI ever clash on the shared Stripe test account, give the
   sweep its own connected test account in the sandbox. (The Clock sweep
   skips its journeys while a CI run is queued or in progress, but a push
