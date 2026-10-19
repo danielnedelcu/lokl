@@ -71,7 +71,7 @@ select throws_ok(format($$ update guides set draft_cover_photo_id = %L where id 
 -- ---------------------------------------------------------------------------
 
 select tests.authenticate_as_service_role();
-select throws_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'owner'), '42501', 'Only an admin can publish a guide.', '3a. the id passed must be an admin''s');
+select throws_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'owner'), '42501', 'Only the owner can publish a guide.', '3a. the id passed must be an admin''s');
 select throws_ok(format($$ select publish_guide(%L, %L) $$, :'g', :'admin'),
   '23514', 'Add a teaser of at least 20 characters. It shows under the photo and in search results.', '3b. a teaser is needed');
 update guides set draft_teaser = 'Murals, food halls and the Eastside Trail, a short walk from downtown.' where id = :'g';

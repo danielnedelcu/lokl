@@ -112,7 +112,7 @@ select is(public_guide('atlanta', 'murals-of-the-trail') ->> 'title', 'Murals of
 -- 3. THE HOMEPAGE
 -- ---------------------------------------------------------------------------
 
-select throws_ok(format($$ select admin_set_homepage_features(array[%L]::uuid[]) $$, :'g1'), '42501', 'Admins only.',
+select throws_ok(format($$ select admin_set_homepage_features(array[%L]::uuid[]) $$, :'g1'), '42501', 'Only the owner can choose the homepage''s guides.',
   '3a. a customer can''t choose the homepage guides');
 select tests.authenticate_as_anon();
 select throws_ok(format($$ select admin_set_homepage_features(array[%L]::uuid[]) $$, :'g1'), '42501', NULL,

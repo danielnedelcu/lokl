@@ -31,6 +31,8 @@ select set_eq(
        -- Admin pages (each checks is_admin() itself).
        ('admin_bookings_page|authenticated'), ('admin_role|authenticated'), ('admin_role_preview|authenticated'), ('admin_dashboard|authenticated'), ('admin_listings_page|authenticated'),
        ('admin_providers_page|authenticated'), ('admin_reviews_page|authenticated'),
+       ('admin_team|authenticated'), ('admin_change_role|authenticated'), ('admin_remove|authenticated'),
+       ('admin_reset_second_factor|authenticated'), ('admin_join|authenticated'),
        -- Public pages.
        ('public_guide|anon,authenticated'), ('public_guides|anon,authenticated'), ('public_homepage_guides|anon,authenticated'),
        ('session_spots_left|anon,authenticated'), ('service_slots|anon,authenticated'), ('service_next_slot|anon,authenticated'), ('service_open_matches|anon,authenticated'), ('my_service_slots_preview|authenticated'),
