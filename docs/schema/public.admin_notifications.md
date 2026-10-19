@@ -2,36 +2,40 @@
 
 ## Description
 
-The admin bell: a new report (support_safety for a Safety one) or a provider's reply, one row per admin login. Each admin reads and marks read only their own. Ids only: published to Realtime, so an open report reloads its thread. Deleted with the admin's login.
+The admin bell: a new report (support_safety for a Safety one) or a provider's reply, one row per admin login; and a team change (team_change, its admin_actions row) for every active owner. Each admin reads and marks read only their own. Ids only: published to Realtime, so an open report reloads its thread. Deleted with the admin's login.
 
 ## Columns
 
-| Name         | Type                     | Default           | Nullable | Children | Parents                                             | Comment |
-| ------------ | ------------------------ | ----------------- | -------- | -------- | --------------------------------------------------- | ------- |
-| id           | uuid                     | gen_random_uuid() | false    |          |                                                     |         |
-| recipient_id | uuid                     |                   | false    |          |                                                     |         |
-| kind         | text                     |                   | false    |          |                                                     |         |
-| report_id    | uuid                     |                   | false    |          | [public.support_reports](public.support_reports.md) |         |
-| created_at   | timestamp with time zone | now()             | false    |          |                                                     |         |
-| read_at      | timestamp with time zone |                   | true     |          |                                                     |         |
+| Name            | Type                     | Default           | Nullable | Children | Parents                                             | Comment                                                                                                                 |
+| --------------- | ------------------------ | ----------------- | -------- | -------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| id              | uuid                     | gen_random_uuid() | false    |          |                                                     |                                                                                                                         |
+| recipient_id    | uuid                     |                   | false    |          |                                                     |                                                                                                                         |
+| kind            | text                     |                   | false    |          |                                                     |                                                                                                                         |
+| report_id       | uuid                     |                   | true     |          | [public.support_reports](public.support_reports.md) |                                                                                                                         |
+| created_at      | timestamp with time zone | now()             | false    |          |                                                     |                                                                                                                         |
+| read_at         | timestamp with time zone |                   | true     |          |                                                     |                                                                                                                         |
+| admin_action_id | uuid                     |                   | true     |          | [public.admin_actions](public.admin_actions.md)     | For a team change: the admin_actions row saying who did what (invite, role change, removal, second factor reset, join). |
 
 ## Constraints
 
-| Name                                  | Type        | Definition                                                                                       |
-| ------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------ |
-| admin_notifications_kind_check        | CHECK       | CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text]))) |
-| admin_notifications_recipient_id_fkey | FOREIGN KEY | FOREIGN KEY (recipient_id) REFERENCES auth.users(id) ON DELETE CASCADE                           |
-| admin_notifications_report_id_fkey    | FOREIGN KEY | FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT                        |
-| admin_notifications_pkey              | PRIMARY KEY | PRIMARY KEY (id)                                                                                 |
+| Name                                     | Type        | Definition                                                                                                                        |
+| ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| admin_notifications_about_check          | CHECK       | CHECK ((((kind = 'team_change'::text) = (admin_action_id IS NOT NULL)) AND ((kind = 'team_change'::text) = (report_id IS NULL)))) |
+| admin_notifications_kind_check           | CHECK       | CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text])))             |
+| admin_notifications_recipient_id_fkey    | FOREIGN KEY | FOREIGN KEY (recipient_id) REFERENCES auth.users(id) ON DELETE CASCADE                                                            |
+| admin_notifications_admin_action_id_fkey | FOREIGN KEY | FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT                                                     |
+| admin_notifications_report_id_fkey       | FOREIGN KEY | FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT                                                         |
+| admin_notifications_pkey                 | PRIMARY KEY | PRIMARY KEY (id)                                                                                                                  |
 
 ## Indexes
 
-| Name                          | Definition                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| admin_notifications_pkey      | CREATE UNIQUE INDEX admin_notifications_pkey ON public.admin_notifications USING btree (id)                              |
-| admin_notifications_recipient | CREATE INDEX admin_notifications_recipient ON public.admin_notifications USING btree (recipient_id, created_at DESC)     |
-| admin_notifications_unread    | CREATE INDEX admin_notifications_unread ON public.admin_notifications USING btree (recipient_id) WHERE (read_at IS NULL) |
-| admin_notifications_report    | CREATE INDEX admin_notifications_report ON public.admin_notifications USING btree (report_id)                            |
+| Name                             | Definition                                                                                                                                    |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| admin_notifications_pkey         | CREATE UNIQUE INDEX admin_notifications_pkey ON public.admin_notifications USING btree (id)                                                   |
+| admin_notifications_recipient    | CREATE INDEX admin_notifications_recipient ON public.admin_notifications USING btree (recipient_id, created_at DESC)                          |
+| admin_notifications_unread       | CREATE INDEX admin_notifications_unread ON public.admin_notifications USING btree (recipient_id) WHERE (read_at IS NULL)                      |
+| admin_notifications_report       | CREATE INDEX admin_notifications_report ON public.admin_notifications USING btree (report_id)                                                 |
+| admin_notifications_admin_action | CREATE INDEX admin_notifications_admin_action ON public.admin_notifications USING btree (admin_action_id) WHERE (admin_action_id IS NOT NULL) |
 
 ## Triggers
 
