@@ -4,7 +4,7 @@
 // that starts in Atlanta, and formatters that take the zone they're given,
 // whatever zone this process runs in (the test runs it in Tokyo too).
 // Run: npx tsx packages/ui/tests/zoned-time.test.mts (part of `npm run test:ui`).
-import { instantToZoned, monthStartIn, todayIn, weeklyInstants, zonedToInstant, formatSessionDate, formatSessionTime } from "../app/utils/zonedTime";
+import { dayRangeInstants, instantToZoned, monthStartIn, todayIn, weeklyInstants, zonedToInstant, formatSessionDate, formatSessionTime } from "../app/utils/zonedTime";
 import { formatDate, formatDateTime, formatHomeDateTime } from "../app/utils/formatDate";
 
 let failures = 0;
@@ -51,6 +51,26 @@ check(formatDateTime(first, ATL) === "Nov 1, 2026, 1:30 AM EDT" && formatDateTim
 check(formatHomeDateTime(second) === "Nov 1, 2026, 1:30 AM EST Atlanta time", "5e. ...and the admin's record times");
 check(formatSessionTime("2027-03-14T07:30:00Z", ATL) === "3:30 AM" && formatSessionTime("2026-10-25T05:30:00Z", ATL) === "1:30 AM", "5f. the March change and an ordinary night have no label");
 check(formatSessionTime(first, "Asia/Tokyo") === "2:30 PM", "5g. a zone without a change that day has no label");
+
+// 6. A search by date in a zone whose clocks change at midnight (Chile,
+// 2026-10-19): each date is still exactly its day there, from its first
+// moment to the first moment of the next (dayRangeInstants; test:clock
+// checks Atlanta's at every hour).
+const SCL = "America/Santiago";
+const span = (from: string, to: string) => {
+  const r = dayRangeInstants(from, to, SCL);
+  return { from: iso(r.from!), to: iso(r.to!), hours: (Date.parse(r.to!) - Date.parse(r.from!)) / 3_600_000 };
+};
+const chSkipped = span("2026-09-06", "2026-09-06");
+check(chSkipped.from === "2026-09-06T04:00:00.000Z" && chSkipped.to === "2026-09-07T03:00:00.000Z" && chSkipped.hours === 23,
+  `6a. Chile, Sept 6, 2026: midnight doesn't happen; the day is 1:00 AM to midnight, 23 hours (${chSkipped.from} to ${chSkipped.to})`);
+const chRepeated = span("2027-04-03", "2027-04-03");
+check(chRepeated.from === "2027-04-03T03:00:00.000Z" && chRepeated.to === "2027-04-04T04:00:00.000Z" && chRepeated.hours === 25,
+  `6b. Chile, Apr 3, 2027: 11 PM to midnight happens twice; the day is 25 hours, both of them included (${chRepeated.from} to ${chRepeated.to})`);
+const chBefore = span("2026-09-05", "2026-09-05");
+check(chBefore.to === chSkipped.from && chBefore.hours === 24, "6c. the day before the skipped midnight ends where the next day starts");
+const chBoth = span("2026-09-05", "2026-09-07");
+check(chBoth.hours === 24 + 23 + 24, "6d. a three-day search across it is the three days' hours");
 
 console.log(failures ? `${failures} failed` : "All zoned time checks passed.");
 process.exit(failures ? 1 : 0);

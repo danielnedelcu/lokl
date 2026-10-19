@@ -33,7 +33,7 @@ import type {
   RatingSummary,
   StarCounts,
 } from "@repo/types";
-import { zonedToInstant } from "../../../../packages/ui/app/utils/zonedTime";
+import { dayRangeInstants } from "../../../../packages/ui/app/utils/zonedTime";
 
 export const PAGE_SIZE = 24;
 /** URLs one sitemap file may hold (the sitemap protocol). */
@@ -347,14 +347,16 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
   const tz = (market as PublicMarket).timezone;
   const page = Math.max(1, Math.floor(q.page ?? 1) || 1);
   const pageSize = q.pageSize ?? PAGE_SIZE;
+  // The dates are whole days in the market's zone (23 or 25 hours on a
+  // clock-change day; test:clock checks every hour).
+  const days = dayRangeInstants(q.from, q.to, tz);
   const { data: picked, error: pickError } = await db.rpc("public_browse", {
     p_market: q.market,
     p_kind: q.kind,
     p_category: q.category,
     p_area: q.area,
-    p_from: q.from ? zonedToInstant({ date: q.from, time: "00:00" }, tz) : undefined,
-    // Inclusive of the whole last day: up to midnight at the start of the next.
-    p_to: q.to ? new Date(Date.parse(zonedToInstant({ date: q.to, time: "23:59" }, tz)) + 60_000).toISOString() : undefined,
+    p_from: days.from,
+    p_to: days.to,
     p_page: page,
     p_page_size: pageSize,
   });

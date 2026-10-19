@@ -3,7 +3,7 @@
 // Built on @internationalized/date (also used by Reka UI), which handles
 // daylight saving: a weekly 10:00 AM series stays at 10:00 AM local time when
 // the clocks change, even though its UTC time moves by an hour.
-import { getDayOfWeek, parseDate, parseDateTime, toZoned, now } from "@internationalized/date";
+import { type CalendarDate, getDayOfWeek, parseDate, parseDateTime, toZoned, now } from "@internationalized/date";
 import { repeatedHourZone } from "@repo/types";
 
 /** A wall-clock date and time in a city: "2026-10-24" and "10:00". */
@@ -99,6 +99,22 @@ export function weekStartOf(date: string): string {
 /** A local date plus `days`, for the date input's maximum. */
 export function addDays(date: string, days: number): string {
   return parseDate(date).add({ days }).toString();
+}
+
+/**
+ * Whole days in a zone as instants, for a search by date: from the first
+ * moment of the first day to the first moment of the day after the last
+ * (2026-10-19, from browse). A clock-change day is 23 or 25 hours long, and
+ * in a zone whose clocks change at midnight a day can start at 1:00 AM, or
+ * end after a repeated last hour; both ends are each day's own start, so
+ * every case holds. Each side is left out when its date is.
+ */
+export function dayRangeInstants(fromDate: string | undefined, toDate: string | undefined, timeZone: string): { from?: string; to?: string } {
+  const startOf = (date: CalendarDate) => toZoned(date, timeZone).toAbsoluteString();
+  return {
+    from: fromDate ? startOf(parseDate(fromDate)) : undefined,
+    to: toDate ? startOf(parseDate(toDate).add({ days: 1 })) : undefined,
+  };
 }
 
 /** "Sat, Oct 24" in `timeZone`. */

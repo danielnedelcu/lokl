@@ -508,7 +508,16 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   - The clock sweep: `npm run test:clock` (the time rules at eight fixed
     instants, two device zones), and the scheduled Clock sweep workflow,
     which runs the real-clock tests at the risky times of day and nightly
-    across midnight, never on a push.
+    across midnight, never on a push. Since 2026-10-19, `test:clock` checks
+    every real hour of a Wednesday, a Saturday and both clock-change days
+    (at 5 past and 5 to, 192 instants, plus the 8 named edges) on every
+    push, and `slot_instants.test.sql` (in `db:test`) checks the slot core
+    at the same 192 instants against the expected wall-clock grid.
+- [ ] **Possible later step: give the database's time rules a `now`
+  parameter.** 37 functions read `now()` directly, so they can only be
+  tested at the hours the scheduled sweep happens to run; the slot core,
+  `queue_review_reminders` and `session_time_label` already take the time
+  and are checked at every hour. Not planned for now (decided 2026-10-19).
   - Journeys 27 and 28, `booking-emails` and `booking-checkout` couldn't be
     made to fail by the clock; left as they are.
 - [ ] Run the end-to-end tests in WebKit (Safari's engine) too, against the

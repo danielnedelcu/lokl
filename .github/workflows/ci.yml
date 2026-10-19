@@ -71,6 +71,8 @@ jobs:
         run: npm run check:e2e-serial
       - name: UI tests
         run: npm run test:ui
+      - name: The time rules at every hour of four days, in two device zones (test:clock)
+        run: npm run test:clock
       - name: Email templates
         run: npm run test:emails
       - name: Type check the end-to-end tests
