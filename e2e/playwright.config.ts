@@ -10,7 +10,8 @@ import { installRedactingOutput } from "@repo/types";
 //   cookies are Secure, and WebKit refuses them on plain-http localhost.
 // - The browser runs in Los Angeles time on purpose: the pages must still
 //   show Atlanta times.
-// - Four tests at a time (2026-10-19; E2E_WORKERS to change it): each test
+// - Three tests at a time locally, four per CI shard (2026-10-19;
+//   E2E_WORKERS to change it): each test
 //   makes its own users, providers (each with a made-up Stripe account of
 //   its own), listings, categories and areas, and finds them by name. A
 //   test that changes or reads something the whole site shares is tagged
@@ -27,7 +28,10 @@ installRedactingOutput();
 export default defineConfig({
   testDir: "./journeys",
   fullyParallel: true,
-  workers: Number(process.env.E2E_WORKERS ?? 4),
+  // Three locally, four per CI shard (measured 2026-10-19: on a 10-core
+  // machine, four workers took no less time than three, with the load at
+  // twice the cores and live-update tests failing; three passed every run).
+  workers: Number(process.env.E2E_WORKERS ?? (process.env.CI ? 4 : 3)),
   forbidOnly: !!process.env.CI,
   retries: 0,
   timeout: 90_000,

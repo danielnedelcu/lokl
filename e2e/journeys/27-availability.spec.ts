@@ -257,3 +257,19 @@ test("@phone the Availability page at phone width: no sideways scrolling, 44px c
 });
 
 export type { Locator };
+
+// Found 2026-10-19 (under four workers): "Open on Monday" clicked before the
+// page had hydrated did nothing, and the test waited out its 90 seconds for
+// Monday's hours. A page loaded in a test is now used once it has hydrated
+// (e2e/support/fixtures.ts, <html data-hydrated>), as a person uses it once
+// it responds. Its scripts held back two seconds here, the click still counts.
+test("a click straight after loading counts, even when the page's scripts are slow", async ({ page, context, data }) => {
+  await provider(data, page, context);
+  await page.route(/\/_nuxt\/.*\.js$/, async (route) => {
+    await new Promise((r) => setTimeout(r, 2_000));
+    await route.continue();
+  });
+  await page.goto("/dashboard/availability");
+  await page.getByRole("checkbox", { name: "Open on Monday" }).click();
+  await expect(page.getByRole("group", { name: "From (Monday)" })).toBeVisible({ timeout: 10_000 });
+});
