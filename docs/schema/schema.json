@@ -3616,7 +3616,7 @@
         {
           "name": "admin_actions_action_check",
           "type": "CHECK",
-          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text])))",
+          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3636,7 +3636,7 @@
         {
           "name": "admin_actions_reason",
           "type": "CHECK",
-          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
+          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3667,7 +3667,7 @@
         {
           "name": "admin_actions_target_check",
           "type": "CHECK",
-          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text, 'review'::text, 'support_report'::text])))",
+          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text, 'review'::text, 'support_report'::text, 'admin_member'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -9201,7 +9201,7 @@
     {
       "name": "public.admin_notifications",
       "type": "BASE TABLE",
-      "comment": "The admin bell: a new report (support_safety for a Safety one) or a provider's reply, one row per admin login. Each admin reads and marks read only their own. Ids only: published to Realtime, so an open report reloads its thread. Deleted with the admin's login.",
+      "comment": "The admin bell: a new report (support_safety for a Safety one) or a provider's reply, one row per admin login; and a team change (team_change, its admin_actions row) for every active owner. Each admin reads and marks read only their own. Ids only: published to Realtime, so an open report reloads its thread. Deleted with the admin's login.",
       "columns": [
         {
           "name": "id",
@@ -9222,7 +9222,7 @@
         {
           "name": "report_id",
           "type": "uuid",
-          "nullable": false
+          "nullable": true
         },
         {
           "name": "created_at",
@@ -9234,6 +9234,12 @@
           "name": "read_at",
           "type": "timestamp with time zone",
           "nullable": true
+        },
+        {
+          "name": "admin_action_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "For a team change: the admin_actions row saying who did what (invite, role change, removal, second factor reset, join)."
         }
       ],
       "indexes": [
@@ -9269,13 +9275,33 @@
           "columns": [
             "report_id"
           ]
+        },
+        {
+          "name": "admin_notifications_admin_action",
+          "def": "CREATE INDEX admin_notifications_admin_action ON public.admin_notifications USING btree (admin_action_id) WHERE (admin_action_id IS NOT NULL)",
+          "table": "public.admin_notifications",
+          "columns": [
+            "admin_action_id"
+          ]
         }
       ],
       "constraints": [
         {
+          "name": "admin_notifications_about_check",
+          "type": "CHECK",
+          "def": "CHECK ((((kind = 'team_change'::text) = (admin_action_id IS NOT NULL)) AND ((kind = 'team_change'::text) = (report_id IS NULL))))",
+          "table": "public.admin_notifications",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "admin_action_id",
+            "report_id"
+          ]
+        },
+        {
           "name": "admin_notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text])))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -9290,6 +9316,19 @@
           "referenced_table": "auth.users",
           "columns": [
             "recipient_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_notifications_admin_action_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT",
+          "table": "public.admin_notifications",
+          "referenced_table": "public.admin_actions",
+          "columns": [
+            "admin_action_id"
           ],
           "referenced_columns": [
             "id"
@@ -9796,6 +9835,201 @@
           "columns": [
             "scope"
           ]
+        }
+      ]
+    },
+    {
+      "name": "public.admin_emails",
+      "type": "BASE TABLE",
+      "comment": "The team's email outbox (admin roles, 2026-10-19): an invitation to the person invited (admin_invite), and each team change to every active owner (admin_team_change), their own included. Never a reason or note. Only its delivery details change (outbox_guard); never deleted. The server sends it; the owner reads it.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "admin_action_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "recipient_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending'::text"
+        },
+        {
+          "name": "attempts",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "locked_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "to_address",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "resend_id",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "skip_reason",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_emails_pkey",
+          "def": "CREATE UNIQUE INDEX admin_emails_pkey ON public.admin_emails USING btree (id)",
+          "table": "public.admin_emails",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_emails_due",
+          "def": "CREATE INDEX admin_emails_due ON public.admin_emails USING btree (next_attempt_at) WHERE (status = ANY (ARRAY['pending'::text, 'failed'::text]))",
+          "table": "public.admin_emails",
+          "columns": [
+            "next_attempt_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "admin_emails_attempts_check",
+          "type": "CHECK",
+          "def": "CHECK ((attempts \u003e= 0))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "attempts"
+          ]
+        },
+        {
+          "name": "admin_emails_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text])))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "admin_emails_last_error_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(last_error) \u003c= 500))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "last_error"
+          ]
+        },
+        {
+          "name": "admin_emails_skip_reason_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(skip_reason) \u003c= 200))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "skip_reason"
+          ]
+        },
+        {
+          "name": "admin_emails_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'skipped'::text, 'failed'::text])))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "admin_emails_to_address_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(to_address) \u003c= 320))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "to_address"
+          ]
+        },
+        {
+          "name": "admin_emails_admin_action_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT",
+          "table": "public.admin_emails",
+          "referenced_table": "public.admin_actions",
+          "columns": [
+            "admin_action_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_emails_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "admin_emails_outbox_guard",
+          "def": "CREATE TRIGGER admin_emails_outbox_guard BEFORE DELETE OR UPDATE ON public.admin_emails FOR EACH ROW EXECUTE FUNCTION outbox_guard()"
+        },
+        {
+          "name": "admin_emails_outbox_guard_truncate",
+          "def": "CREATE TRIGGER admin_emails_outbox_guard_truncate BEFORE TRUNCATE ON public.admin_emails FOR EACH STATEMENT EXECUTE FUNCTION outbox_guard()"
         }
       ]
     }
@@ -10703,6 +10937,19 @@
     {
       "table": "public.admin_notifications",
       "columns": [
+        "admin_action_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.admin_actions",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_notifications",
+      "columns": [
         "report_id"
       ],
       "cardinality": "zero_or_more",
@@ -10710,7 +10957,7 @@
       "parent_columns": [
         "id"
       ],
-      "parent_cardinality": "exactly_one",
+      "parent_cardinality": "zero_or_one",
       "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
     },
     {
@@ -10738,6 +10985,19 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_emails",
+      "columns": [
+        "admin_action_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.admin_actions",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -12688,6 +12948,54 @@
     {
       "name": "public.public_content_changed",
       "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_team_alert",
+      "return_type": "void",
+      "arguments": "p_action_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_team_reason",
+      "return_type": "text",
+      "arguments": "p_reason text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_invite",
+      "return_type": "uuid",
+      "arguments": "p_admin_id uuid, p_email text, p_role text, p_reason text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_change_role",
+      "return_type": "text",
+      "arguments": "p_user_id uuid, p_role text, p_reason text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_remove",
+      "return_type": "text",
+      "arguments": "p_user_id uuid, p_reason text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_reset_second_factor",
+      "return_type": "text",
+      "arguments": "p_user_id uuid, p_reason text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_join",
+      "return_type": "text",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_team",
+      "return_type": "record",
       "arguments": "",
       "type": "FUNCTION"
     }
