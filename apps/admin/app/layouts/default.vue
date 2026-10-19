@@ -1,5 +1,7 @@
 <script setup lang="ts">
-const sections = [
+// The menu follows the role (docs/design/admin-roles.md): support doesn't
+// see the owner's pages (`owner`), which also send them away if opened.
+const allSections = [
   {
     label: "Overview",
     items: [
@@ -13,8 +15,8 @@ const sections = [
       { to: "/providers", label: "Providers", icon: "lucide:store" },
       { to: "/listings/services", label: "Services", icon: "lucide:wrench" },
       { to: "/listings/experiences", label: "Experiences", icon: "lucide:compass" },
-      { to: "/categories", label: "Categories", icon: "lucide:tags" },
-      { to: "/cities", label: "Markets and areas", icon: "lucide:map-pin" },
+      { to: "/categories", label: "Categories", icon: "lucide:tags", owner: true },
+      { to: "/cities", label: "Markets and areas", icon: "lucide:map-pin", owner: true },
     ],
   },
   {
@@ -27,16 +29,16 @@ const sections = [
   {
     label: "Content",
     items: [
-      { to: "/content", label: "Destination guides", icon: "lucide:map" },
-      { to: "/content/homepage", label: "Homepage", icon: "lucide:house" },
+      { to: "/content", label: "Destination guides", icon: "lucide:map", owner: true },
+      { to: "/content/homepage", label: "Homepage", icon: "lucide:house", owner: true },
       { to: "/content/reviews", label: "Reviews", icon: "lucide:star" },
     ],
   },
   {
     label: "Platform",
     items: [
-      { to: "/users", label: "Users", icon: "lucide:users" },
-      { to: "/settings", label: "Settings", icon: "lucide:settings" },
+      { to: "/team", label: "Team", icon: "lucide:users", owner: true },
+      { to: "/settings", label: "Settings", icon: "lucide:settings", owner: true },
     ],
   },
   {
@@ -44,7 +46,10 @@ const sections = [
     items: [{ to: "/security", label: "Second factor", icon: "lucide:shield-check" }],
   },
 ];
-
+const role = useAdminRole();
+const sections = computed(() => allSections
+  .map((section) => ({ ...section, items: section.items.filter((item) => !("owner" in item) || role.value === "owner") }))
+  .filter((section) => section.items.length));
 
 const supabase = useSupabaseClient();
 // The top bar stays put, so a jump to a heading stops below it.

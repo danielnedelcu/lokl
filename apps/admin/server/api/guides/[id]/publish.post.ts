@@ -2,7 +2,7 @@
 // (also "Publish changes" and "Publish again"). The database checks the
 // draft first and refuses with a plain sentence.
 export default defineEventHandler(async (event) => {
-  const admin = await requireAdmin(event);
+  const admin = await requireAdmin(event, { owner: true });
   try {
     // The server key acting for this admin's session (publish_guide checks it).
     return await runGuideAction(admin.db, "publish", getRouterParam(event, "id") ?? "", admin.sub);

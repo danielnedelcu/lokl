@@ -104,6 +104,11 @@ export class TestData {
     return { id: user.id, email, password, adminSession };
   }
 
+  /** A login the app made itself (the Team page's invitation), removed with the rest. */
+  trackUser(id: string) {
+    this.users.push(id);
+  }
+
   /**
    * A provider with payouts set up, on a made-up Stripe account of its own
    * (an account belongs to one provider, so tests running side by side
@@ -417,7 +422,13 @@ export class TestData {
     // only). Any of this run's logins, since a journey may add one by hand.
     if (this.users.length) {
       const ids = this.users.map((i) => `'${i}'`).join(",");
-      execFileSync("psql", [this.env.dbUrl, "-q", "-c", `set session_replication_role = replica; delete from admin_members where user_id in (${ids});`]);
+      // With the team changes they made or were the subject of: the log, its alerts and emails.
+      const actions = `select id from admin_actions where target = 'admin_member' and (target_id in (${ids}) or admin_id in (${ids}))`;
+      execFileSync("psql", [this.env.dbUrl, "-q", "-c", `set session_replication_role = replica;
+        delete from admin_notifications where admin_action_id in (${actions});
+        delete from admin_emails where admin_action_id in (${actions});
+        delete from admin_actions where id in (${actions});
+        delete from admin_members where user_id in (${ids});`]);
     }
     for (const id of this.users) await this.env.db.auth.admin.deleteUser(id);
     for (const id of this.areas) await this.env.db.from("service_areas").delete().eq("id", id);

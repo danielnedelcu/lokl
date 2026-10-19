@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { adminNotificationText, bellLabel, type AdminNotificationKind, type SupportCategory } from "@repo/types";
+import { adminNotificationText, adminTeamChangeText, bellLabel, type AdminNotificationKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import type { AdminNotificationRow } from "@repo/ui/app/utils/notificationFeed";
 
 // The admin's bell (docs/design/problem-reports.md, Notifications): a new
-// report (urgent for Safety) or a provider's reply, the 20 most recent and
+// report (urgent for Safety) or a provider's reply, and for owners a team
+// change (docs/design/admin-roles.md), the 20 most recent and
 // every unread counted, for this admin's own login. Live through the same
 // feed as the provider's bell (ids only, never text); each new one tells an
 // open report page and the board to reload (announceSupportReportChanged).
@@ -13,10 +14,11 @@ const user = useSupabaseUser();
 interface Item {
   id: string;
   kind: AdminNotificationKind;
-  report_id: string;
+  report_id: string | null;
   created_at: string;
   read_at: string | null;
   report: { category: SupportCategory; provider: { display_name: string } | null } | null;
+  action: { admin_id: string; target_id: string; action: AdminTeamAction; message: string | null } | null;
 }
 const items = ref<Item[]>([]);
 const unread = ref(0);
@@ -24,15 +26,24 @@ const loadFailed = ref(false);
 const announcement = ref("");
 const open = ref(false);
 
-const textOf = (n: Item) =>
-  adminNotificationText(n.kind, n.report?.provider?.display_name ?? "A provider", n.report?.category ?? "other");
+// Team members' emails, for team changes (the owner's admin_team(); only
+// owners get team changes).
+const emails = ref(new Map<string, string>());
+const emailOf = (id: string) => (id === user.value?.sub ? "You" : emails.value.get(id) ?? "Someone");
+const textOf = (n: Item) => {
+  if (n.kind === "team_change") {
+    return n.action ? adminTeamChangeText(n.action.action, emailOf(n.action.admin_id), emailOf(n.action.target_id), n.action.message) : "A change to the team.";
+  }
+  return adminNotificationText(n.kind, n.report?.provider?.display_name ?? "A provider", n.report?.category ?? "other");
+};
 
 async function load() {
   const me = user.value?.sub;
   if (!me) return;
   const [recent, count] = await Promise.all([
     supabase.from("admin_notifications")
-      .select("id, kind, report_id, created_at, read_at, report:support_reports(category, provider:providers(display_name))")
+      .select("id, kind, report_id, created_at, read_at, report:support_reports(category, provider:providers(display_name)), " +
+        "action:admin_actions(admin_id, target_id, action, message)")
       .eq("recipient_id", me).order("created_at", { ascending: false }).limit(20),
     supabase.from("admin_notifications").select("id", { count: "exact", head: true }).eq("recipient_id", me).is("read_at", null),
   ]);
@@ -44,6 +55,11 @@ async function load() {
   loadFailed.value = false;
   items.value = recent.data as unknown as Item[];
   unread.value = count.count ?? 0;
+  if (items.value.some((n) => n.kind === "team_change")) {
+    const { data: team, error } = await supabase.rpc("admin_team");
+    if (error) console.error("[admin notifications] couldn't load the team's emails", error);
+    else emails.value = new Map((team ?? []).map((m) => [m.user_id, m.email]));
+  }
 }
 
 async function markRead(ids: string[]) {
@@ -63,7 +79,7 @@ async function markAllRead() {
 async function openItem(n: Item) {
   if (!n.read_at) void markRead([n.id]);
   open.value = false;
-  await navigateTo(`/reports/${n.report_id}`);
+  await navigateTo(n.kind === "team_change" ? "/team" : `/reports/${n.report_id}`);
 }
 
 let feed: ReturnType<typeof createNotificationFeed<AdminNotificationRow>> | null = null;
@@ -77,7 +93,7 @@ function start() {
       await load();
       const item = items.value.find((n) => n.id === row.id);
       if (item) announcement.value = `New notification: ${textOf(item)}`;
-      announceSupportReportChanged(row.report_id);
+      if (row.report_id) announceSupportReportChanged(row.report_id);
     },
     onProblem: (message) => console.warn("[admin notifications]", message),
     onStatus: (message) => console.info("[admin notifications]", message),
@@ -104,7 +120,7 @@ const panelItems = computed(() => items.value.map((n) => ({
 <template>
   <div class="relative">
     <NotificationPanel v-model:open="open" :label="label" :unread="unread" :items="panelItems" :load-failed="loadFailed"
-      empty-text="No notifications yet. New problem reports and providers' replies show here."
+      empty-text="No notifications yet. New problem reports, providers' replies and changes to the team show here."
       @select="(id) => openItem(items.find((n) => n.id === id)!)" @mark-all-read="markAllRead()" />
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
   </div>

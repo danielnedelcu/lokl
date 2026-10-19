@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { z } from "zod";
 
+// The owner's alone (docs/design/admin-roles.md); the database refuses support's writes too.
+definePageMeta({ ownerOnly: true });
+
 // Settings: commission rates per kind (docs/design/booking-and-checkout.md,
 // Admin). Written from here under the database's admin-only rule
 // (commission_rates_update_admin); each change is recorded, with who and

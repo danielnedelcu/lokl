@@ -120,9 +120,10 @@ test("an invited member sets up two authenticators before joining; the rest stay
   await expectNoAdminFrame(page);
   await setUp(page, "Password manager");
   await expect(page.getByRole("listitem").filter({ hasText: "Added" })).toHaveCount(2);
-  // Joining happens on the owner's Team page; until then, nothing admin opens.
+  // Joining is the one thing left (journey 40 joins); until then, nothing admin opens.
   await page.goto(`${ADMIN}/bookings`);
-  await expect(page).toHaveURL(/\/login\?denied=1$/);
+  await expect(page).toHaveURL(`${ADMIN}/join`);
+  await expectNoAdminFrame(page);
 });
 
 test("someone not on the team, or removed from it, is turned away, /security included", async ({ context, data }) => {

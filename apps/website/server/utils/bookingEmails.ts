@@ -15,9 +15,9 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { errorText, marketZone, type SupportCategory } from "@repo/types";
+import { adminTeamChangeText, errorText, marketZone, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind } from "./bookingEmailTemplates";
+import { renderAdminInviteEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -180,7 +180,7 @@ async function providerEmail(db: SupabaseClient, ownerId: string | undefined) {
   return data.user?.email ?? null;
 }
 
-type OutboxTable = "booking_emails" | "provider_emails" | "support_emails";
+type OutboxTable = "booking_emails" | "provider_emails" | "support_emails" | "admin_emails";
 
 async function finish(db: SupabaseClient, table: OutboxTable, id: string, update: Record<string, unknown>) {
   // Resend's messages can quote an address; the row keeps only its id.
@@ -423,6 +423,51 @@ export async function sendSupportEmails(
           businessName: report.provider.display_name, category: report.category,
         }),
       };
+    },
+  });
+}
+
+/**
+ * Sends the team's emails that are due (admin roles, step 5a): an
+ * invitation to the person invited (skipped once they're no longer
+ * invited), and each team change to each owner (skipped if they're no
+ * longer an active owner). Never the reason. Never throws.
+ */
+export async function sendAdminEmails(
+  db: SupabaseClient,
+  mailer: Mailer | null,
+  settings: EmailSettings,
+  opts: { adminUrl: string; now?: Date; limit?: number },
+): Promise<SendResult> {
+  type AdminRow = OutboxRow & { kind: AdminEmailKind; admin_action_id: string; recipient_id: string };
+  const emailOf = async (id: string) => {
+    const { data, error } = await db.auth.admin.getUserById(id);
+    return error ? null : (data.user?.email ?? null);
+  };
+  return runOutbox<AdminRow>(db, mailer, settings, {
+    table: "admin_emails",
+    columns: "id, kind, admin_action_id, recipient_id, status, attempts, locked_at, created_at",
+    keyPrefix: "admin-email",
+    now: opts.now,
+    limit: opts.limit,
+    prepare: async (row) => {
+      if (!opts.adminUrl) return { skip: "NUXT_ADMIN_ORIGIN isn't set, so there's no link to the admin app." };
+      const adminUrl = opts.adminUrl.replace(/\/$/, "");
+      const { data: action, error } = await db.from("admin_actions")
+        .select("admin_id, target_id, action, message").eq("id", row.admin_action_id).single();
+      if (error) throw new Error(error.message);
+      // bounded: one row by its primary key
+      const { data: member } = await db.from("admin_members").select("role, status").eq("user_id", row.recipient_id).maybeSingle();
+      const to = await emailOf(row.recipient_id);
+      const who = (await emailOf(action.admin_id)) ?? "An owner";
+      if (row.kind === "admin_invite") {
+        if (member?.status !== "invited") return { skip: "No longer invited.", to };
+        return { to, email: renderAdminInviteEmail({ adminUrl, invitedBy: who, role: action.message ?? "" }) };
+      }
+      if (member?.status !== "active" || member.role !== "owner") return { skip: "No longer an owner.", to };
+      const whom = (await emailOf(action.target_id)) ?? "a team member";
+      const text = adminTeamChangeText(action.action as AdminTeamAction, who, whom, action.message);
+      return { to, email: renderAdminTeamChangeEmail({ adminUrl, text }) };
     },
   });
 }

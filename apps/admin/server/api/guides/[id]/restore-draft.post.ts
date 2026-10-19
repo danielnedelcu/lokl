@@ -3,11 +3,11 @@ import { serverSupabaseServiceRole } from "#supabase/server";
 import type { Database } from "@repo/types";
 
 // POST /api/guides/:id/restore-draft { logId, expectedUpdatedAt }: puts back
-// the draft from before the guide's latest AI draft (once). Admins only.
+// the draft from before the guide's latest AI draft (once). The owner only.
 const body = z.object({ logId: z.string(), expectedUpdatedAt: z.string().min(1) });
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireAdmin(event, { owner: true });
   const { logId, expectedUpdatedAt } = await readValidatedBody(event, body.parse);
   try {
     return await restorePreviousDraft(serverSupabaseServiceRole<Database>(event), {

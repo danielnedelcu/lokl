@@ -2,8 +2,9 @@
 
 Status: **approved design, being built** (2026-10-18; decisions below,
 under "Decided"), in the order of "Moving from today's admin to the new
-roles". Steps 1 and 2 are done; step 3 is the owner's. To be built
-before anyone else is given admin access ([docs/TODO.md](../TODO.md),
+roles". Steps 1 to 4 are done; step 5 is built in four parts, 5a (the
+owner's areas and the team, below: "As built, step 5a") first. To be
+built before anyone else is given admin access ([docs/TODO.md](../TODO.md),
 Launch prep, "Staff access").
 
 ## What it is
@@ -356,6 +357,29 @@ block in `CLAUDE.md`.
    Only then do the admin rules let them in.
 4. An invitation not taken up in 7 days lapses; the owner can send it
    again.
+
+**As built, step 5a (2026-10-19;** migration `admin_team`**):**
+- The server route is the website's `/api/admin/team/invite` (the admin
+  app has no server key for Supabase's admin API, nor Resend). It makes
+  the login with the admin API (confirmed, no password) rather than
+  Supabase's own invite email, then calls `admin_invite(p_admin_id,
+  p_email, p_role, p_reason)`, which finds the login by email. lokl's
+  own invitation goes out through `admin_emails`, linking to the admin
+  sign-in; it's skipped if the invitation was withdrawn first.
+- After setting up an authenticator, the invited person is sent to
+  `/join` (the middleware, and a prompt on `/security`), which calls
+  `admin_join()`. "Send again" on the Team page invites again (a new 7
+  days); a removed member can be invited again.
+- A team change goes to every active owner (`admin_team_alert()`): the
+  bell (`team_change`, pointing at the `admin_actions` row; the bell
+  names people from `admin_team()`) and an email (`admin_team_change`),
+  never with the reason. Support's bell never gets them.
+- Pages that are the owner's alone (`ownerOnly`) send support to
+  `/owner-only`, and support's menu doesn't show them; the admin app's
+  guide routes refuse support too (`requireAdmin(event, { owner: true })`).
+- `is_owner()` now returns false rather than null for someone not on the
+  team, so a plpgsql check can't let them through.
+- Break-glass's SQL block is in the root `CLAUDE.md` (Roles).
 
 **Changing a role:** owner only, never for themselves while they're the
 last owner. Logged with the old and new role; takes effect on the next

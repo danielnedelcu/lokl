@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { categorySchema, type Category, type CategoryInput } from "@repo/types";
 
+// The owner's alone (docs/design/admin-roles.md); the database refuses support's writes too.
+definePageMeta({ ownerOnly: true });
+
 useHead({ title: "Categories · Admin" });
 
 type Kind = Category["kind"];

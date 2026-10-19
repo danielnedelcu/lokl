@@ -1,6 +1,6 @@
 # Admin — app rules
 
-Owner-only dashboard. Port 3101 (fixed). Root `CLAUDE.md` applies too.
+The team's admin app: owner and support (docs/design/admin-roles.md). Port 3101 (fixed). Root `CLAUDE.md` applies too.
 
 - **Client-rendered on purpose** (`ssr: false`) and blocked from search engines
   (`robots: noindex, nofollow`). Keep both.
@@ -13,9 +13,9 @@ Owner-only dashboard. Port 3101 (fixed). Root `CLAUDE.md` applies too.
   admin policies (`public.is_admin()`) decide what comes back, as in
   `app/pages/providers.vue`.
 - **Writes, two kinds.**
-  - *Admin-only reference lists* (cities, service areas, categories) are
-    written from the page with `useSupabaseClient()`, under admin-only
-    database rules (`public.is_admin()`).
+  - *The owner's reference lists* (cities, service areas, categories) and
+    commission rates are written from the page with `useSupabaseClient()`,
+    under owner-only database rules (`public.is_owner()`).
   - *Status changes and anything that crosses users* (listing approval)
     go through a server route in `server/api/` that calls
     `requireAdmin(event)` first, then uses the service role. Anything that
@@ -50,11 +50,20 @@ Owner-only dashboard. Port 3101 (fixed). Root `CLAUDE.md` applies too.
   returns `db`, a server-key client carrying the session header
   (`serviceClientForAdmin`), for admin functions that take `p_admin_id`.
 - **The login page never creates accounts** (`shouldCreateUser: false`). Team
-  members are in `admin_members` (the Team page, step 5; until then, by
-  hand, and break-glass in docs/design/admin-roles.md).
+  members are in `admin_members`, managed on the owner's Team page (`/team`):
+  the invitation goes through the website (`/api/admin/team/invite`, which
+  makes the login), and the invited person joins on `/join` once past the
+  second step (the middleware sends them there). Break-glass is in the
+  root `CLAUDE.md`.
+- **Owner-only pages and routes:** `definePageMeta({ ownerOnly: true })`
+  (guides, the homepage, categories, markets and areas, settings, the
+  team): the middleware sends support to `/owner-only`, and the menu hides
+  them (`owner: true` in `app/layouts/default.vue`, from `useAdminRole()`).
+  Server routes use `requireAdmin(event, { owner: true })`. Usability
+  only: the database refuses support's writes either way.
 - **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;
   everything else from the shared layer (`Ui…` components, `StatusBadge`).
   Colours come from the layer's tokens (`background`, `card`, `muted`,
   `foreground`, `muted-foreground`, `border`, `primary`, `destructive`); see
   `docs/frontend.md`.
-- **Sidebar sections** are defined in `app/layouts/default.vue`. Add new pages there.
+- **Sidebar sections** are defined in `app/layouts/default.vue`. Add new pages there, with `owner: true` for the owner's alone.

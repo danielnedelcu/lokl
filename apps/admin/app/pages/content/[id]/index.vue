@@ -19,7 +19,7 @@ import {
 import type { BodyPhrase } from "~/utils/guidePhrases";
 
 // The writing area is one white page: no grey around it.
-definePageMeta({ whiteBackground: true });
+definePageMeta({ whiteBackground: true, ownerOnly: true });
 
 // The guide editor (docs/design/destination-guides.md, The editor). It edits
 // the draft only; "Publish" copies the draft over the live copy through the

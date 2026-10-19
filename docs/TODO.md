@@ -761,8 +761,13 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     second-step pages, optional (done 2026-10-18: `/security`,
     `/security/verify`); 3. the owner enrols two authenticators (done
     2026-10-18); 4. the migration (built 2026-10-18, waiting for
-    `db:push`); 5. the Team page, requests, contact views, limits and
-    alerts (next). After one release, remove `app_metadata.role` from the
+    `db:push`); 5. in four parts: 5a, the owner's areas and the team
+    (the Team page at `/team`: invite by email, join on `/join`, change
+    a role, reset authenticators, remove; every change logged and sent
+    to every owner's bell and inbox; built 2026-10-19, pull request open,
+    `db:push` after the merge); 5b, requests (support asks, the owner
+    approves); 5c, contact views and daily limits; 5d, settings for the
+    limits and the remaining alerts. After one release, remove `app_metadata.role` from the
     owner's login (unused since step 4).
   - [ ] **An authenticator code works more than once** (found 2026-10-19):
     Supabase Auth v2.197.0 (hosted and local) accepts a code from the

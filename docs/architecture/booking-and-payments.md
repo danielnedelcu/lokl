@@ -2,7 +2,7 @@
 
 How booking Services and Experiences, and the money around them, work in the
 code today. Written from the code and migrations on 2026-10-04, and updated
-through 2026-10-18.
+through 2026-10-19.
 [docs/design/booking-and-checkout.md](../design/booking-and-checkout.md) is
 the original design; where the two differ, this document follows the code
 and lists the differences at the end ([Differences from the design](#12-differences-from-the-design)).
@@ -62,7 +62,7 @@ flowchart LR
 
   subgraph supabase [Supabase]
     pg[(Postgres<br/>RLS, triggers,<br/>private.booking_records)]
-    realtime[Realtime<br/>notifications only]
+    realtime[Realtime<br/>notifications and<br/>admin_notifications, ids only]
   end
 
   subgraph stripe [Stripe, Lokl account]
@@ -93,6 +93,7 @@ flowchart LR
   connect -. "account.updated" .-> webhooks
   utils -- "booking_emails outbox" --> resend
   pg --> realtime --> providerUI
+  realtime --> admin
 ```
 
 - **Who holds which key.** Pages and routes read with the signed-in user's
@@ -107,7 +108,9 @@ flowchart LR
   are no application fees.
 - **Emails** are rows in an outbox (`booking_emails`), queued by database
   triggers and sent by the website. **Notifications** are rows the
-  providers' bell reads live over Realtime.
+  providers' bell (`notifications`) and the admins' bell
+  (`admin_notifications`) read live over Realtime, which carries ids
+  only, never text.
 - **Timed jobs** run through `/api/jobs/:name` with a shared secret. No
   scheduler calls them yet ([§11](#idempotency-webhooks-and-jobs)).
 
@@ -662,8 +665,10 @@ sequenceDiagram
   from the booking page ([bookings/[id].vue](../../apps/admin/app/pages/bookings/[id].vue))
   and the providers page. It reads bookings, finances, emails, the action
   log and job runs directly, under admin RLS.
-- Commission rates are edited directly under RLS (admin Settings), not
-  through the website.
+- Commission rates are edited directly under RLS (Settings), by the owner
+  only since admin roles step 5a (2026-10-19; support can't open
+  Settings, and the database refuses support's change), not through the
+  website.
 - **The dashboard** ([index.vue](../../apps/admin/app/pages/index.vue)) reads
   `admin_dashboard()` ([migration](../../supabase/migrations/20261004043455_admin_dashboard.sql)).
   "Paid" means `confirmed_at` is set. GMV is charged less refunded for
@@ -690,7 +695,8 @@ flowchart LR
 - **The split is made in the database** when the booking is created:
   `booking_money()` ([bookings migration](../../supabase/migrations/20261001012101_bookings.sql))
   takes the rate from `commission_rates` (Services 12%, Experiences 20%;
-  admins can change them, and every change is logged in
+  the owner can change them (support can't, since 2026-10-19), and every
+  change is logged in
   `commission_rate_changes`). `commission = round(total × rate)`,
   `provider_amount = total − commission`. The split is stored in
   `booking_finances` and can never change (`booking_finances_guard`).
@@ -777,7 +783,7 @@ note), which only the service role can use.
 | `experience_sessions` | future, visible ones | own (all) | all | future, visible ones | provider (not moved or cancelled once booked) | with its listing, unless booked |
 | `notifications` | no | own (may mark read) | no | no | triggers | with its listing |
 | `admin_actions`, `job_runs` | no | no | all | no | service role | never (append-only) |
-| `commission_rates` | any signed-in user | any signed-in user | all, may change the rate | the kind and rate (the Fees page; since 2026-10-18) | admin (rate only) | never |
+| `commission_rates` | any signed-in user | any signed-in user | all; the owner may change the rate (support reads only, since 2026-10-19) | the kind and rate (the Fees page; since 2026-10-18) | the owner (rate only) | never |
 | `providers` (`stripe_*`, `status`) | no | own | all | no | server only (Stripe sync, admin RPC) | never |
 
 Sources: [bookings](../../supabase/migrations/20261001012101_bookings.sql),
@@ -886,6 +892,17 @@ longer an admin, or with no admin app address (`NUXT_ADMIN_ORIGIN`), is
 `skipped`. No email carries the description or a message. The provider's
 report routes send at once through `kickBookingEmails`, which now sends
 this outbox too, and the `send-emails` job sweeps it with the other two.
+
+The team's emails are a fourth, `admin_emails`
+([admin_team](../../supabase/migrations/20261019223225_admin_team.sql);
+docs/design/admin-roles.md, step 5a), written by the team functions and
+sent by `sendAdminEmails` with the same runner (key
+`admin-email-<row id>`): an invitation (`admin_invite`) to the person
+invited, skipped once they're no longer invited, and each team change
+(`admin_team_change`) to each owner, skipped once they're no longer an
+active owner. Never the reason. `kickBookingEmails` and the
+`send-emails` job send it with the others; nothing about bookings
+changed.
 
 ### Notifications (the provider's bell)
 
