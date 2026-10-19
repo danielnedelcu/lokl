@@ -192,6 +192,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_emails: {
+        Row: {
+          admin_action_id: string;
+          attempts: number;
+          created_at: string;
+          id: string;
+          kind: string;
+          last_error: string | null;
+          locked_at: string | null;
+          next_attempt_at: string;
+          recipient_id: string;
+          resend_id: string | null;
+          sent_at: string | null;
+          skip_reason: string | null;
+          status: string;
+          to_address: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          admin_action_id: string;
+          attempts?: number;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          last_error?: string | null;
+          locked_at?: string | null;
+          next_attempt_at?: string;
+          recipient_id: string;
+          resend_id?: string | null;
+          sent_at?: string | null;
+          skip_reason?: string | null;
+          status?: string;
+          to_address?: string | null;
+        };
+        Update: {
+          admin_action_id?: string;
+          attempts?: number;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          last_error?: string | null;
+          locked_at?: string | null;
+          next_attempt_at?: string;
+          recipient_id?: string;
+          resend_id?: string | null;
+          sent_at?: string | null;
+          skip_reason?: string | null;
+          status?: string;
+          to_address?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_emails_admin_action_id_fkey";
+            columns: ["admin_action_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_actions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       admin_members: {
         Row: {
           invited_at: string;
@@ -231,31 +291,41 @@ export type Database = {
       };
       admin_notifications: {
         Row: {
+          admin_action_id: string | null;
           created_at: string;
           id: string;
           kind: string;
           read_at: string | null;
           recipient_id: string;
-          report_id: string;
+          report_id: string | null;
         };
         ComputedFields: never;
         Insert: {
+          admin_action_id?: string | null;
           created_at?: string;
           id?: string;
           kind: string;
           read_at?: string | null;
           recipient_id: string;
-          report_id: string;
+          report_id?: string | null;
         };
         Update: {
+          admin_action_id?: string | null;
           created_at?: string;
           id?: string;
           kind?: string;
           read_at?: string | null;
           recipient_id?: string;
-          report_id?: string;
+          report_id?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "admin_notifications_admin_action_id_fkey";
+            columns: ["admin_action_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_actions";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "admin_notifications_report_id_fkey";
             columns: ["report_id"];
@@ -2696,11 +2766,25 @@ export type Database = {
         };
         Returns: string;
       };
+      admin_change_role: {
+        Args: { p_reason: string; p_role: string; p_user_id: string };
+        Returns: string;
+      };
       admin_dashboard: { Args: Record<PropertyKey, never>; Returns: Json };
       admin_finishing_stripe: {
         Args: { p_admin_id: string };
         Returns: boolean;
       };
+      admin_invite: {
+        Args: {
+          p_admin_id: string;
+          p_email: string;
+          p_reason: string;
+          p_role: string;
+        };
+        Returns: string;
+      };
+      admin_join: { Args: Record<PropertyKey, never>; Returns: string };
       admin_listings_page: {
         Args: {
           p_city_id?: string;
@@ -2749,6 +2833,10 @@ export type Database = {
         };
         Returns: boolean;
       };
+      admin_remove: {
+        Args: { p_reason: string; p_user_id: string };
+        Returns: string;
+      };
       admin_remove_provider_profile_content: {
         Args: {
           p_admin_id: string;
@@ -2759,6 +2847,10 @@ export type Database = {
           p_rule: string;
         };
         Returns: string[];
+      };
+      admin_reset_second_factor: {
+        Args: { p_reason: string; p_user_id: string };
+        Returns: string;
       };
       admin_resolve_problem_paid: {
         Args: { p_admin_id: string; p_booking_id: string; p_reason: string };
@@ -2827,6 +2919,23 @@ export type Database = {
         };
         Returns: string;
       };
+      admin_team: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          authenticators: number;
+          email: string;
+          invitation_lapsed: boolean;
+          invited_at: string;
+          joined_at: string;
+          last_sign_in_at: string;
+          removed_at: string;
+          role: string;
+          status: string;
+          user_id: string;
+        }[];
+      };
+      admin_team_alert: { Args: { p_action_id: string }; Returns: undefined };
+      admin_team_reason: { Args: { p_reason: string }; Returns: string };
       assert_log_guards_on: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;

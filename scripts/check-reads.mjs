@@ -39,7 +39,7 @@ const GROWS = new Set([
   // Search by availability (2026-10-15): open days per Service.
   "service_open_days", "service_open_days_pending", "service_open_days_refreshed",
   // Problem reports (2026-10-17).
-  "admin_notifications", "support_emails", "support_messages", "support_notes", "support_report_events", "support_reports",
+  "admin_emails", "admin_notifications", "support_emails", "support_messages", "support_notes", "support_report_events", "support_reports",
   // private.booking_records (bookingRecords(db)) is checked as bookings.
 ]);
 

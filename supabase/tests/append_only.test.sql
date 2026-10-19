@@ -68,6 +68,7 @@ select set_eq(
        ('support_report_events.support_report_events_append_only|O'), ('support_report_events.support_report_events_append_only_truncate|O'),
        ('support_emails.support_emails_outbox_guard|O'), ('support_emails.support_emails_outbox_guard_truncate|O'),
        ('provider_emails.provider_emails_outbox_guard|O'), ('provider_emails.provider_emails_outbox_guard_truncate|O'),
+       ('admin_emails.admin_emails_outbox_guard|O'), ('admin_emails.admin_emails_outbox_guard_truncate|O'),
        ('bookings.bookings_refuse_delete|O'), ('bookings.bookings_refuse_delete_truncate|O'),
        ('booking_finances.booking_finances_refuse_delete|O'), ('booking_finances.booking_finances_refuse_delete_truncate|O') $$,
   '1a. every guard trigger exists, on its table, switched on');
