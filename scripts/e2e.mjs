@@ -7,6 +7,11 @@
 //   npm run test:e2e -- --no-build        reuse the last build:check output
 //   npm run test:e2e -- --grep "Service"  anything after is passed to Playwright
 //
+// Two Playwright runs (2026-10-19): the desktop, phone and ahead projects,
+// four tests at a time; then the "serial" project (tests tagged @serial,
+// which change or read what the whole site shares), one at a time. Each run
+// gets the same arguments; naming a --project yourself runs just that.
+//
 // Needs the local stack (`npx supabase start`) and a Stripe TEST key for the
 // Lokl sandbox: NUXT_STRIPE_SECRET_KEY from the environment (CI's
 // stripe-sandbox secret), or else the website's .env. The tests check it's
@@ -42,13 +47,20 @@ const env = {
   // The website again, with a made-up Google Analytics id (journeys 33, 35).
   ANALYTICS_PORT: "3202",
 };
-const step = (cmd, cmdArgs) => spawnSync(cmd, cmdArgs, { cwd: root, env, stdio: "inherit" }).status ?? 1;
+const step = (cmd, cmdArgs, extraEnv = {}) => spawnSync(cmd, cmdArgs, { cwd: root, env: { ...env, ...extraEnv }, stdio: "inherit" }).status ?? 1;
 
 if (build && step("npm", ["run", "build:check"]) !== 0) process.exit(1);
 if (step(process.execPath, ["scripts/ci-start-apps.mjs"]) !== 0) process.exit(1);
 let status = 1;
+const playwright = (extra, extraEnv) => step("npx", ["playwright", "test", "--config", "e2e/playwright.config.ts", "--pass-with-no-tests", ...extra, ...playwrightArgs], extraEnv);
 try {
-  status = step("npx", ["playwright", "test", "--config", "e2e/playwright.config.ts", ...playwrightArgs]);
+  if (playwrightArgs.some((a) => a === "--project" || a.startsWith("--project="))) status = playwright([]);
+  else {
+    // Both runs always run, so a failure in the first still shows the second's results.
+    const sideBySide = playwright(["--project=desktop", "--project=phone", "--project=ahead"]);
+    const alone = playwright(["--project=serial"], { E2E_REPORT: "playwright-report/serial" });
+    status = sideBySide || alone;
+  }
 } finally {
   step(process.execPath, ["scripts/ci-start-apps.mjs", "--stop"]);
 }

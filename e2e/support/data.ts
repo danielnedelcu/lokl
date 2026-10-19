@@ -105,16 +105,18 @@ export class TestData {
   }
 
   /**
-   * A provider with payouts set up on the sandbox's connected test account,
-   * or, with `ownAccount`, on a made-up one of its own (an account belongs
-   * to one provider): for a journey with several providers that is never
-   * paid out.
+   * A provider with payouts set up, on a made-up Stripe account of its own
+   * (an account belongs to one provider, so tests running side by side
+   * can't share one; nothing but a payout uses it). With
+   * `connectedAccount`, on the sandbox's real connected test account
+   * instead, for a journey that pays the provider (only one at a time can
+   * hold it: tag that test @serial).
    */
-  async provider(owner: TestUser, name = `E2E Provider ${this.run}`, { ownAccount = false } = {}) {
+  async provider(owner: TestUser, name = `E2E Provider ${this.run}`, { connectedAccount = false } = {}) {
     const id = (await must(this.env.db.from("providers").insert({ owner_id: owner.id, display_name: name, city_id: this.cityId }).select("id").single())).id as string;
     this.providers.push(id);
     await must(this.env.db.from("providers").update({
-      stripe_account_id: ownAccount ? `acct_e2e_${randomBytes(6).toString("hex")}` : this.env.connectedAccount,
+      stripe_account_id: connectedAccount ? this.env.connectedAccount : `acct_e2e_${randomBytes(6).toString("hex")}`,
       stripe_charges_enabled: true, stripe_payouts_enabled: true,
     }).eq("id", id));
     return id;

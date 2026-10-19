@@ -36,7 +36,7 @@ test("every information page opens, with its facts filled in and its links worki
   }
 });
 
-test("the Fees page shows the commission rates from the database, and an admin's change at once", async ({ page, data }) => {
+test("the Fees page shows the commission rates from the database, and an admin's change at once", { tag: "@serial" }, async ({ page, data }) => {
   await page.goto("/fees");
   const table = page.getByRole("region", { name: "Table" });
   await expect(table.getByRole("row", { name: /Services 12%/ })).toBeVisible();

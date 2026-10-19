@@ -24,6 +24,7 @@
     "check:dates": "node scripts/check-dates.mjs",
     "check:rpc-json": "node scripts/check-rpc-json.mjs",
     "check:public-cache": "node scripts/check-public-cache.mjs",
+    "check:e2e-serial": "node scripts/check-e2e-serial.mjs",
     "build:secrets-check": "node scripts/build-secrets-check.mjs",
     "db:types": "node scripts/db-types.mjs",
     "db:types:check": "node scripts/db-types.mjs --check",

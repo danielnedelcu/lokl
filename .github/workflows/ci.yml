@@ -66,6 +66,8 @@ jobs:
         run: npm run check:booking-doc
       - name: Server utilities read the clock on purpose
         run: npm run check:clock
+      - name: Browser tests that change what the whole site shares run alone (@serial)
+        run: npm run check:e2e-serial
       - name: UI tests
         run: npm run test:ui
       - name: Email templates

@@ -51,7 +51,7 @@ test("an empty new guide is discarded on leaving; one with a title stays", async
   await page.waitForURL(/\/content\/[0-9a-f-]{36}$/);
   const keptId = page.url().split("/").pop()!;
   data.trackGuide(keptId);
-  await page.getByLabel("Title").fill(`E2E kept ${data.run}`);
+  await page.getByLabel("Title", { exact: true }).fill(`E2E kept ${data.run}`);
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "All guides" }).click();
   await expect(page).toHaveURL(/\/content$/);

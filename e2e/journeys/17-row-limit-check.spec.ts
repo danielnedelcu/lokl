@@ -7,7 +7,7 @@ import { expect, test } from "../support/fixtures";
 // quietly returning 1,000; the sitemap, which reads every listing a page at
 // a time on the server, still lists them all.
 
-test("a read cut off at 1,000 rows fails; paged reads don't", async ({ page, data }) => {
+test("a read cut off at 1,000 rows fails; paged reads don't", { tag: "@serial" }, async ({ page, data }) => {
   const owner = await data.user("owner");
   const provider = await data.provider(owner);
   const category = await data.category("experience");

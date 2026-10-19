@@ -63,7 +63,7 @@ function visibleItems(track: Locator) {
   });
 }
 
-test("desktop: arrows, ends, snapping, keyboard, screen readers, focus rings, reduced motion, trackpad", async ({ page, data }) => {
+test("desktop: arrows, ends, snapping, keyboard, screen readers, focus rings, reduced motion, trackpad", { tag: "@serial" }, async ({ page, data }) => {
   await twelveServices(data, { experiences: true });
   const { row, track, prev, next } = await servicesRow(page, data.run);
 
@@ -190,7 +190,7 @@ test("desktop: arrows, ends, snapping, keyboard, screen readers, focus rings, re
   await expect.poll(() => page.evaluate(() => window.scrollY), { message: "the page scrolled down" }).toBeGreaterThan(pageBefore + 100);
 });
 
-test("phone: the row runs to both screen edges, the first card on the page's margin, about 1.2 cards", async ({ page, data }) => {
+test("phone: the row runs to both screen edges, the first card on the page's margin, about 1.2 cards", { tag: "@serial" }, async ({ page, data }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await twelveServices(data);
   const { track, prev, next } = await servicesRow(page, data.run);

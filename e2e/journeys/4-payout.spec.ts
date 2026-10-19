@@ -7,11 +7,11 @@ import { ADMIN } from "../support/env";
 // (a real test transfer to the sandbox's connected account); the provider
 // and the admin both see it as paid out.
 
-test("a booking that has happened is paid out to the provider", async ({ page, context, data }) => {
+test("a booking that has happened is paid out to the provider", { tag: "@serial" }, async ({ page, context, data }) => {
   const customer = await data.user("customer");
   const owner = await data.user("owner");
   const admin = await data.user("admin", { admin: true });
-  const provider = await data.provider(owner);
+  const provider = await data.provider(owner, undefined, { connectedAccount: true });
   const category = await data.category("experience");
   const listing = await data.listing(provider, "experience", category.id, await data.area());
   const booking = await data.paidBooking(customer, await data.session(listing.id, daysFromNow(4)));

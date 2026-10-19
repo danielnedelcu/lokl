@@ -87,7 +87,7 @@ test("the provider's bell: a long list scrolls inside the panel, by wheel and by
   await checkList(page, page.getByRole("list", { name: LIST }), 20);
 });
 
-test("the admin's bell: the same panel, scrolling inside itself", async ({ context, data }) => {
+test("the admin's bell: the same panel, scrolling inside itself", { tag: "@serial" }, async ({ context, data }) => {
   const owner = await data.user("owner");
   const admin = await data.user("admin", { admin: true });
   const provider = await data.provider(owner, `Bell Studio ${data.run}`);

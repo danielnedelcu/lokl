@@ -8,7 +8,7 @@ import { expect, test } from "../support/fixtures";
 
 const cents = (money: string) => Math.round(Number(money.replace(/[$,]/g, "")) * 100);
 
-test("the dashboard's numbers match the bookings behind them", async ({ page, context, data }) => {
+test("the dashboard's numbers match the bookings behind them", { tag: "@serial" }, async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const customer = await data.user("customer");
   const owner = await data.user("owner");

@@ -200,6 +200,9 @@ test("the admin app signs in by code, and doesn't create accounts", async ({ pag
   await page.getByRole("button", { name: "Sign in" }).click();
   // The emailed code is the first step; the authenticator is the second.
   await expect(page).toHaveURL(/\/security\/verify/, { timeout: 20_000 });
+  // The page itself, not just its address: until it draws, the sign-in
+  // page's own code boxes are still there to type into.
+  await expect(page.getByRole("heading", { level: 1, name: "Second step" })).toBeVisible();
   await typeCode(page, page, await freshTotp(authenticatorKeys.get(admin.email)!));
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(new RegExp(`^${ADMIN}/?$`), { timeout: 20_000 });

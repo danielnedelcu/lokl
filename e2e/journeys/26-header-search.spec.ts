@@ -76,7 +76,8 @@ test("the bar: a named search form, each segment by keyboard, one shared panel, 
   await page.keyboard.press("Enter");
   await page.keyboard.press("Tab");
   const areaName = `E2E ${data.run}`;
-  for (let i = 0; i < 40 && (await focusedText(page)) !== areaName; i++) await page.keyboard.press("ArrowRight");
+  // Up to 200 presses: tests running side by side add Atlanta areas of their own.
+  for (let i = 0; i < 200 && (await focusedText(page)) !== areaName; i++) await page.keyboard.press("ArrowRight");
   expect(await focusedText(page)).toBe(areaName);
   await page.keyboard.press("Space");
   await expect(segment(page, "when"), "Where → When").toBeFocused();

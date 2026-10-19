@@ -9,7 +9,7 @@ import { expect, test } from "../support/fixtures";
 // counts closed disputes and refunds in full, and pages them 25 at a time
 // (apps/admin/app/utils/disputes.ts).
 
-test("open disputes are all listed; refunds are counted and paged", async ({ page, context, data }) => {
+test("open disputes are all listed; refunds are counted and paged", { tag: "@serial" }, async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const customer = await data.user("customer");
   const owner = await data.user("owner");

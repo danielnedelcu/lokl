@@ -7,7 +7,7 @@ import { expect, test } from "../support/fixtures";
 // batch is logged as "more waiting" in job_runs and shown to the admin, and
 // the next run takes the rest (server/utils/bookingJobs.ts).
 
-test("a full batch is logged as more waiting, and the next run clears it", async ({ page, context, data }) => {
+test("a full batch is logged as more waiting, and the next run clears it", { tag: "@serial" }, async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const customer = await data.user("customer");
   const owner = await data.user("owner");

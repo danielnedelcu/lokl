@@ -3,7 +3,7 @@
 // database and the Stripe sandbox runs one at a time.
 //
 // First, five lanes at once:
-//   static     typecheck, the source checks, the e2e types
+//   static     typecheck, the source checks, the e2e types and @serial tags
 //   database   db:test, db:types:check, check:public-cache, the realtime tests
 //   build      build:check (the build the tests below run)
 //   secrets    build:secrets-check (its own folders, .output-secrets)
@@ -66,6 +66,7 @@ const [, database, build] = await Promise.all([
     () => npm("check:logs", "check:logs"),
     () => npm("check:booking-doc", "check:booking-doc"),
     () => npm("check:clock", "check:clock"),
+    () => npm("check:e2e-serial", "check:e2e-serial"),
     () => step("tsc-e2e", "npx", ["tsc", "-p", "e2e"]),
   ]),
   lane([

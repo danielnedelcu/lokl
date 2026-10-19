@@ -221,7 +221,7 @@ test("with a report open on both sides, each reply appears on the other side wit
   await ctx.close();
 });
 
-test("the board: Safety first, \"Move to…\" by keyboard (announced, focus kept), dragging, search, the bell and the dashboard count", async ({ context, data }) => {
+test("the board: Safety first, \"Move to…\" by keyboard (announced, focus kept), dragging, search, the bell and the dashboard count", { tag: "@serial" }, async ({ context, data }) => {
   const owner = await data.user("owner");
   const admin = await data.user("admin", { admin: true });
   const provider = await data.provider(owner, `Board Studio ${data.run}`);

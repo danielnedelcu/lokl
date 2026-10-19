@@ -37,7 +37,7 @@ async function homepageWhen(page: Page, ready: (page: Page) => Promise<boolean>,
   }, { message: what, timeout: 5_000, intervals: [250, 500] }).toBe(true);
 }
 
-test("without a main guide, the homepage is as before and shows no guides", async ({ page, data }) => {
+test("without a main guide, the homepage is as before and shows no guides", { tag: "@serial" }, async ({ page, data }) => {
   const admin = await data.user("admin", { admin: true });
   const a = await data.publishedGuide("Westside walk", admin);
   const b = await data.publishedGuide("Eastside eats", admin);
@@ -52,7 +52,7 @@ test("without a main guide, the homepage is as before and shows no guides", asyn
   await expect(main.getByText("Westside walk")).toHaveCount(0);
 });
 
-test("the admin chooses a main guide and two more, and the homepage shows them in order", async ({ page, context, data }) => {
+test("the admin chooses a main guide and two more, and the homepage shows them in order", { tag: "@serial" }, async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const main = await data.publishedGuide("Old Fourth Ward murals", admin);
   const one = await data.publishedGuide("Westside walk", admin);
@@ -204,7 +204,7 @@ test("the admin chooses a main guide and two more, and the homepage shows them i
   expect(c1!.y + c1!.height, "the cards stack").toBeLessThanOrEqual(c2!.y);
 });
 
-test("the admin is told when the saved main guide's market is closed", async ({ page, context, data }) => {
+test("the admin is told when the saved main guide's market is closed", { tag: "@serial" }, async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const closedMarket = await data.market(`Closedville ${data.run}`);
   const main = await data.publishedGuide("Closedville stroll", admin, closedMarket);
@@ -216,7 +216,7 @@ test("the admin is told when the saved main guide's market is closed", async ({ 
   await expect(page.getByText("The main guide's market is closed, so visitors see no guides. Choose a guide from an open market.")).toBeVisible();
 });
 
-test("the admin is told when the main guide was unpublished", async ({ page, context, data }) => {
+test("the admin is told when the main guide was unpublished", { tag: "@serial" }, async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const card = await data.publishedGuide("Westside walk", admin);
   await data.setHomepage([card.id], { main: false });

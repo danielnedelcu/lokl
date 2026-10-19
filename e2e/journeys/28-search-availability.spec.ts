@@ -32,7 +32,7 @@ test("@zones a dated search: only Services free those days, soonest first, each 
   // alphabetically), one with no hours at all.
   const dated = async (label: string, title: string, starts: string, ends: string) => {
     const owner = await data.user(label);
-    const provider = await data.provider(owner, `E2E ${label} ${data.run}`, { ownAccount: true });
+    const provider = await data.provider(owner, `E2E ${label} ${data.run}`);
     if (starts) {
       const { error } = await data.env.db.from("provider_date_hours").insert({ provider_id: provider, on_date: d, starts, ends });
       if (error) throw new Error(error.message);
@@ -72,7 +72,7 @@ test("@zones a dated search: only Services free those days, soonest first, each 
 
 test("with no kind chosen, results open on All: Experiences then Services, the first 6 of each, See all for the rest", async ({ page, data }) => {
   const owner = await data.user("all");
-  const provider = await data.provider(owner, `E2E all ${data.run}`, { ownAccount: true });
+  const provider = await data.provider(owner, `E2E all ${data.run}`);
   await data.hours(provider);
   const area = await data.area();
   const cut = await data.category("service");
@@ -137,7 +137,7 @@ test("browsing without dates: a Service with no free time comes last, marked Not
   const provider = await data.provider(owner, `E2E open ${data.run}`);
   await data.hours(provider);
   const closedOwner = await data.user("shut");
-  const closedProvider = await data.provider(closedOwner, `E2E shut ${data.run}`, { ownAccount: true });
+  const closedProvider = await data.provider(closedOwner, `E2E shut ${data.run}`);
   const area = await data.area();
   const cut = await data.category("service");
   // The one with no hours is the newest, so it would otherwise come first.

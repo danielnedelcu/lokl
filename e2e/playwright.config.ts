@@ -10,20 +10,30 @@ import { installRedactingOutput } from "@repo/types";
 //   cookies are Secure, and WebKit refuses them on plain-http localhost.
 // - The browser runs in Los Angeles time on purpose: the pages must still
 //   show Atlanta times.
-// - One test at a time: the journeys share the Lokl sandbox and the local
-//   stack, and each is a few page loads long.
+// - Four tests at a time (2026-10-19; E2E_WORKERS to change it): each test
+//   makes its own users, providers (each with a made-up Stripe account of
+//   its own), listings, categories and areas, and finds them by name. A
+//   test that changes or reads something the whole site shares is tagged
+//   @serial and runs afterwards, alone (scripts/e2e.mjs runs the "serial"
+//   project second, with one worker): a timed job (it runs over every
+//   booking), the homepage's guides, the commission rates, Atlanta's
+//   carousels or exact counts, the admin bell (every report notifies every
+//   admin) or the admin's site-wide totals. scripts/check-e2e-serial.mjs
+//   fails on a test that runs a job, sets the homepage or changes the rates
+//   without the tag; the rest is up to whoever writes the test.
 // No key fragments in the test runner's output, its error reports included.
 installRedactingOutput();
 
 export default defineConfig({
   testDir: "./journeys",
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers: Number(process.env.E2E_WORKERS ?? 4),
   forbidOnly: !!process.env.CI,
   retries: 0,
   timeout: 90_000,
   expect: { timeout: 15_000 },
-  reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]] : [["list"]],
+  // The serial run's report goes in its own folder (E2E_REPORT, scripts/e2e.mjs).
+  reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: process.env.E2E_REPORT ?? "playwright-report" }]] : [["list"]],
   outputDir: "test-results",
   use: {
     baseURL: "http://localhost:3200",
@@ -33,10 +43,15 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"] }, grepInvert: /@serial/ },
     { name: "phone", use: { ...devices["Pixel 7"] }, grep: /@phone/ },
     // The time-zone journeys again, with the browser ahead of Atlanta, in a
     // zone whose clock changes fall in the opposite season.
     { name: "ahead", use: { ...devices["Desktop Chrome"], timezoneId: "Pacific/Auckland" }, grep: /@zones/ },
+    // Tests that change or read what the whole site shares: one at a time,
+    // after the others (scripts/e2e.mjs runs this project on its own).
+    // Its own results folder: each Playwright run clears the folders of the
+    // projects it runs, so the first run's failures are kept.
+    { name: "serial", use: { ...devices["Desktop Chrome"] }, grep: /@serial/, workers: 1, fullyParallel: false, outputDir: "test-results/serial" },
   ],
 });

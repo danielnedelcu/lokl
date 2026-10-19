@@ -57,7 +57,7 @@ test("a deleted user's expired session: the homepage loads, signed out", async (
   expect(errors, "no page errors").toEqual([]);
 });
 
-test("a signed-in provider whose listings are in the carousels: the homepage loads", async ({ page, context, data }) => {
+test("a signed-in provider whose listings are in the carousels: the homepage loads", { tag: "@serial" }, async ({ page, context, data }) => {
   const owner = await data.user("carousel-provider");
   const provider = await data.provider(owner, `E2E Own Listings ${data.run}`);
   const category = (await data.category("service")).id;
