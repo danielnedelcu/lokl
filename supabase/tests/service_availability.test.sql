@@ -264,11 +264,17 @@ select ok(not has_function_privilege('anon', 'public.service_slots_at(uuid,date,
       and not has_function_privilege('authenticated', 'public.service_slots_at(uuid,date,date,timestamptz)', 'EXECUTE')
       and has_function_privilege('service_role', 'public.service_slots_at(uuid,date,date,timestamptz)', 'EXECUTE'),
   '6a. service_slots_at(): only the server');
-update provider_schedules set min_notice_minutes = 1440, booking_window_days = 60 where provider_id = :'p';
+-- On the second provider, which has no hours or bookings of its own: the
+-- first one's hours for today and tomorrow, and its bookings five days
+-- ahead, would overlap the change days when the test runs near them
+-- (found 2026-10-19: on October 31 and November 1 the hours below were
+-- refused, and on October 27 a 9:00 booking held 6e's slot).
+insert into provider_schedules (provider_id, slot_interval_minutes, min_notice_minutes, booking_window_days)
+values (:'p2', 30, 1440, 60);
 -- Each change day: the night (00:00 to 05:00) and the day (9:00 to 17:00).
 insert into provider_date_hours (provider_id, on_date, starts, ends) values
-  (:'p', '2027-03-14', '00:00', '05:00'), (:'p', '2027-03-14', '09:00', '17:00'),
-  (:'p', '2026-11-01', '00:00', '04:00'), (:'p', '2026-11-01', '09:00', '17:00');
+  (:'p2', '2027-03-14', '00:00', '05:00'), (:'p2', '2027-03-14', '09:00', '17:00'),
+  (:'p2', '2026-11-01', '00:00', '04:00'), (:'p2', '2026-11-01', '09:00', '17:00');
 create function pg_temp.local_starts(p_listing uuid, p_day date, p_now timestamptz) returns text[] language sql stable as $$
   select array_agg(to_char(starts_at at time zone 'America/New_York', 'HH24:MI') order by starts_at)
     from public.service_slots_at(p_listing, p_day, p_day, p_now) $$;
@@ -276,31 +282,31 @@ grant execute on function pg_temp.local_starts(uuid, date, timestamptz) to servi
 select tests.authenticate_as_service_role();
 
 -- March 14, 2027: 2:00 to 3:00 doesn't happen.
-select ok('09:00' = any (pg_temp.local_starts(:'ls', '2027-03-14', '2027-03-12 12:00-05')),
+select ok('09:00' = any (pg_temp.local_starts(:'ls2', '2027-03-14', '2027-03-12 12:00-05')),
   '6b. March change day: hours from 9:00 still give a 9:00 AM slot');
-select is((pg_temp.local_starts(:'ls', '2027-03-14', '2027-03-12 12:00-05'))[1:7],
+select is((pg_temp.local_starts(:'ls2', '2027-03-14', '2027-03-12 12:00-05'))[1:7],
   array['00:00', '00:30', '01:00', '01:30', '03:00', '03:30', '04:00'],
   '6c. ...and the skipped hour gives no phantom slot: 1:30, then 3:00');
-select is((select count(*)::int from service_slots_at(:'ls', '2027-03-14', '2027-03-14', '2027-03-12 12:00-05')),
-  (select count(distinct starts_at)::int from service_slots_at(:'ls', '2027-03-14', '2027-03-14', '2027-03-12 12:00-05')),
+select is((select count(*)::int from service_slots_at(:'ls2', '2027-03-14', '2027-03-14', '2027-03-12 12:00-05')),
+  (select count(distinct starts_at)::int from service_slots_at(:'ls2', '2027-03-14', '2027-03-14', '2027-03-12 12:00-05')),
   '6d. ...each slot is a different moment');
 -- November 1, 2026: 1:00 to 2:00 happens twice.
-select ok('09:00' = any (pg_temp.local_starts(:'ls', '2026-11-01', '2026-10-30 12:00-04')),
+select ok('09:00' = any (pg_temp.local_starts(:'ls2', '2026-11-01', '2026-10-30 12:00-04')),
   '6e. November change day: hours from 9:00 still give a 9:00 AM slot');
-select is((pg_temp.local_starts(:'ls', '2026-11-01', '2026-10-30 12:00-04'))[1:7],
+select is((pg_temp.local_starts(:'ls2', '2026-11-01', '2026-10-30 12:00-04'))[1:7],
   array['00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00'],
   '6f. ...and the repeated hour offers each time once: 1:00 and 1:30 once each');
-select is((select count(*)::int from service_slots_at(:'ls', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')),
-  (select count(distinct starts_at)::int from service_slots_at(:'ls', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')),
+select is((select count(*)::int from service_slots_at(:'ls2', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')),
+  (select count(distinct starts_at)::int from service_slots_at(:'ls2', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')),
   '6g. ...each slot is a different moment');
 -- Which 1:00 is offered: the first, still daylight time (EDT, UTC-4), as
 -- the design says (docs/design/service-availability.md); never the repeated
 -- one in standard time (EST, UTC-5).
-select is((select array_agg(starts_at order by starts_at) from service_slots_at(:'ls', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')
+select is((select array_agg(starts_at order by starts_at) from service_slots_at(:'ls2', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')
             where starts_at in ('2026-11-01 01:00-04', '2026-11-01 01:00-05', '2026-11-01 01:30-04', '2026-11-01 01:30-05')),
   array['2026-11-01 01:00-04', '2026-11-01 01:30-04']::timestamptz[],
   '6h. the repeated hour''s 1:00 and 1:30 are the first ones (EDT), not the repeated ones (EST)');
-select ok(not exists (select 1 from service_slots_at(:'ls', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')
+select ok(not exists (select 1 from service_slots_at(:'ls2', '2026-11-01', '2026-11-01', '2026-10-30 12:00-04')
             where starts_at >= '2026-11-01 01:00-05' and starts_at < '2026-11-01 02:00-05'),
   '6i. ...and no slot starts in the repeated (EST) hour');
 

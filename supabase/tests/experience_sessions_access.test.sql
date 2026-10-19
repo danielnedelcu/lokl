@@ -29,10 +29,14 @@ insert into listings (provider_id, kind, category_id, city_id, title, descriptio
 values (:'pa', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w', 'approve', 60)
 returning id as ls \gset
 
--- Times used below.
-select (date_trunc('hour', now()) + interval '7 days')::text as t1 \gset
-select (date_trunc('hour', now()) + interval '8 days')::text as t2 \gset
-select (date_trunc('hour', now()) + interval '9 days')::text as t3 \gset
+-- Times used below: noon in Atlanta, 7, 8 and 9 days ahead. A fixed time
+-- of day that never repeats: a time in November's repeated hour gets
+-- "EDT" or "EST" in its clash message (session_time_label), so the hour
+-- the test ran at mustn't decide it (found 2026-10-19: it would have
+-- failed at 1 to 3 AM a week before each fall-back).
+select ((((now() at time zone 'America/New_York')::date + 7) + time '12:00') at time zone 'America/New_York')::text as t1 \gset
+select ((((now() at time zone 'America/New_York')::date + 8) + time '12:00') at time zone 'America/New_York')::text as t2 \gset
+select ((((now() at time zone 'America/New_York')::date + 9) + time '12:00') at time zone 'America/New_York')::text as t3 \gset
 
 -- Sessions made by the runner: one of A's that already happened, and a
 -- future and a past one on B's listing.

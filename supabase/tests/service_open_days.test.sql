@@ -279,9 +279,12 @@ select is(public_browse('atlanta', 'service', 'open-cuts') -> 'closed', jsonb_bu
 -- out: the earliest stored start at or after now plus the notice (found
 -- 2026-10-18: it gave "now plus the notice", not a time anyone could book,
 -- so search could put B ahead of a Service free sooner).
+-- The earlier start is at most now, so it has always passed: late in the
+-- evening B's first time is tomorrow's, and half an hour before it was
+-- still to come (found 2026-10-19, failing from about 10 PM in Atlanta).
 select tests.clear_authentication();
 select first_day as b_day, first_at as b_first from service_open_matches(array[:'s2']::uuid[], :'today'::date, :'today'::date + 1) \gset
-update service_open_days set first_at = first_at - interval '30 minutes', starts = array[first_at - interval '30 minutes'] || starts
+update service_open_days set first_at = least(first_at - interval '30 minutes', now()), starts = array[least(first_at - interval '30 minutes', now())] || starts
  where listing_id = :'s2' and on_date = :'b_day';
 select tests.authenticate_as_anon();
 select is((select first_at from service_open_matches(array[:'s2']::uuid[], :'today'::date, :'today'::date + 1)),
