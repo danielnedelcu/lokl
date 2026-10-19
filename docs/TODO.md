@@ -520,6 +520,15 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   and are checked at every hour. Not planned for now (decided 2026-10-19).
   - Journeys 27 and 28, `booking-emails` and `booking-checkout` couldn't be
     made to fail by the clock; left as they are.
+- [ ] **Pages no browser journey opens yet** (found 2026-10-19 by recording
+  which pages a full run reaches; `check:journey-pages` lists them with
+  their reasons and fails on any new one): the website's guide page
+  (`/[market]/guides/[slug]`), `/dashboard/services` and `/help/customers`;
+  the admin app's categories, markets and areas, the sign-in link's
+  `/confirm`, a guide's preview, a listing's page, the Services and
+  Experiences lists, settings and users. Add journeys for those worth it
+  (the guide page and the admin's listing pages first) and take each off
+  the list as it gains one.
 - [ ] Run the end-to-end tests in WebKit (Safari's engine) too, against the
   staging site: it needs HTTPS. Production cookies are Secure, and WebKit
   refuses Secure cookies on plain-http localhost (Chromium accepts them), so

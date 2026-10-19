@@ -47,6 +47,7 @@ test("a provider reports a Safety problem by keyboard, and lokl's reply appears 
   await page.goto("/dashboard/help");
   await expect(page.getByText("You haven't reported any problems.")).toBeVisible();
   await page.getByRole("link", { name: "Report a problem" }).click();
+  await expect(page).toHaveURL(/\/dashboard\/help\/new$/);
   await expect(page.getByRole("heading", { name: "Report a problem", level: 1 })).toBeVisible();
   // The 911 line, always, before anything is chosen (a notice with its own
   // heading; not role="alert", which would interrupt on arrival).

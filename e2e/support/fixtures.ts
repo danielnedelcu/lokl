@@ -1,3 +1,4 @@
+import { appendFileSync } from "node:fs";
 import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
 import { TestData } from "./data";
 
@@ -7,7 +8,21 @@ import { TestData } from "./data";
 // straight after loading sometimes landed on server-rendered HTML and was
 // lost. Other sites (Stripe's stub, the analytics server) aren't waited for.
 const APP = /^http:\/\/localhost:32(00|01|02)\//;
+// E2E_RECORD_VISITS=<file>: each page an app lands on is noted there with
+// its journey (scripts/journey-map.mjs's map, checked against real runs).
+let currentJourney = "";
+export const recordingJourney = (file: string) => { currentJourney = file; };
+function recordsVisits(page: Page) {
+  const to = process.env.E2E_RECORD_VISITS;
+  if (!to) return;
+  page.on("framenavigated", (frame) => {
+    if (frame !== page.mainFrame() || !APP.test(frame.url())) return;
+    const u = new URL(frame.url());
+    appendFileSync(to, `${currentJourney}\t${u.port === "3201" ? "admin" : "website"}\t${u.pathname}\n`);
+  });
+}
 function waitsForHydration(page: Page) {
+  recordsVisits(page);
   const ready = async () => {
     if (APP.test(page.url())) await page.locator("html[data-hydrated]").waitFor({ state: "attached", timeout: 30_000 });
   };
@@ -42,7 +57,8 @@ export const test = base.extend<{ data: TestData }>({
     };
     await use(browser);
   }, { scope: "worker" }],
-  context: async ({ context }, use) => {
+  context: async ({ context }, use, testInfo) => {
+    recordingJourney(testInfo.file.replace(/^.*\/e2e\//, "e2e/"));
     contextWaitsForHydration(context);
     await use(context);
   },

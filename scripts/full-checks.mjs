@@ -75,6 +75,7 @@ const [, , database, build] = await Promise.all([
     () => npm("check:booking-doc", "check:booking-doc"),
     () => npm("check:clock", "check:clock"),
     () => npm("check:e2e-serial", "check:e2e-serial"),
+    () => npm("check:journey-pages", "check:journey-pages"),
     () => step("tsc-e2e", "npx", ["tsc", "-p", "e2e"]),
   ]),
   lane([
@@ -99,7 +100,11 @@ if (database && build) {
   if (appsUp) await step("db:test:app", "npm", ["run", "db:test:app"], ports);
   else skipped("db:test:app");
   await step("app tests: stop apps", process.execPath, ["scripts/ci-start-apps.mjs", "--stop"], ports);
-  await npm("test:e2e", "test:e2e", "--no-build");
+  // Each page the journeys land on is noted for check:quick (scripts/quick-checks.mjs).
+  const visits = path.join(root, "node_modules/.cache/lokl/journey-visits.tsv");
+  fs.mkdirSync(path.dirname(visits), { recursive: true });
+  fs.writeFileSync(visits, "");
+  await step("test:e2e", "npm", ["run", "test:e2e", "--", "--no-build"], { E2E_RECORD_VISITS: visits });
 } else {
   skipped("db:test:app");
   skipped("test:e2e");

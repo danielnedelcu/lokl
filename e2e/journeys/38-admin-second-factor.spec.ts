@@ -197,6 +197,7 @@ test("when the access check itself fails, it says so and offers to try again", a
   // The database answers the access check with an error (not "no role").
   await page.route("**/rest/v1/rpc/admin_role", (route) => route.fulfill({ status: 503, contentType: "application/json", body: '{"message":"unavailable"}' }));
   await page.goto(`${ADMIN}/bookings`);
+  await expect(page).toHaveURL(/\/access-check\?to=/);
   await expect(page.getByRole("heading", { level: 1, name: "We couldn't check your access" })).toBeVisible();
   await expect(page.getByText("That account doesn't have admin access")).toHaveCount(0);
   await expectNoAdminFrame(page);

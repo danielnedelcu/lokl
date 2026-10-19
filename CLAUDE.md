@@ -39,6 +39,7 @@ npm run dev                   # both apps
 npm run dev -w website        # localhost:3100
 npm run dev -w admin          # localhost:3101
 npm run check:full            # every check, as before each push, timed (side by side where nothing is shared; logs in the temp folder)
+npm run check:quick           # while working: only the checks the changes since origin/main need (-- --dry-run to see the plan); never instead of check:full
 npm run build:check           # check both apps build (own folders; safe beside npm run dev)
 npm run typecheck             # vue-tsc on both apps; must pass before committing
 npm run job -- <name>         # run one timed booking job against localhost:3100
@@ -55,6 +56,7 @@ npm run check:dates           # fails on a date or time that would follow the de
 npm run check:rpc-json        # fails on a database function's JSON read without its schema (rpcJson)
 npm run check:public-cache    # fails on a table behind a cached public route that raises no content version and isn't on the 60-second list (after db:test)
 npm run check:e2e-serial      # fails on a browser test that runs a timed job, sets the homepage or changes commission rates without the @serial tag
+npm run check:journey-pages   # fails on a page no browser journey names (listed exceptions have reasons; the list only shrinks)
 npm run check:logs            # fails on a server log that prints an error as it is (use errorText)
 npm run check:booking-doc     # fails if the booking document's guard links miss the newest bookings_guard migration
 npm run check:clock           # fails on a clock read in server utilities that's neither a `now` parameter nor `// real time: <why>`
