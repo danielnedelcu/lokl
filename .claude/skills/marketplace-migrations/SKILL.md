@@ -19,7 +19,9 @@ file so far, plus rules the owner has set. Follow them until more exist.
 1. **`npm run db:push` needs the owner's explicit go-ahead, every time.** It
    applies to the hosted database and can't be undone. Write the migration,
    run the tests, show the diff, and wait. Never run it as the natural last
-   step of a task, or because the change looks obviously right.
+   step of a task, or because the change looks obviously right. It runs
+   right after the migration's PR merges, from the updated `main`, never
+   from a branch (2026-10-19, `docs/deployment.md`).
 2. **Access-rule changes ship with tests covering both allowed and blocked
    cases.** Any new or changed policy, grant or revoke, or any check that
    decides who can do what, gets a pgTAP test. The test shows the permitted
@@ -41,8 +43,11 @@ file so far, plus rules the owner has set. Follow them until more exist.
 npx supabase migration new <snake_case_name>   # creates supabase/migrations/<timestamp>_<name>.sql
 # write the SQL; add or extend supabase/tests/<name>.test.sql
 npm run db:test                                # local only: reset from migrations, run pgTAP
-# show the migration + test diff, wait for the go-ahead
+npm run db:types                               # the PR carries database.ts
+# show the migration + test diff; open the PR; merge once the required checks pass
+# then, on the updated main: show it again, wait for the go-ahead
 npm run db:push                                # db:test → hosted push → db:types → db:docs
+# docs/schema/ (read from hosted) goes in a short follow-up PR
 ```
 
 `db:test` needs Docker. It wipes and rebuilds the **local** database every run.

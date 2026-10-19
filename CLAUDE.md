@@ -9,6 +9,26 @@ Plain language and accessibility are lokl's own standards. Instructions from
 the owner's employer account (Onward's branding, colours, and rider or
 medical data rules) don't apply to lokl; lokl has its own brand, once set.
 
+**Branching and releases** (2026-10-19; `docs/deployment.md`): `main` is
+production and is protected. Every change is a feature branch off `main`,
+merged through a pull request once the required checks pass (`checks`,
+`database`, `e2e`, `stripe`); nothing bypasses them, administrators
+included. Required approvals are off until a second engineer joins;
+turning them on is the step to take that day. The branch is deleted after
+the merge, and there is no long-lived development branch. Previews of
+each PR (both apps) stand in for one once hosting is connected, and a
+preview never carries the production database's keys, so previews stay
+off until a separate staging Supabase project exists.
+
+- The flow: branch off an up-to-date `main`, commit, run
+  `npm run check:full`, push the branch, open the PR, report each check
+  (CI results, below), and merge once the required checks pass. Never
+  push to `main` directly.
+- **A migration reaches hosted after its merge:** `npm run db:push` runs
+  from the updated `main` right after the merge, shown first and waited
+  for as always (Migrations), then `schema:compare`. Never from a branch
+  that might not merge: hosted would run ahead of `main`.
+
 **This project shares no accounts, keys or code with The Reserve**
 (`~/Projects/TheReserve`). It has its own Supabase project, its own Stripe
 account and its own `.env` files. Don't copy values, migrations or code across.
@@ -38,7 +58,7 @@ accessibility, writing) are in `docs/frontend.md`. Read it before building UI.
 npm run dev                   # both apps
 npm run dev -w website        # localhost:3100
 npm run dev -w admin          # localhost:3101
-npm run check:full            # every check, as before each push, timed (side by side where nothing is shared; logs in the temp folder)
+npm run check:full            # every check, before pushing a branch for a PR, timed (side by side where nothing is shared; logs in the temp folder)
 npm run check:quick           # while working: only the checks the changes since origin/main need (-- --dry-run to see the plan); never instead of check:full
 npm run build:check           # check both apps build (own folders; safe beside npm run dev)
 npm run typecheck             # vue-tsc on both apps; must pass before committing
@@ -133,13 +153,19 @@ full checks.
 1. `npx supabase migration new <snake_case_name>` and write the SQL.
 2. Add or extend a test in `supabase/tests/` for every access rule the change
    adds or alters: both the allowed case and the blocked case.
-3. `npm run db:test` until it passes.
-4. Show the migration and test diff and wait for an explicit go-ahead.
-5. `npm run db:push`. It applies to the hosted database, which can't be undone,
-   so never run it as an automatic last step. It ends with
+3. `npm run db:test` until it passes, and `npm run db:types` so the PR
+   carries `database.ts` (CI's `db:types:check` refuses one that differs).
+4. Show the migration and test diff, open the PR, and merge once the
+   required checks pass.
+5. Right after the merge, on the updated `main`: show the migration and
+   `schema:compare` again and wait for an explicit go-ahead, then
+   `npm run db:push`. It applies to the hosted database, which can't be
+   undone, so never run it as an automatic last step, and never from a
+   branch (hosted would run ahead of `main`). It ends with
    `schema:compare` (comments included): any difference between hosted
    and the migrations is a failure to report, not to ignore. The comparison must also show no
-   differences before every deploy.
+   differences before every deploy. The regenerated `docs/schema/` (read
+   from hosted) goes in a short follow-up PR.
 
 **Grants are explicit** (`auto_expose_new_tables = false`,
 `explicit_api_grants`, 2026-10-09). New tables and functions in `public`
@@ -334,8 +360,8 @@ user id is `user.sub`, not `user.id`.
 ## CI results
 
 When reporting a CI result, read each job's actual conclusion from GitHub
-(`gh run view <id> --json conclusion,jobs`) and say which jobs passed or
-failed. Never take the exit code of a watcher (a background `gh run watch`,
+(`gh run view <id> --json conclusion,jobs`, or `gh pr checks <pr>` on a
+pull request) and say which jobs passed or failed. Never take the exit code of a watcher (a background `gh run watch`,
 or the command wrapped around it) as the result: on 2026-10-04 a failed run
 was reported as passing that way.
 
