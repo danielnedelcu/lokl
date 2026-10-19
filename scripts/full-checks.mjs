@@ -2,8 +2,9 @@
 // timed. What shares nothing runs side by side; what shares the local
 // database and the Stripe sandbox runs one at a time.
 //
-// First, five lanes at once:
-//   static     typecheck, the source checks, the e2e types and @serial tags
+// First, six lanes at once (typecheck and the builds once db:test is done):
+//   typecheck  typecheck
+//   static     the source checks, the e2e types and @serial tags
 //   database   db:test, db:types:check, check:public-cache, the realtime tests
 //   build      build:check (the build the tests below run)
 //   secrets    build:secrets-check (its own folders, .output-secrets)
@@ -57,9 +58,16 @@ const skipped = (name) => {
 
 const begun = Date.now(); // real time: the run's own length
 console.log(`Logs: ${logs}`);
-const [, database, build] = await Promise.all([
+// The builds and typecheck start only once db:test has rebuilt the local
+// database (2026-10-19): beside them, its reset sometimes failed ("error
+// running container") as Postgres's own workers reconnected mid-rebuild.
+let resetDone = () => {};
+const afterReset = new Promise((r) => { resetDone = r; });
+const [, , database, build] = await Promise.all([
   lane([
-    () => npm("typecheck", "typecheck"),
+    () => afterReset.then(() => npm("typecheck", "typecheck")),
+  ]),
+  lane([
     () => npm("check:reads", "check:reads"),
     () => npm("check:dates", "check:dates"),
     () => npm("check:rpc-json", "check:rpc-json"),
@@ -70,13 +78,13 @@ const [, database, build] = await Promise.all([
     () => step("tsc-e2e", "npx", ["tsc", "-p", "e2e"]),
   ]),
   lane([
-    () => npm("db:test", "db:test"),
+    () => npm("db:test", "db:test").finally(() => resetDone()),
     () => npm("db:types:check", "db:types:check"),
     () => npm("check:public-cache", "check:public-cache"),
     () => npm("db:test:realtime", "db:test:realtime"),
   ]),
-  lane([() => npm("build:check", "build:check")]),
-  lane([() => npm("build:secrets-check", "build:secrets-check")]),
+  lane([() => afterReset.then(() => npm("build:check", "build:check"))]),
+  lane([() => afterReset.then(() => npm("build:secrets-check", "build:secrets-check"))]),
   lane([
     () => npm("test:ui", "test:ui"),
     () => npm("test:emails", "test:emails"),

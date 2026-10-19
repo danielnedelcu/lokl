@@ -99,7 +99,7 @@ jobs:
       - name: Hosted's service versions
         run: node scripts/service-versions.mjs
       - name: Start the local Supabase stack
-        run: supabase start -x "$SUPABASE_EXCLUDE"
+        run: bash scripts/ci-supabase-start.sh
       - name: Database tests (pgTAP)
         run: npm run db:test
       - name: database.ts matches the migrations
@@ -165,7 +165,7 @@ jobs:
         run: node scripts/service-versions.mjs
       - name: Start the local Supabase stack
         if: steps.key.outputs.run == 'true'
-        run: supabase start -x "$SUPABASE_EXCLUDE"
+        run: bash scripts/ci-supabase-start.sh
       - name: Stripe tests (Lokl sandbox)
         if: steps.key.outputs.run == 'true'
         env:
@@ -239,7 +239,7 @@ jobs:
         run: node scripts/service-versions.mjs
       - name: Start the local Supabase stack
         if: steps.key.outputs.run == 'true'
-        run: supabase start -x "$SUPABASE_EXCLUDE"
+        run: bash scripts/ci-supabase-start.sh
       - name: End-to-end tests
         if: steps.key.outputs.run == 'true'
         env:
