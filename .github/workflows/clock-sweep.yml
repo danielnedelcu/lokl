@@ -8,12 +8,11 @@
 # one. A failure shows in the Actions tab like any run; read each job's
 # conclusion there (CLAUDE.md, "CI results").
 #
-# CI's stripe and e2e jobs share the Stripe test account with this sweep,
-# and runs that overlapped have clashed (docs/TODO.md). This workflow can't
-# join CI's concurrency group without risking cancelling a push's queued
-# job, so just before its end-to-end journeys (its only Stripe step) it
-# looks for a CI run that's queued or in progress, and skips the journeys
-# if there is one, saying so in the run's summary and as a warning.
+# It runs side by side with CI, which shares the Stripe test sandbox: each
+# run has its own local stack, and test providers have made-up Stripe
+# accounts of their own (2026-10-19). Until then it skipped its journeys
+# while a CI run was busy, after one Stripe account clashed inside a
+# single database.
 #
 # GitHub's schedule is in UTC and often starts late, so each time is asked
 # for about 15 minutes early, once for Atlanta's daylight time (UTC-4) and
@@ -44,8 +43,6 @@ concurrency:
 
 permissions:
   contents: read
-  # To see whether a CI run is using the Stripe sandbox (below).
-  actions: read
 
 env:
   SUPABASE_CLI_VERSION: 2.120.0
@@ -99,32 +96,8 @@ jobs:
       - name: Install Chromium for Playwright
         if: steps.key.outputs.run == 'true'
         run: npx playwright install --with-deps chromium
-      - name: Is a CI run using the Stripe test account?
-        id: ci
-        if: steps.key.outputs.run == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          busy=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --limit 50 --json databaseId,status,url \
-            --jq '[.[] | select(.status != "completed")] | map("\(.databaseId) (\(.status)): \(.url)") | join("\n")')
-          if [ -n "$busy" ]; then
-            echo "clear=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=End-to-end journeys skipped::A CI run is queued or in progress, and the two share the Stripe test account."
-            {
-              echo "## End-to-end journeys skipped"
-              echo
-              echo "A CI run was queued or in progress when this sweep reached its end-to-end journeys, and the two share the Stripe test account (overlapping runs have clashed), so the journeys didn't run this time. Everything before them did."
-              echo
-              echo "CI runs that weren't finished:"
-              echo
-              echo "$busy" | sed 's/^/- /'
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "clear=true" >> "$GITHUB_OUTPUT"
-            echo "No CI run queued or in progress: the end-to-end journeys run." >> "$GITHUB_STEP_SUMMARY"
-          fi
       - name: End-to-end journeys that have depended on the time, now
-        if: steps.key.outputs.run == 'true' && steps.ci.outputs.clear == 'true'
+        if: steps.key.outputs.run == 'true'
         env:
           NUXT_STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
         run: >-
@@ -138,7 +111,7 @@ jobs:
         if: always()
         run: TZ=America/New_York date "+Ended at %a %Y-%m-%d %H:%M %Z in Atlanta"
       - name: Keep the traces of a failure
-        if: failure() && steps.key.outputs.run == 'true' && steps.ci.outputs.clear == 'true'
+        if: failure() && steps.key.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: clock-sweep-results

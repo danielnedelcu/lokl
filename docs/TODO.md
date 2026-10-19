@@ -478,7 +478,12 @@ Lokl Stripe sandbox. Test there first what needs a real address:
   content versions that make changes show at once (`publicCache.ts`).
   Revisit with the host: keep it so, or let the edge cache with a purge
   on each version change, and check the staging site's headers either way.
-- [ ] Switch to branches and pull requests, with `checks` and `database` required to merge.
+- [x] Switch to branches and pull requests (done 2026-10-19,
+  `docs/deployment.md`): feature branches off `main` through pull requests,
+  with `checks`, `database`, `e2e` and `stripe` required to merge.
+  - [ ] (owner) Set `main`'s branch protection in GitHub and add
+    `refs/pull/*/merge` to the `stripe-sandbox` environment's deployment
+    branches (docs/deployment.md, Owner's settings in GitHub).
 - [x] **CI doesn't run hosted's service versions** (found 2026-10-16; done
   2026-10-17: `supabase/service-versions.json`, see CLAUDE.md). CI
   runs PostgREST 16.4 and Postgres 17.11.0.004, the CLI's defaults

@@ -7,15 +7,24 @@
 #             don't need Stripe, then the Realtime tests. No secrets: the
 #             local stack's keys are the CLI's fixed local ones, read at run
 #             time and never stored.
-# - stripe:   the Stripe tests, only when the `stripe-sandbox` environment has
-#             STRIPE_SANDBOX_SECRET_KEY: a restricted test key for the Lokl
+# - stripe:   the Stripe tests, with STRIPE_SANDBOX_SECRET_KEY from the
+#             `stripe-sandbox` environment: a restricted test key for the Lokl
 #             sandbox (acct_1UKIdIEfG7OyQ6pv). Never a live key; the tests also
-#             refuse any key that isn't test-mode for that account.
-# - e2e:      the Playwright journeys (e2e/), with the same key and the same
-#             conditions: both apps built and started on 3200/3201 against a
-#             local stack, Chromium only, in three shards side by side
-#             (each with its own stack). Traces and screenshots of a failure
-#             are kept for a week (test users and data only).
+#             refuse any key that isn't test-mode for that account. The
+#             environment allows main and this repository's pull requests
+#             (refs/pull/*/merge); a missing key fails the job. A fork's pull
+#             request skips it and never gets the secret.
+# - e2e (1/3), (2/3), (3/3): the Playwright journeys (e2e/), with the same
+#             key and the same conditions: both apps built and started on
+#             3200/3201 against a local stack, Chromium only, in three shards
+#             side by side (each with its own stack). Traces and screenshots
+#             of a failure are kept for a week: public, as the repository is,
+#             and checked to hold test data only (docs/deployment.md).
+# - e2e:      waits for the three shards and passes only if all of them did:
+#             the one name branch protection requires, however many shards.
+#
+# Required to merge into main (docs/deployment.md): checks, database, e2e,
+# stripe.
 #
 # No real keys live in this repository. Nothing here talks to the hosted
 # Supabase project, Resend or Anthropic.
@@ -140,10 +149,12 @@ jobs:
         env:
           KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
         run: |
+          # A required check mustn't pass having tested nothing: on a push or
+          # this repository's pull request a missing key fails the job (a
+          # fork's pull request never gets here: the job's `if` skips it).
           if [ -z "$KEY" ]; then
-            echo "::notice::No STRIPE_SANDBOX_SECRET_KEY in the stripe-sandbox environment: the Stripe tests are skipped."
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::No STRIPE_SANDBOX_SECRET_KEY in the stripe-sandbox environment: the Stripe tests can't run. Check the environment's secret and its deployment branch rules (main and refs/pull/*/merge; docs/deployment.md)."
+            exit 1
           fi
           case "$KEY" in
             rk_test_*|sk_test_*) echo "run=true" >> "$GITHUB_OUTPUT" ;;
@@ -197,10 +208,10 @@ jobs:
         env:
           KEY: ${{ secrets.STRIPE_SANDBOX_SECRET_KEY }}
         run: |
+          # As in the stripe job: a missing key fails, never skips.
           if [ -z "$KEY" ]; then
-            echo "::notice::No STRIPE_SANDBOX_SECRET_KEY in the stripe-sandbox environment: the end-to-end tests are skipped."
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::No STRIPE_SANDBOX_SECRET_KEY in the stripe-sandbox environment: the end-to-end tests can't run. Check the environment's secret and its deployment branch rules (main and refs/pull/*/merge; docs/deployment.md)."
+            exit 1
           fi
           case "$KEY" in
             rk_test_*|sk_test_*) echo "run=true" >> "$GITHUB_OUTPUT" ;;
@@ -265,3 +276,22 @@ jobs:
             tail -n 200 "apps/$app/.output-check/server.log" 2>/dev/null || echo "No log."
             echo "::endgroup::"
           done
+
+  # The one e2e check branch protection requires: passes only if every shard
+  # passed (a skipped shard, as on a fork's pull request, doesn't pass).
+  e2e-all:
+    name: e2e
+    needs: e2e
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every shard passed
+        env:
+          RESULT: ${{ needs.e2e.result }}
+        run: |
+          if [ "$RESULT" != "success" ]; then
+            echo "::error::The end-to-end shards' result: $RESULT."
+            exit 1
+          fi
+          echo "All three end-to-end shards passed."
