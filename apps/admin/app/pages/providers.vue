@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AdminProviderRow, PayoutSetup, ProviderStatus } from "@repo/types";
+import { rpcJson, type AdminProviderRow, type PayoutSetup, type ProviderStatus } from "@repo/types";
 
 useHead({ title: "Providers · Admin" });
 
@@ -41,7 +41,7 @@ const f = computed(() => table.query.value.filters);
 
 const columns = [
   { accessorKey: "display_name", header: "Name", meta: { sortKey: "name" } },
-  { accessorKey: "owner_email", header: "Owner email" },
+  { id: "owner_email", header: "Owner email" },
   { id: "city", header: "City", meta: { sortKey: "city" } },
   { id: "payouts", header: "Payouts", meta: { sortKey: "payouts" } },
   { accessorKey: "status", header: "Status", meta: { sortKey: "status" } },
@@ -95,6 +95,20 @@ async function confirmStatus(reason: string, message: string) {
     busy.value = false;
     await table.refresh();
   }
+}
+// An owner's email: shown on request and recorded (admin_provider_contact;
+// admin roles, step 5c), counting toward support's daily contact views.
+const emails = reactive<Record<string, string>>({});
+const showingEmail = ref<string | null>(null);
+async function showEmail(id: string) {
+  showingEmail.value = id;
+  const { data, error } = await supabase.rpc("admin_provider_contact", { p_provider_id: id });
+  showingEmail.value = null;
+  if (error) {
+    useSonner.error(error.message);
+    return;
+  }
+  emails[id] = rpcJson("admin_provider_contact", data).email ?? "No email on file";
 }
 const notReadyLabel = "Can't be paid yet";
 // Their public profile, and removing content that breaks the profile rules.
@@ -170,7 +184,11 @@ const paidSinceLabel = computed(() =>
           <span class="font-medium">{{ row.original.display_name }}</span>
         </template>
         <template #owner_email-cell="{ row }">
-          <span class="text-muted-foreground">{{ row.original.owner_email }}</span>
+          <span v-if="emails[row.original.id]" class="text-muted-foreground break-all">{{ emails[row.original.id] }}</span>
+          <UiButton v-else size="sm" variant="ghost" :disabled="showingEmail === row.original.id"
+            :aria-label="`Show the owner's email for ${row.original.display_name}`" @click="showEmail(row.original.id)">
+            Show email
+          </UiButton>
         </template>
         <template #city-cell="{ row }">
           <span class="text-muted-foreground">{{ row.original.city ? `${row.original.city.name}, ${row.original.city.state}` : "—" }}</span>

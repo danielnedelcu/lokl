@@ -104,7 +104,7 @@ export function supportRefusalText(message: string, supportEmail?: string | null
 }
 
 /** The admin bell's kinds: problem reports, team changes (adminTeamChangeText, for owners), and support's requests (adminRequestNewText, adminRequestDecidedText). */
-export type AdminNotificationKind = "support_new" | "support_safety" | "support_reply" | "team_change" | "request_new" | "request_decided";
+export type AdminNotificationKind = "support_new" | "support_safety" | "support_reply" | "team_change" | "request_new" | "request_decided" | "limit_reached" | "support_refund";
 
 /** An admin bell item in words: "Urgent: a safety report from Fresh Cuts Studio." */
 export function adminNotificationText(kind: "support_new" | "support_safety" | "support_reply", businessName: string, category: SupportCategory): string {

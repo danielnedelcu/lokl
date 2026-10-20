@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
-  adminNotificationText, adminRequestDecidedText, adminRequestNewText, adminTeamChangeText, bellLabel,
-  type AdminNotificationKind, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type SupportCategory,
+  adminLimitReachedText, adminNotificationText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
+  type AdminLimitName, type AdminNotificationKind, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type SupportCategory,
 } from "@repo/types";
 import type { AdminNotificationRow } from "@repo/ui/app/utils/notificationFeed";
 
@@ -21,7 +21,10 @@ interface Item {
   created_at: string;
   read_at: string | null;
   report: { category: SupportCategory; provider: { display_name: string } | null } | null;
-  action: { admin_id: string; target_id: string; action: AdminTeamAction; message: string | null } | null;
+  action: {
+    admin_id: string; target_id: string; action: AdminTeamAction | "limit_reached" | "cancel_booking" | "resolve_problem_refunded"; message: string | null;
+    amount_cents: number | null;
+  } | null;
   request: {
     kind: AdminRequestKind; status: AdminRequestStatus; resolve_problem: boolean; amount_cents: number | null; requested_by: string;
     booking: { listing: { title: string } | null; provider: { display_name: string } | null } | null;
@@ -36,10 +39,20 @@ const open = ref(false);
 
 // Team members' emails, for team changes and requests (admin_member_names).
 const emails = ref(new Map<string, string>());
+const refundBookings = ref(new Map<string, { title: string | null; provider: string | null }>());
 const emailOf = (id: string) => (id === user.value?.sub ? "You" : emails.value.get(id) ?? "Someone");
 const textOf = (n: Item) => {
   if (n.kind === "team_change") {
-    return n.action ? adminTeamChangeText(n.action.action, emailOf(n.action.admin_id), emailOf(n.action.target_id), n.action.message) : "A change to the team.";
+    return n.action ? adminTeamChangeText(n.action.action as AdminTeamAction, emailOf(n.action.admin_id), emailOf(n.action.target_id), n.action.message) : "A change to the team.";
+  }
+  if (n.kind === "limit_reached") {
+    return n.action ? adminLimitReachedText(emailOf(n.action.admin_id), n.action.message as AdminLimitName) : "Someone reached a daily limit.";
+  }
+  if (n.kind === "support_refund") {
+    const b = refundBookings.value.get(n.action?.target_id ?? "");
+    return n.action
+      ? adminSupportRefundText(emailOf(n.action.admin_id), { amountCents: n.action.amount_cents, resolvedReport: n.action.action === "resolve_problem_refunded", listingTitle: b?.title, providerName: b?.provider })
+      : "Support refunded a booking.";
   }
   if (n.kind === "request_new" || n.kind === "request_decided") {
     const r = n.request;
@@ -59,7 +72,7 @@ async function load() {
   const [recent, count] = await Promise.all([
     supabase.from("admin_notifications")
       .select("id, kind, report_id, created_at, read_at, report:support_reports(category, provider:providers(display_name)), " +
-        "action:admin_actions(admin_id, target_id, action, message), " +
+        "action:admin_actions(admin_id, target_id, action, message, amount_cents), " +
         "request:admin_requests(kind, status, resolve_problem, amount_cents, requested_by, booking:bookings(listing:listings(title), provider:providers(display_name)), provider:providers!admin_requests_provider_id_fkey(display_name))")
       .eq("recipient_id", me).order("created_at", { ascending: false }).limit(20),
     supabase.from("admin_notifications").select("id", { count: "exact", head: true }).eq("recipient_id", me).is("read_at", null),
@@ -72,7 +85,15 @@ async function load() {
   loadFailed.value = false;
   items.value = recent.data as unknown as Item[];
   unread.value = count.count ?? 0;
-  const ids = [...new Set(items.value.flatMap((n) => [n.action?.admin_id, n.action?.target_id, n.request?.requested_by]).filter((x): x is string => !!x))];
+  // Support's refunds: their bookings' listing and provider, for the text.
+  const refunded = [...new Set(items.value.filter((n) => n.kind === "support_refund" && n.action).map((n) => n.action!.target_id))];
+  if (refunded.length) {
+    // bounded: at most the 20 notifications shown
+    const { data: bs } = await supabase.from("bookings").select("id, listing:listings(title), provider:providers(display_name)").in("id", refunded);
+    refundBookings.value = new Map(((bs ?? []) as unknown as { id: string; listing: { title: string } | null; provider: { display_name: string } | null }[])
+      .map((b) => [b.id, { title: b.listing?.title ?? null, provider: b.provider?.display_name ?? null }]));
+  }
+  const ids = [...new Set(items.value.flatMap((n) => [n.action?.admin_id, n.kind === "team_change" ? n.action?.target_id : undefined, n.request?.requested_by]).filter((x): x is string => !!x))];
   if (ids.length) {
     const { data: names, error } = await supabase.rpc("admin_member_names", { p_ids: ids });
     if (error) console.error("[admin notifications] couldn't load the team's emails", error);
@@ -97,7 +118,9 @@ async function markAllRead() {
 async function openItem(n: Item) {
   if (!n.read_at) void markRead([n.id]);
   open.value = false;
-  await navigateTo(n.kind === "team_change" ? "/team" : n.kind.startsWith("request_") ? "/requests" : `/reports/${n.report_id}`);
+  await navigateTo(n.kind === "team_change" || n.kind === "limit_reached" ? "/team"
+    : n.kind === "support_refund" ? `/bookings/${n.action?.target_id}`
+    : n.kind.startsWith("request_") ? "/requests" : `/reports/${n.report_id}`);
 }
 
 let feed: ReturnType<typeof createNotificationFeed<AdminNotificationRow>> | null = null;

@@ -133,7 +133,7 @@ try {
 
   // 3. The admin, including the three reads nothing else ran.
   const picker = await read(admin.client, "admin_providers_page", { p_q: `Shapes ${run}`, p_sort: "name", p_desc: false, p_page_size: 20 });
-  check(picker.rows.some((p) => p.id === created.provider && !!p.owner_email), "3a. the provider picker's search: the provider and its owner's email");
+  check(picker.rows.some((p) => p.id === created.provider && !("owner_email" in p)), "3a. the provider picker's search: the provider, without its owner's email (step 5c)");
   // The day it was paid, from its own confirmed_at (the database's clock):
   // a day worked out from this process's clock is a day late if a run
   // crosses Atlanta midnight in between (found 2026-10-18).
@@ -169,6 +169,16 @@ try {
   const forApproval = await read(admin.server, "admin_request_for_approval", { p_admin_id: admin.id, p_request_id: requestId });
   check(forApproval.kind === "release_payout" && forApproval.status === "pending" && forApproval.hold === "refunded",
     "3i. admin_request_for_approval: what approving it would run");
+  // Contact views and limits (admin roles, step 5c): each through its schema.
+  const contact = await read(admin.client, "admin_booking_contact", { p_booking_id: paid });
+  check(!!contact.email, "3j. admin_booking_contact: the paid booking's email, recorded");
+  const ownerEmail = await read(admin.client, "admin_provider_contact", { p_provider_id: created.provider });
+  check(!!ownerEmail.email, "3k. admin_provider_contact: the owner's email, recorded");
+  const myLimits = await read(admin.client, "admin_my_limits");
+  check(myLimits.role === "owner" && myLimits.limited === false, "3l. admin_my_limits: the owner's, not limited");
+  const views = await read(admin.client, "admin_contact_views_page", { p_admin_id: admin.id });
+  check(views.total >= 2 && views.rows.some((r) => r.booking?.id === paid) && views.rows.some((r) => r.provider?.id === created.provider),
+    "3m. admin_contact_views_page: both views, naming the booking and the provider");
   check(true, "3d. the admin functions match their schemas");
 
   // 4. The daily job, through its own code (the server key): this provider's
@@ -194,6 +204,7 @@ try {
       delete from public.admin_emails where admin_action_id in (select id from public.admin_actions where request_id in (select id from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids}))));
       delete from public.admin_actions where request_id in (select id from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids})));
       delete from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids}));
+      delete from public.admin_contact_views where booking_id in (select id from public.bookings where listing_id in (${ids})) or provider_id = '${created.provider}';
       delete from public.support_emails where report_id in (select id from public.support_reports where listing_id in (${ids}));
       delete from public.admin_notifications where report_id in (select id from public.support_reports where listing_id in (${ids}));
       delete from public.support_report_events where report_id in (select id from public.support_reports where listing_id in (${ids}));

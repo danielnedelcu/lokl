@@ -391,6 +391,8 @@ export class TestData {
         delete from admin_emails where admin_action_id in (select id from admin_actions where request_id in (select id from admin_requests where booking_id in (select id from bookings where listing_id in (${ids}))));
         delete from admin_actions where request_id in (select id from admin_requests where booking_id in (select id from bookings where listing_id in (${ids})));
         delete from admin_requests where booking_id in (select id from bookings where listing_id in (${ids}));
+        delete from admin_contact_views where booking_id in (select id from bookings where listing_id in (${ids}));
+        delete from admin_refund_holds where booking_id in (select id from bookings where listing_id in (${ids}));
         delete from admin_actions where target = 'review' and target_id in (select id from reviews where listing_id in (${ids}));
         delete from review_reports where review_id in (select id from reviews where listing_id in (${ids}));
         delete from review_replies where review_id in (select id from reviews where listing_id in (${ids}));
@@ -421,6 +423,7 @@ export class TestData {
         delete from admin_emails where admin_action_id in (select id from admin_actions where request_id in (select id from admin_requests where provider_id in (${ids})));
         delete from admin_actions where request_id in (select id from admin_requests where provider_id in (${ids}));
         delete from admin_requests where provider_id in (${ids});
+        delete from admin_contact_views where provider_id in (${ids});
         delete from provider_emails where provider_id in (${ids});
         delete from saved_providers where provider_id in (${ids});
         delete from provider_ratings where provider_id in (${ids});

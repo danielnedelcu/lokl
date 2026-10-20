@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { adminRequestWhat, DEFAULT_REFUND_LIMIT_CENTS, marketZone, type AdminRequestKind } from "@repo/types";
+import { adminRequestWhat, DEFAULT_REFUND_LIMIT_CENTS, marketZone, rpcJson, type AdminMyLimits, type AdminRequestKind } from "@repo/types";
 import { HOLD_LABELS, payoutState, whenOf, withFinances } from "~/utils/bookingAdmin";
 
 // One booking, everything about it: the customer's details and no-show note
@@ -16,7 +16,7 @@ const call = useWebsiteAdmin();
 
 const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async () => {
   const [b, events, emails, actions, requests, settings] = await Promise.all([
-    supabase.from("bookings").select("*, listing:listings(id, title, kind, status, city:cities(name, timezone)), provider:providers(id, display_name, status), contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), finances:booking_finances(*), report:booking_reports(note), hold:provider_holds(during)").eq("id", id).maybeSingle(),
+    supabase.from("bookings").select("*, listing:listings(id, title, kind, status, city:cities(name, timezone)), provider:providers(id, display_name, status), finances:booking_finances(*), report:booking_reports(note), hold:provider_holds(during)").eq("id", id).maybeSingle(),
     // bounded: one booking's history
     supabase.from("booking_events").select("from_status, to_status, actor, created_at").eq("booking_id", id).order("created_at"),
     // bounded: one booking's history
@@ -25,9 +25,11 @@ const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async
     supabase.from("admin_actions").select("action, reason, created_at, admin_id, request:admin_requests(requested_by)").eq("target", "booking").eq("target_id", id).order("created_at"),
     // bounded: one booking's waiting requests (one per kind)
     supabase.from("admin_requests").select("id, kind, resolve_problem, amount_cents, requested_by, created_at").eq("booking_id", id).eq("status", "pending"),
-    supabase.from("admin_settings").select("refund_limit_cents").maybeSingle(),
+    // Today's limits, live (admin roles, step 5c): the refund limit and support's daily use.
+    supabase.rpc("admin_my_limits"),
   ]);
   for (const r of [b, events, emails, actions, requests, settings]) if (r.error) throw r.error;
+  const limits = rpcJson("admin_my_limits", settings.data);
   const acts = (actions.data ?? []) as unknown as { action: string; reason: string | null; created_at: string; admin_id: string | null; request: { requested_by: string } | null }[];
   const waiting = (requests.data ?? []) as { id: string; kind: AdminRequestKind; resolve_problem: boolean; amount_cents: number | null; requested_by: string; created_at: string }[];
   // Who did what, by email (team members only).
@@ -40,7 +42,7 @@ const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async
   }
   return {
     b: b.data ? withFinances<Record<string, any>>(b.data) : null, events: events.data ?? [], emails: emails.data ?? [], actions: acts,
-    waiting, names, refundLimit: settings.data?.refund_limit_cents ?? DEFAULT_REFUND_LIMIT_CENTS,
+    waiting, names, limits, refundLimit: limits.refund_limit_cents ?? DEFAULT_REFUND_LIMIT_CENTS,
   };
 });
 watch(error, (e) => e && reportProblem("Couldn't load the booking", e), { immediate: true });
@@ -77,11 +79,18 @@ const canRelease = computed(() => !!b.value?.payout_hold && b.value.payout_hold 
   && !(b.value.disputed_at && !b.value.dispute_closed_at));
 
 type Dialog = "cancel" | "release" | "pay" | "refund" | null;
+/** Today's refund count or total reached (support): a refund becomes a request (step 5c). */
+const dailyRefundsReached = computed(() => {
+  const l = data.value?.limits as AdminMyLimits | undefined;
+  if (!l?.limited || refundable.value <= 0) return false;
+  return l.refunds.used >= l.refunds.limit || l.refund_cents.used + refundable.value > l.refund_cents.limit;
+});
 /** Support asks the owner for this, rather than doing it (the database refuses it otherwise). */
 function needsRequest(action: Exclude<Dialog, null>) {
   if (role.value !== "support") return false;
   if (action === "release" || action === "pay") return true;
-  return b.value?.status !== "requested" && refundable.value > (data.value?.refundLimit ?? DEFAULT_REFUND_LIMIT_CENTS);
+  if (b.value?.status === "requested") return false;
+  return refundable.value > (data.value?.refundLimit ?? DEFAULT_REFUND_LIMIT_CENTS) || dailyRefundsReached.value;
 }
 const requestKind = (action: Exclude<Dialog, null>): AdminRequestKind =>
   action === "release" ? "release_payout" : action === "pay" ? "resolve_problem_paid" : "refund";
@@ -109,7 +118,7 @@ const copy = computed(() => {
   });
   return {
     title: `Ask the owner to ${what}?`,
-    description: `This needs the owner. They get your request with your reason, and decide within 7 days. Nothing changes until they approve. If they do: ${plain.description}`,
+    description: `${dailyRefundsReached.value && refundable.value <= (data.value?.refundLimit ?? DEFAULT_REFUND_LIMIT_CENTS) ? "You've reached today's limit for refunds, so this" : "This"} needs the owner. They get your request with your reason, and decide within 7 days. Nothing changes until they approve. If they do: ${plain.description}`,
     confirm: "Send the request", destructive: false,
   };
 });
@@ -199,6 +208,23 @@ async function act(reason: string) {
     busy.value = false;
     await refresh();
   }
+}
+// Contact details: shown on request, each view recorded (admin_booking_contact;
+// admin roles, step 5c), within support's daily limit.
+const contact = ref<{ email: string | null; phone: string | null; address: { line1: string; line2: string | null; city: string; state: string; postal_code: string; instructions: string | null } | null } | null>(null);
+const showingContact = ref(false);
+const contactError = ref("");
+async function showContact() {
+  showingContact.value = true;
+  contactError.value = "";
+  const { data: c, error: e } = await supabase.rpc("admin_booking_contact", { p_booking_id: id });
+  showingContact.value = false;
+  if (e) {
+    contactError.value = e.message;
+    return;
+  }
+  contact.value = rpcJson("admin_booking_contact", c);
+  await refresh();
 }
 async function withdraw(requestId: string) {
   busy.value = true;
@@ -296,8 +322,18 @@ const actionLabels: Record<string, string> = {
       <dl class="mt-8 grid gap-x-8 gap-y-4 sm:grid-cols-2">
         <div><dt class="text-sm text-muted-foreground">Customer</dt>
           <dd>{{ b.customer_name }}<template v-if="b.kind === 'experience'"> · {{ b.party_size }} {{ b.party_size === 1 ? "person" : "people" }}</template></dd>
-          <dd v-if="b.contact" class="text-sm">{{ b.contact.email }}<template v-if="b.contact.phone"> · {{ b.contact.phone }}</template></dd>
-          <dd v-if="b.address" class="text-sm">{{ b.address.line1 }}, {{ b.address.city }}, {{ b.address.state }} {{ b.address.postal_code }}</dd>
+          <template v-if="contact">
+            <dd class="text-sm">{{ contact.email ?? "No email" }}<template v-if="contact.phone"> · {{ contact.phone }}</template></dd>
+            <dd v-if="contact.address" class="text-sm">{{ contact.address.line1 }}<template v-if="contact.address.line2">, {{ contact.address.line2 }}</template>, {{ contact.address.city }}, {{ contact.address.state }} {{ contact.address.postal_code }}</dd>
+            <dd v-if="contact.address?.instructions" class="text-muted-foreground text-sm">“{{ contact.address.instructions }}”</dd>
+          </template>
+          <dd v-else class="mt-1">
+            <UiButton size="sm" variant="outline" :disabled="showingContact" @click="showContact">Show contact details</UiButton>
+            <p class="text-muted-foreground mt-1 text-xs">
+              Each view is recorded.<template v-if="data!.limits.limited"> You've seen {{ data!.limits.contact_views.used }} of {{ data!.limits.contact_views.limit }} today.</template>
+            </p>
+            <p v-if="contactError" role="alert" class="text-destructive mt-1 text-sm">{{ contactError }}</p>
+          </dd>
         </div>
         <div v-if="b.kind === 'service'"><dt class="text-sm text-muted-foreground">Booking mode</dt>
           <dd>{{ MODES[b.service_mode] ?? "Not set" }}</dd>

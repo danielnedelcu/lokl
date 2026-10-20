@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ADMIN_ROLE_LABEL, adminInviteSchema, type AdminInviteInput, type AdminRole } from "@repo/types";
+import { ADMIN_ROLE_LABEL, adminInviteSchema, rpcJson, type AdminContactViewRow, type AdminInviteInput, type AdminRole } from "@repo/types";
 
 // The Team page (docs/design/admin-roles.md, The Team page; step 5a): the
 // owner's alone. Who's on the team, invited or removed, with their second
@@ -126,6 +126,37 @@ const copy = computed(() => {
     : { title: `Remove ${who} from the team?`, description: "They're signed out now and lose admin access at once. Their past actions stay in the record. You can invite them again later.", confirm: "Remove", destructive: true };
 });
 
+// ---- Contact details viewed (admin roles, step 5c) ---------------------------
+// Who saw which customer's or provider's contact details, when: the record
+// admin_booking_contact and admin_provider_contact keep. Never the details.
+const views = ref<AdminContactViewRow[]>([]);
+const viewsTotal = ref(0);
+const viewsPage = ref(1);
+const viewsFor = ref<string>("");
+const viewsError = ref("");
+const WHAT: Record<AdminContactViewRow["what"], string> = {
+  booking_contact: "the customer's email and phone", booking_address: "the Service address", owner_email: "the owner's email",
+};
+async function loadViews() {
+  const { data, error } = await supabase.rpc("admin_contact_views_page", { p_admin_id: viewsFor.value || undefined, p_page: viewsPage.value, p_page_size: 25 });
+  if (error) {
+    viewsError.value = "The record didn't load. Reload the page to try again.";
+    console.error("[team] couldn't load contact views", error);
+    return;
+  }
+  viewsError.value = "";
+  const page = rpcJson("admin_contact_views_page", data);
+  views.value = page.rows;
+  viewsTotal.value = page.total;
+}
+onMounted(loadViews);
+watch(viewsFor, () => {
+  viewsPage.value = 1;
+  void loadViews();
+});
+watch(viewsPage, () => void loadViews());
+const viewsPages = computed(() => Math.max(1, Math.ceil(viewsTotal.value / 25)));
+
 async function confirm(reason: string) {
   const c = change.value;
   if (!c) return;
@@ -219,6 +250,33 @@ async function confirm(reason: string) {
         <p v-if="inviteDone" class="text-sm">{{ inviteDone }}</p>
         <UiButton type="submit" class="min-h-11" :disabled="isSubmitting">{{ isSubmitting ? "Sending…" : "Send invitation" }}</UiButton>
       </form>
+    </section>
+
+    <section class="bg-card border-border mt-6 rounded-lg border p-5" aria-labelledby="views-heading">
+      <h2 id="views-heading" class="font-semibold">Contact details viewed</h2>
+      <p class="text-muted-foreground mt-1 text-sm">Each time someone on the team opens a customer's or provider's contact details. Support has a daily limit of different bookings or providers.</p>
+      <div class="mt-3 max-w-xs">
+        <label for="views-for" class="text-sm font-medium">Who</label>
+        <select id="views-for" v-model="viewsFor" class="border-input bg-background mt-1 block min-h-11 w-full rounded-md border px-3 text-sm">
+          <option value="">Everyone</option>
+          <option v-for="m in members" :key="m.user_id" :value="m.user_id">{{ m.email }}</option>
+        </select>
+      </div>
+      <p v-if="viewsError" role="alert" class="text-destructive mt-3 text-sm">{{ viewsError }}</p>
+      <p v-else-if="!views.length" class="text-muted-foreground mt-3 text-sm">No contact details viewed yet.</p>
+      <ul v-else class="divide-border mt-3 divide-y text-sm">
+        <li v-for="v in views" :key="v.id" class="py-2">
+          <span class="text-muted-foreground">{{ formatHomeDateTime(v.viewed_at) }} (Atlanta time) ·</span>
+          {{ v.admin_email ?? "Someone" }} saw {{ WHAT[v.what] }} for
+          <NuxtLink v-if="v.booking" :to="`/bookings/${v.booking.id}`" class="link-text">{{ v.booking.customer_name }}'s booking of “{{ v.booking.listing_title }}”</NuxtLink>
+          <NuxtLink v-else-if="v.provider" :to="`/providers?q=${encodeURIComponent(v.provider.name)}`" class="link-text">{{ v.provider.name }}</NuxtLink>
+        </li>
+      </ul>
+      <div v-if="viewsPages > 1" class="mt-3 flex items-center gap-2 text-sm">
+        <UiButton size="sm" variant="outline" :disabled="viewsPage <= 1" @click="viewsPage--">Previous</UiButton>
+        <span>Page {{ viewsPage }} of {{ viewsPages }}</span>
+        <UiButton size="sm" variant="outline" :disabled="viewsPage >= viewsPages" @click="viewsPage++">Next</UiButton>
+      </div>
     </section>
 
     <ReasonDialog v-model:open="dialogOpen" :title="copy.title" :description="copy.description" :confirm-label="copy.confirm"

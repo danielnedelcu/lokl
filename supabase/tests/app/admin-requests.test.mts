@@ -15,6 +15,7 @@ import Stripe from "stripe";
 import { DEFAULT_REFUND_LIMIT_CENTS, safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
 import { adminCancelBooking } from "../../../apps/website/server/utils/adminBookings";
+import { sendAdminEmails, type EmailSettings, type Mailer, type OutgoingEmail } from "../../../apps/website/server/utils/bookingEmails";
 import { approveRequest } from "../../../apps/website/server/utils/adminRequests";
 import { BookingError, handlePaymentsEvent } from "../../../apps/website/server/utils/bookings";
 import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
@@ -101,6 +102,33 @@ try {
   check((await refunds(big.pi)).length === 0, "1b. ...before Stripe is asked: nothing refunded");
   check(await adminCancelBooking(support.server, stripe, small.id, support.id, "The customer was ill.") === "cancelled and refunded", "1c. support refunds $130 directly");
   check((await refunds(small.pi)).length === 1, "1d. ...once");
+  // Each refund by support goes to every owner (admin roles, step 5c), and its reservation is gone.
+  check(psqlValue(`select count(*) from public.admin_refund_holds where booking_id = '${small.id}'`) === "0", "1e. the refund's reservation is replaced by its record");
+  const sent: OutgoingEmail[] = [];
+  const mailer: Mailer = { async send(e) { sent.push(e); return { id: `re_test_${sent.length}` }; } };
+  const settings: EmailSettings = { mode: "send", allowlist: [], from: "lokl <test@test.local>", replyTo: "help@test.local", siteUrl: "http://localhost:3100" };
+  await sendAdminEmails(db, mailer, settings, { adminUrl: "http://localhost:3101" });
+  const told = sent.find((e) => e.to === owner.email && e.subject === "Support refunded or cancelled a booking");
+  check(!!told && told.text.includes(`${support.email} refunded $130.00 and cancelled “Requests crawl ${run}” (Requests ${run}).`) && told.text.includes(`/bookings/${small.id}`)
+    && !told.text.includes("The customer was ill."), "1f. the owner is emailed the refund, with the booking, never the reason");
+
+  // 1g. A refund Stripe refuses: its reservation goes at once. One whose
+  // outcome is unknown (no answer): it stays, as the money may have moved.
+  const failing = (error: Error) => new Proxy(stripe, {
+    get(target, prop, receiver) {
+      if (prop === "refunds") return { ...target.refunds, create: async () => { throw error; }, list: target.refunds.list.bind(target.refunds) };
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as typeof stripe;
+  const refused = await paid(1);
+  const lostOne1 = await paid(1);
+  const holdsFor = (bookingId: string) => psqlValue(`select count(*) from public.admin_refund_holds where booking_id = '${bookingId}'`);
+  await adminCancelBooking(support.server, failing(new Stripe.errors.StripeCardError({ message: "Your card was declined.", type: "card_error" } as never)), refused.id, support.id, "Customer was ill.")
+    .catch(() => undefined);
+  check(holdsFor(refused.id) === "0" && (await refunds(refused.pi)).length === 0, "1g. Stripe refuses the refund: nothing refunded, its reservation released at once");
+  await adminCancelBooking(support.server, failing(new Stripe.errors.StripeConnectionError({ message: "socket hang up" } as never)), lostOne1.id, support.id, "Customer was ill.")
+    .catch(() => undefined);
+  check(holdsFor(lostOne1.id) === "1", "1h. no answer from Stripe: the reservation stands (the refund may have happened)");
 
   // 2. Asking, and the owner approving.
   const r1 = await ask(big.id, "The venue flooded; the customer can't attend.");
@@ -161,6 +189,9 @@ try {
     psql(`set local session_replication_role = replica;
       delete from public.admin_notifications where admin_request_id in (${requests});
       delete from public.admin_emails where admin_action_id in (select id from public.admin_actions where request_id in (${requests}));
+      delete from public.admin_notifications where admin_action_id in (select id from public.admin_actions where target = 'booking' and target_id in (${bookings}));
+      delete from public.admin_emails where admin_action_id in (select id from public.admin_actions where target = 'booking' and target_id in (${bookings}));
+      delete from public.admin_refund_holds where booking_id in (${bookings});
       delete from public.admin_actions where request_id in (${requests}) or (target = 'booking' and target_id in (${bookings}));
       delete from public.admin_requests where id in (${requests});
       delete from public.booking_emails where booking_id in (${bookings});

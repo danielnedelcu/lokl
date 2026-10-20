@@ -3,8 +3,9 @@
 Status: **approved design, being built** (2026-10-18; decisions below,
 under "Decided"), in the order of "Moving from today's admin to the new
 roles". Steps 1 to 4 are done; step 5 is built in four parts: 5a (the
-owner's areas and the team, below: "As built, step 5a") and 5b
-(requests: "As built, step 5b") so far. To be
+owner's areas and the team, below: "As built, step 5a"), 5b
+(requests: "As built, step 5b") and 5c (contact views and daily limits:
+"As built, step 5c") so far. To be
 built before anyone else is given admin access ([docs/TODO.md](../TODO.md),
 Launch prep, "Staff access").
 
@@ -408,6 +409,29 @@ block in `CLAUDE.md`.
   request withdrawn or expired at that moment never blocks the record
   (one conditional update, no check-then-close; tested with two real
   sessions in `admin-request-race.test.mts`).
+
+**As built, step 5c (2026-10-20;** migration `admin_contact_views`**):**
+- Contact details only through `admin_booking_contact()` (email, phone,
+  Service address) and `admin_provider_contact()` (an owner's email), each
+  view recorded in `admin_contact_views` (append-only). Support may see 40
+  different bookings or providers a day; the owner has no limit and is
+  recorded too. The admin rules on `booking_contacts` and
+  `booking_addresses` are gone; `admin_bookings_page` and
+  `admin_providers_page` no longer send addresses (a search still matches
+  them); the provider pickers show the market instead; the outboxes'
+  `to_address` isn't readable through the API (column grants).
+- Daily limits per Atlanta calendar day (`admin_settings`; the owner's page
+  is 5d): 5 direct refunds and $500 in all, 40 contact views, 20 requests.
+  `admin_my_limits()` tells the pages ("You've seen 12 of 40 today"); a
+  refund past a daily limit becomes "Request a refund", even under $150.
+- Refunds started at once can't together pass the limits: each is
+  reserved before Stripe under a per-person lock (`admin_refund_holds`),
+  replaced by its record, released at once if Stripe refuses it, and
+  ignored after 15 minutes if its outcome is never known (tested with two
+  real sessions in `admin-refund-race.test.mts`).
+- Alerts to every owner (bell and email): each refund or cancellation by
+  support, each its own; a daily limit reached, once per person, limit and
+  day. The Team page shows the record of contact views, by person.
 
 **Changing a role:** owner only, never for themselves while they're the
 last owner. Logged with the old and new role; takes effect on the next

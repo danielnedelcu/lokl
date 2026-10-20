@@ -62,3 +62,34 @@ export function adminRequestDecidedText(status: AdminRequestStatus, r: AdminRequ
 export const ADMIN_REQUEST_STATUS_LABEL: Record<AdminRequestStatus, string> = {
   pending: "Waiting", approved: "Approved", declined: "Declined", withdrawn: "Withdrawn", expired: "Expired", done_by_owner: "Done by the owner",
 };
+
+// Daily limits and support's refunds (admin roles, step 5c): what the
+// owners' bell and email say.
+
+export type AdminLimitName = "refunds" | "refund_cents" | "contact_views" | "requests";
+const LIMIT_WORDS: Record<AdminLimitName, string> = {
+  refunds: "refunds", refund_cents: "the refund total", contact_views: "contact details", requests: "requests",
+};
+
+/** "sam@example.com reached today's limit for refunds." */
+export function adminLimitReachedText(who: string, limit: AdminLimitName): string {
+  return `${who} reached today's limit for ${LIMIT_WORDS[limit] ?? limit}.`;
+}
+
+/**
+ * Each refund or cancellation by support, for the owners: "sam@example.com
+ * refunded $130.00 and cancelled “Taco crawl” (Tours and Cuts)."
+ */
+export function adminSupportRefundText(
+  who: string,
+  r: { amountCents: number | null; resolvedReport: boolean; listingTitle?: string | null; providerName?: string | null },
+): string {
+  const provider = r.providerName || "the provider";
+  const booking = r.listingTitle ? `“${r.listingTitle}” (${provider})` : `a booking with ${provider}`;
+  if (r.amountCents && r.amountCents > 0) {
+    return r.resolvedReport
+      ? `${who} refunded ${dollars(r.amountCents)} for ${booking}, resolving a no-show report.`
+      : `${who} refunded ${dollars(r.amountCents)} and cancelled ${booking}.`;
+  }
+  return `${who} cancelled ${booking}.`;
+}

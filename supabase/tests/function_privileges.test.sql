@@ -35,6 +35,8 @@ select set_eq(
        ('admin_reset_second_factor|authenticated'), ('admin_join|authenticated'),
        ('admin_request_create|authenticated'), ('admin_request_withdraw|authenticated'), ('admin_request_decline|authenticated'),
        ('admin_requests_page|authenticated'), ('admin_member_names|authenticated'),
+       ('admin_booking_contact|authenticated'), ('admin_provider_contact|authenticated'), ('admin_my_limits|authenticated'),
+       ('admin_contact_views_page|authenticated'),
        -- Public pages.
        ('public_guide|anon,authenticated'), ('public_guides|anon,authenticated'), ('public_homepage_guides|anon,authenticated'),
        ('session_spots_left|anon,authenticated'), ('service_slots|anon,authenticated'), ('service_next_slot|anon,authenticated'), ('service_open_matches|anon,authenticated'), ('my_service_slots_preview|authenticated'),

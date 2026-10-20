@@ -658,6 +658,22 @@ sequenceDiagram
     closed as approved if still pending, by one update that does nothing
     otherwise (a withdrawal or expiry at the same moment), and left as it
     is, its id still on the action (`admin_cancel_settle`).
+  - **Support's daily refund limits** (admin roles step 5c, 2026-10-20,
+    [admin_contact_views](../../supabase/migrations/20261020030531_admin_contact_views.sql)):
+    5 direct refunds and $500 in all per Atlanta day (`admin_settings`),
+    counted from `admin_actions.amount_cents` (what each admin refund
+    moved; approved requests don't count). `admin_check_refund` checks them
+    before Stripe and, for support, **reserves the refund**
+    (`admin_refund_holds`) under a per-person advisory lock, since no lock
+    can be held across the Stripe call: refunds started at once queue on
+    the lock and each counts the others' reservations. The record replaces
+    the reservation (every path of `admin_cancel_booking`, so a refund is
+    never counted twice); a refund Stripe refuses, or that never reached
+    Stripe, releases it at once (`admin_release_refund_hold`); one whose
+    outcome is unknown (no answer) keeps it until the record or 15
+    minutes. Past a daily limit support asks instead, even under $150.
+    Each refund or cancellation by support is told to every owner (bell
+    and email, `admin_support_refund`).
   - **Null-safe refusals** (2026-10-20,
     [null_safe_guards](../../supabase/migrations/20261020014749_null_safe_guards.sql)):
     `admin_cancel_booking`'s three refusals say `is not true` and
@@ -810,14 +826,16 @@ note), which only the service role can use.
 | `bookings` | own | own business's | all | no | service role only | never (refused) |
 | `booking_finances` | **no** | own business's | all | no | service role only | never (refused) |
 | `booking_reports` | own | **no** | all | no | service role, once; final | never (append-only) |
-| `booking_contacts`, `booking_addresses` | own | once the booking is confirmed, until 30 days after it ends (`CONTACT_ACCESS_DAYS`; migration `contact_access_30_days`, 2026-10-18) | all | no | service role | never |
+| `booking_contacts`, `booking_addresses` | own | once the booking is confirmed, until 30 days after it ends (`CONTACT_ACCESS_DAYS`; migration `contact_access_30_days`, 2026-10-18) | none directly since 2026-10-20: `admin_booking_contact`, each view recorded (step 5c) | no | service role | never |
 | `booking_events` | as the booking | as the booking | all | no | trigger only | never (append-only) |
-| `booking_emails` | no | no | all | no | triggers and the server (delivery columns only) | never (refused) |
+| `booking_emails` | no | no | all but `to_address` (since 2026-10-20) | no | triggers and the server (delivery columns only) | never (refused) |
 | `experience_sessions` | future, visible ones | own (all) | all | future, visible ones | provider (not moved or cancelled once booked) | with its listing, unless booked |
 | `notifications` | no | own (may mark read) | no | no | triggers | with its listing |
 | `admin_actions`, `job_runs` | no | no | all | no | service role | never (append-only) |
 | `admin_requests` | no | no | the owner all; support their own | no | the request functions (support asks; the owner decides; the action closes it) | never; only its decision is written, once |
-| `admin_settings` | no | no | all (the refund limit) | no | migration (the owner's page in 5d) | never (one row) |
+| `admin_settings` | no | no | all (the refund limit, support's daily limits) | no | migration (the owner's page in 5d) | never (one row) |
+| `admin_refund_holds` | no | no | the owner | no | `admin_check_refund` (support's refunds in flight), cleared by the record or on a refusal | when recorded or released; ignored after 15 minutes |
+| `admin_contact_views` | no | no | the owner all; each admin their own | no | `admin_booking_contact`, `admin_provider_contact` | never (append-only) |
 | `commission_rates` | any signed-in user | any signed-in user | all; the owner may change the rate (support reads only, since 2026-10-19) | the kind and rate (the Fees page; since 2026-10-18) | the owner (rate only) | never |
 | `providers` (`stripe_*`, `status`) | no | own | all | no | server only (Stripe sync, admin RPC) | never |
 
