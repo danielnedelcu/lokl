@@ -159,6 +159,7 @@ export type Database = {
         Row: {
           action: string;
           admin_id: string | null;
+          amount_cents: number | null;
           created_at: string;
           id: string;
           message: string | null;
@@ -172,6 +173,7 @@ export type Database = {
         Insert: {
           action: string;
           admin_id?: string | null;
+          amount_cents?: number | null;
           created_at?: string;
           id?: string;
           message?: string | null;
@@ -184,6 +186,7 @@ export type Database = {
         Update: {
           action?: string;
           admin_id?: string | null;
+          amount_cents?: number | null;
           created_at?: string;
           id?: string;
           message?: string | null;
@@ -199,6 +202,49 @@ export type Database = {
             columns: ["request_id"];
             isOneToOne: false;
             referencedRelation: "admin_requests";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      admin_contact_views: {
+        Row: {
+          admin_id: string;
+          booking_id: string | null;
+          id: string;
+          provider_id: string | null;
+          viewed_at: string;
+          what: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          admin_id: string;
+          booking_id?: string | null;
+          id?: string;
+          provider_id?: string | null;
+          viewed_at?: string;
+          what: string;
+        };
+        Update: {
+          admin_id?: string;
+          booking_id?: string | null;
+          id?: string;
+          provider_id?: string | null;
+          viewed_at?: string;
+          what?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_contact_views_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_contact_views_provider_id_fkey";
+            columns: ["provider_id"];
+            isOneToOne: false;
+            referencedRelation: "providers";
             referencedColumns: ["id"];
           },
         ];
@@ -356,6 +402,39 @@ export type Database = {
           },
         ];
       };
+      admin_refund_holds: {
+        Row: {
+          admin_id: string;
+          amount_cents: number;
+          booking_id: string;
+          created_at: string;
+          id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          admin_id: string;
+          amount_cents: number;
+          booking_id: string;
+          created_at?: string;
+          id?: string;
+        };
+        Update: {
+          admin_id?: string;
+          amount_cents?: number;
+          booking_id?: string;
+          created_at?: string;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_refund_holds_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       admin_requests: {
         Row: {
           amount_cents: number | null;
@@ -433,17 +512,29 @@ export type Database = {
         Row: {
           id: boolean;
           refund_limit_cents: number;
+          support_contact_views_per_day: number;
+          support_refund_cents_per_day: number;
+          support_refunds_per_day: number;
+          support_requests_per_day: number;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
           id?: boolean;
           refund_limit_cents?: number;
+          support_contact_views_per_day?: number;
+          support_refund_cents_per_day?: number;
+          support_refunds_per_day?: number;
+          support_requests_per_day?: number;
           updated_at?: string;
         };
         Update: {
           id?: boolean;
           refund_limit_cents?: number;
+          support_contact_views_per_day?: number;
+          support_refund_cents_per_day?: number;
+          support_refunds_per_day?: number;
+          support_requests_per_day?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -2846,6 +2937,11 @@ export type Database = {
         Returns: string[];
       };
       admin_ai_draft_cost: { Args: { p_since: string }; Returns: Json };
+      admin_alert_owners: {
+        Args: { p_action_id: string; p_email_kind: string; p_kind: string };
+        Returns: undefined;
+      };
+      admin_booking_contact: { Args: { p_booking_id: string }; Returns: Json };
       admin_bookings_page: {
         Args: {
           p_attention?: string;
@@ -2900,7 +2996,16 @@ export type Database = {
         Args: { p_admin_id: string; p_booking_id: string };
         Returns: number;
       };
+      admin_contact_views_page: {
+        Args: { p_admin_id?: string; p_page?: number; p_page_size?: number };
+        Returns: Json;
+      };
+      admin_daily_refund_refusal: {
+        Args: { p_admin_id: string; p_booking_id?: string; p_cents: number };
+        Returns: string;
+      };
       admin_dashboard: { Args: Record<PropertyKey, never>; Returns: Json };
+      admin_day_start: { Args: Record<PropertyKey, never>; Returns: string };
       admin_finishing_stripe: {
         Args: { p_admin_id: string };
         Returns: boolean;
@@ -2915,6 +3020,10 @@ export type Database = {
         Returns: string;
       };
       admin_join: { Args: Record<PropertyKey, never>; Returns: string };
+      admin_limit_reached: {
+        Args: { p_admin_id: string; p_limit: string };
+        Returns: undefined;
+      };
       admin_listings_page: {
         Args: {
           p_city_id?: string;
@@ -2948,6 +3057,11 @@ export type Database = {
         Returns: undefined;
       };
       admin_money: { Args: { p_cents: number }; Returns: string };
+      admin_my_limits: { Args: Record<PropertyKey, never>; Returns: Json };
+      admin_provider_contact: {
+        Args: { p_provider_id: string };
+        Returns: Json;
+      };
       admin_providers_page: {
         Args: {
           p_city_id?: string;
@@ -2961,6 +3075,14 @@ export type Database = {
           p_status?: string;
         };
         Returns: Json;
+      };
+      admin_record_contact_view: {
+        Args: {
+          p_booking_id: string;
+          p_provider_id: string;
+          p_whats: string[];
+        };
+        Returns: undefined;
       };
       admin_refund_limit_cents: {
         Args: Record<PropertyKey, never>;
@@ -2979,6 +3101,10 @@ export type Database = {
           p_request_id?: string;
         };
         Returns: boolean;
+      };
+      admin_release_refund_hold: {
+        Args: { p_admin_id: string; p_booking_id: string };
+        Returns: undefined;
       };
       admin_remove: {
         Args: { p_reason: string; p_user_id: string };
@@ -3136,6 +3262,15 @@ export type Database = {
       };
       admin_team_alert: { Args: { p_action_id: string }; Returns: undefined };
       admin_team_reason: { Args: { p_reason: string }; Returns: string };
+      admin_usage_today: {
+        Args: { p_admin_id: string; p_except_booking?: string };
+        Returns: {
+          contact_views: number;
+          refund_cents: number;
+          refunds: number;
+          requests: number;
+        }[];
+      };
       assert_log_guards_on: {
         Args: Record<PropertyKey, never>;
         Returns: undefined;

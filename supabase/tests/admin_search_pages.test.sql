@@ -169,11 +169,11 @@ select throws_ok($$ select admin_listings_page('everything') $$, '22023', NULL, 
 -- ---------------------------------------------------------------------------
 
 select is(pg_temp.ids(admin_providers_page(p_q := 'second.owner')), array[:'p2'::uuid], '4a. the admin finds a provider by owner email');
-select is(admin_providers_page(p_q := 'harbor') -> 'rows' -> 0 ->> 'owner_email', 'second.owner@test.local', '4b. ...and sees it in the row');
+select is(admin_providers_page(p_q := 'harbor') -> 'rows' -> 0 ->> 'owner_email', null, '4b. ...but the row doesn''t carry it (admin_provider_contact shows it, recorded; step 5c)');
 select is(pg_temp.ids(admin_providers_page(p_payout_setup := 'ready')), array[:'p1'::uuid], '4c. the payout-setup filter');
 select is((select array_agg(k order by k) from jsonb_object_keys(admin_providers_page(p_q := 'peach') -> 'rows' -> 0) k),
-  array['city', 'created_at', 'display_name', 'id', 'owner_email', 'payout_setup', 'status'],
-  '4c2. rows carry only what the page shows: no Stripe account id or owner id');
+  array['city', 'created_at', 'display_name', 'id', 'payout_setup', 'status'],
+  '4c2. rows carry only what the page shows: no Stripe account id, owner id or owner email');
 select is(pg_temp.ids(admin_providers_page(p_city_id := :'sav')), array[:'p2'::uuid], '4d. the market filter');
 select is(
   array[provider_payout_setup(null, true, true), provider_payout_setup('acct_x', true, false), provider_payout_setup('acct_x', true, true)],

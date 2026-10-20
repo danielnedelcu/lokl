@@ -68,6 +68,12 @@ The team's admin app: owner and support (docs/design/admin-roles.md). Port 3101 
   website (`requests/:id/approve`, with the refund amount shown) or
   declines with a note. Read the refund limit from `admin_settings`, never
   a constant. The database refuses support either way.
+- **Contact details** (admin roles step 5c): never select
+  `booking_contacts`, `booking_addresses` or an owner's email directly (the
+  rules refuse admins). Show them on request through
+  `admin_booking_contact` / `admin_provider_contact`, which record each
+  view and apply support's daily limit; `admin_my_limits` gives the counts
+  and limits to show.
 - **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;
   everything else from the shared layer (`Ui…` components, `StatusBadge`).
   Colours come from the layer's tokens (`background`, `card`, `muted`,

@@ -12,6 +12,7 @@
 
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { errorText } from "@repo/types";
 import { BookingError } from "./bookings";
 import { type CancelMeaning, recordAdminCancel, refundInFull, releaseHold, reverseTransfer, saveCancelReason } from "./bookingCancellations";
 import { payOut, withdrawUnavailable } from "./bookingJobs";
@@ -38,6 +39,16 @@ export async function logAdminAction(
     admin_id: a.adminId, target: a.target, target_id: a.targetId, action: a.action, reason: a.reason ?? null,
   });
   if (error) throw new Error(`couldn't log the admin action: ${error.message}`);
+}
+
+/**
+ * Whether a refund certainly didn't happen: Stripe answered with a refusal,
+ * or the failure came before Stripe was asked. Not a dropped connection or
+ * a 5xx: then the refund may have gone through (a lost reply).
+ */
+export function refundDefinitelyFailed(e: unknown): boolean {
+  const type = (e as { type?: string } | null)?.type;
+  return type !== "StripeConnectionError" && type !== "StripeAPIError";
 }
 
 /**
@@ -111,7 +122,19 @@ export async function adminCancelBooking(
     throw new Error(limitError.message);
   }
   await saveCancelReason(db, b.id, b.status, reason);
-  const refunded = await refundInFull(stripe, b as any, meaning);
+  let refunded: number;
+  try {
+    refunded = await refundInFull(stripe, b as any, meaning);
+  } catch (e) {
+    // The refund didn't happen: its reservation goes, so it doesn't count
+    // toward support's limits for 15 minutes. Not when the outcome is
+    // unknown (no answer): the money may have moved.
+    if (refundDefinitelyFailed(e)) {
+      const { error: releaseError } = await db.rpc("admin_release_refund_hold", { p_admin_id: adminId, p_booking_id: b.id });
+      if (releaseError) console.error("[admin] couldn't release a refund's hold (it lapses in 15 minutes)", errorText(releaseError));
+    }
+    throw e;
+  }
   const reversal = b.status === "paid_out" ? await reverseTransfer(stripe, b) : null;
   const done = await recordAdminCancel(db, {
     bookingId: b.id, adminId, reason, from: b.status, resolveProblem, refundedCents: refunded,

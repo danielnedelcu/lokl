@@ -4,7 +4,7 @@
 // (adminTeamChangeText) and support's requests (adminRequestNewText,
 // adminRequestDecidedText) read as sentences too.
 // Run: npx tsx packages/ui/tests/notification-text.test.mts
-import { SUPPORT_CATEGORIES, SUPPORT_CATEGORY_ABOUT, adminRequestDecidedText, adminRequestNewText, adminTeamChangeText, notificationText, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type NotificationKind } from "@repo/types";
+import { SUPPORT_CATEGORIES, SUPPORT_CATEGORY_ABOUT, adminLimitReachedText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, notificationText, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type NotificationKind } from "@repo/types";
 
 let failures = 0;
 const check = (ok: boolean, name: string) => { console.log(`${ok ? "ok  " : "FAIL"} ${name}`); if (!ok) failures++; };
@@ -38,6 +38,14 @@ check(adminRequestNewText("sam@example.com", { kind: "refund", amountCents: 1950
 check(adminRequestDecidedText("approved", { kind: "suspend_provider", ...booking }) === "The owner approved your request to suspend Tours and Cuts.", "r3. a decision says what was asked");
 check(adminRequestNewText("sam@example.com", { kind: "resolve_problem_paid", ...booking }) === "sam@example.com asks you to pay Tours and Cuts for “Taco crawl”, resolving a no-show report.",
   "r4. paying the provider names them once");
+
+// Daily limits and support's refunds, for the owners (step 5c).
+check(adminLimitReachedText("sam@example.com", "contact_views") === "sam@example.com reached today's limit for contact details.", "l1. a limit reached names it");
+check(adminSupportRefundText("sam@example.com", { amountCents: 13000, resolvedReport: false, ...booking })
+  === "sam@example.com refunded $130.00 and cancelled “Taco crawl” (Tours and Cuts).", "l2. support's refund says how much, and which booking");
+check(adminSupportRefundText("sam@example.com", { amountCents: 0, resolvedReport: false, ...booking }) === "sam@example.com cancelled “Taco crawl” (Tours and Cuts).",
+  "l3. a cancellation with no refund (a card hold) says so");
+check(adminSupportRefundText("sam@example.com", { amountCents: 6500, resolvedReport: true, ...booking }).endsWith("resolving a no-show report."), "l4. a report resolved with a refund says so");
 
 console.log(failures ? `${failures} failed` : "All notification text checks passed.");
 process.exit(failures ? 1 : 0);

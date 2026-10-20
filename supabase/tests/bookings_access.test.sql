@@ -130,8 +130,8 @@ select tests.authenticate_as(:'cust');
 select is((select email || ' / ' || (select line1 from booking_addresses where booking_id = :'bh') from booking_contacts where booking_id = :'bh'), 'sam@test.local / 12 Elm Street',
   '6j. the customer still reads their own details on it');
 select tests.authenticate_as_admin(:'admin');
-select is((select email || ' / ' || (select line1 from booking_addresses where booking_id = :'bh') from booking_contacts where booking_id = :'bh'), 'sam@test.local / 12 Elm Street',
-  '6k. ...and so does the admin');
+select is((select count(*)::int from booking_contacts where booking_id = :'bh') + (select count(*)::int from booking_addresses where booking_id = :'bh'), 0,
+  '6k. ...but an admin reads neither table (admin_booking_contact shows them, recorded; step 5c)');
 select tests.clear_authentication();
 set local session_replication_role = replica;
 update bookings set starts_at = :'ba_starts', ends_at = :'ba_ends' where id = :'ba';

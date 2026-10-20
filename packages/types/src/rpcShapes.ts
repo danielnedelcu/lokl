@@ -215,7 +215,6 @@ export const adminProviderRowShape = z.object({
   display_name: z.string(),
   status: z.enum(["active", "suspended"]),
   created_at: time,
-  owner_email: z.string(),
   payout_setup: z.enum(["not_started", "in_progress", "ready"]),
   city: z.object({ name: z.string(), state: z.string() }).nullable(),
 });
@@ -353,12 +352,50 @@ export const adminRequestForApprovalShape = z.object({
   result: z.string().nullable(),
 });
 
+// Contact views and daily limits (admin roles, step 5c).
+const used = z.object({ used: count, limit: count });
+/** The signed-in admin's use of today's limits (Atlanta day); `limited` is false for the owner. */
+export const adminMyLimitsShape = z.object({
+  role: z.enum(["owner", "support"]),
+  refund_limit_cents: count,
+  limited: z.boolean(),
+  refunds: used,
+  refund_cents: used,
+  contact_views: used,
+  requests: used,
+});
+/** A booking's contact details, recorded as viewed. */
+export const adminBookingContactShape = z.object({
+  email: z.string().nullable(),
+  phone: z.string().nullable(),
+  address: z.object({
+    line1: z.string(), line2: z.string().nullable(), city: z.string(), state: z.string(), postal_code: z.string(), instructions: z.string().nullable(),
+  }).nullable(),
+});
+/** A provider owner's email, recorded as viewed. */
+export const adminProviderContactShape = z.object({ email: z.string().nullable() });
+/** The Team page's record of contact views, newest first. */
+export const adminContactViewRowShape = z.object({
+  id,
+  viewed_at: time,
+  what: z.enum(["booking_contact", "booking_address", "owner_email"]),
+  admin_id: id,
+  admin_email: z.string().nullable(),
+  booking: z.object({ id, listing_title: z.string(), starts_at: time.nullable(), customer_name: z.string() }).nullable(),
+  provider: z.object({ id, name: z.string() }).nullable(),
+});
+export const adminContactViewsPageShape = z.object({ total: count, page: count, page_size: count, rows: z.array(adminContactViewRowShape) });
+
 /** Every JSON function the apps read, by name: rpcJson and the check use this list. */
 export const RPC_SHAPES = {
   admin_ai_draft_cost: adminAiDraftCostShape,
+  admin_booking_contact: adminBookingContactShape,
   admin_bookings_page: adminBookingsPageShape,
+  admin_contact_views_page: adminContactViewsPageShape,
   admin_dashboard: adminDashboardShape,
   admin_listings_page: adminListingsPageShape,
+  admin_my_limits: adminMyLimitsShape,
+  admin_provider_contact: adminProviderContactShape,
   admin_providers_page: adminProvidersPageShape,
   admin_request_for_approval: adminRequestForApprovalShape,
   admin_requests_page: adminRequestsPageShape,
@@ -380,6 +417,8 @@ export type RpcJson<N extends RpcJsonName> = z.infer<(typeof RPC_SHAPES)[N]>;
 
 export type AdminBookingRow = z.infer<typeof adminBookingRowShape>;
 export type AdminRequestRow = z.infer<typeof adminRequestRowShape>;
+export type AdminMyLimits = z.infer<typeof adminMyLimitsShape>;
+export type AdminContactViewRow = z.infer<typeof adminContactViewRowShape>;
 export type AdminListingRow = z.infer<typeof adminListingRowShape>;
 export type AdminProviderRow = z.infer<typeof adminProviderRowShape>;
 export type AdminReviewRow = z.infer<typeof adminReviewRowShape>;

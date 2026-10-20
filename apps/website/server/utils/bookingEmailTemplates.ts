@@ -593,7 +593,7 @@ export function renderSupportEmail(
 // Never the reason: what happened, and where to look.
 // ---------------------------------------------------------------------------
 
-export type AdminEmailKind = "admin_invite" | "admin_team_change" | "admin_request_new";
+export type AdminEmailKind = "admin_invite" | "admin_team_change" | "admin_request_new" | "admin_limit_reached" | "admin_support_refund";
 
 export function renderAdminInviteEmail(c: { adminUrl: string; invitedBy: string; role: string }): RenderedEmail {
   return render({
@@ -624,5 +624,25 @@ export function renderAdminRequestEmail(c: { adminUrl: string; text: string }): 
     subject: "A request is waiting for you on lokl",
     intro: [c.text, "Approve or decline it on the Requests page, where you'll see their reason. It expires in 7 days."],
     button: { label: "Open Requests", url: `${c.adminUrl}/requests` },
+  });
+}
+
+/** A support member reached a daily limit (admin roles, step 5c), for each owner. */
+export function renderAdminLimitEmail(c: { adminUrl: string; text: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "A daily limit was reached on lokl",
+    intro: [c.text, "They can ask you for anything more today on the Requests page. The limits reset at midnight, Atlanta time."],
+    button: { label: "Open the Team page", url: `${c.adminUrl}/team` },
+  });
+}
+
+/** Each refund or cancellation by support (admin roles, step 5c), for each owner. Never the reason. */
+export function renderAdminSupportRefundEmail(c: { adminUrl: string; text: string; bookingId: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "Support refunded or cancelled a booking",
+    intro: [c.text, "Their reason is on the booking."],
+    button: { label: "Open the booking", url: `${c.adminUrl}/bookings/${c.bookingId}` },
   });
 }

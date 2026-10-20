@@ -1,5 +1,6 @@
 // The provider pickers on the admin tables: SearchSelect searches providers
-// on the server (admin_providers_page, 20 at a time, by name or owner email),
+// on the server (admin_providers_page, 20 at a time, by name or owner email;
+// the email is matched, never shown: admin roles step 5c),
 // and the chosen provider's name is looked up from its id (in the URL) so
 // the box names it after a reload.
 export function useProviderPicker(selectedId: () => string | undefined) {
@@ -10,8 +11,11 @@ export function useProviderPicker(selectedId: () => string | undefined) {
       .rpc("admin_providers_page", { p_q: term || undefined, p_sort: "name", p_desc: false, p_page_size: 20 })
       .abortSignal(signal);
     const page = asServerPage("admin_providers_page", data, error);
-    // Two businesses can share a name: the owner's email tells them apart.
-    return page.rows.map((p) => ({ value: p.id, label: p.display_name, description: p.owner_email }));
+    // Two businesses can share a name: their market and joining date tell them apart.
+    return page.rows.map((p) => ({
+      value: p.id, label: p.display_name,
+      description: [p.city ? `${p.city.name}, ${p.city.state}` : null, `joined ${formatHomeDate(p.created_at)}`].filter(Boolean).join(" · "),
+    }));
   }
 
   const selectedLabel = ref<string | undefined>();

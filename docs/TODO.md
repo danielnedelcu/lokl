@@ -788,8 +788,11 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     a role, reset authenticators, remove; every change logged and sent
     to every owner's bell and inbox; built and pushed to hosted 2026-10-19); 5b, requests (support asks, the
     owner approves or declines; the $150 refund limit on what's left of
-    the charge; built 2026-10-19, pull request open, `db:push` after the
-    merge); 5c, contact views and daily limits; 5d, settings for the
+    the charge; built and pushed to hosted 2026-10-20); 5c, contact views
+    and support's daily limits (contact details only through a recorded
+    view; 5 refunds and $500, 40 contact views, 20 requests a day; each
+    refund by support and each limit reached alerts the owners; built
+    2026-10-20, pull request open, `db:push` after the merge); 5c, contact views and daily limits; 5d, settings for the
     limits and the remaining alerts. After one release, remove `app_metadata.role` from the
     owner's login (unused since step 4).
   - [ ] **An authenticator code works more than once** (found 2026-10-19):

@@ -15,9 +15,9 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { adminRequestNewText, adminTeamChangeText, errorText, marketZone, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
+import { adminLimitReachedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderAdminInviteEmail, renderAdminRequestEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
+import { renderAdminInviteEmail, renderAdminLimitEmail, renderAdminRequestEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -455,8 +455,26 @@ export async function sendAdminEmails(
       if (!opts.adminUrl) return { skip: "NUXT_ADMIN_ORIGIN isn't set, so there's no link to the admin app." };
       const adminUrl = opts.adminUrl.replace(/\/$/, "");
       const { data: action, error } = await db.from("admin_actions")
-        .select("admin_id, target_id, action, message").eq("id", row.admin_action_id).single();
+        .select("admin_id, target_id, action, message, amount_cents").eq("id", row.admin_action_id).single();
       if (error) throw new Error(error.message);
+      if (row.kind === "admin_limit_reached" || row.kind === "admin_support_refund") {
+        // For each owner; skipped once they're no longer one (step 5c).
+        // bounded: one row by its primary key
+        const { data: member } = await db.from("admin_members").select("role, status").eq("user_id", row.recipient_id).maybeSingle();
+        const to = await emailOf(row.recipient_id);
+        if (member?.status !== "active" || member.role !== "owner") return { skip: "No longer an owner.", to };
+        const who = (await emailOf(action.admin_id)) ?? "A support member";
+        if (row.kind === "admin_limit_reached") {
+          return { to, email: renderAdminLimitEmail({ adminUrl, text: adminLimitReachedText(who, action.message as AdminLimitName) }) };
+        }
+        const { data: b } = await db.from("bookings").select("listing:listings(title), provider:providers(display_name)").eq("id", action.target_id).maybeSingle();
+        const booking = b as unknown as { listing: { title: string } | null; provider: { display_name: string } | null } | null;
+        const text = adminSupportRefundText(who, {
+          amountCents: action.amount_cents, resolvedReport: action.action === "resolve_problem_refunded",
+          listingTitle: booking?.listing?.title, providerName: booking?.provider?.display_name,
+        });
+        return { to, email: renderAdminSupportRefundEmail({ adminUrl, text, bookingId: action.target_id }) };
+      }
       if (row.kind === "admin_request_new") {
         // A support member's request, for each owner; skipped once it's decided.
         // bounded: one row by its primary key
