@@ -173,6 +173,7 @@ if (dbChanged) {
   add("db:test", "npm", ["run", "db:test"], "a migration or pgTAP test changed");
   add("db:types:check", "npm", ["run", "db:types:check"], "a migration or pgTAP test changed");
 }
+if (dbChanged || has(/^scripts\/check-null-guards\.mjs$/)) add("check:null-guards", "npm", ["run", "check:null-guards"], dbChanged ? "the database changed" : "the check changed");
 if (dbChanged || publicCacheChanged) add("check:public-cache", "npm", ["run", "check:public-cache"], dbChanged ? "the database changed" : "a cached public route changed");
 if (migrationChanged) add("db:test:realtime", "npm", ["run", "db:test:realtime"], "a migration changed");
 if (has(/(^|\/)nuxt\.config\.ts$|\.env\.example$|^scripts\/build-(check|secrets-check)\.mjs$/)) add("build:secrets-check", "npm", ["run", "build:secrets-check"], "a build setting changed");

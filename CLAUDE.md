@@ -75,6 +75,7 @@ npm run check:reads           # fails on a read of a growing table that could st
 npm run check:dates           # fails on a date or time that would follow the device's zone
 npm run check:rpc-json        # fails on a database function's JSON read without its schema (rpcJson)
 npm run check:public-cache    # fails on a table behind a cached public route that raises no content version and isn't on the 60-second list (after db:test)
+npm run check:null-guards     # fails on a refusal or role test in a database function that a null would skip (after db:test)
 npm run check:e2e-serial      # fails on a browser test that runs a timed job, sets the homepage or changes commission rates without the @serial tag
 npm run check:journey-pages   # fails on a page no browser journey names (listed exceptions have reasons; the list only shrinks)
 npm run check:logs            # fails on a server log that prints an error as it is (use errorText)
@@ -229,6 +230,15 @@ for usability and defence in depth, never as the only protection.
   `column in (select public.active_provider_ids())` and its siblings.
 - Policies are named `<table>_<action>` (`providers_read_own`); their
   plain-English meaning goes in `comment on policy`.
+- **Refusals can't be skipped by a null** (2026-10-20): in SQL, `v_role =
+  'owner'` is null when `v_role` is, and plpgsql's `if` skips a null, so
+  `if not is_owner()` once let a customer through. A refusal or role test
+  uses `is [not] null`, `is not true`, `is [not] distinct from` or
+  `coalesce(...)`, or compares a variable refused when null first.
+  `npm run check:null-guards` (CI) fails otherwise; a genuine exception
+  goes on its KNOWN_SAFE list with the reason. Boolean helpers it trusts
+  (`is_admin()`, `is_owner()`, …) are tested never to return null
+  (`null_guards.test.sql`).
 - Every table's migration states its delete behaviour. Tables that bookings,
   payments or payouts point to are deactivated, never deleted.
 
