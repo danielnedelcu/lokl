@@ -84,7 +84,9 @@ test("the owner changes support's limits with a reason; the other owners are tol
       .toContainText(`${owner.email} changed the settings: Contact views a day ${before} to ${Number(before) - 1}.`);
     await otherPage.goto(`${ADMIN}/activity`);
     await otherPage.getByLabel("Who").selectOption({ label: owner.email });
-    await expect(otherPage.getByRole("listitem").filter({ hasText: "changed support's limits" }))
+    // By this owner's email (unique to the run): the settings log keeps every
+    // earlier change, and the list may not have narrowed to "Who" yet.
+    await expect(otherPage.getByRole("listitem").filter({ hasText: `${owner.email} changed support's limits` }))
       .toContainText("Reason: “Fewer lookups while we review access.”");
     await theirs.close();
   } finally {
