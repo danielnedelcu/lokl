@@ -3590,6 +3590,12 @@
           "type": "text",
           "nullable": true,
           "comment": "For review moderation: the written review rule the removal applied."
+        },
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "The request this action answered: approved (the action ran, as the owner) or done by the owner directly. With admin_requests.requested_by, the history names who asked and who approved."
         }
       ],
       "indexes": [
@@ -3610,13 +3616,21 @@
             "target_id",
             "created_at"
           ]
+        },
+        {
+          "name": "admin_actions_request",
+          "def": "CREATE INDEX admin_actions_request ON public.admin_actions USING btree (request_id) WHERE (request_id IS NOT NULL)",
+          "table": "public.admin_actions",
+          "columns": [
+            "request_id"
+          ]
         }
       ],
       "constraints": [
         {
           "name": "admin_actions_action_check",
           "type": "CHECK",
-          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text])))",
+          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text, 'request_action'::text, 'decline_request'::text, 'withdraw_request'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3636,7 +3650,7 @@
         {
           "name": "admin_actions_reason",
           "type": "CHECK",
-          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
+          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text, 'withdraw_request'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3667,7 +3681,7 @@
         {
           "name": "admin_actions_target_check",
           "type": "CHECK",
-          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text, 'review'::text, 'support_report'::text, 'admin_member'::text])))",
+          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text, 'review'::text, 'support_report'::text, 'admin_member'::text, 'admin_request'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3694,6 +3708,19 @@
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_actions_request_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (request_id) REFERENCES admin_requests(id) ON DELETE RESTRICT",
+          "table": "public.admin_actions",
+          "referenced_table": "public.admin_requests",
+          "columns": [
+            "request_id"
+          ],
+          "referenced_columns": [
             "id"
           ]
         }
@@ -9240,6 +9267,12 @@
           "type": "uuid",
           "nullable": true,
           "comment": "For a team change: the admin_actions row saying who did what (invite, role change, removal, second factor reset, join)."
+        },
+        {
+          "name": "admin_request_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "For a request: the request (request_new to each owner; request_decided to the person who asked)."
         }
       ],
       "indexes": [
@@ -9283,25 +9316,34 @@
           "columns": [
             "admin_action_id"
           ]
+        },
+        {
+          "name": "admin_notifications_admin_request",
+          "def": "CREATE INDEX admin_notifications_admin_request ON public.admin_notifications USING btree (admin_request_id) WHERE (admin_request_id IS NOT NULL)",
+          "table": "public.admin_notifications",
+          "columns": [
+            "admin_request_id"
+          ]
         }
       ],
       "constraints": [
         {
           "name": "admin_notifications_about_check",
           "type": "CHECK",
-          "def": "CHECK ((((kind = 'team_change'::text) = (admin_action_id IS NOT NULL)) AND ((kind = 'team_change'::text) = (report_id IS NULL))))",
+          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = 'team_change'::text) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL))))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
-            "kind",
+            "report_id",
             "admin_action_id",
-            "report_id"
+            "admin_request_id",
+            "kind"
           ]
         },
         {
           "name": "admin_notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text])))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -9354,6 +9396,19 @@
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_notifications_admin_request_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (admin_request_id) REFERENCES admin_requests(id) ON DELETE RESTRICT",
+          "table": "public.admin_notifications",
+          "referenced_table": "public.admin_requests",
+          "columns": [
+            "admin_request_id"
+          ],
+          "referenced_columns": [
             "id"
           ]
         }
@@ -9951,7 +10006,7 @@
         {
           "name": "admin_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text])))",
           "table": "public.admin_emails",
           "referenced_table": "",
           "columns": [
@@ -10030,6 +10085,449 @@
         {
           "name": "admin_emails_outbox_guard_truncate",
           "def": "CREATE TRIGGER admin_emails_outbox_guard_truncate BEFORE TRUNCATE ON public.admin_emails FOR EACH STATEMENT EXECUTE FUNCTION outbox_guard()"
+        }
+      ]
+    },
+    {
+      "name": "public.admin_settings",
+      "type": "BASE TABLE",
+      "comment": "The owner's settings for the team (admin roles): one row (id is always true). Support refunds directly up to refund_limit_cents of what's left of a charge; above it, they ask the owner (admin_requests). Never deleted. Changed by the owner from the Settings page (step 5d); until then, by migration.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "boolean",
+          "nullable": false,
+          "default": "true"
+        },
+        {
+          "name": "refund_limit_cents",
+          "type": "integer",
+          "nullable": false,
+          "default": "15000",
+          "comment": "The most support can refund directly, in cents, measured on what's left of the charge (default $150)."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_settings_pkey",
+          "def": "CREATE UNIQUE INDEX admin_settings_pkey ON public.admin_settings USING btree (id)",
+          "table": "public.admin_settings",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "admin_settings_id_check",
+          "type": "CHECK",
+          "def": "CHECK (id)",
+          "table": "public.admin_settings",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_settings_refund_limit_cents_check",
+          "type": "CHECK",
+          "def": "CHECK (((refund_limit_cents \u003e= 0) AND (refund_limit_cents \u003c= 1000000)))",
+          "table": "public.admin_settings",
+          "referenced_table": "",
+          "columns": [
+            "refund_limit_cents"
+          ]
+        },
+        {
+          "name": "admin_settings_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.admin_settings",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "admin_settings_set_updated_at",
+          "def": "CREATE TRIGGER admin_settings_set_updated_at BEFORE UPDATE ON public.admin_settings FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        }
+      ]
+    },
+    {
+      "name": "public.admin_requests",
+      "type": "BASE TABLE",
+      "comment": "Support's requests for what only the owner may do (admin roles, step 5b): a refund over the limit, releasing a payout hold, resolving a report by paying the provider, suspending or reinstating a provider. Pending until the owner approves (the action runs, as the owner, and closes it), declines (with a note) or acts directly (\"done by the owner\"), the asker withdraws it, or 7 days pass (expired). One pending request per thing. Never deleted; only its decision is ever written, once.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "resolve_problem",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "amount_cents",
+          "type": "integer",
+          "nullable": true,
+          "comment": "A refund's amount when asked: what was left of the charge then. Approving refunds what's left at that moment, which the approval screen shows if it changed."
+        },
+        {
+          "name": "hold",
+          "type": "text",
+          "nullable": true,
+          "comment": "The payout hold to release, as it was when asked."
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "requested_by",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'pending'::text"
+        },
+        {
+          "name": "decided_by",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "decision_note",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "result",
+          "type": "text",
+          "nullable": true,
+          "comment": "What approving (or the owner's own action) did, in a few words."
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_requests_pkey",
+          "def": "CREATE UNIQUE INDEX admin_requests_pkey ON public.admin_requests USING btree (id)",
+          "table": "public.admin_requests",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_requests_one_pending",
+          "def": "CREATE UNIQUE INDEX admin_requests_one_pending ON public.admin_requests USING btree (kind, COALESCE(booking_id, provider_id)) WHERE (status = 'pending'::text)",
+          "table": "public.admin_requests",
+          "columns": [
+            "kind",
+            "coalesce"
+          ]
+        },
+        {
+          "name": "admin_requests_pending",
+          "def": "CREATE INDEX admin_requests_pending ON public.admin_requests USING btree (created_at) WHERE (status = 'pending'::text)",
+          "table": "public.admin_requests",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "admin_requests_requested_by",
+          "def": "CREATE INDEX admin_requests_requested_by ON public.admin_requests USING btree (requested_by, created_at DESC)",
+          "table": "public.admin_requests",
+          "columns": [
+            "requested_by",
+            "created_at"
+          ]
+        },
+        {
+          "name": "admin_requests_booking",
+          "def": "CREATE INDEX admin_requests_booking ON public.admin_requests USING btree (booking_id) WHERE (booking_id IS NOT NULL)",
+          "table": "public.admin_requests",
+          "columns": [
+            "booking_id"
+          ]
+        },
+        {
+          "name": "admin_requests_provider",
+          "def": "CREATE INDEX admin_requests_provider ON public.admin_requests USING btree (provider_id) WHERE (provider_id IS NOT NULL)",
+          "table": "public.admin_requests",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "admin_requests_amount_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((amount_cents \u003e= 0))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "amount_cents"
+          ]
+        },
+        {
+          "name": "admin_requests_check",
+          "type": "CHECK",
+          "def": "CHECK (((kind = ANY (ARRAY['suspend_provider'::text, 'reinstate_provider'::text])) = ((provider_id IS NOT NULL) AND (booking_id IS NULL))))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "provider_id",
+            "booking_id"
+          ]
+        },
+        {
+          "name": "admin_requests_check1",
+          "type": "CHECK",
+          "def": "CHECK (((kind = ANY (ARRAY['refund'::text, 'release_payout'::text, 'resolve_problem_paid'::text])) = ((booking_id IS NOT NULL) AND (provider_id IS NULL))))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "booking_id",
+            "provider_id"
+          ]
+        },
+        {
+          "name": "admin_requests_check2",
+          "type": "CHECK",
+          "def": "CHECK (((resolve_problem = false) OR (kind = 'refund'::text)))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "resolve_problem",
+            "kind"
+          ]
+        },
+        {
+          "name": "admin_requests_check3",
+          "type": "CHECK",
+          "def": "CHECK (((kind = 'refund'::text) = (amount_cents IS NOT NULL)))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "amount_cents"
+          ]
+        },
+        {
+          "name": "admin_requests_check4",
+          "type": "CHECK",
+          "def": "CHECK (((kind = 'release_payout'::text) = (hold IS NOT NULL)))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "hold"
+          ]
+        },
+        {
+          "name": "admin_requests_check5",
+          "type": "CHECK",
+          "def": "CHECK (((message IS NULL) OR (kind = ANY (ARRAY['suspend_provider'::text, 'reinstate_provider'::text]))))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "message",
+            "kind"
+          ]
+        },
+        {
+          "name": "admin_requests_check6",
+          "type": "CHECK",
+          "def": "CHECK (((status = 'pending'::text) = (decided_at IS NULL)))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "decided_at"
+          ]
+        },
+        {
+          "name": "admin_requests_decision_note_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(decision_note) \u003c= 1000))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "decision_note"
+          ]
+        },
+        {
+          "name": "admin_requests_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['refund'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'suspend_provider'::text, 'reinstate_provider'::text])))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "admin_requests_message_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(message) \u003c= 1000))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "message"
+          ]
+        },
+        {
+          "name": "admin_requests_reason_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(TRIM(BOTH FROM reason)) \u003e= 5) AND (char_length(TRIM(BOTH FROM reason)) \u003c= 1000)))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "reason"
+          ]
+        },
+        {
+          "name": "admin_requests_result_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(result) \u003c= 300))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "result"
+          ]
+        },
+        {
+          "name": "admin_requests_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'declined'::text, 'withdrawn'::text, 'expired'::text, 'done_by_owner'::text])))",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "admin_requests_decided_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (decided_by) REFERENCES auth.users(id) ON DELETE RESTRICT",
+          "table": "public.admin_requests",
+          "referenced_table": "auth.users",
+          "columns": [
+            "decided_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_requests_requested_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (requested_by) REFERENCES auth.users(id) ON DELETE RESTRICT",
+          "table": "public.admin_requests",
+          "referenced_table": "auth.users",
+          "columns": [
+            "requested_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_requests_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.admin_requests",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_requests_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.admin_requests",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_requests_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.admin_requests",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "admin_requests_guard",
+          "def": "CREATE TRIGGER admin_requests_guard BEFORE DELETE OR UPDATE ON public.admin_requests FOR EACH ROW EXECUTE FUNCTION admin_requests_guard()"
+        },
+        {
+          "name": "admin_requests_guard_truncate",
+          "def": "CREATE TRIGGER admin_requests_guard_truncate BEFORE TRUNCATE ON public.admin_requests FOR EACH STATEMENT EXECUTE FUNCTION admin_requests_guard()"
         }
       ]
     }
@@ -10322,6 +10820,19 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_actions",
+      "columns": [
+        "request_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.admin_requests",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (request_id) REFERENCES admin_requests(id) ON DELETE RESTRICT"
     },
     {
       "table": "public.provider_emails",
@@ -10961,6 +11472,19 @@
       "def": "FOREIGN KEY (report_id) REFERENCES support_reports(id) ON DELETE RESTRICT"
     },
     {
+      "table": "public.admin_notifications",
+      "columns": [
+        "admin_request_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.admin_requests",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (admin_request_id) REFERENCES admin_requests(id) ON DELETE RESTRICT"
+    },
+    {
       "table": "public.support_emails",
       "columns": [
         "provider_id"
@@ -10998,6 +11522,32 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_requests",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_requests",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -11191,12 +11741,6 @@
       "name": "public.commission_rates_log_change",
       "return_type": "trigger",
       "arguments": "",
-      "type": "FUNCTION"
-    },
-    {
-      "name": "public.admin_set_provider_status",
-      "return_type": "bool",
-      "arguments": "p_provider_id uuid, p_status text, p_admin_id uuid, p_reason text, p_message text",
       "type": "FUNCTION"
     },
     {
@@ -11563,24 +12107,6 @@
       "name": "public.is_time_zone",
       "return_type": "bool",
       "arguments": "p_name text",
-      "type": "FUNCTION"
-    },
-    {
-      "name": "public.admin_cancel_booking",
-      "return_type": "text",
-      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text, p_from text, p_resolve_problem boolean, p_refunded_cents integer, p_cancelled_at timestamp with time zone, p_reversal_id text, p_reversal_failure text",
-      "type": "FUNCTION"
-    },
-    {
-      "name": "public.admin_release_payout",
-      "return_type": "bool",
-      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text, p_hold text",
-      "type": "FUNCTION"
-    },
-    {
-      "name": "public.admin_resolve_problem_paid",
-      "return_type": "bool",
-      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text",
       "type": "FUNCTION"
     },
     {
@@ -12997,6 +13523,120 @@
       "name": "public.admin_team",
       "return_type": "record",
       "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_refund_limit_cents",
+      "return_type": "int4",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_refundable_cents",
+      "return_type": "int4",
+      "arguments": "p_booking_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_money",
+      "return_type": "text",
+      "arguments": "p_cents integer",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_requests_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_requests_expire",
+      "return_type": "void",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_request_tell_asker",
+      "return_type": "void",
+      "arguments": "p_request_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_request_settle",
+      "return_type": "uuid",
+      "arguments": "p_request_id uuid, p_admin_id uuid, p_kind text, p_booking_id uuid, p_provider_id uuid, p_resolve_problem boolean, p_result text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_check_refund",
+      "return_type": "int4",
+      "arguments": "p_admin_id uuid, p_booking_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_request_create",
+      "return_type": "uuid",
+      "arguments": "p_kind text, p_booking_id uuid, p_provider_id uuid, p_reason text, p_message text DEFAULT NULL::text, p_resolve_problem boolean DEFAULT false",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_request_withdraw",
+      "return_type": "text",
+      "arguments": "p_request_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_request_decline",
+      "return_type": "text",
+      "arguments": "p_request_id uuid, p_note text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_request_for_approval",
+      "return_type": "jsonb",
+      "arguments": "p_admin_id uuid, p_request_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_requests_page",
+      "return_type": "jsonb",
+      "arguments": "p_scope text DEFAULT 'open'::text, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_member_names",
+      "return_type": "record",
+      "arguments": "p_ids uuid[]",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_cancel_settle",
+      "return_type": "uuid",
+      "arguments": "p_request_id uuid, p_owner boolean, p_moved boolean, p_admin_id uuid, p_booking_id uuid, p_resolve_problem boolean, p_result text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_cancel_booking",
+      "return_type": "text",
+      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text, p_from text, p_resolve_problem boolean, p_refunded_cents integer, p_cancelled_at timestamp with time zone, p_reversal_id text, p_reversal_failure text, p_request_id uuid DEFAULT NULL::uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_release_payout",
+      "return_type": "bool",
+      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text, p_hold text, p_request_id uuid DEFAULT NULL::uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_resolve_problem_paid",
+      "return_type": "bool",
+      "arguments": "p_booking_id uuid, p_admin_id uuid, p_reason text, p_request_id uuid DEFAULT NULL::uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_set_provider_status",
+      "return_type": "bool",
+      "arguments": "p_provider_id uuid, p_status text, p_admin_id uuid, p_reason text, p_message text, p_request_id uuid DEFAULT NULL::uuid",
       "type": "FUNCTION"
     }
   ],

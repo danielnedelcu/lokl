@@ -28,7 +28,7 @@ The team's email outbox (admin roles, 2026-10-19): an invitation to the person i
 | Name                              | Type        | Definition                                                                                                      |
 | --------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------- |
 | admin_emails_attempts_check       | CHECK       | CHECK ((attempts >= 0))                                                                                         |
-| admin_emails_kind_check           | CHECK       | CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text])))                                   |
+| admin_emails_kind_check           | CHECK       | CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text])))        |
 | admin_emails_last_error_check     | CHECK       | CHECK ((char_length(last_error) <= 500))                                                                        |
 | admin_emails_skip_reason_check    | CHECK       | CHECK ((char_length(skip_reason) <= 200))                                                                       |
 | admin_emails_status_check         | CHECK       | CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'skipped'::text, 'failed'::text]))) |
