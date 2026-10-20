@@ -2,7 +2,7 @@
 
 ## Description
 
-The owner's settings for the team (admin roles): one row (id is always true). Support refunds directly up to refund_limit_cents of what's left of a charge; above it, they ask the owner (admin_requests). Never deleted. Changed by the owner from the Settings page (step 5d); until then, by migration.
+The owner's settings for the team (admin roles): one row (id is always true). Support refunds directly up to refund_limit_cents of what's left of a charge; above it, they ask the owner (admin_requests). Never deleted. Changed by the owner on the Settings page (admin_update_settings, logged).
 
 ## Columns
 

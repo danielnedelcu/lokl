@@ -523,6 +523,10 @@
       ],
       "triggers": [
         {
+          "name": "cities_log",
+          "def": "CREATE TRIGGER cities_log AFTER INSERT OR UPDATE ON public.cities FOR EACH ROW EXECUTE FUNCTION log_reference_change('market')"
+        },
+        {
           "name": "cities_public_content",
           "def": "CREATE TRIGGER cities_public_content AFTER INSERT OR DELETE OR UPDATE ON public.cities FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
         },
@@ -680,6 +684,10 @@
         }
       ],
       "triggers": [
+        {
+          "name": "service_areas_log",
+          "def": "CREATE TRIGGER service_areas_log AFTER INSERT OR UPDATE ON public.service_areas FOR EACH ROW EXECUTE FUNCTION log_reference_change('area')"
+        },
         {
           "name": "service_areas_public_content",
           "def": "CREATE TRIGGER service_areas_public_content AFTER INSERT OR DELETE OR UPDATE ON public.service_areas FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
@@ -859,6 +867,10 @@
         }
       ],
       "triggers": [
+        {
+          "name": "categories_log",
+          "def": "CREATE TRIGGER categories_log AFTER INSERT OR UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION log_reference_change('category')"
+        },
         {
           "name": "categories_public_content",
           "def": "CREATE TRIGGER categories_public_content AFTER INSERT OR DELETE OR UPDATE ON public.categories FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')"
@@ -1396,8 +1408,8 @@
           "def": "CREATE TRIGGER listings_public_content_truncate AFTER TRUNCATE ON public.listings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')"
         },
         {
-          "name": "listings_require_photo",
-          "def": "CREATE TRIGGER listings_require_photo BEFORE UPDATE OF status ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_require_photo()"
+          "name": "listings_require_ready",
+          "def": "CREATE TRIGGER listings_require_ready BEFORE INSERT OR UPDATE OF status ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_require_ready()"
         },
         {
           "name": "listings_set_slug",
@@ -3561,7 +3573,8 @@
         {
           "name": "target_id",
           "type": "uuid",
-          "nullable": false
+          "nullable": true,
+          "comment": "The row acted on, in the table target names. Empty only for the homepage and the settings, which are one thing each."
         },
         {
           "name": "action",
@@ -3636,7 +3649,7 @@
         {
           "name": "admin_actions_action_check",
           "type": "CHECK",
-          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text, 'request_action'::text, 'decline_request'::text, 'withdraw_request'::text, 'limit_reached'::text])))",
+          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text, 'request_action'::text, 'decline_request'::text, 'withdraw_request'::text, 'limit_reached'::text, 'approve_listing'::text, 'reject_listing'::text, 'unpublish_listing'::text, 'restore_listing'::text, 'publish_guide'::text, 'unpublish_guide'::text, 'set_homepage_features'::text, 'change_admin_settings'::text, 'add_category'::text, 'change_category'::text, 'add_market'::text, 'change_market'::text, 'add_area'::text, 'change_area'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3666,7 +3679,7 @@
         {
           "name": "admin_actions_reason",
           "type": "CHECK",
-          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text, 'withdraw_request'::text, 'limit_reached'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
+          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text, 'withdraw_request'::text, 'limit_reached'::text, 'approve_listing'::text, 'restore_listing'::text, 'publish_guide'::text, 'unpublish_guide'::text, 'set_homepage_features'::text, 'add_category'::text, 'change_category'::text, 'add_market'::text, 'change_market'::text, 'add_area'::text, 'change_area'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3697,11 +3710,22 @@
         {
           "name": "admin_actions_target_check",
           "type": "CHECK",
-          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text, 'review'::text, 'support_report'::text, 'admin_member'::text, 'admin_request'::text])))",
+          "def": "CHECK ((target = ANY (ARRAY['booking'::text, 'provider'::text, 'email'::text, 'review'::text, 'support_report'::text, 'admin_member'::text, 'admin_request'::text, 'listing'::text, 'guide'::text, 'homepage'::text, 'settings'::text, 'category'::text, 'market'::text, 'area'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
             "target"
+          ]
+        },
+        {
+          "name": "admin_actions_target_id",
+          "type": "CHECK",
+          "def": "CHECK (((target = ANY (ARRAY['homepage'::text, 'settings'::text])) = (target_id IS NULL)))",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "target",
+            "target_id"
           ]
         },
         {
@@ -9346,7 +9370,7 @@
         {
           "name": "admin_notifications_about_check",
           "type": "CHECK",
-          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL))))",
+          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL))))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -9359,7 +9383,7 @@
         {
           "name": "admin_notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text])))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -10022,7 +10046,7 @@
         {
           "name": "admin_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text, 'admin_listing_taken_down'::text, 'admin_settings_change'::text])))",
           "table": "public.admin_emails",
           "referenced_table": "",
           "columns": [
@@ -10107,7 +10131,7 @@
     {
       "name": "public.admin_settings",
       "type": "BASE TABLE",
-      "comment": "The owner's settings for the team (admin roles): one row (id is always true). Support refunds directly up to refund_limit_cents of what's left of a charge; above it, they ask the owner (admin_requests). Never deleted. Changed by the owner from the Settings page (step 5d); until then, by migration.",
+      "comment": "The owner's settings for the team (admin roles): one row (id is always true). Support refunds directly up to refund_limit_cents of what's left of a charge; above it, they ask the owner (admin_requests). Never deleted. Changed by the owner on the Settings page (admin_update_settings, logged).",
       "columns": [
         {
           "name": "id",
@@ -12046,12 +12070,6 @@
     },
     {
       "name": "public.listing_photos_guard",
-      "return_type": "trigger",
-      "arguments": "",
-      "type": "FUNCTION"
-    },
-    {
-      "name": "public.listings_require_photo",
       "return_type": "trigger",
       "arguments": "",
       "type": "FUNCTION"
@@ -14124,6 +14142,48 @@
       "name": "public.admin_release_refund_hold",
       "return_type": "void",
       "arguments": "p_admin_id uuid, p_booking_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_readiness_of",
+      "return_type": "jsonb",
+      "arguments": "l listings",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listing_readiness",
+      "return_type": "jsonb",
+      "arguments": "p_listing_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listings_require_ready",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_set_listing_status",
+      "return_type": "void",
+      "arguments": "p_admin_id uuid, p_listing_id uuid, p_from text, p_to text, p_reason text DEFAULT NULL::text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_update_settings",
+      "return_type": "void",
+      "arguments": "p_refund_limit_cents integer, p_refunds_per_day integer, p_refund_cents_per_day integer, p_contact_views_per_day integer, p_requests_per_day integer, p_reason text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.log_reference_change",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_activity_page",
+      "return_type": "jsonb",
+      "arguments": "p_admin_id uuid DEFAULT NULL::uuid, p_page integer DEFAULT 1, p_page_size integer DEFAULT 50",
       "type": "FUNCTION"
     }
   ],

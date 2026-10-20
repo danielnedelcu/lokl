@@ -314,6 +314,7 @@
 <polygon fill="none" stroke="black" points="834.45,-2172.4 834.45,-2203.2 2137.96,-2203.2 2137.96,-2172.4 834.45,-2172.4"/>
 <text text-anchor="start" x="841.45" y="-2184.6" font-family="Arial" font-size="14.00">target_id </text>
 <text text-anchor="start" x="899.82" y="-2184.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="934.07" y="-2184.6" font-family="Arial" font-size="14.00"> The row acted on, in the table target names. Empty only for the homepage and the settings, which are one thing each.</text>
 <polygon fill="none" stroke="black" points="834.45,-2141.6 834.45,-2172.4 2137.96,-2172.4 2137.96,-2141.6 834.45,-2141.6"/>
 <text text-anchor="start" x="841.45" y="-2153.8" font-family="Arial" font-size="14.00">action </text>
 <text text-anchor="start" x="882.69" y="-2153.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>

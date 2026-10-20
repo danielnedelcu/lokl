@@ -142,6 +142,7 @@
 <polygon fill="none" stroke="black" points="1457.12,-366.6 1457.12,-397.4 2760.63,-397.4 2760.63,-366.6 1457.12,-366.6"/>
 <text text-anchor="start" x="1464.12" y="-378.8" font-family="Arial" font-size="14.00">target_id </text>
 <text text-anchor="start" x="1522.49" y="-378.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="1556.74" y="-378.8" font-family="Arial" font-size="14.00"> The row acted on, in the table target names. Empty only for the homepage and the settings, which are one thing each.</text>
 <polygon fill="none" stroke="black" points="1457.12,-335.8 1457.12,-366.6 2760.63,-366.6 2760.63,-335.8 1457.12,-335.8"/>
 <text text-anchor="start" x="1464.12" y="-348" font-family="Arial" font-size="14.00">action </text>
 <text text-anchor="start" x="1505.36" y="-348" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>

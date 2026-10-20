@@ -86,7 +86,7 @@ A Service or Experience a provider offers. Deleted only while it has never been 
 | listings_open_days_update        | CREATE TRIGGER listings_open_days_update AFTER UPDATE ON public.listings REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('provider_id')               |
 | listings_public_content          | CREATE TRIGGER listings_public_content AFTER INSERT OR DELETE OR UPDATE ON public.listings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')                                    |
 | listings_public_content_truncate | CREATE TRIGGER listings_public_content_truncate AFTER TRUNCATE ON public.listings FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('listings')                                             |
-| listings_require_photo           | CREATE TRIGGER listings_require_photo BEFORE UPDATE OF status ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_require_photo()                                                              |
+| listings_require_ready           | CREATE TRIGGER listings_require_ready BEFORE INSERT OR UPDATE OF status ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_require_ready()                                                    |
 | listings_set_slug                | CREATE TRIGGER listings_set_slug BEFORE INSERT ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_set_slug()                                                                                  |
 | listings_set_updated_at          | CREATE TRIGGER listings_set_updated_at BEFORE UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                                                               |
 
