@@ -18,7 +18,7 @@ export async function adminRoleFor(event: Event, token: string): Promise<AdminRo
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
-  const { data, error } = await asThem.rpc("admin_role");
+  const { data, error } = await asThem.rpc("admin_role", {}, { get: true });
   if (error) return null;
   return data === "owner" || data === "support" ? data : null;
 }

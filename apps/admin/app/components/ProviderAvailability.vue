@@ -25,7 +25,7 @@ const { data, error, status } = useAsyncData(`provider-availability-${props.prov
   ]);
   for (const r of [hours, off, services]) if (r.error) throw r.error;
   const next = await Promise.all((services.data ?? []).map(async (s) => {
-    const { data: at, error: e } = await supabase.rpc("service_next_slot", { p_listing_id: s.id });
+    const { data: at, error: e } = await supabase.rpc("service_next_slot", { p_listing_id: s.id }, { get: true });
     if (e) throw e;
     return at as string | null;
   }));

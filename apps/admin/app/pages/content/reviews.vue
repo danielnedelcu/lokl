@@ -28,7 +28,7 @@ const { data, error, pending, refresh } = await useAsyncData("admin-reviews", as
     p_rating: stars.value === "any" ? undefined : Number(stars.value),
     p_page: page.value,
     p_page_size: 25,
-  });
+  }, { get: true });
   if (e) throw e;
   return rpcJson("admin_reviews_page", d);
 }, { watch: [view, status, stars, page] });

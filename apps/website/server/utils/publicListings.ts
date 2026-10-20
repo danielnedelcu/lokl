@@ -164,14 +164,14 @@ export async function loadPublicListing(db: SupabaseClient, kind: ListingKind, s
   // unexpired reservations the visitor can't read).
   const upcoming = r.sessions.filter((s) => Date.parse(s.starts_at) > now).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const spots = await Promise.all(upcoming.map(async (s) => {
-    const { data: left } = await db.rpc("session_spots_left", { p_session_id: s.id });
+    const { data: left } = await db.rpc("session_spots_left", { p_session_id: s.id }, { get: true });
     return { id: s.id, startsAt: new Date(s.starts_at).toISOString(), spotsLeft: (left as number | null) ?? 0 };
   }));
   // A Service's first free time anywhere in its booking window, or none
   // ("Not taking bookings yet": no hours, or every time taken).
   let nextSlotAt: string | null = null;
   if (r.kind === "service") {
-    const { data: next, error: nextError } = await db.rpc("service_next_slot", { p_listing_id: r.id });
+    const { data: next, error: nextError } = await db.rpc("service_next_slot", { p_listing_id: r.id }, { get: true });
     if (nextError) throw new Error(nextError.message);
     nextSlotAt = next ? new Date(next as string).toISOString() : null;
   }
@@ -359,7 +359,7 @@ export async function browsePublicListings(db: SupabaseClient, q: BrowseQuery): 
     p_to: days.to,
     p_page: page,
     p_page_size: pageSize,
-  });
+  }, { get: true });
   if (pickError) throw new Error(pickError.message);
   // Services: those on the page with no free time in their window
   // (undated), and each one's first free day in the searched dates.
@@ -398,7 +398,7 @@ export async function loadPublicMarket(db: SupabaseClient, slug: string): Promis
   const [categories, areas, counted] = await Promise.all([
     db.from("categories").select("id, kind, name, slug, description").order("sort_order").order("name"),
     db.from("service_areas").select("id, name, kind").eq("city_id", market.id).order("sort_order").order("name"),
-    db.rpc("public_category_counts", { p_market_id: market.id }),
+    db.rpc("public_category_counts", { p_market_id: market.id }, { get: true }),
   ]);
   for (const r of [categories, areas, counted]) if (r.error) throw new Error(r.error.message);
   const counts = new Map(Object.entries(rpcJson("public_category_counts", counted.data)));
@@ -443,7 +443,7 @@ export async function publicSitemapEntries(db: SupabaseClient): Promise<{ loc: s
   // Destination guides: each market's index (once it has a guide) and every
   // published guide, dated by when its content last changed.
   for (const m of markets.data as { slug: string }[]) {
-    const { data, error } = await db.rpc("public_guides", { p_market: m.slug });
+    const { data, error } = await db.rpc("public_guides", { p_market: m.slug }, { get: true });
     if (error) throw new Error(error.message);
     // A market that isn't public has none.
     const guides = rpcJson("public_guides", data)?.guides ?? [];
