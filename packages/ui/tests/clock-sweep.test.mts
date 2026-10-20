@@ -18,11 +18,13 @@ import { addDays, dayRangeInstants, formatSessionTime, instantToZoned, monthStar
 import { ALL } from "../../../scripts/clock-instants.mjs";
 
 let failures = 0;
+let passed = 0;
 let quiet = false;
 let where = "";
 const check = (ok: boolean, name: string) => {
   if (!quiet || !ok) console.log(`${ok ? "ok  " : "FAIL"} ${name}${quiet ? ` (${where})` : ""}`);
-  if (!ok) failures++;
+  if (ok) passed++;
+  else failures++;
 };
 const ATL = "America/New_York";
 const iso = (t: number) => new Date(t).toISOString();
@@ -116,6 +118,8 @@ for (const [name, instant] of instants) {
   where = `${name}; ${instant}`;
   checksAt(now);
 }
-if (quiet) console.log(failures ? `${failures} failed across ${instants.length} instants` : `All clock sweep checks passed at all ${instants.length} instants.`);
+// Quiet mode prints only failures, so it reports its passes as one line
+// (the test runs' guard, scripts/tests/_requireChecks.mjs, counts it).
+if (quiet) console.log(failures ? `${failures} failed across ${instants.length} instants` : `ok   ${passed} checks passed at all ${instants.length} instants.`);
 else console.log(failures ? `${failures} failed` : "All clock sweep checks passed.");
 process.exit(failures ? 1 : 0);

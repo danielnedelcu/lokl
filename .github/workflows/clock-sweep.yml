@@ -77,7 +77,7 @@ jobs:
       - name: App tests that have depended on the time, now
         run: |
           for t in public-browse search-availability rpc-shapes; do
-            TZ=Asia/Tokyo npx tsx --import ./supabase/tests/app/_rowLimitCheck.mts --import ./supabase/tests/app/_safeOutput.mts "supabase/tests/app/$t.test.mts"
+            TZ=Asia/Tokyo npx tsx --import ./scripts/tests/_requireChecks.mjs --import ./supabase/tests/app/_rowLimitCheck.mts --import ./supabase/tests/app/_safeOutput.mts "supabase/tests/app/$t.test.mts"
           done
       - name: Check the Stripe sandbox key
         id: key
