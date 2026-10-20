@@ -4,6 +4,7 @@ import {
   listingReasonSchema,
   payoutSetupOf,
   reviewBlockers,
+  rpcJson,
   type ListingKind,
   type ListingReasonInput,
   type ListingStatus,
@@ -41,7 +42,7 @@ const { data, error, pending, refresh } = await useAsyncData(`admin-listing-${id
   // service_areas is linked to listings twice (the listing's own area_id, and
   // travel areas through listing_service_areas), so each embed names its
   // relationship.
-  const [listing, address, photos, sessions, travel] = await Promise.all([
+  const [listing, address, photos, sessions, travel, readiness] = await Promise.all([
     supabase
       .from("listings")
       .select("*, provider:providers(*), category:categories(name), city:cities(name, state, timezone), area:service_areas!listings_area_id_fkey(name)")
@@ -62,8 +63,11 @@ const { data, error, pending, refresh } = await useAsyncData(`admin-listing-${id
       .limit(50),
     // bounded: one listing's travel areas
     supabase.from("listing_service_areas").select("area:service_areas!listing_service_areas_service_area_id_fkey(name)").eq("listing_id", id.value),
+    // What blocks it going live: the database's rules, which its trigger
+    // enforces on approve and restore too.
+    supabase.rpc("listing_readiness", { p_listing_id: id.value }, { get: true }),
   ]);
-  for (const r of [listing, address, photos, sessions, travel]) if (r.error) throw r.error;
+  for (const r of [listing, address, photos, sessions, travel, readiness]) if (r.error) throw r.error;
   return {
     listing: listing.data as unknown as Detail | null,
     address: address.data as { line1: string; line2: string | null; city: string; state: string; postal_code: string; instructions: string | null } | null,
@@ -71,6 +75,7 @@ const { data, error, pending, refresh } = await useAsyncData(`admin-listing-${id
     sessions: (sessions.data ?? []) as { id: string; starts_at: string; capacity: number }[],
     sessionCount: sessions.count ?? 0,
     travelAreas: ((travel.data ?? []) as unknown as { area: { name: string } | null }[]).map((t) => t.area?.name).filter(Boolean) as string[],
+    readiness: rpcJson("listing_readiness", readiness.data),
   };
 });
 
@@ -84,23 +89,14 @@ const backTo = computed(() => (listing.value?.kind === "experience" ? "/listings
 const timeZone = computed(() => (listing.value ? marketZone(listing.value.city, `listing ${listing.value.id}`) : HOME_TIME_ZONE));
 const photoUrl = (path: string) => supabase.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
 
-// The same checks the approve and restore routes run, so the buttons say
-// up front why they're unavailable.
-const blockers = computed(() => {
-  const l = listing.value;
-  if (!l) return [];
-  return reviewBlockers({
-    kind: l.kind,
-    status: l.status,
-    locationMode: l.location_mode,
-    hasAddress: !!data.value?.address,
-    travelAreaCount: data.value?.travelAreas.length ?? 0,
-    photoCount: data.value?.photos.length ?? 0,
-    upcomingSessionCount: data.value?.sessionCount ?? 0,
-    providerActive: l.provider.status === "active",
-    payoutsReady: payoutSetupOf(l.provider) === "ready",
-  });
-});
+// What the database would refuse on approve or restore (listing_readiness),
+// so the buttons say up front why they're unavailable.
+const blockers = computed(() => (listing.value ? reviewBlockers(data.value?.readiness ?? []) : []));
+const role = useAdminRole();
+// Support taking a listing down alerts the owners, so the dialog says so.
+const dialogDescription = computed(() => pendingAction.value
+  ? copy[pendingAction.value].description + (pendingAction.value === "unpublish" && role.value === "support" ? " The owners are told." : "")
+  : "");
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -133,7 +129,7 @@ const copy: Record<Action, { title: string; description: string; button: string;
   },
   unpublish: {
     title: "Take this listing down?",
-    description: "Customers can't find or book it any more. The provider sees your reason in their editor, and only you can put it back.",
+    description: "Customers can't find or book it any more. The provider sees your reason in their editor. Anyone on the team can put it back.",
     button: "Take down",
     done: "Taken down.",
   },
@@ -361,7 +357,7 @@ watch(error, (e) => e && reportProblem("Couldn't load this listing", e), { immed
     </UiAlertDialog>
 
     <UiDialog v-model:open="reasonOpen">
-      <UiDialogContent v-if="pendingAction" :title="copy[pendingAction].title" :description="copy[pendingAction].description">
+      <UiDialogContent v-if="pendingAction" :title="copy[pendingAction].title" :description="dialogDescription">
         <template #content>
           <form id="reason-form" novalidate @submit="submitReason">
             <UiVeeTextarea name="reason" label="Reason for the provider" required :rows="4" maxlength="1000"

@@ -20,6 +20,7 @@ values (:'pa', 'experience', :'exp', :'atl', 'Taco crawl', 'Four taquerias on th
 returning id as la \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 values (:'la', :'pa' || '/' || :'la' || '/' || gen_random_uuid() || '.jpg', 0, 'Tacos on a picnic table');
+select tests.make_ready(id) from listings where id in (:'la');
 update listings set status = 'live', published_at = now() where id = :'la';
 
 select 'The photos show a different business, so this can''t stay up.' as reason \gset

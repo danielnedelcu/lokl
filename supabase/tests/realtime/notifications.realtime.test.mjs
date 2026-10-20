@@ -56,24 +56,29 @@ async function makeProvider(label, cityId) {
     server.from("providers").insert({ owner_id: user.id, display_name: `Realtime ${label}`, city_id: cityId }).select("id").single(),
   );
   created.providers.push(provider.id);
+  // Payouts set up: approving takes a listing live (listing_readiness).
+  await must(server.from("providers").update({ stripe_account_id: `acct_test_rt${label}${run}`, stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", provider.id));
   const client = createClient(url, env.ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
   const { session } = await must(client.auth.signInWithPassword({ email, password }));
   client.realtime.setAuth(session.access_token);
   return { id: provider.id, client };
 }
 
-// An Experience in review with a photo, ready to be approved.
+// An Experience in review with a photo and its meeting address, ready to
+// be approved (listing_readiness): written as a draft, then sent for review.
 async function makeListing(providerId) {
   const id = randomUUID();
   await must(server.from("listings").insert({
     id, provider_id: providerId, kind: "experience", category_id: created.category, city_id: created.city,
     title: `Realtime test ${run}`, description: "A listing made by the Realtime test.", price_cents: 1000,
-    duration_minutes: 60, area_id: created.area, status: "submitted",
+    duration_minutes: 60, area_id: created.area,
   }));
   created.listings.push(id);
   await must(server.from("listing_photos").insert({
     listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo",
   }));
+  await must(server.from("listing_addresses").insert({ listing_id: id, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }));
+  await must(server.from("listings").update({ status: "submitted" }).eq("id", id));
   return id;
 }
 

@@ -36,6 +36,7 @@ values (:'p2', 'service', :'svc', :'atl', 'Another studio cut', 'Another classic
 returning id as ls2 \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'ls', :'le', :'ls2');
+select tests.make_ready(id) from listings where id in (:'ls', :'le', :'ls2');
 update listings set status = 'live', published_at = now() where id in (:'ls', :'le', :'ls2');
 -- Both providers can be paid (Stripe set up).
 update providers set stripe_account_id = 'acct_' || left(replace(id::text, '-', ''), 16), stripe_charges_enabled = true, stripe_payouts_enabled = true

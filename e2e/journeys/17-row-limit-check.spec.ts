@@ -12,13 +12,22 @@ test("a read cut off at 1,000 rows fails; paged reads don't", { tag: "@serial" }
   const provider = await data.provider(owner);
   const category = await data.category("experience");
   const area = await data.area();
-  // Test-only, local database, guards off: 1,001 live listings.
+  // Test-only, local database: 1,001 live listings, written as drafts with
+  // the guards off, with what going live needs (listing_readiness: a photo
+  // and the meeting address; the provider's payouts are set up), then taken
+  // live with the triggers on.
   const psql = (sql: string) => execFileSync("psql", [data.env.dbUrl, "-X", "-At", "-v", "ON_ERROR_STOP=1", "-f", "-"], { input: sql, encoding: "utf8" }).trim();
+  const ours = `select id from public.listings where slug like 'rowlimit-${data.run}-%'`;
   psql(`begin; set local session_replication_role = replica;
-    insert into public.listings (slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, published_at)
-    select 'rowlimit-${data.run}-' || g, '${provider}', 'experience', '${category.id}', '${data.cityId}', 'Row limit walk', 'A listing made by journey 17.', 5000, 60, '${area}', 'live', now()
+    insert into public.listings (slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id)
+    select 'rowlimit-${data.run}-' || g, '${provider}', 'experience', '${category.id}', '${data.cityId}', 'Row limit walk', 'A listing made by journey 17.', 5000, 60, '${area}'
     from generate_series(1, 1001) g;
-    commit;`);
+    insert into public.listing_photos (listing_id, storage_path, position, alt_text)
+    select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A test photo' from public.listings where id in (${ours});
+    insert into public.listing_addresses (listing_id, line1, city, state, postal_code)
+    select id, '1 Test Street', 'Atlanta', 'GA', '30312' from public.listings where id in (${ours});
+    commit;
+    update public.listings set status = 'live', published_at = now() where id in (${ours});`);
   try {
     await page.goto("/atlanta/experiences");
     // The page's own fetch (wrapped by the app), to the local API the app uses.
@@ -37,6 +46,10 @@ test("a read cut off at 1,000 rows fails; paged reads don't", { tag: "@serial" }
     const urls = (await sitemap.json()) as { loc: string }[];
     expect(urls.filter((u) => u.loc.startsWith(`/experiences/rowlimit-${data.run}-`)).length, "...listing all 1,001").toBe(1001);
   } finally {
-    psql(`begin; set local session_replication_role = replica; delete from public.listings where slug like 'rowlimit-${data.run}-%'; commit;`);
+    psql(`begin; set local session_replication_role = replica;
+      delete from public.listing_photos where listing_id in (${ours});
+      delete from public.listing_addresses where listing_id in (${ours});
+      delete from public.listings where id in (${ours});
+      commit;`);
   }
 });

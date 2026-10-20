@@ -47,11 +47,14 @@ try {
 
   // 1,050 live Experiences, written with the guards off (local only), each
   // with a session from 10 days on; then one more, written last, whose
-  // session is the soonest, in the other area.
+  // session is the soonest, in the other area. Written as drafts with what
+  // going live needs (listing_readiness: payouts, a photo, the meeting
+  // address), then taken live with the triggers on.
+  await must(db.from("providers").update({ stripe_account_id: `acct_test_browse${run}`, stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", created.provider));
   const soonest = randomUUID();
-  const cols = "id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, published_at";
+  const cols = "id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id";
   const listing = (id: string, n: string, areaId: string) =>
-    `('${id}', 'browse-${run}-${n}', '${created.provider}', 'experience', '${created.category}', '${created.city}', 'Walk ${n}', 'A browse test listing, long enough.', 5000, 60, '${areaId}', 'live', now())`;
+    `('${id}', 'browse-${run}-${n}', '${created.provider}', 'experience', '${created.category}', '${created.city}', 'Walk ${n}', 'A browse test listing, long enough.', 5000, 60, '${areaId}')`;
   const ids = Array.from({ length: MANY }, () => randomUUID());
   psql(`set local session_replication_role = replica;
     insert into public.listings (${cols}) values ${ids.map((id, i) => listing(id, String(i), area)).join(",")};
@@ -59,7 +62,12 @@ try {
       select l.id, now() + interval '10 days' + (row_number() over (order by l.id)) * interval '1 minute', 10
       from public.listings l where l.city_id = '${created.city}';
     insert into public.listings (${cols}) values ${listing(soonest, "soonest", other)};
-    insert into public.experience_sessions (listing_id, starts_at, capacity) values ('${soonest}', now() + interval '1 day', 10);`);
+    insert into public.experience_sessions (listing_id, starts_at, capacity) values ('${soonest}', now() + interval '1 day', 10);
+    insert into public.listing_photos (listing_id, storage_path, position, alt_text)
+      select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A test photo' from public.listings where city_id = '${created.city}';
+    insert into public.listing_addresses (listing_id, line1, city, state, postal_code)
+      select id, '1 Test Street', 'Atlanta', 'GA', '30312' from public.listings where city_id = '${created.city}';`);
+  psql(`update public.listings set status = 'live', published_at = now() where city_id = '${created.city}';`);
 
   const page1 = await browsePublicListings(visitor, { market, kind: "experience" });
   check(page1?.total === MANY + 1, `1a. browse counts all ${MANY + 1} visible Experiences (got ${page1?.total})`);
@@ -104,6 +112,8 @@ try {
   if (created.city) {
     psql(`set local session_replication_role = replica;
       delete from public.experience_sessions where listing_id in (select id from public.listings where city_id = '${created.city}');
+      delete from public.listing_photos where listing_id in (select id from public.listings where city_id = '${created.city}');
+      delete from public.listing_addresses where listing_id in (select id from public.listings where city_id = '${created.city}');
       delete from public.listings where city_id = '${created.city}';`);
   }
   if (created.provider) await db.from("providers").delete().eq("id", created.provider);

@@ -31,11 +31,13 @@ begin
   insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, location_mode, booking_mode)
   values (p_provider, p_kind, (select id from public.categories where slug = case when p_kind = 'service' then 'hair' else 'food' end),
           (select id from public.cities where slug = 'atlanta'), p_title, 'A listing made for the dashboard tests, long enough.',
-          p_price, 60, (select id from public.service_areas where name = 'Old Fourth Ward'), 'submitted',
+          p_price, 60, (select id from public.service_areas where name = 'Old Fourth Ward'), 'draft',
           case when p_kind = 'service' then 'provider_location' end, case when p_kind = 'service' then 'approve' end)
   returning id into v;
   insert into public.listing_photos (listing_id, storage_path, position, alt_text)
   values (v, p_provider || '/' || v || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+  perform tests.make_ready(v);
+  update public.listings set status = 'submitted' where id = v;
   update public.listings set status = 'live', published_at = now() where id = v;
   return v;
 end;
@@ -47,7 +49,10 @@ insert into experience_sessions (listing_id, starts_at, capacity) values (:'le1'
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le3', now() + interval '7 days', 50) returning id as s3 \gset
 -- A listing waiting for review (stays submitted).
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p1', 'experience', :'cat', :'atl', 'Mural ride', 'A listing waiting for review in the dashboard tests.', 4000, 60, :'o4w', 'submitted');
+values (:'p1', 'experience', :'cat', :'atl', 'Mural ride', 'A listing waiting for review in the dashboard tests.', 4000, 60, :'o4w', 'draft')
+returning id as lmural \gset
+select tests.make_ready(:'lmural');
+update listings set status = 'submitted' where id = :'lmural';
 
 select tests.authenticate_as_service_role();
 create temp table bk (label text primary key, id uuid);

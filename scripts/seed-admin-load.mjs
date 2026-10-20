@@ -83,20 +83,19 @@ select id, 'neighborhood', 'Load ' || name from public.cities where slug in ('at
 insert into auth.users (id, email) select gen_random_uuid(), 'owner' || n || '@load.test.local' from generate_series(1, 200) n;
 insert into auth.users (id, email) select gen_random_uuid(), 'customer' || n || '@load.test.local' from generate_series(1, 2000) n;
 
--- 200 providers: a third with payouts ready, a third partway, a third not
--- started; about 5% suspended.
-insert into public.providers (owner_id, display_name, city_id, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled, status)
+-- 200 providers, made active with payouts ready so their listings can go
+-- live (listing_readiness); set to their mix below, once they have.
+insert into public.providers (owner_id, display_name, city_id, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled)
 select u.id,
   (array['Peach','Magnolia','Harbor','Pine','River','Copper','Juniper','Oak','Willow','Cedar'])[1 + n % 10] || ' ' ||
   (array['Tours','Studio','Walks','Kitchen','Salon','Collective','Workshop','Outfitters'])[1 + (n / 10) % 8] || ' ' || n,
   (select id from public.cities where slug = case when n % 4 = 0 then 'loadville' else 'atlanta' end),
-  case when n % 3 = 0 then null else 'acct_load_' || n end,
-  n % 3 <> 0, n % 3 = 1,
-  case when n % 20 = 0 then 'suspended' else 'active' end
+  'acct_load_' || n, true, true
 from (select id, row_number() over (order by email) as n from auth.users where email like 'owner%@load.test.local') u;
 
--- 1,000 listings: 600 Experiences and 400 Services, mostly live.
-insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, location_mode, booking_mode, status, published_at, unpublished_reason)
+-- 1,000 listings: 600 Experiences and 400 Services, mostly live. Written
+-- as drafts with a photo and an address, then taken live (and some down).
+insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, location_mode, booking_mode)
 select p.id, k.kind,
   (select id from public.categories where slug = case when k.kind = 'experience' then 'load-tours' else 'load-hair' end),
   p.city_id,
@@ -106,13 +105,36 @@ select p.id, k.kind,
   1500 + (n % 40) * 250, 60 + (n % 4) * 30,
   (select id from public.service_areas where city_id = p.city_id and name like 'Load %'),
   case when k.kind = 'service' then 'provider_location' end,
-  case when k.kind = 'service' then 'approve' end,
-  case when n % 12 = 0 then 'draft' when n % 17 = 0 then 'unpublished' else 'live' end,
-  case when n % 12 = 0 then null else now() - interval '200 days' end,
-  case when n % 12 <> 0 and n % 17 = 0 then 'Taken down by the load seed.' end
+  case when k.kind = 'service' then 'approve' end
 from generate_series(1, 1000) n
 cross join lateral (select case when n <= 600 then 'experience' else 'service' end as kind) k
 cross join lateral (select id, city_id from public.providers where display_name like '% ' || (1 + n % 200)) p;
+
+insert into public.listing_photos (listing_id, storage_path, position, alt_text)
+select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A load seed photo'
+  from public.listings where category_id in (select id from public.categories where slug like 'load-%');
+insert into public.listing_addresses (listing_id, line1, city, state, postal_code)
+select id, '1 Load Street', 'Atlanta', 'GA', '30312'
+  from public.listings where category_id in (select id from public.categories where slug like 'load-%');
+
+-- n is the number in the title: every 12th stays a draft, every 17th of
+-- the rest is taken down.
+update public.listings set status = 'live', published_at = now() - interval '200 days'
+ where category_id in (select id from public.categories where slug like 'load-%')
+   and (substring(title from '([0-9]+)$'))::int % 12 <> 0;
+update public.listings set status = 'unpublished', unpublished_reason = 'Taken down by the load seed.'
+ where category_id in (select id from public.categories where slug like 'load-%')
+   and (substring(title from '([0-9]+)$'))::int % 12 <> 0 and (substring(title from '([0-9]+)$'))::int % 17 = 0;
+
+-- The providers' mix, now their listings are up: a third with payouts
+-- ready, a third partway, a third not started; about 5% suspended.
+update public.providers p set
+  stripe_account_id = case when m.n % 3 = 0 then null else p.stripe_account_id end,
+  stripe_charges_enabled = m.n % 3 <> 0, stripe_payouts_enabled = m.n % 3 = 1,
+  status = case when m.n % 20 = 0 then 'suspended' else 'active' end
+from (select p.id, substring(p.display_name from '([0-9]+)$')::int as n
+        from public.providers p join auth.users u on u.id = p.owner_id where u.email like 'owner%@load.test.local') m
+where p.id = m.id;
 
 -- One session per Experience, which its bookings hang off; a provider's
 -- 3 hours apart (one provider's sessions can't overlap, and these run up to

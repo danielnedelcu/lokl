@@ -8,6 +8,7 @@
 // Run: npx tsx supabase/tests/app/rpc-shapes.test.mts
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { RPC_SHAPES, RpcShapeError, rpcJson, setRpcShapeCheck, type Database, type RpcJsonName } from "@repo/types";
@@ -85,10 +86,10 @@ try {
     await must(db.from("listings").insert({
       id, provider_id: created.provider, city_id: atl.id, area_id: created.area, kind, category_id: kind === "service" ? created.category : expCategory,
       title: `${title} ${run}`, description: "A listing made by the JSON shapes test.", price_cents: 4000, duration_minutes: 60,
-      location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? "instant" : null, status: "submitted",
+      location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? "instant" : null,
     }));
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${created.provider}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A photo" }));
-    await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
+    await goLive(db, id);
     return id;
   };
   const service = await listing("service", "Shapes cut");
@@ -179,6 +180,13 @@ try {
   const views = await read(admin.client, "admin_contact_views_page", { p_admin_id: admin.id });
   check(views.total >= 2 && views.rows.some((r) => r.booking?.id === paid) && views.rows.some((r) => r.provider?.id === created.provider),
     "3m. admin_contact_views_page: both views, naming the booking and the provider");
+  // Step 5d: the readiness checklist (here, the admin's read of a live
+  // Experience) and the Activity page.
+  const readiness = await read(admin.client, "listing_readiness", { p_listing_id: walk });
+  check(readiness.map((i) => i.key).join(",") === "account,photos,address,sessions,payouts" && readiness.every((i) => i.key === "sessions" || i.done),
+    "3n. listing_readiness: an Experience's checklist, in order, done but its sessions");
+  const activity = await read(admin.client, "admin_activity_page", { p_page_size: 5 });
+  check(activity.total >= 1 && activity.rows.length >= 1 && activity.rows.length <= 5, "3o. admin_activity_page: a page of the team's actions");
   check(true, "3d. the admin functions match their schemas");
 
   // 4. The daily job, through its own code (the server key): this provider's
@@ -221,6 +229,8 @@ try {
       delete from public.service_open_days where listing_id in (${ids});
       delete from public.service_open_days_refreshed where listing_id in (${ids});
       delete from public.listing_photos where listing_id in (${ids});
+      delete from public.listing_addresses where listing_id in (${ids});
+      delete from public.listing_service_areas where listing_id in (${ids});
       delete from public.listings where id in (${ids});`);
   }
   if (created.provider) await db.from("providers").delete().eq("id", created.provider);

@@ -67,11 +67,18 @@ try {
   created.area = (await must(db.from("service_areas").insert({ city_id: atl.id, kind: "neighborhood", name: `Requests ${run}` }).select("id").single())).id;
   created.listing = randomUUID();
   await must(db.from("listings").insert({
-    id: created.listing, provider_id: created.provider, city_id: atl.id, area_id: created.area, status: "submitted", kind: "experience",
+    id: created.listing, provider_id: created.provider, city_id: atl.id, area_id: created.area, kind: "experience",
     category_id: created.category, title: `Requests crawl ${run}`, description: "A listing made by the requests test.", price_cents: 6500, duration_minutes: 60,
   }));
+  // What going live needs (listing_readiness): a photo, the meeting address
+  // and payouts. This provider has no payouts, as before: ready only while
+  // the listing is approved, then set back.
   await must(db.from("listing_photos").insert({ listing_id: created.listing, storage_path: `${created.provider}/${created.listing}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
+  await must(db.from("listing_addresses").insert({ listing_id: created.listing, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }));
+  await must(db.from("listings").update({ status: "submitted" }).eq("id", created.listing));
+  await must(db.from("providers").update({ stripe_account_id: `acct_test_requests${run}`, stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", created.provider));
   await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", created.listing));
+  await must(db.from("providers").update({ stripe_account_id: null, stripe_charges_enabled: false, stripe_payouts_enabled: false }).eq("id", created.provider));
   let sessions = 0;
   // A paid booking for `people` at $65 each, as checkout leaves it (a real sandbox payment).
   const paid = async (people: number) => {

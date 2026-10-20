@@ -11,6 +11,7 @@
 // Run with the device in another zone too: TZ=Asia/Tokyo npx tsx supabase/tests/app/search-availability.test.mts
 
 import { execFileSync, spawn } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { browsePublicListings } from "../../../apps/website/server/utils/publicListings";
@@ -60,10 +61,10 @@ try {
     await must(db.from("listings").insert({
       id, provider_id: providerId, city_id: created.city, area_id: created.area, kind: "service", category_id: created.category, title,
       description: "A Service made by the search availability test.", price_cents: 4000, duration_minutes: duration,
-      location_mode: "provider_location", booking_mode: mode, buffer_minutes: buffer ?? null, status: "submitted",
+      location_mode: "provider_location", booking_mode: mode, buffer_minutes: buffer ?? null,
     }));
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A photo" }));
-    await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
+    await goLive(db, id);
     return { id, title };
   };
   const weekly = (providerId: string, days: number[], starts: string, ends: string) =>
@@ -227,6 +228,8 @@ try {
       delete from public.service_open_days where listing_id in (select id from public.listings where city_id = '${created.city}');
       delete from public.service_open_days_refreshed where listing_id in (select id from public.listings where city_id = '${created.city}');
       delete from public.listing_photos where listing_id in (select id from public.listings where city_id = '${created.city}');
+      delete from public.listing_addresses where listing_id in (select id from public.listings where city_id = '${created.city}');
+      delete from public.listing_service_areas where listing_id in (select id from public.listings where city_id = '${created.city}');
       delete from public.listings where city_id = '${created.city}';`);
   }
   for (const id of created.providers) await db.from("providers").delete().eq("id", id);

@@ -114,6 +114,42 @@ begin
 end;
 $$;
 
+-- What a listing needs before it may go live or into review
+-- (listing_readiness, enforced by listings_require_ready): payouts set up
+-- on its provider, a photo, and, as its kind needs, an address or a travel
+-- area. Adds only what's missing. Fixtures insert listings as drafts, call
+-- this, then change the status as the app does. A test about a provider
+-- whose payouts lapsed later sets the flags back after.
+create function tests.make_ready(p_listing uuid) returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  l public.listings;
+begin
+  select * into l from public.listings where id = p_listing;
+  update public.providers
+     set stripe_account_id = coalesce(stripe_account_id, 'acct_test_' || left(replace(id::text, '-', ''), 12)),
+         stripe_charges_enabled = true, stripe_payouts_enabled = true
+   where id = l.provider_id;
+  if not exists (select 1 from public.listing_photos where listing_id = l.id) then
+    insert into public.listing_photos (listing_id, storage_path, position, alt_text)
+    values (l.id, l.provider_id || '/' || l.id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+  end if;
+  if (l.kind = 'experience' or l.location_mode = 'provider_location')
+     and not exists (select 1 from public.listing_addresses where listing_id = l.id) then
+    insert into public.listing_addresses (listing_id, line1, city, state, postal_code)
+    values (l.id, '1 Test Street', 'Atlanta', 'GA', '30312');
+  end if;
+  if l.kind = 'service' and l.location_mode = 'customer_location'
+     and not exists (select 1 from public.listing_service_areas where listing_id = l.id) then
+    insert into public.listing_service_areas (listing_id, service_area_id)
+    select l.id, a.id from public.service_areas a where a.city_id = l.city_id order by a.created_at limit 1;
+  end if;
+end;
+$$;
+
 -- The tests switch between the API roles and back, so those roles call
 -- these helpers. Granted explicitly: since function_execute_grants
 -- (2026-10-10), new functions get no PUBLIC EXECUTE.

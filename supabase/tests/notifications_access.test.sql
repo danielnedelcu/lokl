@@ -22,22 +22,26 @@ insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 
 -- A: an Experience in review (la), another in review (lr, to send back),
 -- and a draft Service (ls). B: an Experience in review (lb).
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'pa', 'experience', :'exp', :'atl', 'Taco crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 150, :'o4w', 'submitted')
+values (:'pa', 'experience', :'exp', :'atl', 'Taco crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 150, :'o4w', 'draft')
 returning id as la \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'pa', 'experience', :'exp', :'atl', 'Mural walk', 'Street art of Old Fourth Ward, on foot.', 3000, 90, :'o4w', 'submitted')
+values (:'pa', 'experience', :'exp', :'atl', 'Mural walk', 'Street art of Old Fourth Ward, on foot.', 3000, 90, :'o4w', 'draft')
 returning id as lr \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
 values (:'pa', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 'provider_location', :'o4w', 'approve', 60)
 returning id as ls \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'pb', 'experience', :'exp', :'atl', 'Jazz night', 'Three clubs on Auburn Avenue.', 4000, 120, :'o4w', 'submitted')
+values (:'pb', 'experience', :'exp', :'atl', 'Jazz night', 'Three clubs on Auburn Avenue.', 4000, 120, :'o4w', 'draft')
 returning id as lb \gset
 
 -- Every listing gets a photo, so it can go live.
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select l.id, l.provider_id || '/' || l.id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo of the listing'
 from listings l where l.id in (:'la', :'lr', :'ls', :'lb');
+-- ...and whatever else it needs (payouts, a meeting address); then the
+-- three Experiences are sent for review.
+select tests.make_ready(id) from listings where id in (:'la', :'lr', :'ls', :'lb');
+update listings set status = 'submitted' where id in (:'la', :'lr', :'lb');
 
 -- ---------------------------------------------------------------------------
 -- ADMIN TRANSITIONS CREATE ONE NOTIFICATION EACH (as the server)

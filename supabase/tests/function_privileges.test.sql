@@ -37,6 +37,9 @@ select set_eq(
        ('admin_requests_page|authenticated'), ('admin_member_names|authenticated'),
        ('admin_booking_contact|authenticated'), ('admin_provider_contact|authenticated'), ('admin_my_limits|authenticated'),
        ('admin_contact_views_page|authenticated'),
+       ('admin_activity_page|authenticated'), ('admin_update_settings|authenticated'), ('admin_set_homepage_features|authenticated'),
+       -- The provider's readiness checklist (its provider, the team; anyone else is told it doesn't exist).
+       ('listing_readiness|authenticated'),
        -- Public pages.
        ('public_guide|anon,authenticated'), ('public_guides|anon,authenticated'), ('public_homepage_guides|anon,authenticated'),
        ('session_spots_left|anon,authenticated'), ('service_slots|anon,authenticated'), ('service_next_slot|anon,authenticated'), ('service_open_matches|anon,authenticated'), ('my_service_slots_preview|authenticated'),
@@ -109,9 +112,11 @@ select tests.clear_authentication();
 
 -- A live listing: visitors still see it (the rule checks the once-per-query sets).
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p1', 'experience', :'cat', :'atl', 'Taco crawl', 'A listing made for the function privileges tests.', 5000, 60, :'o4w', 'submitted')
+values (:'p1', 'experience', :'cat', :'atl', 'Taco crawl', 'A listing made for the function privileges tests.', 5000, 60, :'o4w', 'draft')
 returning id as l1 \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text) values (:'l1', :'p1' || '/' || :'l1' || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+select tests.make_ready(id) from listings where id in (:'l1');
+update listings set status = 'submitted' where id in (:'l1');
 update listings set status = 'live', published_at = now() where id = :'l1';
 set local role anon;
 select is((select count(*)::int from listings where id = :'l1'), 1, '5f. visitors still read a live listing');

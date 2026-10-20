@@ -24,9 +24,11 @@ insert into categories (kind, name, slug) values ('experience', 'Old category', 
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old Fourth Ward') returning id as o4w \gset
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old area') returning id as oldarea \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p', 'experience', :'cat', :'atl', 'Taco crawl', 'A listing made for the append-only tests.', 5000, 60, :'o4w', 'submitted')
+values (:'p', 'experience', :'cat', :'atl', 'Taco crawl', 'A listing made for the append-only tests.', 5000, 60, :'o4w', 'draft')
 returning id as l \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text) values (:'l', :'p' || '/' || :'l' || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+select tests.make_ready(id) from listings where id in (:'l');
+update listings set status = 'submitted' where id in (:'l');
 update listings set status = 'live', published_at = now() where id = :'l';
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'l', now() + interval '7 days', 20) returning id as s \gset
 

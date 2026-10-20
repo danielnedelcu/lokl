@@ -21,11 +21,13 @@ insert into providers (owner_id, display_name, city_id) values (:'other', 'Other
 insert into categories (kind, name, slug) values ('experience', 'Report walks', 'sr-walks') returning id as cat \gset
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Report Ward') returning id as area \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p', 'experience', :'cat', :'atl', 'Report walk', 'A listing made for the problem report tests.', 3000, 60, :'area', 'submitted') returning id as lp \gset
+values (:'p', 'experience', :'cat', :'atl', 'Report walk', 'A listing made for the problem report tests.', 3000, 60, :'area', 'draft') returning id as lp \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'q', 'experience', :'cat', :'atl', 'Other walk', 'A listing made for the problem report tests.', 3000, 60, :'area', 'submitted') returning id as lq \gset
+values (:'q', 'experience', :'cat', :'atl', 'Other walk', 'A listing made for the problem report tests.', 3000, 60, :'area', 'draft') returning id as lq \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'lp', :'lq');
+select tests.make_ready(id) from listings where id in (:'lp', :'lq');
+update listings set status = 'submitted' where id in (:'lp', :'lq');
 update listings set status = 'live', published_at = now() where id in (:'lp', :'lq');
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'lp', now() + interval '7 days', 20) returning id as sp \gset
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'lq', now() + interval '7 days', 20) returning id as sq \gset

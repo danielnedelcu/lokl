@@ -56,15 +56,22 @@ try {
   created.area = (await must(db.from("service_areas").insert({ city_id: atl.id, kind: "neighborhood", name: `Queue ${run}` }).select("id").single())).id;
 
   // 1,050 Experiences sent for review, a minute apart; the newest last.
+  // Written as drafts with what review needs (listing_readiness: a photo
+  // and the meeting address), then sent for review with the triggers on.
   const newest = randomUUID();
   psql(`set local session_replication_role = replica;
-    insert into public.listings (slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, submitted_at)
+    insert into public.listings (slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, submitted_at)
     select 'queue-${run}-' || g, '${created.provider}', 'experience', '${created.category}', '${atl.id}', 'Queued walk ' || g, 'A listing made by the review queue test.',
-           5000, 60, '${created.area}', 'submitted', now() - interval '2 days' + g * interval '1 minute'
+           5000, 60, '${created.area}', now() - interval '2 days' + g * interval '1 minute'
     from generate_series(1, 1049) g;
-    insert into public.listings (id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, submitted_at)
+    insert into public.listings (id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, submitted_at)
     values ('${newest}', 'queue-${run}-newest', '${created.provider}', 'experience', '${created.category}', '${atl.id}', 'Newest walk', 'A listing made by the review queue test.',
-            5000, 60, '${created.area}', 'submitted', now());`);
+            5000, 60, '${created.area}', now());
+    insert into public.listing_photos (listing_id, storage_path, position, alt_text)
+    select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A test photo' from public.listings where provider_id = '${created.provider}';
+    insert into public.listing_addresses (listing_id, line1, city, state, postal_code)
+    select id, '1 Test Street', 'Atlanta', 'GA', '30312' from public.listings where provider_id = '${created.provider}';`);
+  psql(`update public.listings set status = 'submitted' where provider_id = '${created.provider}';`);
   const waiting = count("select count(*) from public.listings where kind = 'experience' and status = 'submitted'");
 
   const page1 = await reviewQueuePage(admin.client);
@@ -82,7 +89,10 @@ try {
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
   forgetTestAdmins();
-  if (created.provider) psql(`set local session_replication_role = replica; delete from public.listings where provider_id = '${created.provider}';`);
+  if (created.provider) psql(`set local session_replication_role = replica;
+    delete from public.listing_photos where listing_id in (select id from public.listings where provider_id = '${created.provider}');
+    delete from public.listing_addresses where listing_id in (select id from public.listings where provider_id = '${created.provider}');
+    delete from public.listings where provider_id = '${created.provider}';`);
   if (created.provider) await db.from("providers").delete().eq("id", created.provider);
   for (const id of created.users) await db.auth.admin.deleteUser(id);
   if (created.area) await db.from("service_areas").delete().eq("id", created.area);

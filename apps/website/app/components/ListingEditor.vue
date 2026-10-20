@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import {
-  listingReadiness,
+  readinessAction,
+  rpcJson,
+  type ReadinessItem,
   listingSchema,
   needsAddress,
   payoutSetupOf,
@@ -40,24 +42,31 @@ const { data: refs } = await useAsyncData("listing-editor-refs", async () => {
 
 const { data: saved, refresh: refreshSaved } = await useAsyncData(`listing-${props.listingId ?? "new"}`, async () => {
   if (!props.listingId) return null;
-  const [listing, address, travel, photos, sessions] = await Promise.all([
+  const [listing, address, travel, readiness] = await Promise.all([
     supabase.from("listings").select("*").eq("id", props.listingId).maybeSingle(),
     supabase.from("listing_addresses").select("*").eq("listing_id", props.listingId).maybeSingle(),
     // bounded: one listing's travel areas
     supabase.from("listing_service_areas").select("service_area_id").eq("listing_id", props.listingId),
-    supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", props.listingId),
-    supabase.from("experience_sessions").select("id", { count: "exact", head: true })
-      .eq("listing_id", props.listingId).eq("status", "scheduled").gt("starts_at", new Date().toISOString()),
+    // The checklist, from the database's rules (the same ones its trigger
+    // enforces when it's published or submitted). Not this provider's: no rows.
+    listingReadinessOrEmpty(props.listingId),
   ]);
-  for (const r of [listing, address, travel, photos, sessions]) if (r.error) throw r.error;
+  for (const r of [listing, address, travel]) if (r.error) throw r.error;
   return {
     listing: listing.data as Listing | null,
     address: address.data as ListingAddress | null,
     travelAreaIds: (travel.data ?? []).map((r: { service_area_id: string }) => r.service_area_id),
-    photoCount: photos.count ?? 0,
-    upcomingSessionCount: sessions.count ?? 0,
+    readiness,
   };
 });
+
+async function listingReadinessOrEmpty(id: string): Promise<ReadinessItem[]> {
+  const { data, error } = await supabase.rpc("listing_readiness", { p_listing_id: id }, { get: true });
+  // Someone else's listing reads as not found (the page says so below).
+  if (error?.code === "P0002") return [];
+  if (error) throw error;
+  return rpcJson("listing_readiness", data);
+}
 
 const listing = computed(() => saved.value?.listing ?? null);
 const notFound = computed(() => !!props.listingId && (!listing.value || listing.value.provider_id !== provider.value?.id));
@@ -342,19 +351,10 @@ useEventListener("beforeunload", (e: BeforeUnloadEvent) => {
 // Readiness and actions (from what's saved, as the server sees it)
 // ---------------------------------------------------------------------------
 
-const readiness = computed(() =>
-  listingReadiness({
-    kind: kind.value,
-    status: status.value,
-    locationMode: listing.value?.location_mode ?? null,
-    hasAddress: !!saved.value?.address,
-    travelAreaCount: saved.value?.travelAreaIds.length ?? 0,
-    photoCount: saved.value?.photoCount ?? 0,
-    upcomingSessionCount: saved.value?.upcomingSessionCount ?? 0,
-    providerActive: provider.value?.status === "active",
-    payoutsReady: !!provider.value && payoutSetupOf(provider.value) === "ready",
-  }),
-);
+const readiness = computed(() => {
+  const items = saved.value?.readiness ?? [];
+  return { items, ...readinessAction(kind.value, status.value, items) };
+});
 const canUnlist = computed(() => status.value === "live" || status.value === "submitted");
 const canDelete = computed(() => !!listing.value && !listing.value.published_at);
 

@@ -182,17 +182,24 @@ select is((select count(*)::int from listing_photos where listing_id = :'la'), 8
 -- A PHOTO IS REQUIRED TO PUBLISH OR SUBMIT
 -- ---------------------------------------------------------------------------
 
+-- Both listings get everything else they need (an address, payouts), so a
+-- missing photo is the only thing that can stop them: B's has its helper
+-- photo taken away again (it's a draft), and A's keeps its eight.
+select tests.clear_authentication();
+select tests.make_ready(:'lb');
+delete from listing_photos where listing_id = :'lb';
+select tests.make_ready(:'la');
 select tests.authenticate_as_service_role();
 
--- 15. Publishing or submitting with zero photos fails.
+-- 15. Publishing or submitting with zero photos fails, naming the photo.
 select throws_ok(
   format($$ update listings set status = 'live', published_at = now() where id = %L $$, :'lb'),
-  '23514', 'Add at least one photo before publishing.',
+  '23514', 'Before it can go live: add at least one photo.',
   '15a. publishing a listing with zero photos fails'
 );
 select throws_ok(
   format($$ update listings set status = 'submitted' where id = %L $$, :'lb'),
-  '23514', 'Add at least one photo before sending it for review.',
+  '23514', 'Before it can be sent for review: add at least one photo.',
   '15b. submitting a listing with zero photos fails'
 );
 

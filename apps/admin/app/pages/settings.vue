@@ -86,6 +86,7 @@ const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 2 : 0)}%`;
         </li>
       </ul>
     </section>
+    <SupportLimitsForm v-if="data" class="mt-4" />
     <section v-if="data" class="mt-4 rounded-lg border border-border bg-card p-5">
       <h2 class="font-medium">Stripe Connect</h2>
       <p class="mt-1 text-sm text-muted-foreground">Platform account and webhook status.</p>

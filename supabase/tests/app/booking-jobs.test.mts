@@ -9,6 +9,7 @@
 // Run: npx tsx supabase/tests/app/booking-jobs.test.mts
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -80,13 +81,13 @@ try {
     const id = randomUUID();
     created.listings.push(id);
     await must(db.from("listings").insert({
-      id, provider_id: providerId, city_id: atl.id, area_id: created.area, status: "submitted", kind,
+      id, provider_id: providerId, city_id: atl.id, area_id: created.area, kind,
       category_id: kind === "service" ? svcCat : expCat, title: `Jobs ${kind} ${run} ${id.slice(0, 4)}`,
       description: "A listing made by the booking jobs test.", price_cents: 5000, duration_minutes: 60,
       location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? "approve" : null,
     }));
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
-    await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
+    await goLive(db, id);
     return id;
   };
   const svc = await listing(good, "service");
@@ -268,6 +269,8 @@ try {
       delete from bookings where listing_id in (${ids});
       delete from experience_sessions where listing_id in (${ids});
       delete from listing_photos where listing_id in (${ids});
+      delete from listing_addresses where listing_id in (${ids});
+      delete from listing_service_areas where listing_id in (${ids});
       delete from listings where id in (${ids});`]);
   }
   for (const id of created.providers) await db.from("providers").delete().eq("id", id);

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Tables } from "./database";
+import type { RpcJson } from "./rpcShapes";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,86 +31,44 @@ export type Listing = Omit<Tables<"listings">, "kind" | "status" | "location_mod
 export type ListingAddress = Tables<"listing_addresses">;
 
 // ---------------------------------------------------------------------------
-// Readiness: the one place that decides whether a listing can be published
-// (Services) or submitted for review (Experiences). The editor's checklist
-// and the publish/submit server routes both call it, so they can't disagree.
-// The database enforces the photo rule too (listings_require_photo).
+// Readiness: the database decides (listing_readiness(), 2026-10-20). It says
+// what a listing needs before it can be published (Services) or sent for
+// review (Experiences), in the checklist's words, and its trigger
+// (listings_require_ready) refuses a move into live or submitted while a
+// blocking item isn't done. The editor's checklist, the publish and submit
+// routes and the admin review page all read it, so nothing here repeats the
+// rules: only the keys, the admin's wording and which way each kind moves.
 // ---------------------------------------------------------------------------
 
-export interface ReadinessFacts {
-  kind: ListingKind;
-  status: ListingStatus;
-  locationMode: LocationMode | null;
-  hasAddress: boolean;
-  travelAreaCount: number;
-  photoCount: number;
-  /** Future, scheduled sessions (Experiences). */
-  upcomingSessionCount: number;
-  providerActive: boolean;
-  payoutsReady: boolean;
+export const READINESS_KEYS = ["account", "photos", "address", "travel_areas", "sessions", "payouts"] as const;
+export type ReadinessKey = (typeof READINESS_KEYS)[number];
+/** One checklist item, as listing_readiness() returns it (rpcShapes: listingReadinessShape). */
+export type ReadinessItem = RpcJson<"listing_readiness">[number];
+
+/** Where an Experience goes next (review) and where a Service goes (live at once). */
+export function readinessTarget(kind: ListingKind): "submitted" | "live" {
+  return kind === "service" ? "live" : "submitted";
 }
 
-export interface ReadinessItem {
-  key: "account" | "photos" | "address" | "travel_areas" | "sessions" | "payouts";
-  label: string;
-  done: boolean;
-  /** When false, the item is shown but doesn't block the action. */
-  blocking: boolean;
+/** Whether an item stops a listing moving to `target`. */
+export function blocks(item: ReadinessItem, target: "submitted" | "live"): boolean {
+  return target === "live" ? item.blocks_live : item.blocks_submit;
+}
+
+/**
+ * The provider's next step and whether they can take it: publish (a Service
+ * draft) or submit (an Experience draft, or one sent back), with every
+ * blocking item done.
+ */
+export function readinessAction(kind: ListingKind, status: ListingStatus, items: ReadinessItem[]) {
+  const action = kind === "service" ? ("publish" as const) : ("submit" as const);
+  const fromOk = action === "publish" ? status === "draft" : status === "draft" || status === "rejected";
+  const target = readinessTarget(kind);
+  return { action, target, canAct: fromOk && items.every((i) => i.done || !blocks(i, target)) };
 }
 
 export function needsAddress(kind: ListingKind, locationMode: LocationMode | null): boolean {
   return kind === "experience" || locationMode === "provider_location";
-}
-
-export function listingReadiness(f: ReadinessFacts): {
-  items: ReadinessItem[];
-  action: "publish" | "submit";
-  canAct: boolean;
-} {
-  const items: ReadinessItem[] = [
-    { key: "account", label: "Your account is active", done: f.providerActive, blocking: true },
-    { key: "photos", label: "Add at least one photo", done: f.photoCount > 0, blocking: true },
-  ];
-  if (needsAddress(f.kind, f.locationMode)) {
-    items.push({
-      key: "address",
-      label: f.kind === "experience" ? "Add the meeting address" : "Add your address",
-      done: f.hasAddress,
-      blocking: true,
-    });
-  }
-  if (f.kind === "service" && f.locationMode === "customer_location") {
-    items.push({
-      key: "travel_areas",
-      label: "Choose at least one area you travel to",
-      done: f.travelAreaCount > 0,
-      blocking: true,
-    });
-  }
-  // Without sessions a live Experience can be seen but not booked. That's
-  // allowed (a host may add dates after approval), so it's a nudge, not a block.
-  if (f.kind === "experience") {
-    items.push({
-      key: "sessions",
-      label: "Add at least one upcoming session so customers can book",
-      done: f.upcomingSessionCount > 0,
-      blocking: false,
-    });
-  }
-  // Services go live straight away, so payouts must be ready first.
-  // Experiences can be submitted before payouts are set up, but lokl can't
-  // approve them until they are.
-  items.push({
-    key: "payouts",
-    label: f.kind === "service" ? "Set up payouts" : "Set up payouts (needed before we can approve it)",
-    done: f.payoutsReady,
-    blocking: f.kind === "service",
-  });
-
-  const action = f.kind === "service" ? "publish" : "submit";
-  const fromOk = action === "publish" ? f.status === "draft" : f.status === "draft" || f.status === "rejected";
-  const canAct = fromOk && items.every((i) => i.done || !i.blocking);
-  return { items, action, canAct };
 }
 
 // ---------------------------------------------------------------------------
@@ -212,9 +171,8 @@ export type ListingOutput = z.output<typeof listingSchema>;
 // Admin review: what stops a listing going live on approval or restore
 // ---------------------------------------------------------------------------
 
-// Worded for the admin, about the provider's listing. Payouts always count
-// here: an Experience can be submitted without them, but not approved.
-const reviewBlockerLabels: Record<ReadinessItem["key"], string> = {
+/** The admin's wording for each readiness item, about the provider's listing: one per key (the listing-readiness app test checks every key the database returns has one). */
+export const REVIEW_BLOCKER_LABELS: Record<ReadinessKey, string> = {
   account: "The provider's account is suspended",
   photos: "It has no photos",
   address: "It has no address",
@@ -223,11 +181,9 @@ const reviewBlockerLabels: Record<ReadinessItem["key"], string> = {
   payouts: "The provider hasn't finished setting up payouts",
 };
 
-/** What must be fixed before the admin can approve or restore a listing. Empty when it can go live. */
-export function reviewBlockers(f: ReadinessFacts): string[] {
-  return listingReadiness(f)
-    .items.filter((i) => !i.done && (i.blocking || i.key === "payouts"))
-    .map((i) => reviewBlockerLabels[i.key]);
+/** What must be fixed before the admin can approve or restore a listing (everything that blocks going live). Empty when it can go live. */
+export function reviewBlockers(items: ReadinessItem[]): string[] {
+  return items.filter((i) => !i.done && i.blocks_live).map((i) => REVIEW_BLOCKER_LABELS[i.key]);
 }
 
 /** The reason the admin gives when rejecting or taking down a listing; the provider sees it. */

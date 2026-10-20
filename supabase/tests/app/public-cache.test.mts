@@ -9,6 +9,7 @@
 // Needs the apps (scripts/ci-start-apps.mjs). Run with `npm run db:test:app`.
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
@@ -61,9 +62,13 @@ try {
   await must(db.from("listings").insert({
     id: created.listing, slug: `cache-${run}`, provider_id: created.provider, kind: "experience", category_id: created.category, city_id: created.city,
     title: `First title ${run}`, description: "A listing made by the public cache test.", price_cents: 4000, duration_minutes: 60,
-    area_id: created.area, status: "live", published_at: new Date().toISOString(),
+    area_id: created.area,
   }));
   await must(db.from("listing_photos").insert({ listing_id: created.listing, storage_path: `${created.provider}/${created.listing}/${randomUUID()}.webp`, position: 0, alt_text: "A cache test photo" }));
+  // Live (listing_readiness: the meeting address, and payouts, which stay
+  // set up: part 1 takes the listing down and puts it back live).
+  await must(db.from("providers").update({ stripe_account_id: `acct_test_cache${run}`, stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", created.provider));
+  await goLive(db, created.listing, { submit: false });
   await must(db.from("experience_sessions").insert({ listing_id: created.listing, starts_at: new Date(Date.now() + 9 * 864e5).toISOString(), capacity: 10 }));
   const browse = `/api/public/browse?market=${market}&kind=experience`;
 
@@ -111,6 +116,7 @@ try {
   psql(`set local session_replication_role = replica;
     delete from public.experience_sessions where listing_id = '${created.listing}';
     delete from public.listing_photos where listing_id = '${created.listing}';
+    delete from public.listing_addresses where listing_id = '${created.listing}';
     delete from public.listings where id = '${created.listing}';
     delete from public.providers where id = '${created.provider || randomUUID()}';
     delete from public.service_areas where id = '${created.area || randomUUID()}';

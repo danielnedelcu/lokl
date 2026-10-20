@@ -593,7 +593,8 @@ export function renderSupportEmail(
 // Never the reason: what happened, and where to look.
 // ---------------------------------------------------------------------------
 
-export type AdminEmailKind = "admin_invite" | "admin_team_change" | "admin_request_new" | "admin_limit_reached" | "admin_support_refund";
+export type AdminEmailKind = "admin_invite" | "admin_team_change" | "admin_request_new" | "admin_limit_reached" | "admin_support_refund"
+  | "admin_listing_taken_down" | "admin_settings_change";
 
 export function renderAdminInviteEmail(c: { adminUrl: string; invitedBy: string; role: string }): RenderedEmail {
   return render({
@@ -634,6 +635,26 @@ export function renderAdminLimitEmail(c: { adminUrl: string; text: string }): Re
     subject: "A daily limit was reached on lokl",
     intro: [c.text, "They can ask you for anything more today on the Requests page. The limits reset at midnight, Atlanta time."],
     button: { label: "Open the Team page", url: `${c.adminUrl}/team` },
+  });
+}
+
+/** Support took a live listing down (admin roles, step 5d), for each owner. Never the reason. */
+export function renderAdminListingTakenDownEmail(c: { adminUrl: string; text: string; listingId: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "Support took a listing down",
+    intro: [c.text, "Their reason is on the listing. Anyone on the team can put it back."],
+    button: { label: "Open the listing", url: `${c.adminUrl}/listings/${c.listingId}` },
+  });
+}
+
+/** An owner changed support's limits (admin roles, step 5d), for each owner. What changed, never the reason. */
+export function renderAdminSettingsChangeEmail(c: { adminUrl: string; text: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "Support's limits changed on lokl",
+    intro: [c.text, "Their reason is on the Activity page."],
+    button: { label: "Open the Activity page", url: `${c.adminUrl}/activity` },
   });
 }
 

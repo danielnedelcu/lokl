@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  adminLimitReachedText, adminNotificationText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
+  adminLimitReachedText, adminListingTakenDownText, adminNotificationText, adminSettingsChangeText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
   type AdminLimitName, type AdminNotificationKind, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type SupportCategory,
 } from "@repo/types";
 import type { AdminNotificationRow } from "@repo/ui/app/utils/notificationFeed";
@@ -22,7 +22,8 @@ interface Item {
   read_at: string | null;
   report: { category: SupportCategory; provider: { display_name: string } | null } | null;
   action: {
-    admin_id: string; target_id: string; action: AdminTeamAction | "limit_reached" | "cancel_booking" | "resolve_problem_refunded"; message: string | null;
+    admin_id: string; target_id: string | null; message: string | null;
+    action: AdminTeamAction | "limit_reached" | "cancel_booking" | "resolve_problem_refunded" | "unpublish_listing" | "change_admin_settings";
     amount_cents: number | null;
   } | null;
   request: {
@@ -40,10 +41,11 @@ const open = ref(false);
 // Team members' emails, for team changes and requests (admin_member_names).
 const emails = ref(new Map<string, string>());
 const refundBookings = ref(new Map<string, { title: string | null; provider: string | null }>());
+const takenDown = ref(new Map<string, string>());
 const emailOf = (id: string) => (id === user.value?.sub ? "You" : emails.value.get(id) ?? "Someone");
 const textOf = (n: Item) => {
   if (n.kind === "team_change") {
-    return n.action ? adminTeamChangeText(n.action.action as AdminTeamAction, emailOf(n.action.admin_id), emailOf(n.action.target_id), n.action.message) : "A change to the team.";
+    return n.action ? adminTeamChangeText(n.action.action as AdminTeamAction, emailOf(n.action.admin_id), emailOf(n.action.target_id ?? ""), n.action.message) : "A change to the team.";
   }
   if (n.kind === "limit_reached") {
     return n.action ? adminLimitReachedText(emailOf(n.action.admin_id), n.action.message as AdminLimitName) : "Someone reached a daily limit.";
@@ -53,6 +55,12 @@ const textOf = (n: Item) => {
     return n.action
       ? adminSupportRefundText(emailOf(n.action.admin_id), { amountCents: n.action.amount_cents, resolvedReport: n.action.action === "resolve_problem_refunded", listingTitle: b?.title, providerName: b?.provider })
       : "Support refunded a booking.";
+  }
+  if (n.kind === "listing_taken_down") {
+    return n.action ? adminListingTakenDownText(emailOf(n.action.admin_id), takenDown.value.get(n.action.target_id ?? "")) : "Support took a listing down.";
+  }
+  if (n.kind === "settings_change") {
+    return n.action ? adminSettingsChangeText(emailOf(n.action.admin_id), n.action.message) : "Support's limits changed.";
   }
   if (n.kind === "request_new" || n.kind === "request_decided") {
     const r = n.request;
@@ -86,12 +94,19 @@ async function load() {
   items.value = recent.data as unknown as Item[];
   unread.value = count.count ?? 0;
   // Support's refunds: their bookings' listing and provider, for the text.
-  const refunded = [...new Set(items.value.filter((n) => n.kind === "support_refund" && n.action).map((n) => n.action!.target_id))];
+  const refunded = [...new Set(items.value.filter((n) => n.kind === "support_refund" && n.action?.target_id).map((n) => n.action!.target_id!))];
   if (refunded.length) {
     // bounded: at most the 20 notifications shown
     const { data: bs } = await supabase.from("bookings").select("id, listing:listings(title), provider:providers(display_name)").in("id", refunded);
     refundBookings.value = new Map(((bs ?? []) as unknown as { id: string; listing: { title: string } | null; provider: { display_name: string } | null }[])
       .map((b) => [b.id, { title: b.listing?.title ?? null, provider: b.provider?.display_name ?? null }]));
+  }
+  // Listings support took down: their titles, for the text.
+  const listings = [...new Set(items.value.filter((n) => n.kind === "listing_taken_down" && n.action?.target_id).map((n) => n.action!.target_id!))];
+  if (listings.length) {
+    // bounded: at most the 20 notifications shown
+    const { data: ls } = await supabase.from("listings").select("id, title").in("id", listings);
+    takenDown.value = new Map((ls ?? []).map((l) => [l.id, l.title]));
   }
   const ids = [...new Set(items.value.flatMap((n) => [n.action?.admin_id, n.kind === "team_change" ? n.action?.target_id : undefined, n.request?.requested_by]).filter((x): x is string => !!x))];
   if (ids.length) {
@@ -120,6 +135,8 @@ async function openItem(n: Item) {
   open.value = false;
   await navigateTo(n.kind === "team_change" || n.kind === "limit_reached" ? "/team"
     : n.kind === "support_refund" ? `/bookings/${n.action?.target_id}`
+    : n.kind === "listing_taken_down" ? `/listings/${n.action?.target_id}`
+    : n.kind === "settings_change" ? "/activity"
     : n.kind.startsWith("request_") ? "/requests" : `/reports/${n.report_id}`);
 }
 

@@ -17,9 +17,11 @@ insert into providers (owner_id, display_name, city_id) values (:'owner', 'Tours
 insert into categories (kind, name, slug) values ('experience', 'Food and drink', 'food') returning id as exp \gset
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old Fourth Ward') returning id as o4w \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p', 'experience', :'exp', :'atl', 'Taco crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 60, :'o4w', 'submitted')
+values (:'p', 'experience', :'exp', :'atl', 'Taco crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 60, :'o4w', 'draft')
 returning id as le \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text) values (:'le', :'p' || '/' || :'le' || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+select tests.make_ready(id) from listings where id in (:'le');
+update listings set status = 'submitted' where id in (:'le');
 update listings set status = 'live', published_at = now() where id = :'le';
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '7 days', 5) returning id as s1 \gset
 

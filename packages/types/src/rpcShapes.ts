@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LISTING_STATUSES } from "./listings";
+import { LISTING_STATUSES, READINESS_KEYS } from "./listings";
 import { GUIDE_PHOTO_SOURCES } from "./guides";
 import { REVIEW_RULES, type ReviewRule } from "./reviews";
 
@@ -21,6 +21,17 @@ const kind = z.enum(["service", "experience"]);
 const reviewRule = z.enum(Object.keys(REVIEW_RULES) as [ReviewRule, ...ReviewRule[]]);
 /** A count from Postgres: bigint counts arrive as JSON numbers. */
 const count = z.number().int();
+
+// ---- Listings ----------------------------------------------------------------
+
+/** listing_readiness(): the checklist, in order (the database holds the rules and the provider's wording). */
+export const listingReadinessShape = z.array(z.object({
+  key: z.enum(READINESS_KEYS),
+  label: z.string(),
+  done: z.boolean(),
+  blocks_live: z.boolean(),
+  blocks_submit: z.boolean(),
+}));
 
 // ---- Public pages ------------------------------------------------------------
 
@@ -387,7 +398,24 @@ export const adminContactViewRowShape = z.object({
 export const adminContactViewsPageShape = z.object({ total: count, page: count, page_size: count, rows: z.array(adminContactViewRowShape) });
 
 /** Every JSON function the apps read, by name: rpcJson and the check use this list. */
+export const adminActivityRowShape = z.object({
+  id,
+  admin_id: id.nullable(),
+  admin_email: z.string().nullable(),
+  target: z.string(),
+  target_id: id.nullable(),
+  action: z.string(),
+  reason: z.string().nullable(),
+  message: z.string().nullable(),
+  amount_cents: count.nullable(),
+  request_id: id.nullable(),
+  created_at: time,
+});
+export const adminActivityPageShape = z.object({ total: count, rows: z.array(adminActivityRowShape) });
+
 export const RPC_SHAPES = {
+  admin_activity_page: adminActivityPageShape,
+  listing_readiness: listingReadinessShape,
   admin_ai_draft_cost: adminAiDraftCostShape,
   admin_booking_contact: adminBookingContactShape,
   admin_bookings_page: adminBookingsPageShape,
@@ -416,6 +444,7 @@ export type RpcJsonName = keyof typeof RPC_SHAPES;
 export type RpcJson<N extends RpcJsonName> = z.infer<(typeof RPC_SHAPES)[N]>;
 
 export type AdminBookingRow = z.infer<typeof adminBookingRowShape>;
+export type AdminActivityRow = z.infer<typeof adminActivityRowShape>;
 export type AdminRequestRow = z.infer<typeof adminRequestRowShape>;
 export type AdminMyLimits = z.infer<typeof adminMyLimitsShape>;
 export type AdminContactViewRow = z.infer<typeof adminContactViewRowShape>;

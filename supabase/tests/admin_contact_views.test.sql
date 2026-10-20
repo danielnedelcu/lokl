@@ -25,10 +25,12 @@ insert into providers (owner_id, display_name, city_id) values (:'powner', 'CV T
 insert into categories (kind, name, slug) values ('experience', 'CV food', 'cv-food') returning id as exp \gset
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'CV Ward') returning id as area \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p', 'experience', :'exp', :'atl', 'CV crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 60, :'area', 'submitted')
+values (:'p', 'experience', :'exp', :'atl', 'CV crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 60, :'area', 'draft')
 returning id as le \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 values (:'le', :'p' || '/' || :'le' || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+select tests.make_ready(id) from listings where id in (:'le');
+update listings set status = 'submitted' where id in (:'le');
 update listings set status = 'live', published_at = now() where id = :'le';
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '7 days', 60) returning id as s1 \gset
 

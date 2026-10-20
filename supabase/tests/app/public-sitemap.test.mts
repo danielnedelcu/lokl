@@ -30,21 +30,31 @@ const mark = `@sitemap-${run}.test.local`;
 
 try {
   // A market of its own with 1,051 providers, each with one live listing,
-  // written with the guards off (local database only).
+  // written with the guards off (local database only): drafts with what
+  // going live needs (listing_readiness: payouts, a photo, the meeting
+  // address), then taken live with the triggers on.
   psql(`set local session_replication_role = replica;
     insert into public.cities (slug, name, state, timezone) values ('${market}', 'Sitemap ${run}', 'GA', 'America/New_York');
     insert into public.categories (kind, name, slug) values ('experience', 'Sitemap ${run}', '${market}');
     insert into public.service_areas (city_id, kind, name) select id, 'neighborhood', 'Sitemap ${run}' from public.cities where slug = '${market}';
     insert into auth.users (id, email) select gen_random_uuid(), 'owner' || g || '${mark}' from generate_series(1, ${MANY}) g;
-    insert into public.providers (owner_id, display_name, slug, city_id)
-      select u.id, 'Sitemap Provider ' || u.email, 'sitemap-${run}-' || split_part(u.email, '@', 1), c.id
+    insert into public.providers (owner_id, display_name, slug, city_id, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled)
+      select u.id, 'Sitemap Provider ' || u.email, 'sitemap-${run}-' || split_part(u.email, '@', 1), c.id, 'acct_test_' || replace(u.id::text, '-', ''), true, true
       from auth.users u, public.cities c where u.email like '%${mark}' and c.slug = '${market}';
-    insert into public.listings (slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, published_at)
-      select 'sitemap-${run}-' || p.slug, p.id, 'experience', cat.id, c.id, 'Sitemap walk', 'A sitemap test listing, long enough.', 5000, 60, a.id, 'live', now()
+    insert into public.listings (slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id)
+      select 'sitemap-${run}-' || p.slug, p.id, 'experience', cat.id, c.id, 'Sitemap walk', 'A sitemap test listing, long enough.', 5000, 60, a.id
       from public.providers p join public.cities c on c.id = p.city_id
       join public.categories cat on cat.slug = '${market}'
       join public.service_areas a on a.city_id = c.id
-      where c.slug = '${market}';`);
+      where c.slug = '${market}';
+    insert into public.listing_photos (listing_id, storage_path, position, alt_text)
+      select l.id, l.provider_id || '/' || l.id || '/' || gen_random_uuid() || '.jpg', 0, 'A test photo'
+      from public.listings l join public.cities c on c.id = l.city_id where c.slug = '${market}';
+    insert into public.listing_addresses (listing_id, line1, city, state, postal_code)
+      select l.id, '1 Test Street', 'Atlanta', 'GA', '30312'
+      from public.listings l join public.cities c on c.id = l.city_id where c.slug = '${market}';`);
+  psql(`update public.listings set status = 'live', published_at = now()
+    where city_id in (select id from public.cities where slug = '${market}');`);
 
   const entries = await publicSitemapEntries(visitor);
   const locs = new Set(entries.map((e) => e.loc));
@@ -76,6 +86,8 @@ try {
   console.error(`FAIL setup or run: ${(e as Error).message}`);
 } finally {
   psql(`set local session_replication_role = replica;
+    delete from public.listing_photos where listing_id in (select l.id from public.listings l join public.cities c on c.id = l.city_id where c.slug = '${market}');
+    delete from public.listing_addresses where listing_id in (select l.id from public.listings l join public.cities c on c.id = l.city_id where c.slug = '${market}');
     delete from public.listings where city_id in (select id from public.cities where slug = '${market}');
     delete from public.providers where city_id in (select id from public.cities where slug = '${market}');
     delete from auth.users where email like '%${mark}';

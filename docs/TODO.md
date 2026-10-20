@@ -222,8 +222,8 @@ Each step depends on the ones before it.
   Each number links to its page, filtered the same way (Bookings "paid
   between", Providers "paid since" and "can't be paid yet").
 
-- [ ] **The booking page's History shows raw status names** (found
-  2026-10-20): `apps/admin/app/pages/bookings/[id].vue` lists each
+- [x] **The booking page's History shows raw status names** (found
+  2026-10-20; fixed in admin roles step 5d): `apps/admin/app/pages/bookings/[id].vue` lists each
   `booking_events` change as its database names ("pending_payment →
   requested by stripe"). Show them in plain words as the rest of the admin
   app does: `statusLabel("adminBooking", …)` from
@@ -792,9 +792,21 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     and support's daily limits (contact details only through a recorded
     view; 5 refunds and $500, 40 contact views, 20 requests a day; each
     refund by support and each limit reached alerts the owners; built
-    2026-10-20, pull request open, `db:push` after the merge); 5c, contact views and daily limits; 5d, settings for the
-    limits and the remaining alerts. After one release, remove `app_metadata.role` from the
-    owner's login (unused since step 4).
+    2026-10-20, pushed to hosted); 5d, the owner's settings for the
+    limits, listing review in the database with listing readiness from one
+    source (enforced on the move into live or review), logs for guides,
+    the homepage and the reference lists, and the Activity page (built
+    2026-10-20, pull request open, `db:push` after the merge); 5e, support
+    hides profile content. After one release, remove `app_metadata.role`
+    from the owner's login (unused since step 4).
+  - [ ] **Tell an admin about a sign-in from a new device** (noted
+    2026-10-20): email the admin (and the owners, for support) when their
+    login starts a session from a browser or network not seen before.
+    Hosted facts: `auth.sessions` records `user_agent` and `ip` (7 of 7
+    sessions had both); `auth.audit_log_entries` is empty; no Auth hooks
+    are set up. Likely shape: a check when the admin app's second step
+    passes, against the admin's earlier sessions, queued in
+    `admin_emails`.
   - [ ] **An authenticator code works more than once** (found 2026-10-19):
     Supabase Auth v2.197.0 (hosted and local) accepts a code from the
     previous, current or next 30-second window and records none as used,

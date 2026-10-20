@@ -6,6 +6,7 @@
 // Run: npx tsx supabase/tests/app/booking-emails.test.mts
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { MailerLimitError, MAX_ATTEMPTS, QUOTA_RETRY_MS, sendBookingEmails, type EmailSettings, type Mailer, type OutgoingEmail } from "../../../apps/website/server/utils/bookingEmails";
@@ -76,12 +77,12 @@ try {
   const listingId = randomUUID();
   created.listings.push(listingId);
   await must(db.from("listings").insert({
-    id: listingId, provider_id: created.provider, city_id: atl.id, area_id: created.area, status: "submitted", kind: "service",
+    id: listingId, provider_id: created.provider, city_id: atl.id, area_id: created.area, kind: "service",
     category_id: cat, title: `Emails cut ${run}`, description: "A Service made by the booking emails test.", price_cents: 4500,
     duration_minutes: 60, location_mode: "provider_location", booking_mode: "approve",
   }));
   await must(db.from("listing_photos").insert({ listing_id: listingId, storage_path: `${created.provider}/${listingId}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
-  await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", listingId));
+  await goLive(db, listingId);
   const request = async () => {
     const b = await must(db.rpc("create_service_booking", {
     p_listing_id: listingId, p_customer_id: customer.id, p_starts_at: await slotAfter(db, listingId, 3 * 864e5),
@@ -231,6 +232,8 @@ try {
       delete from notifications where listing_id in (${ids});
       delete from bookings where listing_id in (${ids});
       delete from listing_photos where listing_id in (${ids});
+      delete from listing_addresses where listing_id in (${ids});
+      delete from listing_service_areas where listing_id in (${ids});
       delete from listings where id in (${ids});`]);
   }
   if (created.provider) await db.from("providers").delete().eq("id", created.provider);

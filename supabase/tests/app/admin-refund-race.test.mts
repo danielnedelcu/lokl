@@ -61,12 +61,22 @@ try {
          p as (insert into public.providers (owner_id, display_name, city_id) select '${id.powner}', 'Refund Race ${run}', c.id from c returning id),
          k as (insert into public.categories (kind, name, slug) values ('experience', 'Refund race ${run}', 'refund-race-${run}') returning id),
          a as (insert into public.service_areas (city_id, kind, name) select c.id, 'neighborhood', 'Refund Race Ward ${run}' from c returning id)
-    insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-    select p.id, 'experience', k.id, c.id, 'Refund race crawl ${run}', 'Four taquerias on the BeltLine, with stories.', 6500, 60, a.id, 'submitted'
+    insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id)
+    select p.id, 'experience', k.id, c.id, 'Refund race crawl ${run}', 'Four taquerias on the BeltLine, with stories.', 6500, 60, a.id
       from p, k, a, c;
     insert into public.listing_photos (listing_id, storage_path, position, alt_text)
     select l.id, l.provider_id || '/' || l.id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from public.listings l where l.title = 'Refund race crawl ${run}';
+    -- What going live needs (listing_readiness): a photo, the meeting
+    -- address and payouts. This provider has no payouts, as before: ready
+    -- only while the listing is approved, then set back.
+    insert into public.listing_addresses (listing_id, line1, city, state, postal_code)
+    select id, '1 Test Street', 'Atlanta', 'GA', '30312' from public.listings where title = 'Refund race crawl ${run}';
+    update public.listings set status = 'submitted' where title = 'Refund race crawl ${run}';
+    update public.providers set stripe_account_id = 'acct_test_' || left(replace(id::text, '-', ''), 12), stripe_charges_enabled = true, stripe_payouts_enabled = true
+     where owner_id = '${id.powner}';
     update public.listings set status = 'live', published_at = now() where title = 'Refund race crawl ${run}';
+    update public.providers set stripe_account_id = null, stripe_charges_enabled = false, stripe_payouts_enabled = false
+     where owner_id = '${id.powner}';
     insert into public.experience_sessions (listing_id, starts_at, capacity)
     select id, now() + interval '7 days', 10 from public.listings where title = 'Refund race crawl ${run}';
     begin;
@@ -121,6 +131,7 @@ try {
     delete from public.bookings where customer_id = '${id.cust}';
     delete from public.experience_sessions where listing_id in (select id from public.listings where title = 'Refund race crawl ${run}');
     delete from public.listing_photos where listing_id in (select id from public.listings where title = 'Refund race crawl ${run}');
+    delete from public.listing_addresses where listing_id in (select id from public.listings where title = 'Refund race crawl ${run}');
     delete from public.listings where title = 'Refund race crawl ${run}';
     delete from public.providers where owner_id = '${id.powner}';
     delete from public.categories where slug = 'refund-race-${run}';

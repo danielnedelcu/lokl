@@ -7,6 +7,7 @@
 // Run with `npm run db:test:app`.
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@repo/types";
@@ -72,16 +73,18 @@ try {
   created.users.push(owner.user.id);
   const provider = await must(server.from("providers").insert({ owner_id: owner.user.id, display_name: `Ward Walks ${run}`, city_id: market.id }).select("id").single());
   created.providers.push(provider.id);
-  const listing = async (title: string, goLive: boolean) => {
+  const listing = async (title: string, live: boolean) => {
     const id = randomUUID();
     created.listings.push(id);
     await must(server.from("listings").insert({
       id, provider_id: provider.id, kind: "experience", category_id: category.id, city_id: market.id, title,
-      description: "A walk made for the guides test, long enough.", price_cents: 2500, duration_minutes: 90, area_id: area.id, status: "submitted",
+      description: "A walk made for the guides test, long enough.", price_cents: 2500, duration_minutes: 90, area_id: area.id,
     }));
     await must(server.from("listing_photos").insert({ listing_id: id, storage_path: `${provider.id}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A photo" }));
     await must(server.from("listing_addresses").insert({ listing_id: id, line1: "1 Private Street", city: "Guidetown", state: "GA", postal_code: "30000" }));
-    if (goLive) await must(server.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
+    // Sent for review, then approved if live (goLive: payouts only for the move).
+    if (live) await goLive(server, id);
+    else await must(server.from("listings").update({ status: "submitted" }).eq("id", id));
     return id;
   };
   const liveListing = await listing("Ward walk", true);

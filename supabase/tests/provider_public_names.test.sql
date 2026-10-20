@@ -27,11 +27,13 @@ insert into providers (owner_id, display_name, city_id) values (:'u_susp', 'Susp
 insert into providers (owner_id, display_name, city_id) values (:'u_hidden', 'Hidden Tours', :'atl') returning id as p_hidden \gset
 
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-select p, 'experience', c, :'atl', t, 'A listing made by the public names test.', 3000, 90, :'o4w', 'submitted'
+select p, 'experience', c, :'atl', t, 'A listing made by the public names test.', 3000, 90, :'o4w', 'draft'
 from (values (:'p_live'::uuid, :'exp'::uuid, 'Live walk'), (:'p_drafts'::uuid, :'exp'::uuid, 'Draft walk'),
              (:'p_susp'::uuid, :'exp'::uuid, 'Suspended walk'), (:'p_hidden'::uuid, :'retired'::uuid, 'Hidden walk')) v(p, c, t);
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select l.id, l.provider_id || '/' || l.id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo of the listing' from listings l;
+select tests.make_ready(id) from listings where provider_id in (:'p_live', :'p_susp', :'p_hidden');
+update listings set status = 'submitted' where provider_id in (:'p_live', :'p_susp', :'p_hidden');
 update listings set status = 'live', published_at = now() where provider_id in (:'p_live', :'p_susp', :'p_hidden');
 update listings set status = 'draft' where provider_id = :'p_drafts';
 update providers set status = 'suspended' where id = :'p_susp';

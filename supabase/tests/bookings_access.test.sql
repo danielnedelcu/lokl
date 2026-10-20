@@ -34,6 +34,7 @@ returning id as lh \gset
 insert into listing_service_areas (listing_id, service_area_id) values (:'lh', :'o4w');
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'ls', :'lh');
+select tests.make_ready(id) from listings where id in (:'ls', :'lh');
 update listings set status = 'live', published_at = now() where id in (:'ls', :'lh');
 
 select (now() + interval '3 days')::timestamptz as t1 \gset

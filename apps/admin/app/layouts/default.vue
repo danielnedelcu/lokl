@@ -39,6 +39,7 @@ const allSections = [
     label: "Platform",
     items: [
       { to: "/team", label: "Team", icon: "lucide:users", owner: true },
+      { to: "/activity", label: "Activity", icon: "lucide:history" },
       { to: "/settings", label: "Settings", icon: "lucide:settings", owner: true },
     ],
   },

@@ -56,12 +56,17 @@ try {
   created.user = (await server.auth.admin.createUser({ email, password, email_confirm: true })).data.user!.id;
   const provider = (await server.from("providers").insert({ owner_id: created.user, display_name: "Page load test", city_id: city.id }).select("id").single()).data!;
   created.provider = provider.id;
+  // Payouts set up (listing_readiness): the listing goes live again and again.
+  await server.from("providers").update({ stripe_account_id: `acct_test_page${run}`, stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", provider.id);
   const listing = randomUUID();
   created.listing = listing;
   await server.from("listings").insert({ id: listing, provider_id: provider.id, kind: "experience", category_id: created.category, city_id: city.id,
-    title: `Page load ${run}`, description: "A listing for the page load test.", price_cents: 1000, duration_minutes: 60, area_id: created.area, status: "submitted" });
+    title: `Page load ${run}`, description: "A listing for the page load test.", price_cents: 1000, duration_minutes: 60, area_id: created.area });
   await server.from("listing_photos").insert({ listing_id: listing, storage_path: `${provider.id}/${listing}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" });
-  await server.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", listing);
+  await server.from("listing_addresses").insert({ listing_id: listing, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" });
+  await server.from("listings").update({ status: "submitted" }).eq("id", listing);
+  const { error: notLive } = await server.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", listing);
+  if (notLive) throw new Error(`go live: ${notLive.message}`);
   let live = true;
   const toggle = () => {
     live = !live;
