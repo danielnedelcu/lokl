@@ -37,7 +37,12 @@ export default defineConfig({
   timeout: 90_000,
   expect: { timeout: 15_000 },
   // The serial run's report goes in its own folder (E2E_REPORT, scripts/e2e.mjs).
-  reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: process.env.E2E_REPORT ?? "playwright-report" }]] : [["list"]],
+  // count-reporter: how many tests ran, for scripts/e2e.mjs to refuse a run of none.
+  reporter: [
+    ["list"],
+    ...(process.env.CI ? [["html", { open: "never", outputFolder: process.env.E2E_REPORT ?? "playwright-report" }] as const] : []),
+    ...(process.env.E2E_COUNT_FILE ? [["./support/count-reporter.ts"] as const] : []),
+  ],
   outputDir: "test-results",
   use: {
     baseURL: "http://localhost:3200",
