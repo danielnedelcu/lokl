@@ -20,6 +20,8 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const root = new URL("../", import.meta.url);
 const args = process.argv.slice(2);
@@ -53,6 +55,9 @@ const step = (cmd, cmdArgs, extraEnv = {}) => spawnSync(cmd, cmdArgs, { cwd: roo
 if (build && step("npm", ["run", "build:check"]) !== 0) process.exit(1);
 if (step(process.execPath, ["scripts/ci-start-apps.mjs"]) !== 0) process.exit(1);
 let status = 1;
+// How many tests each Playwright run ran (e2e/support/count-reporter.ts).
+const countFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "lokl-e2e-")), "ran.txt");
+env.E2E_COUNT_FILE = countFile;
 const shard = /^\d+\/\d+$/.test(process.env.E2E_SHARD ?? "") ? [`--shard=${process.env.E2E_SHARD}`] : [];
 const playwright = (extra, extraEnv) => step("npx", ["playwright", "test", "--config", "e2e/playwright.config.ts", "--pass-with-no-tests", ...shard, ...extra, ...playwrightArgs], extraEnv);
 try {
@@ -65,5 +70,14 @@ try {
   }
 } finally {
   step(process.execPath, ["scripts/ci-start-apps.mjs", "--stop"]);
+}
+// Each run may be empty on its own; together they must have run something,
+// or a wrong path or filter would look like a pass.
+const ran = fs.existsSync(countFile) ? fs.readFileSync(countFile, "utf8").split("\n").filter(Boolean).reduce((n, l) => n + Number(l), 0) : 0;
+if (status === 0 && ran === 0) {
+  console.error("FAIL no browser tests ran: check the path, --grep or --project given.");
+  status = 1;
+} else if (status === 0) {
+  console.log(`${ran} browser tests ran.`);
 }
 process.exit(status);

@@ -18,7 +18,7 @@ import { ALL } from "./clock-instants.mjs";
 const ZONES = ["Asia/Tokyo", "America/Los_Angeles"];
 let failed = 0;
 for (const zone of ZONES) {
-  const r = spawnSync("npx", ["tsx", "packages/ui/tests/clock-sweep.test.mts"], {
+  const r = spawnSync("npx", ["tsx", "--import", "./scripts/tests/_requireChecks.mjs", "packages/ui/tests/clock-sweep.test.mts"], {
     cwd: new URL("..", import.meta.url), env: { ...process.env, TEST_INSTANTS: "all", TZ: zone }, encoding: "utf8",
   });
   const ok = r.status === 0;
