@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { retrySetupWrites } from "./retrySetupWrites";
 import Stripe from "stripe";
 import { safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 
@@ -67,7 +68,8 @@ async function load(): Promise<TestEnv> {
     dbUrl: local.DB_URL!,
     mailpitUrl: (local.MAILPIT_URL || local.INBUCKET_URL)!,
     secretKey: (local.SERVICE_ROLE_KEY || local.SECRET_KEY)!,
-    db: createClient(apiUrl, (local.SERVICE_ROLE_KEY || local.SECRET_KEY)!, { auth: { persistSession: false } }),
+    // Setup writes by id are asked again once after a gateway 502 (retrySetupWrites).
+    db: createClient(apiUrl, (local.SERVICE_ROLE_KEY || local.SECRET_KEY)!, { auth: { persistSession: false }, global: { fetch: retrySetupWrites() } }),
     stripe,
     connectedAccount: connected.id,
     jobSecret,
