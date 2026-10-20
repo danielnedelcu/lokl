@@ -222,6 +222,14 @@ Each step depends on the ones before it.
   Each number links to its page, filtered the same way (Bookings "paid
   between", Providers "paid since" and "can't be paid yet").
 
+- [ ] **The booking page's History shows raw status names** (found
+  2026-10-20): `apps/admin/app/pages/bookings/[id].vue` lists each
+  `booking_events` change as its database names ("pending_payment →
+  requested by stripe"). Show them in plain words as the rest of the admin
+  app does: `statusLabel("adminBooking", …)` from
+  `packages/ui/app/utils/statusLabels.ts` ("In checkout → Waiting for
+  provider"), and the actor in words ("by Stripe", "by the customer").
+
 ## Admin tables at scale
 
 - [x] Server-side search, filters and pages for Bookings, Experiences,

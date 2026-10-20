@@ -5,7 +5,7 @@
 // First, six lanes at once (typecheck and the builds once db:test is done):
 //   typecheck  typecheck
 //   static     the source checks, the e2e types and @serial tags
-//   database   db:test, db:types:check, check:public-cache, the realtime tests
+//   database   db:test, db:types:check, check:public-cache, check:null-guards, the realtime tests
 //   build      build:check (the build the tests below run)
 //   secrets    build:secrets-check (its own folders, .output-secrets)
 //   unit       test:ui, test:emails, test:clock
@@ -82,6 +82,7 @@ const [, , database, build] = await Promise.all([
     () => npm("db:test", "db:test").finally(() => resetDone()),
     () => npm("db:types:check", "db:types:check"),
     () => npm("check:public-cache", "check:public-cache"),
+    () => npm("check:null-guards", "check:null-guards"),
     () => npm("db:test:realtime", "db:test:realtime"),
   ]),
   lane([() => afterReset.then(() => npm("build:check", "build:check"))]),

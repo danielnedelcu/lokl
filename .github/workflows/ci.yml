@@ -117,6 +117,8 @@ jobs:
         run: npm run db:types:check
       - name: Every table behind a cached public route raises its version or follows the 60 seconds
         run: npm run check:public-cache
+      - name: No refusal or role test in a database function can be skipped by a null
+        run: npm run check:null-guards
       - name: Build check
         run: npm run build:check
       - name: Start both apps against the local stack

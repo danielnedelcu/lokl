@@ -658,6 +658,11 @@ sequenceDiagram
     closed as approved if still pending, by one update that does nothing
     otherwise (a withdrawal or expiry at the same moment), and left as it
     is, its id still on the action (`admin_cancel_settle`).
+  - **Null-safe refusals** (2026-10-20,
+    [null_safe_guards](../../supabase/migrations/20261020014749_null_safe_guards.sql)):
+    `admin_cancel_booking`'s three refusals say `is not true` and
+    `is not distinct from` themselves rather than relying on lines
+    elsewhere; same behaviour. `check:null-guards` checks every function.
   - **The owner acting directly** closes a matching pending request as
     "done by the owner". Declining (with a note), withdrawing (the asker)
     and expiry (7 days) change nothing on the booking.
