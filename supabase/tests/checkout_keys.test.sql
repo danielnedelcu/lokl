@@ -17,11 +17,13 @@ insert into categories (kind, name, slug) values ('experience', 'Food and drink'
 insert into categories (kind, name, slug) values ('service', 'Hair', 'hair') returning id as svc \gset
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old Fourth Ward') returning id as o4w \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p', 'experience', :'exp', :'atl', 'Taco crawl', 'A listing made for the checkout key tests.', 5000, 60, :'o4w', 'submitted') returning id as le \gset
+values (:'p', 'experience', :'exp', :'atl', 'Taco crawl', 'A listing made for the checkout key tests.', 5000, 60, :'o4w', 'draft') returning id as le \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, location_mode, booking_mode)
-values (:'p', 'service', :'svc', :'atl', 'Haircut', 'A listing made for the checkout key tests.', 4500, 60, :'o4w', 'submitted', 'provider_location', 'approve') returning id as ls \gset
+values (:'p', 'service', :'svc', :'atl', 'Haircut', 'A listing made for the checkout key tests.', 4500, 60, :'o4w', 'draft', 'provider_location', 'approve') returning id as ls \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'le', :'ls');
+select tests.make_ready(id) from listings where id in (:'le', :'ls');
+update listings set status = 'submitted' where id in (:'le', :'ls');
 update listings set status = 'live', published_at = now() where id in (:'le', :'ls');
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '7 days', 2) returning id as s1 \gset
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '8 days', 2) returning id as s2 \gset

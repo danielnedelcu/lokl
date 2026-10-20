@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 // Support's requests to the owner, in words (admin roles, step 5b;
 // docs/design/admin-roles.md, Requests): the bell, the owners' email and
 // the Requests page say the same thing. Never the reason in a notice.
@@ -92,4 +94,30 @@ export function adminSupportRefundText(
       : `${who} refunded ${dollars(r.amountCents)} and cancelled ${booking}.`;
   }
   return `${who} cancelled ${booking}.`;
+}
+
+// Admin roles, step 5d: the owner's Settings page and the alerts it and
+// listing review send.
+
+/** The Settings page's form for the refund limit and support's daily limits, in dollars; the database's checks match these ranges. */
+export const adminSettingsSchema = z.object({
+  refundLimitDollars: z.coerce.number({ message: "Enter an amount." }).min(0, "At least $0.").max(10_000, "At most $10,000.")
+    .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, "Use whole cents."),
+  refundsPerDay: z.coerce.number({ message: "Enter a number." }).int("Use a whole number.").min(0, "At least 0.").max(1000, "At most 1,000."),
+  refundDollarsPerDay: z.coerce.number({ message: "Enter an amount." }).min(0, "At least $0.").max(1_000_000, "At most $1,000,000.")
+    .refine((n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6, "Use whole cents."),
+  contactViewsPerDay: z.coerce.number({ message: "Enter a number." }).int("Use a whole number.").min(0, "At least 0.").max(10_000, "At most 10,000."),
+  requestsPerDay: z.coerce.number({ message: "Enter a number." }).int("Use a whole number.").min(0, "At least 0.").max(10_000, "At most 10,000."),
+  reason: z.string().trim().min(5, "Say why, in a few words.").max(1000, "Keep the reason under 1,000 characters."),
+});
+export type AdminSettingsInput = z.input<typeof adminSettingsSchema>;
+
+/** "sam@example.com took down “Taco crawl”." (support only; the owners are told). */
+export function adminListingTakenDownText(who: string, listingTitle: string | null | undefined): string {
+  return `${who} took down ${listingTitle ? `“${listingTitle}”` : "a listing"}.`;
+}
+
+/** "sam@example.com changed the settings: Refund limit $150.00 to $200.00." */
+export function adminSettingsChangeText(who: string, what: string | null | undefined): string {
+  return what ? `${who} changed the settings: ${what}` : `${who} changed the settings.`;
 }

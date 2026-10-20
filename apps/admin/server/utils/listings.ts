@@ -1,85 +1,45 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { H3Event } from "h3";
-import { serverSupabaseServiceRole } from "#supabase/server";
-import { listingReasonSchema, reviewBlockers, type Database, type Listing, type Provider, errorText } from "@repo/types";
+import { listingReasonSchema, errorText } from "@repo/types";
 
-// A database failure: the detail goes to the server log, the admin sees a
-// plain message.
-function serverFailure(error: unknown) {
-  console.error("[admin api] listing review query failed", errorText(error));
-  return createError({ statusCode: 500, statusMessage: "Something went wrong on our side. Try again, or check the server logs." });
-}
+// Listing review (admin roles step 5d): the database does it all, as the
+// admin's own session. admin_set_listing_status() checks who's acting,
+// that the listing is still where the page saw it, the kind (only
+// Experiences are approved) and the reason, logs it and alerts the owners
+// when support takes one down; its listings_require_ready trigger refuses
+// going live while something blocks it. This turns refusals into answers.
 
-// Loads a listing with the server key, plus what reviewBlockers() needs: the
-// same facts the provider's editor checklist uses. Call after requireAdmin.
-export async function loadListingForReview(event: H3Event) {
-  const id = getRouterParam(event, "id");
-  const supabase = serverSupabaseServiceRole(event);
+export type ReviewAction = "approve" | "reject" | "unpublish" | "restore";
 
-  const { data: listing, error } = await supabase.from("listings").select("*").eq("id", id!).maybeSingle();
-  if (error) throw serverFailure(error);
-  if (!listing) throw createError({ statusCode: 404, statusMessage: "We couldn't find that listing." });
-  const l = listing as Listing;
+const MOVES: Record<ReviewAction, { from: string; to: string }> = {
+  approve: { from: "submitted", to: "live" },
+  reject: { from: "submitted", to: "rejected" },
+  unpublish: { from: "live", to: "unpublished" },
+  restore: { from: "unpublished", to: "live" },
+};
 
-  const [provider, address, travel, photos, sessions] = await Promise.all([
-    supabase.from("providers").select("*").eq("id", l.provider_id).single(),
-    supabase.from("listing_addresses").select("listing_id").eq("listing_id", l.id).maybeSingle(),
-    supabase.from("listing_service_areas").select("service_area_id", { count: "exact", head: true }).eq("listing_id", l.id),
-    supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", l.id),
-    supabase.from("experience_sessions").select("id", { count: "exact", head: true })
-      // real time: a rule checked before it's submitted or approved (a session still to come).
-      .eq("listing_id", l.id).eq("status", "scheduled").gt("starts_at", new Date().toISOString()),
-  ]);
-  for (const r of [provider, address, travel, photos, sessions]) {
-    if (r.error) throw serverFailure(r.error);
-  }
-  const p = provider.data as Provider;
-
-  const blockers = reviewBlockers({
-    kind: l.kind,
-    status: l.status,
-    locationMode: l.location_mode,
-    hasAddress: !!address.data,
-    travelAreaCount: travel.count ?? 0,
-    photoCount: photos.count ?? 0,
-    upcomingSessionCount: sessions.count ?? 0,
-    providerActive: p.status === "active",
-    payoutsReady: !!(p.stripe_charges_enabled && p.stripe_payouts_enabled),
+/** Runs one review action for the admin (requireAdmin first). Reject and unpublish take a reason the provider sees. */
+export async function reviewListing(event: H3Event, action: ReviewAction) {
+  const admin = await requireAdmin(event);
+  const reason = action === "reject" || action === "unpublish" ? await readReason(event) : null;
+  const id = getRouterParam(event, "id")!;
+  const { from, to } = MOVES[action];
+  const { error } = await admin.db.rpc("admin_set_listing_status", {
+    p_admin_id: admin.sub, p_listing_id: id, p_from: from, p_to: to, p_reason: reason ?? undefined,
   });
-  return { supabase, listing: l, blockers };
-}
-
-// Refuses with the list of what's missing, in the admin's words.
-export function assertNoBlockers(blockers: string[]) {
-  if (blockers.length) {
-    throw createError({ statusCode: 422, statusMessage: `It can't go live yet: ${blockers.join("; ")}.` });
-  }
-}
-
-// Updates the status only if it's still what was checked, so two clicks at
-// once can't both succeed (same as the website's setStatus). Returns the
-// updated listing.
-export async function setStatus(
-  supabase: SupabaseClient<Database>,
-  listing: Listing,
-  update: Database["public"]["Tables"]["listings"]["Update"],
-) {
-  const { data, error } = await supabase
-    .from("listings")
-    // real time: when it happened (a record).
-    .update({ ...update, reviewed_at: new Date().toISOString() })
-    .eq("id", listing.id)
-    .eq("status", listing.status)
-    .select("*")
-    .maybeSingle();
-  if (error) throw serverFailure(error);
-  if (!data) throw createError({ statusCode: 409, statusMessage: "This listing changed in the meantime. Reload the page and try again." });
-  return data as Listing;
+  if (!error) return { status: to };
+  // The database's sentences are written for the admin: a rule (what's
+  // missing, a Service, a reason), a change meanwhile, or no such listing.
+  if (error.code === "23514") throw createError({ statusCode: 422, statusMessage: error.message });
+  if (error.code === "55000") throw createError({ statusCode: 409, statusMessage: error.message });
+  if (error.code === "P0002") throw createError({ statusCode: 404, statusMessage: "We couldn't find that listing." });
+  if (error.code === "42501") throw createError({ statusCode: 403, statusMessage: "Only lokl's team can review listings." });
+  console.error(`[admin api] ${action} listing failed`, errorText(error));
+  throw createError({ statusCode: 500, statusMessage: "Something went wrong on our side. Try again, or check the server logs." });
 }
 
 // The reason sent with a rejection or unpublish (listingReasonSchema); the
 // provider sees it.
-export async function readReason(event: H3Event) {
+async function readReason(event: H3Event) {
   const parsed = listingReasonSchema.safeParse(await readBody(event).catch(() => null));
   if (!parsed.success) {
     throw createError({ statusCode: 400, statusMessage: parsed.error.issues[0]?.message ?? "A reason is required." });

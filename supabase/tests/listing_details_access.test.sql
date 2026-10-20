@@ -34,9 +34,11 @@ returning id as mobile \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, area_id, booking_mode, duration_minutes)
 values (:'pb', 'service', :'svc', :'atl', 'B studio haircut', 'Another provider''s studio service.', 5000, 'provider_location', :'o4w', 'approve', 60)
 returning id as b_studio \gset
-insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, status, published_at, booking_mode, duration_minutes)
-values (:'pb', 'service', :'svc', :'atl', 'B mobile haircut', 'Another provider''s mobile service.', 5500, 'customer_location', 'live', now(), 'approve', 60)
+insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, booking_mode, duration_minutes)
+values (:'pb', 'service', :'svc', :'atl', 'B mobile haircut', 'Another provider''s mobile service.', 5500, 'customer_location', 'approve', 60)
 returning id as b_mobile \gset
+select tests.make_ready(:'b_mobile');
+update listings set status = 'live', published_at = now() where id = :'b_mobile';
 
 -- ---------------------------------------------------------------------------
 -- ADDRESSES: who
@@ -171,10 +173,12 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 
 select tests.clear_authentication();
--- A listing needs a photo to go live (see listing_photos_access).
+-- A listing needs a photo (and payouts) to go live (see listing_photos_access);
+-- the address and travel areas are already there.
 insert into listing_photos (listing_id, storage_path, position, alt_text) values
   (:'studio', :'pa' || '/' || :'studio' || '/' || gen_random_uuid() || '.jpg', 0, 'The studio chair and mirror'),
   (:'mobile', :'pa' || '/' || :'mobile' || '/' || gen_random_uuid() || '.jpg', 0, 'Scissors and a travel kit');
+select tests.make_ready(id) from listings where id in (:'studio', :'mobile');
 update listings set status = 'live', published_at = now() where id in (:'studio', :'mobile');
 
 -- 15. Signed-out visitors see a live Service's travel areas, until it's hidden.

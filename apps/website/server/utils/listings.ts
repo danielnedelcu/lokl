@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { listingReadiness, payoutSetupOf, type Database, type Listing, type Provider } from "@repo/types";
+import type { Database, Listing, Provider } from "@repo/types";
 import { serverSupabaseServiceRole } from "#supabase/server";
 import type { ServerEvent } from "./provider";
 
-// Loads one of the signed-in provider's listings with the server key, plus
-// what readiness needs, and runs the same listingReadiness() as the editor.
-// A listing that isn't theirs is reported as not found.
+// Loads one of the signed-in provider's listings with the server key. A
+// listing that isn't theirs is reported as not found. Whether it's ready to
+// publish or submit is the database's to say (listing_readiness(), enforced
+// by the listings_require_ready trigger): setStatus passes its refusal on.
 export async function loadOwnListing(event: ServerEvent, provider: Provider) {
   const id = getRouterParam(event, "id");
   const supabase = serverSupabaseServiceRole(event);
@@ -18,38 +19,7 @@ export async function loadOwnListing(event: ServerEvent, provider: Provider) {
     .maybeSingle();
   if (error) throw createError({ statusCode: 500, statusMessage: error.message });
   if (!listing) throw createError({ statusCode: 404, statusMessage: "We couldn't find that listing." });
-
-  const [address, travel, photos, sessions] = await Promise.all([
-    supabase.from("listing_addresses").select("listing_id").eq("listing_id", listing.id).maybeSingle(),
-    supabase.from("listing_service_areas").select("service_area_id", { count: "exact", head: true }).eq("listing_id", listing.id),
-    supabase.from("listing_photos").select("id", { count: "exact", head: true }).eq("listing_id", listing.id),
-    supabase.from("experience_sessions").select("id", { count: "exact", head: true })
-      // real time: a rule checked before it's submitted or approved (a session still to come).
-      .eq("listing_id", listing.id).eq("status", "scheduled").gt("starts_at", new Date().toISOString()),
-  ]);
-  for (const r of [address, travel, photos, sessions]) {
-    if (r.error) throw createError({ statusCode: 500, statusMessage: r.error.message });
-  }
-
-  const l = listing as Listing;
-  const readiness = listingReadiness({
-    kind: l.kind,
-    status: l.status,
-    locationMode: l.location_mode,
-    hasAddress: !!address.data,
-    travelAreaCount: travel.count ?? 0,
-    photoCount: photos.count ?? 0,
-    upcomingSessionCount: sessions.count ?? 0,
-    providerActive: provider.status === "active",
-    payoutsReady: payoutSetupOf(provider) === "ready",
-  });
-  return { supabase, listing: l, readiness };
-}
-
-// A plain-language reason the action is blocked, naming what's left to do.
-export function notReadyMessage(readiness: ReturnType<typeof listingReadiness>): string {
-  const todo = readiness.items.filter((i) => i.blocking && !i.done).map((i) => i.label.toLowerCase());
-  return todo.length ? `Before you can do that: ${todo.join("; ")}.` : "This listing can't be changed that way right now.";
+  return { supabase, listing: listing as Listing };
 }
 
 // Updates the status only if it's still what was checked, so two clicks at
@@ -66,6 +36,8 @@ export async function setStatus(
     .eq("status", listing.status)
     .select("*")
     .maybeSingle();
+  // The database's readiness refusal names what's missing, in the checklist's words.
+  if (error?.code === "23514") throw createError({ statusCode: 422, statusMessage: error.message });
   if (error) throw createError({ statusCode: 500, statusMessage: error.message });
   if (!data) throw createError({ statusCode: 409, statusMessage: "This listing changed in the meantime. Reload the page and try again." });
   return data as Listing;

@@ -6,6 +6,7 @@
 // Run: npx tsx supabase/tests/app/top-rated.test.mts
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { browsePublicListings, loadPublicListing, publicSupabase } from "../../../apps/website/server/utils/publicListings";
@@ -50,12 +51,11 @@ try {
     const id = randomUUID();
     created.listings.push(id);
     await must(db.from("listings").insert({
-      id, provider_id: created.provider, city_id: atl.id, area_id: created.area, status: "submitted", kind: "experience",
+      id, provider_id: created.provider, city_id: atl.id, area_id: created.area, kind: "experience",
       category_id: created.category, title, description: "A listing made by the top rated test.", price_cents: 5000, duration_minutes: 60,
     }));
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${created.provider}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
-    const row = await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id).select("slug").single());
-    return { id, slug: row.slug as string };
+    return { id, slug: await goLive(db, id) };
   };
   // A completed booking and its review, as a customer leaves it.
   const review = async (listingId: string, rating: number) => {
@@ -117,6 +117,8 @@ try {
       delete from public.bookings where listing_id in (${ids});
       delete from public.experience_sessions where listing_id in (${ids});
       delete from public.listing_photos where listing_id in (${ids});
+      delete from public.listing_addresses where listing_id in (${ids});
+      delete from public.listing_service_areas where listing_id in (${ids});
       delete from public.listings where id in (${ids});`);
   }
   if (created.provider) {

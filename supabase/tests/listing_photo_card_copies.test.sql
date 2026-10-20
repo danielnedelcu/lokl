@@ -102,6 +102,7 @@ select throws_ok(
 
 -- 7. Signed-out visitors read it on a visible listing.
 select tests.clear_authentication();
+select tests.make_ready(:'la');
 update listings set status = 'live', published_at = now() where id = :'la';
 select tests.authenticate_as_anon();
 select is(

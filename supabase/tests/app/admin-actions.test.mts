@@ -81,11 +81,14 @@ try {
     const id = randomUUID();
     created.listings.push(id);
     await must(db.from("listings").insert({
-      id, provider_id: provider, city_id: atl.id, area_id: created.area, status: "submitted", kind,
+      id, provider_id: provider, city_id: atl.id, area_id: created.area, kind,
       category_id: kind === "service" ? svcCat : expCat, title: `Admin ${kind} ${run}`, description: "A listing made by the admin actions test.",
       price_cents: 5000, duration_minutes: 60, location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? "approve" : null,
     }));
+    // What going live needs (listing_readiness): a photo and the address.
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${provider}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
+    await must(db.from("listing_addresses").insert({ listing_id: id, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }));
+    await must(db.from("listings").update({ status: "submitted" }).eq("id", id));
     await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
     return id;
   };
@@ -293,6 +296,7 @@ try {
       delete from bookings where listing_id in (${ids});
       delete from experience_sessions where listing_id in (${ids});
       delete from listing_photos where listing_id in (${ids});
+      delete from listing_addresses where listing_id in (${ids});
       delete from listings where id in (${ids});`]);
   }
   for (const id of created.providers) await db.from("providers").delete().eq("id", id);

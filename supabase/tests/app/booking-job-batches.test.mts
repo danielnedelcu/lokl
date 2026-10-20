@@ -11,6 +11,7 @@
 // Run: npx tsx supabase/tests/app/booking-job-batches.test.mts
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
@@ -48,26 +49,31 @@ try {
     return u.id;
   };
   const customer = await user("customer");
-  const provider = async (label: string, state = "active") => {
+  const provider = async (label: string) => {
     const id = (await must(db.from("providers").insert({ owner_id: await user(label), display_name: `Batches ${label}`, city_id: atl.id }).select("id").single())).id;
-    if (state !== "active") psql(`set local session_replication_role = replica; update public.providers set status = '${state}' where id = '${id}';`);
     created.providers.push(id);
     return id as string;
   };
+  const suspend = (id: string) => psql(`set local session_replication_role = replica; update public.providers set status = 'suspended' where id = '${id}';`);
   const open = await provider("open");
-  const suspended = await provider("suspended", "suspended");
+  const suspended = await provider("suspended");
   created.category = (await must(db.from("categories").insert({ kind: "service", name: `Batches ${run}`, slug: `batches-${run}` }).select("id").single())).id;
   created.area = (await must(db.from("service_areas").insert({ city_id: atl.id, kind: "neighborhood", name: `Batches ${run}` }).select("id").single())).id;
   const listing = async (providerId: string) => {
     const id = randomUUID();
     created.listings.push(id);
     psql(`set local session_replication_role = replica;
-      insert into public.listings (id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, location_mode, status, booking_mode)
-      values ('${id}', 'batches-${id}', '${providerId}', 'service', '${created.category}', '${atl.id}', 'Batches cut', 'A listing made by the job batches test.', 5000, 60, '${created.area}', 'provider_location', 'live', 'approve');`);
+      insert into public.listings (id, slug, provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, location_mode, booking_mode)
+      values ('${id}', 'batches-${id}', '${providerId}', 'service', '${created.category}', '${atl.id}', 'Batches cut', 'A listing made by the job batches test.', 5000, 60, '${created.area}', 'provider_location', 'approve');`);
+    // Live as a provider takes it (goLive: a photo, the address, and payouts
+    // only for the move; these providers have none, as before).
+    await goLive(db, id, { submit: false });
     return id;
   };
   const live = await listing(open);
+  // The listing went live while its provider was active; then suspended.
   const down = await listing(suspended);
+  suspend(suspended);
 
   // Bookings written straight to the tables with the guards off (local
   // only), each with its finances row. `order` puts the one that matters last.
@@ -146,6 +152,8 @@ try {
       delete from public.notifications where booking_id in (select id from public.bookings where listing_id in (${ids}));
       delete from public.booking_finances where booking_id in (select id from public.bookings where listing_id in (${ids}));
       delete from public.bookings where listing_id in (${ids});
+      delete from public.listing_photos where listing_id in (${ids});
+      delete from public.listing_addresses where listing_id in (${ids});
       delete from public.listings where id in (${ids});`);
   }
   for (const id of created.providers) await db.from("providers").delete().eq("id", id);

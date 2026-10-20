@@ -22,8 +22,10 @@ insert into providers (owner_id, display_name, city_id) values (:'owner3', 'Quie
 insert into categories (kind, name, slug) values ('experience', 'Food and drink', 'food') returning id as cat \gset
 insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 'Old Fourth Ward') returning id as o4w \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p1', 'experience', :'cat', :'atl', 'Taco crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 60, :'o4w', 'submitted') returning id as l1 \gset
+values (:'p1', 'experience', :'cat', :'atl', 'Taco crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 60, :'o4w', 'draft') returning id as l1 \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text) values (:'l1', :'p1' || '/' || :'l1' || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+select tests.make_ready(id) from listings where id in (:'l1');
+update listings set status = 'submitted' where id in (:'l1');
 update listings set status = 'live', published_at = now() where id = :'l1';
 update providers set headline = 'Food walks through Atlanta''s oldest neighborhoods', bio = 'We started in 2019.',
   avatar_path = :'p1' || '/avatar-a.webp', avatar_small_path = :'p1' || '/avatar-a-small.webp',

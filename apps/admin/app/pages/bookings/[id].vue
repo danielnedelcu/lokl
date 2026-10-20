@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { adminRequestWhat, DEFAULT_REFUND_LIMIT_CENTS, marketZone, rpcJson, type AdminMyLimits, type AdminRequestKind } from "@repo/types";
+import { adminActionLabel, adminRequestWhat, BOOKING_ACTOR_LABELS, DEFAULT_REFUND_LIMIT_CENTS, marketZone, rpcJson, type AdminMyLimits, type AdminRequestKind } from "@repo/types";
 import { HOLD_LABELS, payoutState, whenOf, withFinances } from "~/utils/bookingAdmin";
 
 // One booking, everything about it: the customer's details and no-show note
@@ -249,6 +249,7 @@ async function retry(emailId: string) {
   }
 }
 
+const sentenceCase = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const actionLabels: Record<string, string> = {
   cancel_booking: "Cancelled by lokl", release_payout: "Payout released", resolve_problem_paid: "Report resolved: provider paid",
   resolve_problem_refunded: "Report resolved: customer refunded",
@@ -367,9 +368,12 @@ const actionLabels: Record<string, string> = {
       <section class="mt-8" aria-labelledby="history-heading">
         <h2 id="history-heading" class="font-medium">History</h2>
         <ol class="mt-2 space-y-1 text-sm">
-          <li v-for="e in data!.events" :key="e.created_at + e.to_status">{{ at(e.created_at) }} · {{ e.from_status ?? "new" }} → {{ e.to_status }} by {{ e.actor }}</li>
+          <li v-for="e in data!.events" :key="e.created_at + e.to_status">
+            {{ at(e.created_at) }} · <template v-if="e.from_status">{{ statusLabel("adminBooking", e.from_status) }} → </template>{{ statusLabel("adminBooking", e.to_status) }},
+            by {{ BOOKING_ACTOR_LABELS[e.actor] ?? e.actor }}
+          </li>
           <li v-for="a in data!.actions" :key="a.created_at" class="font-medium">
-            {{ at(a.created_at) }} · {{ actionLabels[a.action] ?? a.action }}: “{{ a.reason }}”
+            {{ at(a.created_at) }} · {{ actionLabels[a.action] ?? sentenceCase(adminActionLabel(a.action)) }}<template v-if="a.reason">: “{{ a.reason }}”</template>
             <span class="font-normal text-muted-foreground">
               <template v-if="a.request">— asked by {{ nameOf(a.request.requested_by) }}, approved by {{ nameOf(a.admin_id) }}</template>
               <template v-else>— by {{ nameOf(a.admin_id) }}</template>

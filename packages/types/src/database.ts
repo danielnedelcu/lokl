@@ -167,7 +167,7 @@ export type Database = {
           request_id: string | null;
           rule: string | null;
           target: string;
-          target_id: string;
+          target_id: string | null;
         };
         ComputedFields: never;
         Insert: {
@@ -181,7 +181,7 @@ export type Database = {
           request_id?: string | null;
           rule?: string | null;
           target: string;
-          target_id: string;
+          target_id?: string | null;
         };
         Update: {
           action?: string;
@@ -194,7 +194,7 @@ export type Database = {
           request_id?: string | null;
           rule?: string | null;
           target?: string;
-          target_id?: string;
+          target_id?: string | null;
         };
         Relationships: [
           {
@@ -1728,8 +1728,9 @@ export type Database = {
           unpublished_reason: string | null;
           updated_at: string;
           hold_buffer: string | null;
+          listing_readiness_of: Json | null;
         };
-        ComputedFields: "hold_buffer";
+        ComputedFields: "hold_buffer" | "listing_readiness_of";
         Insert: {
           area_id?: string | null;
           booking_mode?: string | null;
@@ -2936,6 +2937,10 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: string[];
       };
+      admin_activity_page: {
+        Args: { p_admin_id?: string; p_page?: number; p_page_size?: number };
+        Returns: Json;
+      };
       admin_ai_draft_cost: { Args: { p_since: string }; Returns: Json };
       admin_alert_owners: {
         Args: { p_action_id: string; p_email_kind: string; p_kind: string };
@@ -3200,6 +3205,16 @@ export type Database = {
         Args: { p_guide_ids: string[] };
         Returns: undefined;
       };
+      admin_set_listing_status: {
+        Args: {
+          p_admin_id: string;
+          p_from: string;
+          p_listing_id: string;
+          p_reason?: string;
+          p_to: string;
+        };
+        Returns: undefined;
+      };
       admin_set_provider_status: {
         Args: {
           p_admin_id: string;
@@ -3262,6 +3277,17 @@ export type Database = {
       };
       admin_team_alert: { Args: { p_action_id: string }; Returns: undefined };
       admin_team_reason: { Args: { p_reason: string }; Returns: string };
+      admin_update_settings: {
+        Args: {
+          p_contact_views_per_day: number;
+          p_reason: string;
+          p_refund_cents_per_day: number;
+          p_refund_limit_cents: number;
+          p_refunds_per_day: number;
+          p_requests_per_day: number;
+        };
+        Returns: undefined;
+      };
       admin_usage_today: {
         Args: { p_admin_id: string; p_except_booking?: string };
         Returns: {
@@ -3373,6 +3399,16 @@ export type Database = {
           p_provider_id: string;
         };
         Returns: boolean;
+      };
+      listing_readiness: { Args: { p_listing_id: string }; Returns: Json };
+      listing_readiness_of: {
+        Args: {
+          l: Omit<
+            Database["public"]["Tables"]["listings"]["Row"],
+            Database["public"]["Tables"]["listings"]["ComputedFields"]
+          >;
+        };
+        Returns: Json;
       };
       listing_sessions_page: {
         Args: {

@@ -433,6 +433,37 @@ block in `CLAUDE.md`.
   support, each its own; a daily limit reached, once per person, limit and
   day. The Team page shows the record of contact views, by person.
 
+**As built, step 5d (2026-10-20;** migration `admin_settings_activity`**):**
+- **Listing readiness has one source:** `listing_readiness()` says, for one
+  listing, what's done and what blocks it going live or into review, in
+  the provider checklist's words. The provider's editor, the publish and
+  submit routes and the admin review page all read it; TypeScript keeps
+  only the admin's wording per key (`REVIEW_BLOCKER_LABELS`) and which way
+  each kind moves. The `listings_require_ready` trigger (replacing the
+  photo-only one) refuses a move into `live` or `submitted`, inserts
+  included, while a blocking item isn't done, naming each in the
+  checklist's words. A listing already live is never checked again, so a
+  lapse later (payouts paused) never blocks unrelated saves.
+- **Listing review in the database:** `admin_set_listing_status()` approves
+  (Experiences only), sends back, takes down and restores, on the admin's
+  own session, with the status the page showed (a change meanwhile is
+  refused). Logged in `admin_actions` (`listing` target); support taking a
+  live listing down alerts every owner (bell and email). Anyone on the
+  team may restore.
+- **Settings:** the owner changes the refund limit and support's daily
+  limits on the Settings page with a reason (`admin_update_settings()`);
+  logged with what changed in words, and every owner is told (never the
+  reason in the alert).
+- **Logs** for what wasn't logged: publishing and unpublishing a guide,
+  the homepage's guides (by title, in order), and adding or changing a
+  category, market or area (a trigger; only writes through the API, by
+  the owner). `admin_actions.target_id` is empty only for the homepage and
+  the settings.
+- **Activity page** (`/activity`, both roles): `admin_activity_page()`
+  gives the owner everyone's actions (or one person's) and support only
+  their own, whatever they ask for. The booking page's History reads in
+  plain words.
+
 **Changing a role:** owner only, never for themselves while they're the
 last owner. Logged with the old and new role; takes effect on the next
 request.

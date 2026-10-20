@@ -134,6 +134,7 @@ select id as s4 from listings where title = '0 R cut' \gset
 select id as walk from listings where title = 'P walk' \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where provider_id in (:'p', :'q', :'r');
+select tests.make_ready(id) from listings where provider_id in (:'p', :'q', :'r');
 update listings set status = 'live', published_at = now() where provider_id in (:'p', :'q', :'r');
 select (now() at time zone 'America/New_York')::date as today \gset
 select (:'today'::date + 3) as d \gset

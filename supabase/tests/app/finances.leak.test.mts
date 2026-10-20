@@ -7,6 +7,7 @@
 // Run: npx tsx supabase/tests/app/finances.leak.test.mts
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -69,11 +70,11 @@ try {
   created.area = (await must(db.from("service_areas").insert({ city_id: atl.id, kind: "neighborhood", name: `Leak ${run}` }).select("id").single())).id;
   created.listing = randomUUID();
   await must(db.from("listings").insert({
-    id: created.listing, provider_id: created.provider, city_id: atl.id, area_id: created.area, status: "submitted", kind: "experience",
+    id: created.listing, provider_id: created.provider, city_id: atl.id, area_id: created.area, kind: "experience",
     category_id: created.category, title: `Leak ${run}`, description: "A listing made by the finances leak test.", price_cents: 5000, duration_minutes: 60,
   }));
   await must(db.from("listing_photos").insert({ listing_id: created.listing, storage_path: `${created.provider}/${created.listing}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
-  await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", created.listing));
+  await goLive(db, created.listing);
   const session = (await must(db.from("experience_sessions").insert({ listing_id: created.listing, starts_at: new Date(Date.now() + 3 * 864e5).toISOString(), capacity: 5 }).select("id").single())).id;
   const b = await must(db.rpc("reserve_experience_booking", {
     p_session_id: session, p_customer_id: customer.id, p_party_size: 1, p_customer_name: "Sam Customer", p_customer_email: "sam@test.local",
@@ -124,6 +125,8 @@ try {
       delete from bookings where listing_id = '${created.listing}';
       delete from experience_sessions where listing_id = '${created.listing}';
       delete from listing_photos where listing_id = '${created.listing}';
+      delete from listing_addresses where listing_id = '${created.listing}';
+      delete from listing_service_areas where listing_id = '${created.listing}';
       delete from listings where id = '${created.listing}';`]);
   }
   if (created.provider) await db.from("providers").delete().eq("id", created.provider);

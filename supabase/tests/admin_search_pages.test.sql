@@ -32,15 +32,20 @@ declare v uuid;
 begin
   insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
   values (p_provider, 'experience', (select id from public.categories where slug = 'food'), p_city, p_title,
-          'A walk made for the search tests, long enough.', p_price, 60, p_area, 'submitted') returning id into v;
+          'A walk made for the search tests, long enough.', p_price, 60, p_area, 'draft') returning id into v;
   insert into public.listing_photos (listing_id, storage_path, position, alt_text)
   values (v, p_provider || '/' || v || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+  perform tests.make_ready(v);
+  update public.listings set status = 'submitted' where id = v;
   update public.listings set status = 'live', published_at = now() where id = v;
   return v;
 end;
 $$;
 select pg_temp.live_experience(:'p1', :'atl', :'o4w', 'Taco crawl', 6500) as le1 \gset
 select pg_temp.live_experience(:'p2', :'sav', :'hist', 'Ghost walk', 3000) as le2 \gset
+-- Harbor Walks went live with payouts set up (make_ready); they've since
+-- lapsed, so it's the provider whose payouts aren't ready.
+update providers set stripe_account_id = null, stripe_charges_enabled = false, stripe_payouts_enabled = false where id = :'p2';
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, location_mode, booking_mode, duration_minutes)
 values (:'p1', 'service', :'hair', :'atl', 'Silk press', 'A silk press made for the search tests.', 9000, 'customer_location', 'approve', 60) returning id as ls1 \gset
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le1', now() + interval '7 days', 50) returning id as s1 \gset

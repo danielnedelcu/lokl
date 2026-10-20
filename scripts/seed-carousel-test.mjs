@@ -10,7 +10,7 @@
 // Everything it adds is tagged: the description is MARKER exactly, and the
 // titles start "Test carousel". --remove finds them by the description,
 // refuses if any has a booking or a review (they'd be real history), and
-// deletes the listings (their photos, sessions and saves go with them) and
+// deletes the listings (their photos, addresses, sessions and saves go with them) and
 // the photo files it copied. Hosted: it reads the website's server key from
 // apps/website/.env and never prints it.
 
@@ -84,8 +84,14 @@ async function remove() {
 
 async function add() {
   if (!providerSlug || providerSlug.startsWith("--")) fail("Say which test provider: --provider <slug> (one of yours, with a listing that has a photo).");
-  const provider = await must(db.from("providers").select("id, city_id").eq("slug", providerSlug).maybeSingle(), "find the provider");
+  const provider = await must(db.from("providers").select("id, city_id, status, stripe_account_id, stripe_charges_enabled, stripe_payouts_enabled").eq("slug", providerSlug).maybeSingle(), "find the provider");
   if (!provider) fail(`No provider "${providerSlug}" on ${where}.`);
+  // What going live needs from the provider (listing_readiness): this
+  // script doesn't change the provider, so it asks for one that's ready.
+  if (provider.status !== "active") fail(`"${providerSlug}" isn't active, so its listings can't go live.`);
+  if (!provider.stripe_account_id || !provider.stripe_charges_enabled || !provider.stripe_payouts_enabled) {
+    fail(`"${providerSlug}" hasn't finished setting up payouts, so its listings can't go live. Use a test provider whose payouts are set up.`);
+  }
   const source = (await must(db.from("listing_photos").select("storage_path, card_path, alt_text, listing:listings!inner(provider_id)")
     .eq("listing.provider_id", provider.id).limit(1), "find a photo to copy"))[0];
   if (!source) fail("That provider has no listing with a photo to copy. Add one first.");
@@ -102,7 +108,7 @@ async function add() {
       const id = randomUUID();
       const label = kind === "service" ? "Service" : "Experience";
       await must(db.from("listings").insert({
-        id, provider_id: provider.id, city_id: provider.city_id, area_id: area.id, status: "submitted", kind,
+        id, provider_id: provider.id, city_id: provider.city_id, area_id: area.id, kind,
         category_id: categories[kind].id, title: `Test carousel ${label} ${String(n).padStart(2, "0")}`, description: MARKER,
         price_cents: 4000 + n * 250, duration_minutes: 60, location_mode: kind === "service" ? "provider_location" : null,
         booking_mode: kind === "service" ? "approve" : null,
@@ -113,10 +119,15 @@ async function add() {
       const card = cardExt ? `${provider.id}/${id}/${name}${cardExt}` : null;
       if (card) await must(db.storage.from(BUCKET).copy(source.card_path, card), "copy the photo's card copy");
       await must(db.from("listing_photos").insert({ listing_id: id, storage_path: path, card_path: card, position: 0, alt_text: source.alt_text }), "add the photo");
+      // Both kinds here meet at an address (an Experience, or a Service at
+      // the provider's place): a made-up one, which goes with the listing.
+      await must(db.from("listing_addresses").insert({ listing_id: id, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }), "add the address");
       if (kind === "experience") {
         const starts = new Date(Math.ceil((Date.now() + (6 + n) * 864e5) / 3_600_000) * 3_600_000).toISOString();
         await must(db.from("experience_sessions").insert({ listing_id: id, starts_at: starts, capacity: 8 }), "add a session");
       }
+      // Sent for review, then approved (as before): the provider is told.
+      await must(db.from("listings").update({ status: "submitted" }).eq("id", id), "send it for review");
       await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id), "make it live");
       added++;
     }

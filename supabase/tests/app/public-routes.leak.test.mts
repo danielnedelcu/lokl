@@ -10,6 +10,7 @@
 // LOCAL STACK ONLY (`npx supabase start`). Run with `npm run db:test:app`.
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -73,16 +74,15 @@ try {
     await must(server.from("listings").insert({
       id, provider_id: opts.provider, kind: "experience", category_id: opts.category ?? category.id, city_id: market.id,
       title: `Leak ${label}`, description: "A listing made by the public routes leak check.", price_cents: 1000,
-      duration_minutes: 60, area_id: area.id, status: "submitted",
+      duration_minutes: 60, area_id: area.id,
     }));
     await must(server.from("listing_photos").insert({ listing_id: id, storage_path: `${opts.provider}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
     await must(server.from("listing_addresses").insert({ listing_id: id, line1: "1 Private Street", city: "Leakville", state: "GA", postal_code: "30000" }));
-    const update: Record<string, unknown> =
-      opts.status === "live" ? { status: "live", published_at: new Date().toISOString() }
-      : opts.status === "rejected" ? { status: "rejected", rejection_reason: "Private reason for the provider." }
-      : opts.status === "unpublished" ? { status: "live", published_at: new Date().toISOString() }
-      : opts.status === "draft" ? { status: "draft" } : {};
-    if (Object.keys(update).length) await must(server.from("listings").update(update).eq("id", id));
+    // A draft, sent for review unless it stays one; then approved (goLive:
+    // payouts only for the move) or sent back, and taken down if the case says.
+    if (opts.status !== "draft") await must(server.from("listings").update({ status: "submitted" }).eq("id", id));
+    if (opts.status === "live" || opts.status === "unpublished") await goLive(server, id, { submit: false });
+    if (opts.status === "rejected") await must(server.from("listings").update({ status: "rejected", rejection_reason: "Private reason for the provider." }).eq("id", id));
     if (opts.status === "unpublished") await must(server.from("listings").update({ status: "unpublished", unpublished_reason: "Private reason for the provider." }).eq("id", id));
     return (await must(server.from("listings").select("slug").eq("id", id).single())).slug as string;
   }

@@ -13,6 +13,7 @@
 // 3101 for the route checks. Run with `npm run db:test:app`.
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { createSSRApp, h } from "vue";
@@ -205,11 +206,13 @@ try {
     await must(server.from("listings").insert({
       id, provider_id: opts.provider, kind: "experience", category_id: opts.category, city_id: market.id,
       title: `Guides ${label}`, description: "A listing made by the guides test.", price_cents: 1000,
-      duration_minutes: 60, area_id: area.id, status: "submitted",
+      duration_minutes: 60, area_id: area.id,
     }));
     await must(server.from("listing_photos").insert({ listing_id: id, storage_path: `${opts.provider}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
     await must(server.from("listing_addresses").insert({ listing_id: id, line1: "1 Test Street", city: "Guideville", state: "GA", postal_code: "30000" }));
-    if (opts.live) await must(server.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
+    // Sent for review, then approved if live (goLive: payouts only for the move).
+    if (opts.live) await goLive(server, id);
+    else await must(server.from("listings").update({ status: "submitted" }).eq("id", id));
     return id;
   }
   const visible = await listing("visible", { provider: active, category: category.id, live: true });

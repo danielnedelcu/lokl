@@ -47,7 +47,8 @@ try {
   created.user = user.id;
   const provider = await must(db.from("providers").insert({ owner_id: user.id, display_name: `Seed Carousel ${run}`, city_id: atl.id }).select("id, slug").single());
   created.provider = provider.id;
-  await must(db.from("providers").update({ stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", provider.id));
+  // Payouts set up: the script takes its listings live (listing_readiness).
+  await must(db.from("providers").update({ stripe_account_id: `acct_test_seed${run}`, stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", provider.id));
   for (const kind of ["service", "experience"]) {
     created.category.push((await must(db.from("categories").insert({ kind, name: `Seed ${kind} ${run}`, slug: `seed-${kind}-${run}` }).select("id").single())).id);
   }

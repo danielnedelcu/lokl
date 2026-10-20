@@ -15,9 +15,9 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { adminLimitReachedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
+import { adminLimitReachedText, adminListingTakenDownText, adminRequestNewText, adminSettingsChangeText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderAdminInviteEmail, renderAdminLimitEmail, renderAdminRequestEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
+import { renderAdminInviteEmail, renderAdminLimitEmail, renderAdminListingTakenDownEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -457,6 +457,19 @@ export async function sendAdminEmails(
       const { data: action, error } = await db.from("admin_actions")
         .select("admin_id, target_id, action, message, amount_cents").eq("id", row.admin_action_id).single();
       if (error) throw new Error(error.message);
+      if (row.kind === "admin_listing_taken_down" || row.kind === "admin_settings_change") {
+        // For each owner (step 5d); skipped once they're no longer one.
+        // bounded: one row by its primary key
+        const { data: member } = await db.from("admin_members").select("role, status").eq("user_id", row.recipient_id).maybeSingle();
+        const to = await emailOf(row.recipient_id);
+        if (member?.status !== "active" || member.role !== "owner") return { skip: "No longer an owner.", to };
+        const who = (await emailOf(action.admin_id)) ?? "Someone on the team";
+        if (row.kind === "admin_settings_change") {
+          return { to, email: renderAdminSettingsChangeEmail({ adminUrl, text: adminSettingsChangeText(who, action.message) }) };
+        }
+        const { data: l } = await db.from("listings").select("title").eq("id", action.target_id).maybeSingle();
+        return { to, email: renderAdminListingTakenDownEmail({ adminUrl, text: adminListingTakenDownText(who, l?.title), listingId: action.target_id }) };
+      }
       if (row.kind === "admin_limit_reached" || row.kind === "admin_support_refund") {
         // For each owner; skipped once they're no longer one (step 5c).
         // bounded: one row by its primary key

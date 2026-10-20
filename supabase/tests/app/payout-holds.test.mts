@@ -12,6 +12,7 @@
 // Run: npx tsx supabase/tests/app/payout-holds.test.mts (part of db:test:app:stripe).
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -85,12 +86,12 @@ try {
     const id = randomUUID();
     created.listings.push(id);
     await must(db.from("listings").insert({
-      id, provider_id: providerId, city_id: atl.id, area_id: created.area, status: "submitted", kind: "experience",
+      id, provider_id: providerId, city_id: atl.id, area_id: created.area, kind: "experience",
       category_id: created.category, title: `Holds ${run} ${id.slice(0, 4)}`, description: "A listing made by the payout holds test.",
       price_cents: 5000, duration_minutes: 60,
     }));
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
-    await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
+    await goLive(db, id);
     return id;
   };
   // A paid, confirmed booking (as Checkout leaves it), charged with `card`.
@@ -220,6 +221,8 @@ try {
       delete from bookings where listing_id in (${ids});
       delete from experience_sessions where listing_id in (${ids});
       delete from listing_photos where listing_id in (${ids});
+      delete from listing_addresses where listing_id in (${ids});
+      delete from listing_service_areas where listing_id in (${ids});
       delete from listings where id in (${ids});`]);
   }
   for (const id of created.providers) await db.from("providers").delete().eq("id", id);

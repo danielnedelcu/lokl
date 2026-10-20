@@ -221,11 +221,13 @@ select throws_ok(
   '13b. a provider cannot change a listing''s slug'
 );
 
--- 14. The server (service role) can change status. (A listing needs a photo
---     to go live; see listing_photos_access for that rule.)
+-- 14. The server (service role) can change status. (A listing needs a photo,
+--     its address and payouts to go live; see listing_photos_access for that
+--     rule.)
 select tests.clear_authentication();
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 values (:'l_draft', :'pa' || '/' || :'l_draft' || '/' || gen_random_uuid() || '.jpg', 0, 'The studio chair and mirror');
+select tests.make_ready(:'l_draft');
 select tests.authenticate_as_service_role();
 select lives_ok(
   format($$ update listings set status = 'live', published_at = now() where id = %L $$, :'l_draft'),
@@ -241,12 +243,14 @@ select tests.clear_authentication();
 select id as l_live from listings where id = :'l_draft' \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, unpublished_reason)
 values
-  (:'pa', 'experience', :'exp', :'atl', 'Food tour: submitted', 'Waiting for the owner to review.', 3000, 90, :'o4w', 'submitted', null),
+  (:'pa', 'experience', :'exp', :'atl', 'Food tour: submitted', 'Waiting for the owner to review.', 3000, 90, :'o4w', 'draft', null),
   (:'pa', 'experience', :'exp', :'atl', 'Food tour: unpublished', 'Taken down by the owner.', 3000, 90, :'o4w', 'unpublished', 'Taken down in a test.');
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status, rejection_reason)
 values (:'pa', 'experience', :'exp', :'atl', 'Food tour: rejected', 'Sent back with a reason.', 3000, 90, :'o4w', 'rejected', 'Add more detail.');
 update listings set published_at = now() - interval '1 day' where title = 'Food tour: unpublished';
 select id as l_sub from listings where title = 'Food tour: submitted' \gset
+select tests.make_ready(:'l_sub');
+update listings set status = 'submitted' where id = :'l_sub';
 select id as l_unpub from listings where title = 'Food tour: unpublished' \gset
 select id as l_rej from listings where title = 'Food tour: rejected' \gset
 select id as l_mobile from listings where title = 'Haircut at your home' \gset

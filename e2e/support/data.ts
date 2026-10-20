@@ -173,11 +173,14 @@ export class TestData {
     const title = titled ?? `E2E ${kind === "service" ? "Haircut" : "Food walk"} ${this.run}`;
     this.listings.push(id);
     await must(this.env.db.from("listings").insert({
-      id, provider_id: providerId, city_id: this.cityId, area_id: areaId, status: "submitted", kind, category_id: categoryId, title,
+      id, provider_id: providerId, city_id: this.cityId, area_id: areaId, status: "draft", kind, category_id: categoryId, title,
       description: "A listing made by the end-to-end tests.", price_cents: 5000, duration_minutes: 60,
       location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? mode : null,
     }));
+    // What going live needs (listing_readiness): a photo and the address.
     await must(this.env.db.from("listing_photos").insert({ listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
+    await must(this.env.db.from("listing_addresses").insert({ listing_id: id, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }));
+    if (kind === "experience") await must(this.env.db.from("listings").update({ status: "submitted" }).eq("id", id));
     const row = await must(this.env.db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id).select("slug").single());
     return { id, slug: row.slug as string, title };
   }
@@ -428,6 +431,8 @@ export class TestData {
         delete from bookings where listing_id in (${ids});
         delete from experience_sessions where listing_id in (${ids});
         delete from listing_photos where listing_id in (${ids});
+        delete from listing_addresses where listing_id in (${ids});
+        delete from listing_service_areas where listing_id in (${ids});
         delete from listings where id in (${ids});`]);
     }
     if (this.providers.length) {

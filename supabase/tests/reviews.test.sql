@@ -27,8 +27,10 @@ begin
   insert into public.listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
   values (p_provider, 'experience', (select id from public.categories where slug = 'food'), (select id from public.cities where slug = 'atlanta'),
           p_title, 'A listing made for the review tests, long enough.', 5000, 60,
-          (select id from public.service_areas where name = 'Old Fourth Ward'), 'submitted') returning id into v;
+          (select id from public.service_areas where name = 'Old Fourth Ward'), 'draft') returning id into v;
   insert into public.listing_photos (listing_id, storage_path, position, alt_text) values (v, p_provider || '/' || v || '/' || gen_random_uuid() || '.jpg', 0, 'A photo');
+  perform tests.make_ready(v);
+  update public.listings set status = 'submitted' where id = v;
   update public.listings set status = 'live', published_at = now() where id = v;
   return v;
 end;

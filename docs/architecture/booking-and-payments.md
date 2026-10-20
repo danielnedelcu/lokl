@@ -956,6 +956,12 @@ invited, skipped once they're no longer invited, and each team change
 active owner. Never the reason. `kickBookingEmails` and the
 `send-emails` job send it with the others; nothing about bookings
 changed.
+Step 5d ([admin_settings_activity](../../supabase/migrations/20261020045257_admin_settings_activity.sql))
+adds two kinds for each active owner, skipped the same way: support
+taking a live listing down (`admin_listing_taken_down`, with the
+listing's title and a link) and an owner changing support's limits
+(`admin_settings_change`, what changed in words). Nothing about bookings
+changed.
 
 ### Notifications (the provider's bell)
 

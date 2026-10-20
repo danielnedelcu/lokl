@@ -16,9 +16,10 @@ The team's admin app: owner and support (docs/design/admin-roles.md). Port 3101 
   - *The owner's reference lists* (cities, service areas, categories) and
     commission rates are written from the page with `useSupabaseClient()`,
     under owner-only database rules (`public.is_owner()`).
-  - *Status changes and anything that crosses users* (listing approval)
-    go through a server route in `server/api/` that calls
-    `requireAdmin(event)` first, then uses the service role. Anything that
+  - *Status changes and anything that crosses users* go through a server
+    route in `server/api/` that calls `requireAdmin(event)` first, then an
+    admin function with `admin.db` (the admin's own session), as listing
+    review does (`admin_set_listing_status`, step 5d). Anything that
     needs Stripe, or has money consequences (refunds, payouts, provider
     suspension), goes through the website's admin routes instead (below).
 - **No Stripe keys in this app.** Anything that needs Stripe gets a website
@@ -74,6 +75,12 @@ The team's admin app: owner and support (docs/design/admin-roles.md). Port 3101 
   `admin_booking_contact` / `admin_provider_contact`, which record each
   view and apply support's daily limit; `admin_my_limits` gives the counts
   and limits to show.
+- **Listing readiness is the database's** (`listing_readiness()`): show
+  what blocks a listing from it, in the admin's words
+  (`reviewBlockers`); never recompute the rules.
+- **Activity** (`/activity`): every logged action in words
+  (`adminActionLabel`); a new action gets its phrase in
+  `packages/types/src/adminActivity.ts`.
 - **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;
   everything else from the shared layer (`Ui…` components, `StatusBadge`).
   Colours come from the layer's tokens (`background`, `card`, `muted`,

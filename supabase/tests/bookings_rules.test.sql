@@ -21,7 +21,7 @@ insert into service_areas (city_id, kind, name) values (:'atl', 'neighborhood', 
 -- A live Experience ($65 pp, 150 min) with a 3-spot session, a live
 -- studio Service ($45, 60 min) and a live "I come to you" Service ($80).
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, area_id, status)
-values (:'p', 'experience', :'exp', :'atl', 'Taco crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 150, :'o4w', 'submitted')
+values (:'p', 'experience', :'exp', :'atl', 'Taco crawl', 'Four taquerias on the BeltLine, with stories.', 6500, 150, :'o4w', 'draft')
 returning id as le \gset
 insert into listings (provider_id, kind, category_id, city_id, title, description, price_cents, duration_minutes, location_mode, area_id, booking_mode)
 values (:'p', 'service', :'svc', :'atl', 'Haircut at the studio', 'A classic cut, with a wash and style.', 4500, 60, 'provider_location', :'o4w', 'approve')
@@ -32,6 +32,8 @@ returning id as lh \gset
 insert into listing_service_areas (listing_id, service_area_id) values (:'lh', :'o4w');
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'le', :'ls', :'lh');
+select tests.make_ready(id) from listings where id in (:'le', :'ls', :'lh');
+update listings set status = 'submitted' where id in (:'le');
 update listings set status = 'live', published_at = now() where id in (:'le', :'ls', :'lh');
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '7 days', 3) returning id as s1 \gset
 

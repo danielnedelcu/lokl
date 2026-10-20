@@ -33,6 +33,7 @@ values (:'pb', 'service', :'svc', :'atl', 'An any-hour cut', 'A cut at any hour,
 returning id as sb \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'sa', :'sb');
+select tests.make_ready(id) from listings where id in (:'sa', :'sb');
 update listings set status = 'live', published_at = now() where id in (:'sa', :'sb');
 insert into provider_schedules (provider_id, slot_interval_minutes, min_notice_minutes, booking_window_days)
 values (:'pa', 30, 60, 60), (:'pb', 30, 90, 60);

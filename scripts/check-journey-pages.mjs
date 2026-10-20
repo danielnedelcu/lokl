@@ -18,10 +18,8 @@ const NO_JOURNEY_YET = {
   "admin /cities": "markets and areas: no journey yet",
   "admin /confirm": "the emailed sign-in link's landing page: no journey yet (sign-in journeys use the code)",
   "admin /content/[id]/preview": "a guide's preview: no journey yet",
-  "admin /listings/[id]": "a listing's admin page: no journey yet",
   "admin /listings/experiences": "the Experiences list: no journey yet",
   "admin /listings/services": "the Services list: no journey yet",
-  "admin /settings": "settings: no journey yet (journey 40 checks only that support is turned away from it)",
 };
 
 const all = journeys();

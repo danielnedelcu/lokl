@@ -75,6 +75,7 @@ async function remove() {
       delete from public.bookings where listing_id in (${ids});
       delete from public.experience_sessions where listing_id in (${ids});
       delete from public.listing_photos where listing_id in (${ids});
+      delete from public.listing_addresses where listing_id in (${ids});
       delete from public.listings where id in (${ids});`);
   }
   if (files.length) await db.storage.from(BUCKET).remove(files);
@@ -141,17 +142,21 @@ async function add() {
   const listing = async (kind, title) => {
     const id = randomUUID();
     await must(db.from("listings").insert({
-      id, provider_id: provider.id, city_id: atl.id, area_id: area, status: "submitted", kind, category_id: categories[kind], title,
+      id, provider_id: provider.id, city_id: atl.id, area_id: area, kind, category_id: categories[kind], title,
       description: MARKER, price_cents: 4000 + (n % 8) * 500, duration_minutes: 60, location_mode: kind === "service" ? "provider_location" : null,
       booking_mode: kind === "service" ? "approve" : null,
     }), "add a listing");
     const path = `${provider.id}/${id}/${randomUUID()}.jpg`;
     await must(db.storage.from(BUCKET).upload(path, photos[n++ % photos.length], { contentType: "image/jpeg" }), "upload a photo");
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: path, position: 0, alt_text: `A photo for ${title}` }), "add the photo");
+    // Both kinds here meet at an address (listing_readiness): a made-up one.
+    await must(db.from("listing_addresses").insert({ listing_id: id, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }), "add the address");
     if (kind === "experience") {
       const starts = new Date(Math.ceil((Date.now() + (5 + n) * DAY) / 3_600_000) * 3_600_000).toISOString();
       await must(db.from("experience_sessions").insert({ listing_id: id, starts_at: starts, capacity: 8 }), "add a session");
     }
+    // Sent for review, then approved (as before).
+    await must(db.from("listings").update({ status: "submitted" }).eq("id", id), "send it for review");
     await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id), "make it live");
     return id;
   };

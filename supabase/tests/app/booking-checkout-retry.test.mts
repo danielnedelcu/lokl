@@ -11,6 +11,7 @@
 // Run: npx tsx supabase/tests/app/booking-checkout-retry.test.mts
 
 import { execFileSync } from "node:child_process";
+import { goLive } from "./_listings";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -78,9 +79,9 @@ try {
   const listing = async (row: Record<string, unknown>) => {
     const id = randomUUID();
     created.listings.push(id);
-    await must(db.from("listings").insert({ id, provider_id: created.provider, city_id: atl.id, area_id: created.area, status: "submitted", ...row }));
+    await must(db.from("listings").insert({ id, provider_id: created.provider, city_id: atl.id, area_id: created.area, ...row }));
     await must(db.from("listing_photos").insert({ listing_id: id, storage_path: `${created.provider}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
-    await must(db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id));
+    await goLive(db, id);
     return id;
   };
   const serviceId = await listing({ kind: "service", booking_mode: "approve", category_id: svcCat, title: `Retry cut ${run}`, description: "A Service made by the retry test.", price_cents: 4500, location_mode: "provider_location", duration_minutes: 60 });

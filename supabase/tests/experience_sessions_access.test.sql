@@ -210,10 +210,12 @@ select is((select count(*)::int from experience_sessions where listing_id = :'la
 -- WHO SEES SESSIONS
 -- ---------------------------------------------------------------------------
 
--- A's Experience goes live (as the server, with a photo).
+-- A's Experience goes live (as the server, with a photo, a meeting address
+-- and payouts set up).
 select tests.clear_authentication();
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 values (:'la', :'pa' || '/' || :'la' || '/' || gen_random_uuid() || '.jpg', 0, 'Tacos on a picnic table');
+select tests.make_ready(:'la');
 update listings set status = 'live', published_at = now() where id = :'la';
 
 select tests.authenticate_as_anon();

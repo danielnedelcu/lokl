@@ -22,6 +22,7 @@ insert into listings (provider_id, kind, category_id, city_id, title, descriptio
 values (:'p', 'experience', :'exp', :'atl', 'Slots only walk', 'A walk around the neighbourhood, with stories.', 3000, 60, :'area') returning id as le \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id in (:'ls', :'le');
+select tests.make_ready(id) from listings where id in (:'ls', :'le');
 update listings set status = 'live', published_at = now() where id in (:'ls', :'le');
 insert into experience_sessions (listing_id, starts_at, capacity) values (:'le', now() + interval '10 days', 4) returning id as s1 \gset
 select tests.make_bookable(:'p');
@@ -33,6 +34,7 @@ insert into listings (provider_id, kind, category_id, city_id, title, descriptio
 values (:'p2', 'service', :'svc', :'atl', 'Slots only beard trim', 'A beard trim and hot towel, start to finish.', 2500, 60, 'provider_location', :'area', 'instant') returning id as ls2 \gset
 insert into listing_photos (listing_id, storage_path, position, alt_text)
 select id, provider_id || '/' || id || '/' || gen_random_uuid() || '.jpg', 0, 'A photo' from listings where id = :'ls2';
+select tests.make_ready(:'ls2');
 update listings set status = 'live', published_at = now() where id = :'ls2';
 select (now() at time zone 'America/New_York')::date as today \gset
 

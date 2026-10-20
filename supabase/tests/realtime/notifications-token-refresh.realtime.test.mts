@@ -67,6 +67,8 @@ try {
   created.user = user.id;
   const provider = await must(server.from("providers").insert({ owner_id: user.id, display_name: "Refresh test", city_id: city.id }).select("id").single());
   created.provider = provider.id;
+  // Payouts set up (listing_readiness): the listing goes live again and again.
+  await must(server.from("providers").update({ stripe_account_id: `acct_test_refresh${run}`, stripe_charges_enabled: true, stripe_payouts_enabled: true }).eq("id", provider.id));
 
   // A live Experience whose status the test toggles: live -> unpublished -> live.
   const listingId = randomUUID();
@@ -74,9 +76,11 @@ try {
   await must(server.from("listings").insert({
     id: listingId, provider_id: provider.id, kind: "experience", category_id: created.category, city_id: city.id,
     title: `Refresh test ${run}`, description: "A listing made by the token refresh test.", price_cents: 1000,
-    duration_minutes: 60, area_id: created.area, status: "submitted",
+    duration_minutes: 60, area_id: created.area,
   }));
   await must(server.from("listing_photos").insert({ listing_id: listingId, storage_path: `${provider.id}/${listingId}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
+  await must(server.from("listing_addresses").insert({ listing_id: listingId, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }));
+  await must(server.from("listings").update({ status: "submitted" }).eq("id", listingId));
   await must(server.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", listingId));
   let live = true;
   const toggle = () => {
