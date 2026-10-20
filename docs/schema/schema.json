@@ -3596,6 +3596,12 @@
           "type": "uuid",
           "nullable": true,
           "comment": "The request this action answered: approved (the action ran, as the owner) or done by the owner directly. With admin_requests.requested_by, the history names who asked and who approved."
+        },
+        {
+          "name": "amount_cents",
+          "type": "integer",
+          "nullable": true,
+          "comment": "For a cancellation or refund by lokl: what that action refunded, in cents (support's daily refund total adds these up)."
         }
       ],
       "indexes": [
@@ -3630,11 +3636,21 @@
         {
           "name": "admin_actions_action_check",
           "type": "CHECK",
-          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text, 'request_action'::text, 'decline_request'::text, 'withdraw_request'::text])))",
+          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text, 'request_action'::text, 'decline_request'::text, 'withdraw_request'::text, 'limit_reached'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
             "action"
+          ]
+        },
+        {
+          "name": "admin_actions_amount_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((amount_cents \u003e= 0))",
+          "table": "public.admin_actions",
+          "referenced_table": "",
+          "columns": [
+            "amount_cents"
           ]
         },
         {
@@ -3650,7 +3666,7 @@
         {
           "name": "admin_actions_reason",
           "type": "CHECK",
-          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text, 'withdraw_request'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
+          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text, 'withdraw_request'::text, 'limit_reached'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -9330,7 +9346,7 @@
         {
           "name": "admin_notifications_about_check",
           "type": "CHECK",
-          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = 'team_change'::text) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL))))",
+          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL))))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -9343,7 +9359,7 @@
         {
           "name": "admin_notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text])))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -10006,7 +10022,7 @@
         {
           "name": "admin_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text])))",
           "table": "public.admin_emails",
           "referenced_table": "",
           "columns": [
@@ -10111,6 +10127,34 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "now()"
+        },
+        {
+          "name": "support_refunds_per_day",
+          "type": "integer",
+          "nullable": false,
+          "default": "5",
+          "comment": "The most direct refunds or paid cancellations one support member makes in an Atlanta day (default 5)."
+        },
+        {
+          "name": "support_refund_cents_per_day",
+          "type": "integer",
+          "nullable": false,
+          "default": "50000",
+          "comment": "The most one support member refunds directly in an Atlanta day, in cents (default $500)."
+        },
+        {
+          "name": "support_contact_views_per_day",
+          "type": "integer",
+          "nullable": false,
+          "default": "40",
+          "comment": "How many different bookings or providers one support member may see contact details for in an Atlanta day (default 40)."
+        },
+        {
+          "name": "support_requests_per_day",
+          "type": "integer",
+          "nullable": false,
+          "default": "20",
+          "comment": "The most requests one support member makes in an Atlanta day (default 20)."
         }
       ],
       "indexes": [
@@ -10142,6 +10186,46 @@
           "referenced_table": "",
           "columns": [
             "refund_limit_cents"
+          ]
+        },
+        {
+          "name": "admin_settings_support_contact_views_per_day_check",
+          "type": "CHECK",
+          "def": "CHECK (((support_contact_views_per_day \u003e= 0) AND (support_contact_views_per_day \u003c= 10000)))",
+          "table": "public.admin_settings",
+          "referenced_table": "",
+          "columns": [
+            "support_contact_views_per_day"
+          ]
+        },
+        {
+          "name": "admin_settings_support_refund_cents_per_day_check",
+          "type": "CHECK",
+          "def": "CHECK (((support_refund_cents_per_day \u003e= 0) AND (support_refund_cents_per_day \u003c= 100000000)))",
+          "table": "public.admin_settings",
+          "referenced_table": "",
+          "columns": [
+            "support_refund_cents_per_day"
+          ]
+        },
+        {
+          "name": "admin_settings_support_refunds_per_day_check",
+          "type": "CHECK",
+          "def": "CHECK (((support_refunds_per_day \u003e= 0) AND (support_refunds_per_day \u003c= 1000)))",
+          "table": "public.admin_settings",
+          "referenced_table": "",
+          "columns": [
+            "support_refunds_per_day"
+          ]
+        },
+        {
+          "name": "admin_settings_support_requests_per_day_check",
+          "type": "CHECK",
+          "def": "CHECK (((support_requests_per_day \u003e= 0) AND (support_requests_per_day \u003c= 10000)))",
+          "table": "public.admin_settings",
+          "referenced_table": "",
+          "columns": [
+            "support_requests_per_day"
           ]
         },
         {
@@ -10528,6 +10612,304 @@
         {
           "name": "admin_requests_guard_truncate",
           "def": "CREATE TRIGGER admin_requests_guard_truncate BEFORE TRUNCATE ON public.admin_requests FOR EACH STATEMENT EXECUTE FUNCTION admin_requests_guard()"
+        }
+      ]
+    },
+    {
+      "name": "public.admin_contact_views",
+      "type": "BASE TABLE",
+      "comment": "Who saw which contact details, when (admin roles, step 5c): a customer's email and phone (booking_contact) or Service address (booking_address), or a provider owner's email (owner_email). Written only by admin_booking_contact() and admin_provider_contact(); append-only, never deleted. The owner reads all of it (the Team page); each admin reads their own (for today's count).",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "admin_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "what",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "viewed_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_contact_views_pkey",
+          "def": "CREATE UNIQUE INDEX admin_contact_views_pkey ON public.admin_contact_views USING btree (id)",
+          "table": "public.admin_contact_views",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_contact_views_admin_day",
+          "def": "CREATE INDEX admin_contact_views_admin_day ON public.admin_contact_views USING btree (admin_id, viewed_at DESC)",
+          "table": "public.admin_contact_views",
+          "columns": [
+            "admin_id",
+            "viewed_at"
+          ]
+        },
+        {
+          "name": "admin_contact_views_viewed",
+          "def": "CREATE INDEX admin_contact_views_viewed ON public.admin_contact_views USING btree (viewed_at DESC)",
+          "table": "public.admin_contact_views",
+          "columns": [
+            "viewed_at"
+          ]
+        },
+        {
+          "name": "admin_contact_views_booking",
+          "def": "CREATE INDEX admin_contact_views_booking ON public.admin_contact_views USING btree (booking_id) WHERE (booking_id IS NOT NULL)",
+          "table": "public.admin_contact_views",
+          "columns": [
+            "booking_id"
+          ]
+        },
+        {
+          "name": "admin_contact_views_provider",
+          "def": "CREATE INDEX admin_contact_views_provider ON public.admin_contact_views USING btree (provider_id) WHERE (provider_id IS NOT NULL)",
+          "table": "public.admin_contact_views",
+          "columns": [
+            "provider_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "admin_contact_views_check",
+          "type": "CHECK",
+          "def": "CHECK (((what = 'owner_email'::text) = ((provider_id IS NOT NULL) AND (booking_id IS NULL))))",
+          "table": "public.admin_contact_views",
+          "referenced_table": "",
+          "columns": [
+            "what",
+            "provider_id",
+            "booking_id"
+          ]
+        },
+        {
+          "name": "admin_contact_views_check1",
+          "type": "CHECK",
+          "def": "CHECK (((what = ANY (ARRAY['booking_contact'::text, 'booking_address'::text])) = ((booking_id IS NOT NULL) AND (provider_id IS NULL))))",
+          "table": "public.admin_contact_views",
+          "referenced_table": "",
+          "columns": [
+            "what",
+            "booking_id",
+            "provider_id"
+          ]
+        },
+        {
+          "name": "admin_contact_views_what_check",
+          "type": "CHECK",
+          "def": "CHECK ((what = ANY (ARRAY['booking_contact'::text, 'booking_address'::text, 'owner_email'::text])))",
+          "table": "public.admin_contact_views",
+          "referenced_table": "",
+          "columns": [
+            "what"
+          ]
+        },
+        {
+          "name": "admin_contact_views_admin_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (admin_id) REFERENCES auth.users(id) ON DELETE RESTRICT",
+          "table": "public.admin_contact_views",
+          "referenced_table": "auth.users",
+          "columns": [
+            "admin_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_contact_views_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.admin_contact_views",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_contact_views_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "public.admin_contact_views",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_contact_views_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.admin_contact_views",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "admin_contact_views_append_only",
+          "def": "CREATE TRIGGER admin_contact_views_append_only BEFORE DELETE OR UPDATE ON public.admin_contact_views FOR EACH ROW EXECUTE FUNCTION append_only_guard()"
+        },
+        {
+          "name": "admin_contact_views_append_only_truncate",
+          "def": "CREATE TRIGGER admin_contact_views_append_only_truncate BEFORE TRUNCATE ON public.admin_contact_views FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard()"
+        }
+      ]
+    },
+    {
+      "name": "public.admin_refund_holds",
+      "type": "BASE TABLE",
+      "comment": "Support's refunds in flight (admin roles, step 5c): reserved before Stripe under a per-person lock and counted in today's usage, so refunds started at once can't together pass the daily limits. Deleted when the refund is recorded; ignored after 15 minutes (one never completed lapses) and removed when that person next reserves. Not a log: rows come and go. Only the server writes it; the owner reads it.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "admin_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "amount_cents",
+          "type": "integer",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "admin_refund_holds_pkey",
+          "def": "CREATE UNIQUE INDEX admin_refund_holds_pkey ON public.admin_refund_holds USING btree (id)",
+          "table": "public.admin_refund_holds",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_refund_holds_admin_id_booking_id_key",
+          "def": "CREATE UNIQUE INDEX admin_refund_holds_admin_id_booking_id_key ON public.admin_refund_holds USING btree (admin_id, booking_id)",
+          "table": "public.admin_refund_holds",
+          "columns": [
+            "admin_id",
+            "booking_id"
+          ]
+        },
+        {
+          "name": "admin_refund_holds_admin",
+          "def": "CREATE INDEX admin_refund_holds_admin ON public.admin_refund_holds USING btree (admin_id, created_at)",
+          "table": "public.admin_refund_holds",
+          "columns": [
+            "admin_id",
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "admin_refund_holds_amount_cents_check",
+          "type": "CHECK",
+          "def": "CHECK ((amount_cents \u003e= 0))",
+          "table": "public.admin_refund_holds",
+          "referenced_table": "",
+          "columns": [
+            "amount_cents"
+          ]
+        },
+        {
+          "name": "admin_refund_holds_admin_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (admin_id) REFERENCES auth.users(id) ON DELETE CASCADE",
+          "table": "public.admin_refund_holds",
+          "referenced_table": "auth.users",
+          "columns": [
+            "admin_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_refund_holds_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE",
+          "table": "public.admin_refund_holds",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_refund_holds_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.admin_refund_holds",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_refund_holds_admin_id_booking_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (admin_id, booking_id)",
+          "table": "public.admin_refund_holds",
+          "referenced_table": "",
+          "columns": [
+            "admin_id",
+            "booking_id"
+          ]
         }
       ]
     }
@@ -11548,6 +11930,45 @@
       ],
       "parent_cardinality": "zero_or_one",
       "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_contact_views",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_contact_views",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_refund_holds",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE"
     }
   ],
   "functions": [
@@ -13637,6 +14058,72 @@
       "name": "public.admin_set_provider_status",
       "return_type": "bool",
       "arguments": "p_provider_id uuid, p_status text, p_admin_id uuid, p_reason text, p_message text, p_request_id uuid DEFAULT NULL::uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_day_start",
+      "return_type": "timestamptz",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_alert_owners",
+      "return_type": "void",
+      "arguments": "p_action_id uuid, p_kind text, p_email_kind text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_usage_today",
+      "return_type": "record",
+      "arguments": "p_admin_id uuid, p_except_booking uuid DEFAULT NULL::uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_limit_reached",
+      "return_type": "void",
+      "arguments": "p_admin_id uuid, p_limit text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_record_contact_view",
+      "return_type": "void",
+      "arguments": "p_booking_id uuid, p_provider_id uuid, p_whats text[]",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_booking_contact",
+      "return_type": "jsonb",
+      "arguments": "p_booking_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_provider_contact",
+      "return_type": "jsonb",
+      "arguments": "p_provider_id uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_my_limits",
+      "return_type": "jsonb",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_contact_views_page",
+      "return_type": "jsonb",
+      "arguments": "p_admin_id uuid DEFAULT NULL::uuid, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_daily_refund_refusal",
+      "return_type": "text",
+      "arguments": "p_admin_id uuid, p_cents integer, p_booking_id uuid DEFAULT NULL::uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_release_refund_hold",
+      "return_type": "void",
+      "arguments": "p_admin_id uuid, p_booking_id uuid",
       "type": "FUNCTION"
     }
   ],

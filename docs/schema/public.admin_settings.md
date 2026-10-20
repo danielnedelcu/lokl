@@ -6,19 +6,27 @@ The owner's settings for the team (admin roles): one row (id is always true). Su
 
 ## Columns
 
-| Name               | Type                     | Default | Nullable | Children | Parents | Comment                                                                                               |
-| ------------------ | ------------------------ | ------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------- |
-| id                 | boolean                  | true    | false    |          |         |                                                                                                       |
-| refund_limit_cents | integer                  | 15000   | false    |          |         | The most support can refund directly, in cents, measured on what's left of the charge (default $150). |
-| updated_at         | timestamp with time zone | now()   | false    |          |         |                                                                                                       |
+| Name                          | Type                     | Default | Nullable | Children | Parents | Comment                                                                                                                 |
+| ----------------------------- | ------------------------ | ------- | -------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
+| id                            | boolean                  | true    | false    |          |         |                                                                                                                         |
+| refund_limit_cents            | integer                  | 15000   | false    |          |         | The most support can refund directly, in cents, measured on what's left of the charge (default $150).                   |
+| updated_at                    | timestamp with time zone | now()   | false    |          |         |                                                                                                                         |
+| support_refunds_per_day       | integer                  | 5       | false    |          |         | The most direct refunds or paid cancellations one support member makes in an Atlanta day (default 5).                   |
+| support_refund_cents_per_day  | integer                  | 50000   | false    |          |         | The most one support member refunds directly in an Atlanta day, in cents (default $500).                                |
+| support_contact_views_per_day | integer                  | 40      | false    |          |         | How many different bookings or providers one support member may see contact details for in an Atlanta day (default 40). |
+| support_requests_per_day      | integer                  | 20      | false    |          |         | The most requests one support member makes in an Atlanta day (default 20).                                              |
 
 ## Constraints
 
-| Name                                    | Type        | Definition                                                              |
-| --------------------------------------- | ----------- | ----------------------------------------------------------------------- |
-| admin_settings_id_check                 | CHECK       | CHECK (id)                                                              |
-| admin_settings_refund_limit_cents_check | CHECK       | CHECK (((refund_limit_cents >= 0) AND (refund_limit_cents <= 1000000))) |
-| admin_settings_pkey                     | PRIMARY KEY | PRIMARY KEY (id)                                                        |
+| Name                                               | Type        | Definition                                                                                    |
+| -------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| admin_settings_id_check                            | CHECK       | CHECK (id)                                                                                    |
+| admin_settings_refund_limit_cents_check            | CHECK       | CHECK (((refund_limit_cents >= 0) AND (refund_limit_cents <= 1000000)))                       |
+| admin_settings_support_contact_views_per_day_check | CHECK       | CHECK (((support_contact_views_per_day >= 0) AND (support_contact_views_per_day <= 10000)))   |
+| admin_settings_support_refund_cents_per_day_check  | CHECK       | CHECK (((support_refund_cents_per_day >= 0) AND (support_refund_cents_per_day <= 100000000))) |
+| admin_settings_support_refunds_per_day_check       | CHECK       | CHECK (((support_refunds_per_day >= 0) AND (support_refunds_per_day <= 1000)))                |
+| admin_settings_support_requests_per_day_check      | CHECK       | CHECK (((support_requests_per_day >= 0) AND (support_requests_per_day <= 10000)))             |
+| admin_settings_pkey                                | PRIMARY KEY | PRIMARY KEY (id)                                                                              |
 
 ## Indexes
 
