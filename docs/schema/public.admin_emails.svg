@@ -83,6 +83,7 @@
 <polygon fill="none" stroke="black" points="384.09,-258.8 384.09,-289.6 1687.61,-289.6 1687.61,-258.8 384.09,-258.8"/>
 <text text-anchor="start" x="391.09" y="-271" font-family="Arial" font-size="14.00">target_id </text>
 <text text-anchor="start" x="449.46" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="483.71" y="-271" font-family="Arial" font-size="14.00"> The row acted on, in the table target names. Empty only for the homepage and the settings, which are one thing each.</text>
 <polygon fill="none" stroke="black" points="384.09,-228 384.09,-258.8 1687.61,-258.8 1687.61,-228 384.09,-228"/>
 <text text-anchor="start" x="391.09" y="-240.2" font-family="Arial" font-size="14.00">action </text>
 <text text-anchor="start" x="432.34" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>

@@ -42,6 +42,7 @@ Service and Experience categories. Flat and admin-managed; each listing belongs 
 
 | Name                               | Definition                                                                                                                                                           |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| categories_log                     | CREATE TRIGGER categories_log AFTER INSERT OR UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION log_reference_change('category')                             |
 | categories_public_content          | CREATE TRIGGER categories_public_content AFTER INSERT OR DELETE OR UPDATE ON public.categories FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets') |
 | categories_public_content_truncate | CREATE TRIGGER categories_public_content_truncate AFTER TRUNCATE ON public.categories FOR EACH STATEMENT EXECUTE FUNCTION public_content_changed('markets')          |
 | categories_set_updated_at          | CREATE TRIGGER categories_set_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION set_updated_at()                                           |
