@@ -482,7 +482,8 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
 // is (it isn't even passed here).
 // ---------------------------------------------------------------------------
 
-export type ProviderAccountEmailKind = "provider_account_paused" | "provider_account_active" | "provider_profile_edited";
+export type ProviderAccountEmailKind = "provider_account_paused" | "provider_account_active" | "provider_profile_edited"
+  | "provider_profile_hidden" | "provider_profile_restored" | "provider_profile_reviewed";
 
 // What lokl removed from a profile, as the email lists it.
 const REMOVED_LABELS: Record<string, string> = {
@@ -512,6 +513,46 @@ export function renderProviderAccountEmail(
       ],
       message,
       button: { label: "Edit your profile", url: `${c.siteUrl}/dashboard/settings` },
+    });
+  }
+  // Admin roles step 5e: hidden while lokl reviews it, then restored, or
+  // (once they'd replaced it) reviewed and found fine.
+  if (kind === "provider_profile_hidden") {
+    const rule = c.rule && c.rule in PROFILE_RULES ? PROFILE_RULES[c.rule as ProfileRule] : null;
+    return render({
+      recipient: "account",
+      subject: "We've hidden part of your lokl profile",
+      intro: [`We've hidden this from the public profile for ${c.businessName} while lokl reviews it, because it may not follow lokl's profile rules:`],
+      bullets: (c.removed ?? []).map((part) => REMOVED_LABELS[part] ?? part),
+      after: [
+        ...(rule ? [`The rule concerned: ${rule}`] : []),
+        "Customers can't see it now. We'll email you again once we've decided. You can add a new one on your Business profile page meanwhile.",
+        "Your listings and bookings aren't affected.",
+      ],
+      message,
+      button: { label: "Go to your Business profile", url: `${c.siteUrl}/dashboard/settings` },
+    });
+  }
+  if (kind === "provider_profile_restored") {
+    return render({
+      recipient: "account",
+      subject: "It's back on your lokl profile",
+      intro: [`We've reviewed what we hid from the public profile for ${c.businessName}, and put it back:`],
+      bullets: (c.removed ?? []).map((part) => REMOVED_LABELS[part] ?? part),
+      after: ["Customers can see it again. We're sorry for the trouble."],
+      message,
+      button: { label: "See your Business profile", url: `${c.siteUrl}/dashboard/settings` },
+    });
+  }
+  if (kind === "provider_profile_reviewed") {
+    return render({
+      recipient: "account",
+      subject: "We've reviewed what we hid from your lokl profile",
+      intro: [`We've reviewed what we hid from the public profile for ${c.businessName}:`],
+      bullets: (c.removed ?? []).map((part) => REMOVED_LABELS[part] ?? part),
+      after: ["It was fine. You've already replaced it, so nothing changes, and the earlier version has been deleted. We're sorry for the trouble."],
+      message,
+      button: { label: "See your Business profile", url: `${c.siteUrl}/dashboard/settings` },
     });
   }
   if (kind === "provider_account_paused") {
@@ -594,7 +635,7 @@ export function renderSupportEmail(
 // ---------------------------------------------------------------------------
 
 export type AdminEmailKind = "admin_invite" | "admin_team_change" | "admin_request_new" | "admin_limit_reached" | "admin_support_refund"
-  | "admin_listing_taken_down" | "admin_settings_change";
+  | "admin_listing_taken_down" | "admin_settings_change" | "admin_profile_hidden";
 
 export function renderAdminInviteEmail(c: { adminUrl: string; invitedBy: string; role: string }): RenderedEmail {
   return render({
@@ -645,6 +686,16 @@ export function renderAdminListingTakenDownEmail(c: { adminUrl: string; text: st
     subject: "Support took a listing down",
     intro: [c.text, "Their reason is on the listing. Anyone on the team can put it back."],
     button: { label: "Open the listing", url: `${c.adminUrl}/listings/${c.listingId}` },
+  });
+}
+
+/** Support hid part of a provider's profile (admin roles, step 5e), for each owner. Never the reason. */
+export function renderAdminProfileHiddenEmail(c: { adminUrl: string; text: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "Support hid part of a provider's profile",
+    intro: [c.text, "Nothing is deleted until you confirm it. Their reason is on the queue."],
+    button: { label: "Open Requests", url: `${c.adminUrl}/requests` },
   });
 }
 

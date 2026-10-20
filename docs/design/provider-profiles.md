@@ -176,6 +176,10 @@ profile (it isn't public while they're suspended).
 ## The admin
 
 - The admin's provider view shows the profile (photos, headline, bio).
+- **Since admin roles step 5e** (docs/design/admin-roles.md): support
+  *hides* a part instead (off the profile at once, kept privately), and
+  the owner confirms the removal, restores it or dismisses it. The owner
+  can still remove outright, as below.
 - **Removing a photo or clearing a bio or headline** that breaks the rules,
   with a reason, logged in `admin_actions`, and an email to the provider
   saying what was removed and why. The rules are written down (what's

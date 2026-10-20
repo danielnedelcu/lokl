@@ -2,16 +2,23 @@
 import { PROFILE_RULES, type ProfileRule } from "@repo/types";
 
 // A provider's public profile, for the admin (docs/design/provider-profiles.md,
-// The admin): the photos, headline and bio, and removing any part that
-// breaks a profile rule. The removal goes through the website (it deletes
-// files and emails the provider), with an internal reason, the rule it
-// broke, and an optional message for the provider; all logged.
+// The admin): the photos, headline and bio, and hiding any part that
+// breaks a profile rule (admin roles step 5e). Hiding takes it off the
+// profile at once and keeps it for the owner's decision (the queue on
+// Requests); the owner may instead remove it now (the files and text are
+// deleted). Both go through the website (files move, the provider is
+// emailed), with an internal reason, the rule, and an optional message;
+// all logged. The database refuses support's removal either way.
 const open = defineModel<boolean>("open", { required: true });
 const props = defineProps<{ providerId: string | null }>();
 const emit = defineEmits<{ changed: [] }>();
 
 const supabase = useSupabaseClient();
 const call = useWebsiteAdmin();
+const role = useAdminRole();
+const isOwner = computed(() => role.value === "owner");
+// The owner may remove at once; hiding for review is the default for both.
+const mode = ref<"hide" | "remove">("hide");
 const websiteUrl = useRuntimeConfig().public.websiteUrl.replace(/\/$/, "");
 const photoUrl = (path: string | null) => (path ? supabase.storage.from("provider-photos").getPublicUrl(path).data.publicUrl : null);
 
@@ -56,6 +63,7 @@ const message = ref("");
 const busy = ref(false);
 const formError = ref("");
 function reset() {
+  mode.value = "hide";
   parts.value = [];
   rule.value = "";
   reason.value = "";
@@ -65,17 +73,20 @@ function reset() {
 const toggle = (part: Part, on: boolean) => (parts.value = on ? [...parts.value, part] : parts.value.filter((p) => p !== part));
 const ruleOptions = [{ value: "", label: "Choose a rule" }, ...Object.entries(PROFILE_RULES).map(([value, label]) => ({ value, label }))];
 
-async function remove() {
+async function submit() {
   formError.value = "";
-  if (!parts.value.length) return void (formError.value = "Choose what to remove.");
+  const removing = mode.value === "remove" && isOwner.value;
+  if (!parts.value.length) return void (formError.value = removing ? "Choose what to remove." : "Choose what to hide.");
   if (!rule.value) return void (formError.value = "Choose the rule it breaks.");
   if (reason.value.trim().length < 5) return void (formError.value = "Say why, in a few words. It's kept in the provider's history.");
   busy.value = true;
   try {
-    await call(`providers/${props.providerId}/remove-profile-content`, {
+    const { result } = await call<{ result: string }>(`providers/${props.providerId}/${removing ? "remove" : "hide"}-profile-content`, {
       parts: parts.value, rule: rule.value, reason: reason.value, message: message.value || undefined,
     });
-    useSonner.success(`Removed from ${profile.value?.display_name}'s profile. They've been emailed.`);
+    if (removing) useSonner.success(`Removed from ${profile.value?.display_name}'s profile. They've been emailed.`);
+    else if (result.includes("still public")) useSonner.warning("Hidden from the profile, but a photo's file is still at its public address. Try again from Requests.");
+    else useSonner.success(`Hidden from ${profile.value?.display_name}'s profile. They've been emailed${isOwner.value ? "" : ", and the owner will decide"}.`);
     reset();
     await load();
     emit("changed");
@@ -113,10 +124,24 @@ async function remove() {
 
             <ProviderAvailability :key="profile.id" :provider-id="profile.id" />
 
-            <form v-if="present.length" class="border-border space-y-4 border-t pt-4" novalidate @submit.prevent="remove">
-              <h3 class="font-medium">Remove something that breaks the profile rules</h3>
+            <NuxtLink :to="`/providers/${profile.id}`" class="block text-sm font-medium">Open their page: hidden content and history</NuxtLink>
+
+            <form v-if="present.length" class="border-border space-y-4 border-t pt-4" novalidate @submit.prevent="submit">
+              <h3 class="font-medium">Hide something that breaks the profile rules</h3>
+              <p class="text-muted-foreground text-sm">
+                It comes off their profile at once and is kept until {{ isOwner ? "you decide" : "the owner decides" }} to remove or restore it. Nothing is deleted yet.
+              </p>
+              <fieldset v-if="isOwner" class="space-y-1">
+                <legend class="mb-1 text-sm font-medium">How</legend>
+                <label class="flex min-h-9 cursor-pointer items-center gap-3 text-sm">
+                  <input v-model="mode" type="radio" value="hide" class="size-4"> Hide it for review
+                </label>
+                <label class="flex min-h-9 cursor-pointer items-center gap-3 text-sm">
+                  <input v-model="mode" type="radio" value="remove" class="size-4"> Remove it now (the files and text are deleted)
+                </label>
+              </fieldset>
               <fieldset class="space-y-1">
-                <legend class="mb-1 text-sm font-medium">What to remove</legend>
+                <legend class="mb-1 text-sm font-medium">{{ mode === "remove" && isOwner ? "What to remove" : "What to hide" }}</legend>
                 <label v-for="part in present" :key="part" class="flex min-h-9 cursor-pointer items-center gap-3">
                   <UiCheckbox :model-value="parts.includes(part)" @update:model-value="(v: boolean | 'indeterminate') => toggle(part, v === true)" />
                   <span class="text-sm">{{ PART_LABELS[part] }}</span>
@@ -136,9 +161,11 @@ async function remove() {
                 <UiTextarea id="profile-message" v-model="message" :rows="3" :maxlength="1000" />
               </div>
               <p v-if="formError" class="text-destructive text-sm" role="alert">{{ formError }}</p>
-              <UiButton type="submit" variant="destructive" :disabled="busy">{{ busy ? "Removing…" : "Remove and email the provider" }}</UiButton>
+              <UiButton type="submit" variant="destructive" :disabled="busy">
+                {{ busy ? "Saving…" : mode === "remove" && isOwner ? "Remove and email the provider" : "Hide and email the provider" }}
+              </UiButton>
             </form>
-            <p v-else class="text-muted-foreground border-border border-t pt-4 text-sm">Nothing to remove: the profile has no photos, headline or about text.</p>
+            <p v-else class="text-muted-foreground border-border border-t pt-4 text-sm">Nothing to hide: the profile has no photos, headline or about text.</p>
           </template>
         </div>
       </template>

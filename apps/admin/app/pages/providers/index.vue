@@ -203,6 +203,7 @@ const paidSinceLabel = computed(() =>
           <span class="text-muted-foreground">{{ formatHomeDate(row.original.created_at) }}</span>
         </template>
         <template #actions-cell="{ row }">
+          <UiButton size="sm" variant="ghost" :to="`/providers/${row.original.id}`" :aria-label="`${row.original.display_name}'s page: hidden content and history`">Page</UiButton>
           <UiButton size="sm" variant="ghost" :aria-label="`Profile of ${row.original.display_name}`" @click="openProfile(row.original)">Profile</UiButton>
           <UiButton size="sm" variant="outline" :disabled="busy"
             :aria-label="`${asking ? 'Request to ' + (row.original.status === 'suspended' ? 'reinstate' : 'suspend') : row.original.status === 'suspended' ? 'Reinstate' : 'Suspend'} ${row.original.display_name}`" @click="ask(row.original)">

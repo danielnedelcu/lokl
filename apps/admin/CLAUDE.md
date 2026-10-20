@@ -11,7 +11,7 @@ The team's admin app: owner and support (docs/design/admin-roles.md). Port 3101 
   for usability only; the database is the real gate.
 - **Reads** can query Supabase from the page with `useSupabaseClient()`. RLS
   admin policies (`public.is_admin()`) decide what comes back, as in
-  `app/pages/providers.vue`.
+  `app/pages/providers/index.vue`.
 - **Writes, two kinds.**
   - *The owner's reference lists* (cities, service areas, categories) and
     commission rates are written from the page with `useSupabaseClient()`,
@@ -81,6 +81,11 @@ The team's admin app: owner and support (docs/design/admin-roles.md). Port 3101 
 - **Activity** (`/activity`): every logged action in words
   (`adminActionLabel`); a new action gets its phrase in
   `packages/types/src/adminActivity.ts`.
+- **Profile content** (admin roles step 5e): support *hides* (the sheet's
+  "Hide and email the provider", through the website's
+  `hide-profile-content`); only the owner removes outright or decides a
+  hold (`ProfileHoldsQueue` on Requests and the provider's page). Hidden
+  photos are read from `provider-photos-held` by signed link only.
 - **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;
   everything else from the shared layer (`Ui…` components, `StatusBadge`).
   Colours come from the layer's tokens (`background`, `card`, `muted`,

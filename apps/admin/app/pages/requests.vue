@@ -193,6 +193,8 @@ async function withdraw(r: AdminRequestRow) {
         </UiAlertDialogFooter>
       </template>
     </UiAlertDialog>
+    <ProfileHoldsQueue />
+
     <ReasonDialog v-model:open="declineOpen" :title="declining ? `Decline: ${adminRequestWhat(subject(declining))}?` : 'Decline?'"
       description="Nothing is done. They see your note, so say why in a sentence." confirm-label="Decline" :busy="busy" :error="problem"
       reason-label="Note to them" hint="They see this note in their notifications and on Requests." @confirm="(note: string) => decline(note)" />

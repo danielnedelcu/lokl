@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  adminLimitReachedText, adminListingTakenDownText, adminNotificationText, adminSettingsChangeText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
+  adminLimitReachedText, adminListingTakenDownText, adminNotificationText, adminProfileHiddenText, adminSettingsChangeText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
   type AdminLimitName, type AdminNotificationKind, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type SupportCategory,
 } from "@repo/types";
 import type { AdminNotificationRow } from "@repo/ui/app/utils/notificationFeed";
@@ -18,12 +18,13 @@ interface Item {
   id: string;
   kind: AdminNotificationKind;
   report_id: string | null;
+  admin_action_id: string | null;
   created_at: string;
   read_at: string | null;
   report: { category: SupportCategory; provider: { display_name: string } | null } | null;
   action: {
     admin_id: string; target_id: string | null; message: string | null;
-    action: AdminTeamAction | "limit_reached" | "cancel_booking" | "resolve_problem_refunded" | "unpublish_listing" | "change_admin_settings";
+    action: AdminTeamAction | "limit_reached" | "cancel_booking" | "resolve_problem_refunded" | "unpublish_listing" | "change_admin_settings" | "hide_profile_content";
     amount_cents: number | null;
   } | null;
   request: {
@@ -42,6 +43,8 @@ const open = ref(false);
 const emails = ref(new Map<string, string>());
 const refundBookings = ref(new Map<string, { title: string | null; provider: string | null }>());
 const takenDown = ref(new Map<string, string>());
+// Providers whose profile support hid: their name, and each alert's parts.
+const hiddenFrom = ref(new Map<string, { name: string; parts: Map<string, string[]> }>());
 const emailOf = (id: string) => (id === user.value?.sub ? "You" : emails.value.get(id) ?? "Someone");
 const textOf = (n: Item) => {
   if (n.kind === "team_change") {
@@ -58,6 +61,9 @@ const textOf = (n: Item) => {
   }
   if (n.kind === "listing_taken_down") {
     return n.action ? adminListingTakenDownText(emailOf(n.action.admin_id), takenDown.value.get(n.action.target_id ?? "")) : "Support took a listing down.";
+  }
+  if (n.kind === "profile_hidden") {
+    return n.action ? adminProfileHiddenText(emailOf(n.action.admin_id), hiddenFrom.value.get(n.action.target_id ?? "")?.name, hiddenFrom.value.get(n.action.target_id ?? "")?.parts.get(n.id) ?? []) : "Support hid part of a provider's profile.";
   }
   if (n.kind === "settings_change") {
     return n.action ? adminSettingsChangeText(emailOf(n.action.admin_id), n.action.message) : "Support's limits changed.";
@@ -79,7 +85,7 @@ async function load() {
   if (!me) return;
   const [recent, count] = await Promise.all([
     supabase.from("admin_notifications")
-      .select("id, kind, report_id, created_at, read_at, report:support_reports(category, provider:providers(display_name)), " +
+      .select("id, kind, report_id, admin_action_id, created_at, read_at, report:support_reports(category, provider:providers(display_name)), " +
         "action:admin_actions(admin_id, target_id, action, message, amount_cents), " +
         "request:admin_requests(kind, status, resolve_problem, amount_cents, requested_by, booking:bookings(listing:listings(title), provider:providers(display_name)), provider:providers!admin_requests_provider_id_fkey(display_name))")
       .eq("recipient_id", me).order("created_at", { ascending: false }).limit(20),
@@ -100,6 +106,24 @@ async function load() {
     const { data: bs } = await supabase.from("bookings").select("id, listing:listings(title), provider:providers(display_name)").in("id", refunded);
     refundBookings.value = new Map(((bs ?? []) as unknown as { id: string; listing: { title: string } | null; provider: { display_name: string } | null }[])
       .map((b) => [b.id, { title: b.listing?.title ?? null, provider: b.provider?.display_name ?? null }]));
+  }
+  // Profile content support hid: the provider's name and the parts.
+  const hidden = items.value.filter((n) => n.kind === "profile_hidden" && n.action?.target_id);
+  if (hidden.length) {
+    const providerIds = [...new Set(hidden.map((n) => n.action!.target_id!))];
+    // bounded: at most the 20 notifications shown
+    const [{ data: ps }, { data: hs }] = await Promise.all([
+      supabase.from("providers").select("id, display_name").in("id", providerIds),
+      // bounded: at most four parts for each of the 20 notifications shown
+      supabase.from("provider_profile_holds").select("hidden_action_id, part").in("hidden_action_id", hidden.map((n) => n.admin_action_id!)).limit(80),
+    ]);
+    const map = new Map<string, { name: string; parts: Map<string, string[]> }>();
+    for (const p of ps ?? []) map.set(p.id, { name: p.display_name, parts: new Map() });
+    for (const n of hidden) {
+      const entry = map.get(n.action!.target_id!);
+      if (entry) entry.parts.set(n.id, (hs ?? []).filter((h) => h.hidden_action_id === n.admin_action_id).map((h) => h.part));
+    }
+    hiddenFrom.value = map;
   }
   // Listings support took down: their titles, for the text.
   const listings = [...new Set(items.value.filter((n) => n.kind === "listing_taken_down" && n.action?.target_id).map((n) => n.action!.target_id!))];
@@ -137,6 +161,7 @@ async function openItem(n: Item) {
     : n.kind === "support_refund" ? `/bookings/${n.action?.target_id}`
     : n.kind === "listing_taken_down" ? `/listings/${n.action?.target_id}`
     : n.kind === "settings_change" ? "/activity"
+    : n.kind === "profile_hidden" ? "/requests"
     : n.kind.startsWith("request_") ? "/requests" : `/reports/${n.report_id}`);
 }
 

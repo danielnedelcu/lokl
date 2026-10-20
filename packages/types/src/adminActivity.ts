@@ -45,6 +45,10 @@ export const ADMIN_ACTION_LABELS = {
   change_market: "changed a market",
   add_area: "added an area",
   change_area: "changed an area",
+  hide_profile_content: "hid part of a provider's profile",
+  confirm_profile_removal: "confirmed removing part of a provider's profile",
+  restore_profile_content: "restored part of a provider's profile",
+  dismiss_profile_hold: "dismissed hidden profile content the provider had replaced",
 } as const;
 export type AdminActionName = keyof typeof ADMIN_ACTION_LABELS;
 
@@ -65,6 +69,7 @@ export function adminActionLink(target: string, targetId: string | null): string
     case "support_report": return `/reports/${targetId}`;
     case "admin_request": return "/requests";
     case "admin_member": return "/team";
+    case "provider": return `/providers/${targetId}`;
     case "category": return "/categories";
     case "market": case "area": return "/cities";
     default: return null;

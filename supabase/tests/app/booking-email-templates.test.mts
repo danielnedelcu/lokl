@@ -115,6 +115,23 @@ check(edited.text.includes("The rule it didn't follow: Phone numbers, email addr
 check(edited.text.includes("A message from lokl:\nPlease add your photo again") && edited.text.includes("/dashboard/settings"),
   "8d. lokl's message is included, and the button goes to the profile settings");
 
+// 8e-8j. Hidden while lokl reviews it, restored, reviewed (admin roles step 5e).
+const hiddenMail = renderProviderAccountEmail("provider_profile_hidden", {
+  siteUrl: site, businessName: "Fresh Cuts Studio", message: "Please keep your number off the photo.", removed: ["avatar", "headline"], rule: "contact_details",
+});
+check(hiddenMail.subject === "We've hidden part of your lokl profile" && hiddenMail.text.includes("Your profile photo") && hiddenMail.text.includes("Your headline"),
+  "8e. hidden: the subject, and exactly what was hidden");
+check(hiddenMail.text.includes("while lokl reviews it") && hiddenMail.text.includes("The rule concerned: Phone numbers") && hiddenMail.text.includes("We'll email you again once we've decided"),
+  "8f. ...that lokl is reviewing it, the rule in its written words, and that they'll hear back");
+check(hiddenMail.text.includes("A message from lokl:\nPlease keep your number off the photo.") && hiddenMail.text.includes("/dashboard/settings"), "8g. ...lokl's message, and the profile button");
+const restoredMail = renderProviderAccountEmail("provider_profile_restored", { siteUrl: site, businessName: "Fresh Cuts Studio", message: null, removed: ["bio"], rule: "abuse" });
+check(restoredMail.subject === "It's back on your lokl profile" && restoredMail.text.includes("The \"About you\" text") && restoredMail.text.includes("We're sorry for the trouble."),
+  "8h. restored: what's back, with an apology");
+const reviewedMail = renderProviderAccountEmail("provider_profile_reviewed", { siteUrl: site, businessName: "Fresh Cuts Studio", message: null, removed: ["headline"], rule: "abuse" });
+check(reviewedMail.subject === "We've reviewed what we hid from your lokl profile" && reviewedMail.text.includes("It was fine. You've already replaced it, so nothing changes"),
+  "8i. reviewed: it was fine, and they'd already replaced it");
+check([hiddenMail, restoredMail, reviewedMail].every((e) => !e.text.toLowerCase().includes("reason")), "8j. none carries lokl's internal reason");
+
 // 9. Reviews (docs/design/reviews.md).
 const req9 = find("customer_review_request");
 check(req9.subject === "How was Sweet Auburn food walk?" && req9.text.includes("/account/bookings/00000000-0000-4000-8000-000000000001#review"),

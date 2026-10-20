@@ -15,9 +15,9 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { adminLimitReachedText, adminListingTakenDownText, adminRequestNewText, adminSettingsChangeText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
+import { adminLimitReachedText, adminListingTakenDownText, adminProfileHiddenText, adminRequestNewText, adminSettingsChangeText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderAdminInviteEmail, renderAdminLimitEmail, renderAdminListingTakenDownEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
+import { renderAdminInviteEmail, renderAdminLimitEmail, renderAdminListingTakenDownEmail, renderAdminProfileHiddenEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -350,17 +350,17 @@ export async function sendBookingEmails(
   });
 }
 
-/** Sends the provider account emails that are due (paused, active again, profile content removed). Never throws. */
+/** Sends the provider account emails that are due (paused, active again, profile content hidden, removed, restored or reviewed). Never throws. */
 export async function sendProviderEmails(
   db: SupabaseClient,
   mailer: Mailer | null,
   settings: EmailSettings,
   opts: { providerId?: string; now?: Date; limit?: number } = {},
 ): Promise<SendResult> {
-  type ProviderRow = OutboxRow & { provider_id: string; kind: ProviderAccountEmailKind; message: string | null; removed: string[] | null; rule: string | null };
+  type ProviderRow = OutboxRow & { provider_id: string; admin_action_id: string; kind: ProviderAccountEmailKind; message: string | null; removed: string[] | null; rule: string | null };
   return runOutbox<ProviderRow>(db, mailer, settings, {
     table: "provider_emails",
-    columns: "id, provider_id, kind, message, removed, rule, status, attempts, locked_at, created_at",
+    columns: "id, provider_id, admin_action_id, kind, message, removed, rule, status, attempts, locked_at, created_at",
     keyPrefix: "provider-email",
     narrow: opts.providerId ? (q) => q.eq("provider_id", opts.providerId) : undefined,
     now: opts.now,
@@ -369,6 +369,13 @@ export async function sendProviderEmails(
       const { data: p, error } = await db.from("providers").select("display_name, owner_id").eq("id", row.provider_id).single();
       if (error) throw new Error(error.message);
       const to = await providerEmail(db, p.owner_id);
+      // "Hidden while lokl reviews it" is stale once every part it names
+      // has been decided (its decision's own email says what happened).
+      if (row.kind === "provider_profile_hidden") {
+        // bounded: one hide's holds, at most four parts
+        const { data: open } = await db.from("provider_profile_holds").select("id").eq("hidden_action_id", row.admin_action_id).eq("status", "hidden");
+        if (!open?.length) return { skip: "Already decided: the decision's email says what happened.", to };
+      }
       return {
         to,
         email: renderProviderAccountEmail(row.kind, { siteUrl: settings.siteUrl, businessName: p.display_name, message: row.message, removed: row.removed, rule: row.rule }),
@@ -457,6 +464,21 @@ export async function sendAdminEmails(
       const { data: action, error } = await db.from("admin_actions")
         .select("admin_id, target_id, action, message, amount_cents").eq("id", row.admin_action_id).single();
       if (error) throw new Error(error.message);
+      if (row.kind === "admin_profile_hidden") {
+        // For each owner (step 5e); skipped once they're no longer one.
+        // bounded: one row by its primary key
+        const { data: member } = await db.from("admin_members").select("role, status").eq("user_id", row.recipient_id).maybeSingle();
+        const to = await emailOf(row.recipient_id);
+        if (member?.status !== "active" || member.role !== "owner") return { skip: "No longer an owner.", to };
+        const who = (await emailOf(action.admin_id)) ?? "A support member";
+        const [{ data: p }, { data: holds }] = await Promise.all([
+          db.from("providers").select("display_name").eq("id", action.target_id).maybeSingle(),
+          // bounded: one hide's holds, at most four parts
+          db.from("provider_profile_holds").select("part").eq("hidden_action_id", row.admin_action_id),
+        ]);
+        const parts = ((holds ?? []) as { part: string }[]).map((h) => h.part);
+        return { to, email: renderAdminProfileHiddenEmail({ adminUrl, text: adminProfileHiddenText(who, p?.display_name, parts) }) };
+      }
       if (row.kind === "admin_listing_taken_down" || row.kind === "admin_settings_change") {
         // For each owner (step 5d); skipped once they're no longer one.
         // bounded: one row by its primary key

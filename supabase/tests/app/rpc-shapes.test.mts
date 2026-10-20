@@ -187,6 +187,21 @@ try {
     "3n. listing_readiness: an Experience's checklist, in order, done but its sessions");
   const activity = await read(admin.client, "admin_activity_page", { p_page_size: 5 });
   check(activity.total >= 1 && activity.rows.length >= 1 && activity.rows.length <= 5, "3o. admin_activity_page: a page of the team's actions");
+  // Step 5e: hiding a provider's headline, the queue, the provider's view,
+  // and restoring it (text only: no files to move).
+  await must(db.from("providers").update({ headline: "Shapes headline for the JSON test" }).eq("id", created.provider));
+  const moves = await read(admin.server, "admin_hide_profile_content", {
+    p_admin_id: admin.id, p_provider_id: created.provider, p_parts: ["headline"], p_rule: "abuse", p_reason: "The shapes test hides it.",
+  });
+  check(Array.isArray(moves) && moves.length === 0, "3p. admin_hide_profile_content: no photo files to move for a headline");
+  const holds = await read(admin.client, "admin_profile_holds_page", { p_scope: "all", p_provider_id: created.provider });
+  const hold = holds.rows.find((r) => r.part === "headline");
+  check(!!hold && hold.held_text === "Shapes headline for the JSON test" && hold.status === "hidden" && hold.provider.id === created.provider,
+    "3q. admin_profile_holds_page: the hidden headline, kept, with its provider");
+  const mineHeld = await read(owner.client, "my_profile_holds");
+  check(mineHeld.length === 1 && mineHeld[0]!.part === "headline" && !("reason" in mineHeld[0]!), "3r. my_profile_holds: the provider sees the part, not why");
+  const work = await read(admin.server, "admin_decide_profile_hold", { p_admin_id: admin.id, p_hold_id: hold!.id, p_decision: "restore" });
+  check(work === null, "3s. admin_decide_profile_hold: restoring a headline leaves no files to move");
   check(true, "3d. the admin functions match their schemas");
 
   // 4. The daily job, through its own code (the server key): this provider's
@@ -208,6 +223,8 @@ try {
   if (created.listings.length) {
     const ids = created.listings.map((i) => `'${i}'`).join(",");
     psql(`set local session_replication_role = replica;
+      delete from public.provider_profile_holds where provider_id = '${created.provider}';
+      delete from public.provider_emails where provider_id = '${created.provider}';
       delete from public.admin_notifications where admin_request_id in (select id from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids})));
       delete from public.admin_emails where admin_action_id in (select id from public.admin_actions where request_id in (select id from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids}))));
       delete from public.admin_actions where request_id in (select id from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids})));

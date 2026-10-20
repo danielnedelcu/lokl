@@ -121,3 +121,14 @@ export function adminListingTakenDownText(who: string, listingTitle: string | nu
 export function adminSettingsChangeText(who: string, what: string | null | undefined): string {
   return what ? `${who} changed the settings: ${what}` : `${who} changed the settings.`;
 }
+
+// Admin roles, step 5e: support hid part of a provider's profile.
+
+/** "sam@example.com hid the headline and profile photo of Tours and Cuts." (for the owners; never the reason). */
+export function adminProfileHiddenText(who: string, providerName: string | null | undefined, parts: string[]): string {
+  const words: Record<string, string> = { avatar: "profile photo", cover: "cover photo", headline: "headline", bio: "about text" };
+  const order = Object.keys(words);
+  const list = [...parts].sort((a, b) => order.indexOf(a) - order.indexOf(b)).map((p) => words[p] ?? p);
+  const what = list.length > 1 ? `${list.slice(0, -1).join(", ")} and ${list.at(-1)}` : (list[0] ?? "part of the profile");
+  return `${who} hid the ${what} of ${providerName || "a provider"}. It's waiting for you on Requests.`;
+}

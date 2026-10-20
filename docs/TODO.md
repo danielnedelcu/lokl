@@ -822,9 +822,15 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     limits, listing review in the database with listing readiness from one
     source (enforced on the move into live or review), logs for guides,
     the homepage and the reference lists, and the Activity page (built
-    2026-10-20, pull request open, `db:push` after the merge); 5e, support
-    hides profile content. After one release, remove `app_metadata.role`
-    from the owner's login (unused since step 4).
+    2026-10-20, pushed to hosted); 5e, support hides profile content and
+    the owner confirms, restores or dismisses it, hidden photos moved out
+    of the public bucket (built 2026-10-20, pull request open, `db:push`
+    after the merge). After one release, remove `app_metadata.role` from
+    the owner's login (unused since step 4).
+  - [ ] **Remind the owner of hidden profile content waiting 7 days**
+    (noted 2026-10-20): the queue already puts it first and it never
+    becomes a deletion; an email to every owner needs the scheduler (off
+    until hosting), as a timed job like the booking ones.
   - [ ] **Tell an admin about a sign-in from a new device** (noted
     2026-10-20): email the admin (and the owners, for support) when their
     login starts a session from a browser or network not seen before.

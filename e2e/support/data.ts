@@ -440,6 +440,10 @@ export class TestData {
       for (const id of this.providers) {
         const { data: files } = await this.env.db.storage.from("provider-photos").list(id);
         if (files?.length) await this.env.db.storage.from("provider-photos").remove(files.map((f) => `${id}/${f.name}`));
+        // Hidden photos (step 5e), kept in the private bucket.
+        const { data: holds } = await this.env.db.from("provider_profile_holds").select("held_paths").eq("provider_id", id);
+        const held = (holds ?? []).flatMap((h) => (h.held_paths as string[] | null) ?? []);
+        if (held.length) await this.env.db.storage.from("provider-photos-held").remove(held);
       }
       const ids = this.providers.map((i) => `'${i}'`).join(",");
       execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
@@ -450,6 +454,9 @@ export class TestData {
         delete from admin_requests where provider_id in (${ids});
         delete from admin_contact_views where provider_id in (${ids});
         delete from provider_emails where provider_id in (${ids});
+        delete from provider_profile_holds where provider_id in (${ids});
+        delete from admin_notifications where admin_action_id in (select id from admin_actions where target = 'provider' and target_id in (${ids}));
+        delete from admin_emails where admin_action_id in (select id from admin_actions where target = 'provider' and target_id in (${ids}));
         delete from saved_providers where provider_id in (${ids});
         delete from provider_ratings where provider_id in (${ids});
         delete from admin_actions where target = 'provider' and target_id in (${ids});`]);

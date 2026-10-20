@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { providerProfileSchema, type City, type ProviderProfileInput } from "@repo/types";
+import { PROFILE_PART_LABELS, PROFILE_RULES, providerProfileSchema, rpcJson, type City, type ProfileRule, type ProviderProfileInput } from "@repo/types";
 
 definePageMeta({ layout: "dashboard" });
 useSeoMeta({ title: "Business profile" });
 
 const supabase = useSupabaseClient();
 const { data: provider, refresh } = await useProvider();
+
+// What lokl has hidden from the profile while it reviews it (admin roles
+// step 5e): the part and the rule, never lokl's internal reason.
+const { data: holds } = await useAsyncData("my-profile-holds", async () => {
+  const { data, error } = await supabase.rpc("my_profile_holds", {}, { get: true });
+  if (error) throw error;
+  return rpcJson("my_profile_holds", data);
+});
 
 // RLS returns active cities only, so the picker never offers an inactive one.
 const { data: cities } = await useAsyncData("active-cities", async () => {
@@ -61,6 +69,14 @@ const save = handleSubmit(async (values) => {
   <div class="max-w-lg">
     <h1 class="text-2xl font-semibold tracking-tight">Business profile</h1>
     <p class="mt-1 text-sm text-muted-foreground">This is how customers see you: on your listings and on your public profile.</p>
+
+    <UiAlert v-for="h in holds ?? []" :key="h.part + h.hidden_at" class="mt-4" role="status" icon="lucide:eye-off">
+      <UiAlertTitle>lokl has hidden {{ PROFILE_PART_LABELS[h.part].provider }} while it reviews it</UiAlertTitle>
+      <UiAlertDescription>
+        Customers can't see it. The rule concerned: {{ PROFILE_RULES[h.rule as ProfileRule] ?? h.rule }} We'll email you once we've decided.
+        You can add a new one below meanwhile.
+      </UiAlertDescription>
+    </UiAlert>
 
     <UiCard class="mt-6">
       <UiCardContent>

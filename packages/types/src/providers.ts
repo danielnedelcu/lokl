@@ -82,3 +82,14 @@ export const PROFILE_RULES = {
   not_yours: "Photos or text the provider doesn't have the right to use.",
 } as const;
 export type ProfileRule = keyof typeof PROFILE_RULES;
+
+/** The parts of a profile lokl can hide or remove (the database lists the same keys). */
+export const PROFILE_PARTS = ["avatar", "cover", "headline", "bio"] as const;
+export type ProfilePart = (typeof PROFILE_PARTS)[number];
+/** Each part in words, for the team ("Profile photo") and the provider ("your profile photo"). */
+export const PROFILE_PART_LABELS: Record<ProfilePart, { admin: string; provider: string }> = {
+  avatar: { admin: "Profile photo", provider: "your profile photo" },
+  cover: { admin: "Cover photo", provider: "your cover photo" },
+  headline: { admin: "Headline", provider: "your headline" },
+  bio: { admin: "About text (bio)", provider: "your \"About you\" text" },
+};
