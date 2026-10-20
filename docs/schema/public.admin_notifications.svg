@@ -124,50 +124,54 @@
 <!-- public.admin_actions -->
 <g id="node3" class="node">
 <title>public.admin_actions</title>
-<polygon fill="#efefef" stroke="none" points="1457.12,-474.4 1457.12,-520.4 2760.63,-520.4 2760.63,-474.4 1457.12,-474.4"/>
-<polygon fill="none" stroke="black" points="1457.12,-474.4 1457.12,-520.4 2760.63,-520.4 2760.63,-474.4 1457.12,-474.4"/>
-<text text-anchor="start" x="1969.4" y="-498.2" font-family="Arial Bold" font-size="18.00">public.admin_actions</text>
-<text text-anchor="start" x="2123.86" y="-498.2" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="2154.98" y="-498.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="1491.63" y="-483.8" font-family="Arial" font-size="14.00" fill="#333333">Every admin action on bookings, emails, providers, reviews and problem reports: who, what, when and why. Written by the website&#39;s admin routes with the service role; read by admins. Never deleted.</text>
-<polygon fill="none" stroke="black" points="1457.12,-443.6 1457.12,-474.4 2760.63,-474.4 2760.63,-443.6 1457.12,-443.6"/>
-<text text-anchor="start" x="1464.12" y="-455.8" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="1478.9" y="-455.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1457.12,-412.8 1457.12,-443.6 2760.63,-443.6 2760.63,-412.8 1457.12,-412.8"/>
-<text text-anchor="start" x="1464.12" y="-425" font-family="Arial" font-size="14.00">admin_id </text>
-<text text-anchor="start" x="1524.82" y="-425" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1457.12,-382 1457.12,-412.8 2760.63,-412.8 2760.63,-382 1457.12,-382"/>
-<text text-anchor="start" x="1464.12" y="-394.2" font-family="Arial" font-size="14.00">target </text>
-<text text-anchor="start" x="1503.8" y="-394.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1457.12,-351.2 1457.12,-382 2760.63,-382 2760.63,-351.2 1457.12,-351.2"/>
-<text text-anchor="start" x="1464.12" y="-363.4" font-family="Arial" font-size="14.00">target_id </text>
-<text text-anchor="start" x="1522.49" y="-363.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="1457.12,-320.4 1457.12,-351.2 2760.63,-351.2 2760.63,-320.4 1457.12,-320.4"/>
-<text text-anchor="start" x="1464.12" y="-332.6" font-family="Arial" font-size="14.00">action </text>
-<text text-anchor="start" x="1505.36" y="-332.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1457.12,-289.6 1457.12,-320.4 2760.63,-320.4 2760.63,-289.6 1457.12,-289.6"/>
-<text text-anchor="start" x="1464.12" y="-301.8" font-family="Arial" font-size="14.00">reason </text>
-<text text-anchor="start" x="1510.81" y="-301.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="1457.12,-258.8 1457.12,-289.6 2760.63,-289.6 2760.63,-258.8 1457.12,-258.8"/>
-<text text-anchor="start" x="1464.12" y="-271" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="1534.16" y="-271" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="1457.12,-228 1457.12,-258.8 2760.63,-258.8 2760.63,-228 1457.12,-228"/>
-<text text-anchor="start" x="1464.12" y="-240.2" font-family="Arial" font-size="14.00">message </text>
-<text text-anchor="start" x="1524.81" y="-240.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="1555.16" y="-240.2" font-family="Arial" font-size="14.00"> For suspending or reinstating a provider: the optional message lokl added to the provider&#39;s email. (The reason is internal and never sent.)</text>
-<polygon fill="none" stroke="black" points="1457.12,-197.2 1457.12,-228 2760.63,-228 2760.63,-197.2 1457.12,-197.2"/>
-<text text-anchor="start" x="1464.12" y="-209.4" font-family="Arial" font-size="14.00">rule </text>
-<text text-anchor="start" x="1491.35" y="-209.4" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="1521.69" y="-209.4" font-family="Arial" font-size="14.00"> For review moderation: the written review rule the removal applied.</text>
-<polygon fill="none" stroke="black" points="1457.12,-166.4 1457.12,-197.2 2760.63,-197.2 2760.63,-166.4 1457.12,-166.4"/>
-<text text-anchor="start" x="1464.12" y="-178.6" font-family="Arial" font-size="14.00">request_id </text>
-<text text-anchor="start" x="1533.38" y="-178.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="1567.63" y="-178.6" font-family="Arial" font-size="14.00"> The request this action answered: approved (the action ran, as the owner) or done by the owner directly. With admin_requests.requested_by, the history names who asked and who approved.</text>
+<polygon fill="#efefef" stroke="none" points="1457.12,-489.8 1457.12,-535.8 2760.63,-535.8 2760.63,-489.8 1457.12,-489.8"/>
+<polygon fill="none" stroke="black" points="1457.12,-489.8 1457.12,-535.8 2760.63,-535.8 2760.63,-489.8 1457.12,-489.8"/>
+<text text-anchor="start" x="1969.4" y="-513.6" font-family="Arial Bold" font-size="18.00">public.admin_actions</text>
+<text text-anchor="start" x="2123.86" y="-513.6" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="2154.98" y="-513.6" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="1491.63" y="-499.2" font-family="Arial" font-size="14.00" fill="#333333">Every admin action on bookings, emails, providers, reviews and problem reports: who, what, when and why. Written by the website&#39;s admin routes with the service role; read by admins. Never deleted.</text>
+<polygon fill="none" stroke="black" points="1457.12,-459 1457.12,-489.8 2760.63,-489.8 2760.63,-459 1457.12,-459"/>
+<text text-anchor="start" x="1464.12" y="-471.2" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="1478.9" y="-471.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1457.12,-428.2 1457.12,-459 2760.63,-459 2760.63,-428.2 1457.12,-428.2"/>
+<text text-anchor="start" x="1464.12" y="-440.4" font-family="Arial" font-size="14.00">admin_id </text>
+<text text-anchor="start" x="1524.82" y="-440.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1457.12,-397.4 1457.12,-428.2 2760.63,-428.2 2760.63,-397.4 1457.12,-397.4"/>
+<text text-anchor="start" x="1464.12" y="-409.6" font-family="Arial" font-size="14.00">target </text>
+<text text-anchor="start" x="1503.8" y="-409.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1457.12,-366.6 1457.12,-397.4 2760.63,-397.4 2760.63,-366.6 1457.12,-366.6"/>
+<text text-anchor="start" x="1464.12" y="-378.8" font-family="Arial" font-size="14.00">target_id </text>
+<text text-anchor="start" x="1522.49" y="-378.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="1457.12,-335.8 1457.12,-366.6 2760.63,-366.6 2760.63,-335.8 1457.12,-335.8"/>
+<text text-anchor="start" x="1464.12" y="-348" font-family="Arial" font-size="14.00">action </text>
+<text text-anchor="start" x="1505.36" y="-348" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1457.12,-305 1457.12,-335.8 2760.63,-335.8 2760.63,-305 1457.12,-305"/>
+<text text-anchor="start" x="1464.12" y="-317.2" font-family="Arial" font-size="14.00">reason </text>
+<text text-anchor="start" x="1510.81" y="-317.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="1457.12,-274.2 1457.12,-305 2760.63,-305 2760.63,-274.2 1457.12,-274.2"/>
+<text text-anchor="start" x="1464.12" y="-286.4" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="1534.16" y="-286.4" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="1457.12,-243.4 1457.12,-274.2 2760.63,-274.2 2760.63,-243.4 1457.12,-243.4"/>
+<text text-anchor="start" x="1464.12" y="-255.6" font-family="Arial" font-size="14.00">message </text>
+<text text-anchor="start" x="1524.81" y="-255.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1555.16" y="-255.6" font-family="Arial" font-size="14.00"> For suspending or reinstating a provider: the optional message lokl added to the provider&#39;s email. (The reason is internal and never sent.)</text>
+<polygon fill="none" stroke="black" points="1457.12,-212.6 1457.12,-243.4 2760.63,-243.4 2760.63,-212.6 1457.12,-212.6"/>
+<text text-anchor="start" x="1464.12" y="-224.8" font-family="Arial" font-size="14.00">rule </text>
+<text text-anchor="start" x="1491.35" y="-224.8" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<text text-anchor="start" x="1521.69" y="-224.8" font-family="Arial" font-size="14.00"> For review moderation: the written review rule the removal applied.</text>
+<polygon fill="none" stroke="black" points="1457.12,-181.8 1457.12,-212.6 2760.63,-212.6 2760.63,-181.8 1457.12,-181.8"/>
+<text text-anchor="start" x="1464.12" y="-194" font-family="Arial" font-size="14.00">request_id </text>
+<text text-anchor="start" x="1533.38" y="-194" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="1567.63" y="-194" font-family="Arial" font-size="14.00"> The request this action answered: approved (the action ran, as the owner) or done by the owner directly. With admin_requests.requested_by, the history names who asked and who approved.</text>
+<polygon fill="none" stroke="black" points="1457.12,-151 1457.12,-181.8 2760.63,-181.8 2760.63,-151 1457.12,-151"/>
+<text text-anchor="start" x="1464.12" y="-163.2" font-family="Arial" font-size="14.00">amount_cents </text>
+<text text-anchor="start" x="1555.95" y="-163.2" font-family="Arial" font-size="14.00" fill="#666666">[integer]</text>
+<text text-anchor="start" x="1606.54" y="-163.2" font-family="Arial" font-size="14.00"> For a cancellation or refund by lokl: what that action refunded, in cents (support&#39;s daily refund total adds these up).</text>
 </g>
 <!-- public.admin_notifications&#45;&gt;public.admin_actions -->
 <g id="edge2" class="edge">
 <title>public.admin_notifications:admin_action_id&#45;&gt;public.admin_actions:id</title>
-<path fill="none" stroke="black" d="M3184.12,-813.64C3212.26,-803.84 3198.12,-750.26 3172.99,-722.8 3118.71,-663.46 2873.09,-740.11 2812.87,-686.8 2735.17,-618.02 2865.41,-459 2761.63,-459"/>
+<path fill="none" stroke="black" d="M3184.12,-813.64C3212.26,-803.84 3198.12,-750.26 3172.99,-722.8 3118.71,-663.46 2873.51,-739.64 2812.87,-686.8 2739.67,-623 2858.74,-474.4 2761.63,-474.4"/>
 <polygon fill="black" stroke="black" points="3184.21,-813.63 3173.64,-810.7 3178.94,-814.44 3174.66,-815.1 3174.66,-815.1 3174.66,-815.1 3178.94,-814.44 3175.01,-819.6 3184.21,-813.63"/>
 <text text-anchor="start" x="3180.99" y="-825.2" font-family="Arial" font-size="10.00">FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT</text>
 </g>
