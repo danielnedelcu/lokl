@@ -1,3 +1,4 @@
+import { choose } from "../support/forms";
 import type { Page } from "@playwright/test";
 import { daysFromNow } from "../support/data";
 import { signIn } from "../support/auth";
@@ -103,8 +104,7 @@ test("the admin removes profile content that breaks a rule, and the provider is 
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("Ask for Sam at the gate.");
   await sheet.getByRole("checkbox").nth(1).check(); // the about text (headline is first)
-  await sheet.getByLabel("The rule it breaks").click();
-  await page.getByRole("option", { name: /Anyone's private information/ }).click();
+  await choose(page, sheet.getByLabel("The rule it breaks"), /Anyone's private information/);
   await sheet.getByLabel("Reason (lokl only)").fill("A staff member's name in the bio.");
   await sheet.getByRole("button", { name: "Remove and email the provider" }).click();
   await expect(page.getByText(`Removed from E2E Rules ${data.run}'s profile.`)).toBeVisible();

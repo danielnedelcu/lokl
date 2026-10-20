@@ -1,3 +1,4 @@
+import { choose } from "../support/forms";
 import type { Locator, Page } from "@playwright/test";
 import { signIn } from "../support/auth";
 import { expect, test } from "../support/fixtures";
@@ -14,9 +15,9 @@ import type { TestData } from "../support/data";
 /** Chooses a time in one TimeInput, named by its label. */
 async function setTime(page: Page, group: string, hour: string, minutes: string, half: "AM" | "PM", nth = 0) {
   const g = page.getByRole("group", { name: group }).nth(nth);
+  // Each pick checked to have taken (choose; a busy runner once dropped one).
   for (const [label, value] of [["Hour", hour], ["Minutes", minutes], ["AM or PM", half]] as const) {
-    await g.getByLabel(label, { exact: true }).click();
-    await page.getByRole("option", { name: value, exact: true }).click();
+    await choose(page, g.getByLabel(label, { exact: true }), value);
   }
 }
 async function provider(data: TestData, page: Page, context: Parameters<typeof signIn>[0]) {
@@ -168,8 +169,7 @@ test("hours for a date, time off and booking settings", async ({ page, context, 
 
   // Booking settings: the least notice, with the note about approval.
   await expect(page.getByText("Services you approve need at least 4 hours.", { exact: false })).toBeVisible();
-  await page.getByLabel("Least notice you need").click();
-  await page.getByRole("option", { name: "2 hours", exact: true }).click();
+  await choose(page, page.getByLabel("Least notice you need"), "2 hours");
   await page.getByRole("button", { name: "Save booking settings" }).click();
   await expect(page.getByText("Booking settings saved.")).toBeVisible();
   await expect.poll(async () => (await rows(data, "provider_schedules", p))[0]?.min_notice_minutes).toBe(120);
@@ -234,8 +234,7 @@ test("the listing editor: a Service's mode is required with nothing chosen; mode
   await page.goto(`/dashboard/listings/${listing.id}`);
   await expect(page.getByRole("radio", { name: /I approve each booking/ })).toBeChecked();
   await page.getByRole("radio", { name: /Customers book instantly/ }).click();
-  await page.getByLabel("Time after each booking").click();
-  await page.getByRole("option", { name: "30 minutes", exact: true }).click();
+  await choose(page, page.getByLabel("Time after each booking"), "30 minutes");
   await page.getByRole("button", { name: "Save changes" }).first().click();
   await expect(page.getByText("Changes saved.")).toBeVisible();
   await expect.poll(async () => {
