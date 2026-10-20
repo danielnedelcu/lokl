@@ -250,6 +250,32 @@ Checks and safeguards to add, in roughly this order (2026-10-09; the first
 three are done: explicit API grants, the build secrets check, and
 `npm run schema:compare`).
 
+- [ ] **A rare 502 on a write, from the API gateway** (found 2026-10-20,
+  investigating step 5e's checks). Two causes, neither in lokl's code:
+  - **Realtime's partition reloads.** Whenever Supabase Realtime
+    reconnects to the database (after a database reset, and on its own
+    "rebalancing" every 10 to 20 minutes locally), it creates its daily
+    `realtime.messages` partitions: 5 schema changes, so PostgREST
+    reloads 5 times and rebuilds its connection pool. This also happens
+    on hosted Supabase, so a rare 502 on a write can occur on staging and
+    production too. `check:test-ddl` keeps our own tests from doing it;
+    Realtime's are outside our code.
+  - **Dropped connections under load.** The gateway (Kong 2.8.1) keeps
+    idle connections to PostgREST for 60 seconds; under the browser
+    tests' parallel load it sometimes sends a request down one PostgREST
+    has just dropped. It retries reads itself and never writes: 63
+    dropped connections in a day of local runs, 3 seen as 502s, all
+    writes (`PATCH`). Not reproduced with single requests after idle gaps.
+  - **What protects us now:** the apps retry reads once (`retryReadsFetch`)
+    and report a failed write to the person, who can try again; the
+    browser tests' setup client asks once more after a 502 for an update
+    or delete of one row by id (`e2e/support/retrySetupWrites.ts`), never
+    an insert or a function call. About 1 browser run in 10 hit one
+    before that.
+  - **Next, if it matters in production:** measure on staging once it
+    exists; consider an idempotency key for the few writes a person can't
+    simply try again.
+
 - [x] **Who can call each function** (`function_execute_grants`,
   2026-10-10): no function has `PUBLIC` `EXECUTE`; the helpers reach
   exactly the roles that evaluate them; trigger functions reach no API role;
