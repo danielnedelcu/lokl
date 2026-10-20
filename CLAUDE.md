@@ -77,6 +77,7 @@ npm run check:rpc-json        # fails on a database function's JSON read without
 npm run check:public-cache    # fails on a table behind a cached public route that raises no content version and isn't on the 60-second list (after db:test)
 npm run check:null-guards     # fails on a refusal or role test in a database function that a null would skip (after db:test)
 npm run check:e2e-serial      # fails on a browser test that runs a timed job, sets the homepage or changes commission rates without the @serial tag
+npm run check:test-ddl        # fails on a schema change (alter, create, comment, grant) in a browser or app test; PostgREST reloads mid-run
 npm run check:journey-pages   # fails on a page no browser journey names (listed exceptions have reasons; the list only shrinks)
 npm run check:logs            # fails on a server log that prints an error as it is (use errorText)
 npm run check:booking-doc     # fails if the booking document's guard links miss the newest bookings_guard migration

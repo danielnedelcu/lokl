@@ -13,6 +13,7 @@ import type { Database } from "@repo/types";
 import { loadHomepageGuides, loadPublicGuide, loadPublicGuides } from "../../../apps/website/server/utils/publicGuides";
 import { publicSitemapEntries, publicSupabase } from "../../../apps/website/server/utils/publicListings";
 import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
+import { removeGuidesSql } from "./_guides.mts";
 
 const env = Object.fromEntries(execFileSync("npx", ["supabase", "status", "-o", "env"], { encoding: "utf8" })
   .split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).replace(/^"|"$/g, "")]));
@@ -121,15 +122,7 @@ try {
   forgetTestAdmins();
   if (created.guides.length) {
     const ids = created.guides.map((id) => `'${id}'`).join(",");
-    execFileSync("psql", [env.DB_URL!, "-q", "-c", `
-      alter table public.guides disable trigger guides_guard;
-      alter table public.guide_versions disable trigger guide_versions_append_only;
-      delete from public.homepage_features where guide_id in (${ids});
-      delete from public.guide_versions where guide_id in (${ids});
-      update public.guides set cover_photo_id = null, status = 'draft' where id in (${ids});
-      delete from public.guides where id in (${ids});
-      alter table public.guide_versions enable trigger guide_versions_append_only;
-      alter table public.guides enable trigger guides_guard;`]);
+    execFileSync("psql", [env.DB_URL!, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-c", removeGuidesSql(`(${ids})`)]);
   }
   if (created.listings.length) await server.from("listings").delete().in("id", created.listings);
   if (created.providers.length) await server.from("providers").delete().in("id", created.providers);

@@ -51,12 +51,11 @@ const row = async (id: string) => must(db.schema("private").from("booking_record
 const actions = async (targetId: string) => must(db.from("admin_actions").select("action, reason, admin_id").eq("target_id", targetId));
 const emails = async (id: string) => ((await must(db.from("booking_emails").select("kind").eq("booking_id", id))) as { kind: string }[]).map((e) => e.kind);
 const refundedInStripe = async (pi: string) => (await stripe.charges.list({ payment_intent: pi })).data[0]?.amount_refunded ?? -1;
-// Test-only: move a booking into the past with the guard off (local database).
+// Test-only: move a booking into the past with triggers off for this session (local database).
 const happened = (id: string) => execFileSync("psql", [local.DB_URL!, "-q", "-c", `
-  alter table public.bookings disable trigger bookings_guard;
+  set session_replication_role = replica;
   update public.bookings set starts_at = now() - interval '2 hours', ends_at = now() - interval '1 hour',
-    payout_due_at = now() + interval '23 hours', confirmed_at = now() - interval '3 days' where id = '${id}';
-  alter table public.bookings enable trigger bookings_guard;`]);
+    payout_due_at = now() + interval '23 hours', confirmed_at = now() - interval '3 days' where id = '${id}';`]);
 const created = { users: [] as string[], providers: [] as string[], listings: [] as string[], categories: [] as string[], area: "" };
 const day = 864e5;
 

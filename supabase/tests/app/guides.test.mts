@@ -23,6 +23,7 @@ import { runGuideAction } from "../../../apps/admin/server/utils/guides";
 import { guideListings } from "../../../apps/website/server/utils/guideListings";
 import { publicSupabase } from "../../../apps/website/server/utils/publicListings";
 import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
+import { removeGuidesSql } from "./_guides.mts";
 
 // The apps' addresses: CI's (3100, 3101) unless set, to run these beside
 // dev servers (scripts/ci-start-apps.mjs with WEBSITE_PORT and ADMIN_PORT).
@@ -253,16 +254,10 @@ try {
 } finally {
   forgetTestAdmins();
   // Published guides can't be deleted and hold their market, so remove this
-  // run's guides with the guard off (local database only).
+  // run's guides with the guards off (local database only).
   if (created.market) {
-    execFileSync("psql", [env.DB_URL!, "-q", "-c", `
-      alter table public.guides disable trigger guides_guard;
-      alter table public.guide_versions disable trigger guide_versions_append_only;
-      delete from public.guide_versions where guide_id in (select id from public.guides where market_id = '${created.market}');
-      update public.guides set cover_photo_id = null, status = 'draft' where market_id = '${created.market}';
-      delete from public.guides where market_id = '${created.market}';
-      alter table public.guide_versions enable trigger guide_versions_append_only;
-      alter table public.guides enable trigger guides_guard;`]);
+    execFileSync("psql", [env.DB_URL!, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-c",
+      removeGuidesSql(`(select id from public.guides where market_id = '${created.market}')`)]);
   }
   if (created.listings.length) await server.from("listings").delete().in("id", created.listings);
   if (created.providers.length) await server.from("providers").delete().in("id", created.providers);

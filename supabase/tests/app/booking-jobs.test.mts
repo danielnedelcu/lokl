@@ -44,13 +44,12 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
 }
 const row = async (id: string) => must(db.schema("private").from("booking_records").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
 const mentions = (r: { done: string[]; failed: string[] }, id: string) => [...r.done, ...r.failed].some((l) => l.startsWith(id));
-// Test-only: move a booking's times with the guard off (local database), for
+// Test-only: move a booking's times with triggers off for this session (local database), for
 // "booked hours ago" and "already started" cases.
 const shift = (id: string, startsInHours: number, confirmedHoursAgo: number) => execFileSync("psql", [local.DB_URL!, "-q", "-c", `
-  alter table public.bookings disable trigger bookings_guard;
+  set session_replication_role = replica;
   update public.bookings set starts_at = now() + interval '${startsInHours} hours', ends_at = now() + interval '${startsInHours + 1} hours',
-    payout_due_at = now() + interval '${startsInHours + 25} hours', confirmed_at = now() - interval '${confirmedHoursAgo} hours' where id = '${id}';
-  alter table public.bookings enable trigger bookings_guard;`]);
+    payout_due_at = now() + interval '${startsInHours + 25} hours', confirmed_at = now() - interval '${confirmedHoursAgo} hours' where id = '${id}';`]);
 const created = { users: [] as string[], providers: [] as string[], listings: [] as string[], categories: [] as string[], area: "" };
 const day = 864e5;
 
