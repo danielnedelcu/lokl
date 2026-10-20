@@ -51,8 +51,10 @@ const columns = [
 
 // Suspending or reinstating, with a reason, through the website: it hides
 // their listings, withdraws open requests and checkouts (releasing holds),
-// and holds their payouts; all logged in admin_actions.
+// and holds their payouts; all logged in admin_actions. Support asks the
+// owner instead (admin roles, step 5b): the same dialog sends a request.
 const call = useWebsiteAdmin();
+const asking = computed(() => useAdminRole().value === "support");
 const target = ref<ProviderRow | null>(null);
 const dialogOpen = ref(false);
 const busy = ref(false);
@@ -69,6 +71,20 @@ const statusDescription = computed(() => suspending.value
 async function confirmStatus(reason: string, message: string) {
   if (!target.value) return;
   busy.value = true;
+  if (asking.value) {
+    const { error: e } = await supabase.rpc("admin_request_create", {
+      p_kind: suspending.value ? "suspend_provider" : "reinstate_provider", p_booking_id: null as unknown as string,
+      p_provider_id: target.value.id, p_reason: reason, p_message: message || undefined,
+    });
+    busy.value = false;
+    if (e) {
+      actionError.value = e.message;
+      return;
+    }
+    useSonner.success(`Request sent to the owner. You'll see their decision in your notifications and on Requests.`);
+    dialogOpen.value = false;
+    return;
+  }
   try {
     const r = await call(`providers/${target.value.id}/${suspending.value ? "suspend" : "reinstate"}`, { reason, message: message || undefined });
     useSonner.success(`${target.value.display_name}: ${r.result}. They've been emailed.`);
@@ -171,17 +187,17 @@ const paidSinceLabel = computed(() =>
         <template #actions-cell="{ row }">
           <UiButton size="sm" variant="ghost" :aria-label="`Profile of ${row.original.display_name}`" @click="openProfile(row.original)">Profile</UiButton>
           <UiButton size="sm" variant="outline" :disabled="busy"
-            :aria-label="`${row.original.status === 'suspended' ? 'Reinstate' : 'Suspend'} ${row.original.display_name}`" @click="ask(row.original)">
-            {{ row.original.status === "suspended" ? "Reinstate" : "Suspend" }}
+            :aria-label="`${asking ? 'Request to ' + (row.original.status === 'suspended' ? 'reinstate' : 'suspend') : row.original.status === 'suspended' ? 'Reinstate' : 'Suspend'} ${row.original.display_name}`" @click="ask(row.original)">
+            {{ asking ? "Request " : "" }}{{ row.original.status === "suspended" ? (asking ? "reinstatement" : "Reinstate") : (asking ? "suspension" : "Suspend") }}
           </UiButton>
         </template>
       </ServerTable>
     </UiCard>
 
     <ReasonDialog v-model:open="dialogOpen"
-      :title="suspending ? `Suspend ${target?.display_name}?` : `Reinstate ${target?.display_name}?`"
-      :description="statusDescription"
-      :confirm-label="suspending ? 'Suspend' : 'Reinstate'" :destructive="suspending" :busy="busy" :error="actionError"
+      :title="asking ? `Ask the owner to ${suspending ? 'suspend' : 'reinstate'} ${target?.display_name}?` : suspending ? `Suspend ${target?.display_name}?` : `Reinstate ${target?.display_name}?`"
+      :description="asking ? `This needs the owner. They get your request with your reason and message, and decide within 7 days. Nothing changes until they approve. If they do: ${statusDescription}` : statusDescription"
+      :confirm-label="asking ? 'Send the request' : suspending ? 'Suspend' : 'Reinstate'" :destructive="suspending && !asking" :busy="busy" :error="actionError"
       reason-label="Reason (lokl only)" hint="Kept in the provider's history. Never shown to them."
       message-label="Message to the provider (optional)"
       message-hint="Added to their email. Leave it empty to send the standard email only." @confirm="confirmStatus" />

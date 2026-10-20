@@ -103,11 +103,11 @@ export function supportRefusalText(message: string, supportEmail?: string | null
   return `${message} If anyone is in danger, call 911.${supportEmail ? ` You can also email us at ${supportEmail}.` : ""}`;
 }
 
-/** The admin bell's kinds: problem reports, and team changes (adminTeamChangeText, for owners). */
-export type AdminNotificationKind = "support_new" | "support_safety" | "support_reply" | "team_change";
+/** The admin bell's kinds: problem reports, team changes (adminTeamChangeText, for owners), and support's requests (adminRequestNewText, adminRequestDecidedText). */
+export type AdminNotificationKind = "support_new" | "support_safety" | "support_reply" | "team_change" | "request_new" | "request_decided";
 
 /** An admin bell item in words: "Urgent: a safety report from Fresh Cuts Studio." */
-export function adminNotificationText(kind: Exclude<AdminNotificationKind, "team_change">, businessName: string, category: SupportCategory): string {
+export function adminNotificationText(kind: "support_new" | "support_safety" | "support_reply", businessName: string, category: SupportCategory): string {
   if (kind === "support_safety") return `Urgent: a safety report from ${businessName}.`;
   if (kind === "support_new") return `${businessName} reported a problem about ${SUPPORT_CATEGORY_ABOUT[category]}.`;
   return `${businessName} replied to their report about ${SUPPORT_CATEGORY_ABOUT[category]}.`;

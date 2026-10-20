@@ -15,9 +15,9 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { adminTeamChangeText, errorText, marketZone, type AdminTeamAction, type SupportCategory } from "@repo/types";
+import { adminRequestNewText, adminTeamChangeText, errorText, marketZone, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderAdminInviteEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
+import { renderAdminInviteEmail, renderAdminRequestEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -428,10 +428,11 @@ export async function sendSupportEmails(
 }
 
 /**
- * Sends the team's emails that are due (admin roles, step 5a): an
+ * Sends the team's emails that are due (admin roles, steps 5a and 5b): an
  * invitation to the person invited (skipped once they're no longer
- * invited), and each team change to each owner (skipped if they're no
- * longer an active owner). Never the reason. Never throws.
+ * invited), each team change to each owner (skipped if they're no longer an
+ * active owner), and each support request to each owner (skipped once it's
+ * decided). Never the reason. Never throws.
  */
 export async function sendAdminEmails(
   db: SupabaseClient,
@@ -456,6 +457,29 @@ export async function sendAdminEmails(
       const { data: action, error } = await db.from("admin_actions")
         .select("admin_id, target_id, action, message").eq("id", row.admin_action_id).single();
       if (error) throw new Error(error.message);
+      if (row.kind === "admin_request_new") {
+        // A support member's request, for each owner; skipped once it's decided.
+        // bounded: one row by its primary key
+        const { data: member } = await db.from("admin_members").select("role, status").eq("user_id", row.recipient_id).maybeSingle();
+        const to = await emailOf(row.recipient_id);
+        if (member?.status !== "active" || member.role !== "owner") return { skip: "No longer an owner.", to };
+        const { data: r, error: rError } = await db.from("admin_requests")
+          .select("kind, status, resolve_problem, amount_cents, booking:bookings(listing:listings(title), provider:providers(display_name)), provider:providers!admin_requests_provider_id_fkey(display_name)")
+          .eq("id", action.target_id).single();
+        if (rError) throw new Error(rError.message);
+        const req = r as unknown as {
+          kind: AdminRequestKind; status: string; resolve_problem: boolean; amount_cents: number | null;
+          booking: { listing: { title: string } | null; provider: { display_name: string } | null } | null;
+          provider: { display_name: string } | null;
+        };
+        if (req.status !== "pending") return { skip: "Already decided.", to };
+        const who = (await emailOf(action.admin_id)) ?? "A support member";
+        const text = adminRequestNewText(who, {
+          kind: req.kind, resolveProblem: req.resolve_problem, amountCents: req.amount_cents,
+          listingTitle: req.booking?.listing?.title, providerName: req.booking?.provider?.display_name ?? req.provider?.display_name,
+        });
+        return { to, email: renderAdminRequestEmail({ adminUrl, text }) };
+      }
       // bounded: one row by its primary key
       const { data: member } = await db.from("admin_members").select("role, status").eq("user_id", row.recipient_id).maybeSingle();
       const to = await emailOf(row.recipient_id);

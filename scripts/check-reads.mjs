@@ -27,7 +27,8 @@ const API_MAX_ROWS = 1000;
 
 // Tables an admin keeps short by hand. Every other table grows.
 // admin_members: one row per team member (docs/design/admin-roles.md), a handful.
-const REFERENCE = new Set(["cities", "categories", "service_areas", "commission_rates", "homepage_features", "admin_members", "public_content_versions"]);
+// admin_settings: one row (admin roles, step 5b).
+const REFERENCE = new Set(["cities", "categories", "service_areas", "commission_rates", "homepage_features", "admin_members", "public_content_versions", "admin_settings"]);
 const GROWS = new Set([
   "admin_actions", "booking_addresses", "booking_contacts", "booking_emails", "booking_events", "booking_finances",
   "booking_reports", "bookings", "commission_rate_changes", "experience_sessions", "guide_ai_drafts", "guide_photos",
@@ -39,7 +40,9 @@ const GROWS = new Set([
   // Search by availability (2026-10-15): open days per Service.
   "service_open_days", "service_open_days_pending", "service_open_days_refreshed",
   // Problem reports (2026-10-17).
-  "admin_emails", "admin_notifications", "support_emails", "support_messages", "support_notes", "support_report_events", "support_reports",
+  "admin_emails", "admin_notifications", "support_emails",
+  // Support's requests to the owner (admin roles, step 5b).
+  "admin_requests", "support_messages", "support_notes", "support_report_events", "support_reports",
   // private.booking_records (bookingRecords(db)) is checked as bookings.
 ]);
 

@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { adminNotificationText, adminTeamChangeText, bellLabel, type AdminNotificationKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
+import {
+  adminNotificationText, adminRequestDecidedText, adminRequestNewText, adminTeamChangeText, bellLabel,
+  type AdminNotificationKind, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type SupportCategory,
+} from "@repo/types";
 import type { AdminNotificationRow } from "@repo/ui/app/utils/notificationFeed";
 
 // The admin's bell (docs/design/problem-reports.md, Notifications): a new
@@ -19,6 +22,11 @@ interface Item {
   read_at: string | null;
   report: { category: SupportCategory; provider: { display_name: string } | null } | null;
   action: { admin_id: string; target_id: string; action: AdminTeamAction; message: string | null } | null;
+  request: {
+    kind: AdminRequestKind; status: AdminRequestStatus; resolve_problem: boolean; amount_cents: number | null; requested_by: string;
+    booking: { listing: { title: string } | null; provider: { display_name: string } | null } | null;
+    provider: { display_name: string } | null;
+  } | null;
 }
 const items = ref<Item[]>([]);
 const unread = ref(0);
@@ -26,13 +34,21 @@ const loadFailed = ref(false);
 const announcement = ref("");
 const open = ref(false);
 
-// Team members' emails, for team changes (the owner's admin_team(); only
-// owners get team changes).
+// Team members' emails, for team changes and requests (admin_member_names).
 const emails = ref(new Map<string, string>());
 const emailOf = (id: string) => (id === user.value?.sub ? "You" : emails.value.get(id) ?? "Someone");
 const textOf = (n: Item) => {
   if (n.kind === "team_change") {
     return n.action ? adminTeamChangeText(n.action.action, emailOf(n.action.admin_id), emailOf(n.action.target_id), n.action.message) : "A change to the team.";
+  }
+  if (n.kind === "request_new" || n.kind === "request_decided") {
+    const r = n.request;
+    if (!r) return n.kind === "request_new" ? "A request is waiting for you." : "The owner decided on your request.";
+    const subject = {
+      kind: r.kind, resolveProblem: r.resolve_problem, amountCents: r.amount_cents,
+      listingTitle: r.booking?.listing?.title, providerName: r.booking?.provider?.display_name ?? r.provider?.display_name,
+    };
+    return n.kind === "request_new" ? adminRequestNewText(emailOf(r.requested_by), subject) : adminRequestDecidedText(r.status, subject);
   }
   return adminNotificationText(n.kind, n.report?.provider?.display_name ?? "A provider", n.report?.category ?? "other");
 };
@@ -43,7 +59,8 @@ async function load() {
   const [recent, count] = await Promise.all([
     supabase.from("admin_notifications")
       .select("id, kind, report_id, created_at, read_at, report:support_reports(category, provider:providers(display_name)), " +
-        "action:admin_actions(admin_id, target_id, action, message)")
+        "action:admin_actions(admin_id, target_id, action, message), " +
+        "request:admin_requests(kind, status, resolve_problem, amount_cents, requested_by, booking:bookings(listing:listings(title), provider:providers(display_name)), provider:providers!admin_requests_provider_id_fkey(display_name))")
       .eq("recipient_id", me).order("created_at", { ascending: false }).limit(20),
     supabase.from("admin_notifications").select("id", { count: "exact", head: true }).eq("recipient_id", me).is("read_at", null),
   ]);
@@ -55,10 +72,11 @@ async function load() {
   loadFailed.value = false;
   items.value = recent.data as unknown as Item[];
   unread.value = count.count ?? 0;
-  if (items.value.some((n) => n.kind === "team_change")) {
-    const { data: team, error } = await supabase.rpc("admin_team");
+  const ids = [...new Set(items.value.flatMap((n) => [n.action?.admin_id, n.action?.target_id, n.request?.requested_by]).filter((x): x is string => !!x))];
+  if (ids.length) {
+    const { data: names, error } = await supabase.rpc("admin_member_names", { p_ids: ids });
     if (error) console.error("[admin notifications] couldn't load the team's emails", error);
-    else emails.value = new Map((team ?? []).map((m) => [m.user_id, m.email]));
+    else emails.value = new Map((names ?? []).map((m) => [m.user_id, m.email]));
   }
 }
 
@@ -79,7 +97,7 @@ async function markAllRead() {
 async function openItem(n: Item) {
   if (!n.read_at) void markRead([n.id]);
   open.value = false;
-  await navigateTo(n.kind === "team_change" ? "/team" : `/reports/${n.report_id}`);
+  await navigateTo(n.kind === "team_change" ? "/team" : n.kind.startsWith("request_") ? "/requests" : `/reports/${n.report_id}`);
 }
 
 let feed: ReturnType<typeof createNotificationFeed<AdminNotificationRow>> | null = null;

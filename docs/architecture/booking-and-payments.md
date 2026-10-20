@@ -606,6 +606,7 @@ sequenceDiagram
   A->>AA: chooses an action, gives a reason (5+ characters)
   AA->>W: POST with Authorization: Bearer (the admin's session token)
   W->>W: Origin is exactly NUXT_ADMIN_ORIGIN? (else 403)<br/>token valid? (else 401) admin_role() for that token? (else 403)
+  Note over W,DB: support where the owner is needed: refused, or (from the admin app) asked as a request instead
   alt cancel, or refund after a report
     W->>DB: the reason saved on the booking
     W->>S: release the hold, or refund, and reverse a transfer if paid out
@@ -633,6 +634,33 @@ sequenceDiagram
   which refuses any caller but the server (`service_role`) before reading
   the header, and refuses a session that isn't that admin's, current and
   `aal2`. A removed admin's sessions stop working at once.
+- **Support asks; the owner decides** (admin roles, step 5b, 2026-10-19;
+  [migration](../../supabase/migrations/20261020000245_admin_requests.sql)).
+  Support refunds directly up to the refund limit (`admin_settings`,
+  $150), measured on what's left of the charge, not the booking's total;
+  cancelling a booking request (a card hold) stays direct. Above the limit,
+  and for releasing a payout, paying the provider on a report, suspending
+  or reinstating, support asks instead (`admin_request_create`, their own
+  session): the four functions refuse support. A refund is refused before
+  Stripe (`admin_check_refund`), and `admin_cancel_booking` checks again
+  unless this action's Stripe effect has already happened (more refunded
+  than before, or a transfer reversal, or finishing from Stripe).
+  - **Approving** is the website's `/api/admin/requests/:id/approve`
+    (`adminRequests.ts`): the owner only, a refund only for the amount the
+    owner was shown (`expectedAmountCents`, required; refused if what's
+    left has changed). It runs the same action as above, as the owner,
+    with the request's reason and `p_request_id`; the action's own
+    function closes the request in its transaction, and its `admin_actions`
+    row carries `request_id`, so the history names who asked and who
+    approved. A refund's Stripe metadata carries `admin_request_id` beside
+    `admin_id`, so a lost reply finished from Stripe closes the request too.
+  - **Once Stripe has acted, the request never blocks the record:** it's
+    closed as approved if still pending, by one update that does nothing
+    otherwise (a withdrawal or expiry at the same moment), and left as it
+    is, its id still on the action (`admin_cancel_settle`).
+  - **The owner acting directly** closes a matching pending request as
+    "done by the owner". Declining (with a note), withdrawing (the asker)
+    and expiry (7 days) change nothing on the booking.
 - **Finishing a lost admin refund** (`finishLostCancel`, and the
   `payment_intent.canceled` webhook for an admin cancel): Stripe has
   already refunded or released, possibly after the admin's session ended,
@@ -783,6 +811,8 @@ note), which only the service role can use.
 | `experience_sessions` | future, visible ones | own (all) | all | future, visible ones | provider (not moved or cancelled once booked) | with its listing, unless booked |
 | `notifications` | no | own (may mark read) | no | no | triggers | with its listing |
 | `admin_actions`, `job_runs` | no | no | all | no | service role | never (append-only) |
+| `admin_requests` | no | no | the owner all; support their own | no | the request functions (support asks; the owner decides; the action closes it) | never; only its decision is written, once |
+| `admin_settings` | no | no | all (the refund limit) | no | migration (the owner's page in 5d) | never (one row) |
 | `commission_rates` | any signed-in user | any signed-in user | all; the owner may change the rate (support reads only, since 2026-10-19) | the kind and rate (the Fees page; since 2026-10-18) | the owner (rate only) | never |
 | `providers` (`stripe_*`, `status`) | no | own | all | no | server only (Stripe sync, admin RPC) | never |
 

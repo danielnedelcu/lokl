@@ -2,8 +2,9 @@
 
 Status: **approved design, being built** (2026-10-18; decisions below,
 under "Decided"), in the order of "Moving from today's admin to the new
-roles". Steps 1 to 4 are done; step 5 is built in four parts, 5a (the
-owner's areas and the team, below: "As built, step 5a") first. To be
+roles". Steps 1 to 4 are done; step 5 is built in four parts: 5a (the
+owner's areas and the team, below: "As built, step 5a") and 5b
+(requests: "As built, step 5b") so far. To be
 built before anyone else is given admin access ([docs/TODO.md](../TODO.md),
 Launch prep, "Staff access").
 
@@ -380,6 +381,33 @@ block in `CLAUDE.md`.
 - `is_owner()` now returns false rather than null for someone not on the
   team, so a plpgsql check can't let them through.
 - Break-glass's SQL block is in the root `CLAUDE.md` (Roles).
+
+**As built, step 5b (2026-10-19;** migration `admin_requests`**):**
+- `admin_settings` holds the refund limit ($150); the pages read it live
+  (`DEFAULT_REFUND_LIMIT_CENTS` is only a fallback, tested to match). The
+  owner's page for it comes in 5d.
+- The limit is on **what's left of the charge** (`admin_refundable_cents`:
+  total less refunded), not the booking's total. Cancelling a booking
+  request (a card hold) is direct for support.
+- Requests (`admin_requests`) as designed, plus `done_by_owner`: the owner
+  doing the same thing directly closes a matching request. The
+  `/requests` page is for both roles (the owner decides; support sees
+  their own and withdraws), not a section of the Team page, which support
+  can't open. Decisions go to the asker's bell only; new requests to every
+  owner's bell and inbox.
+- Approving runs the same action as doing it directly, as the owner, with
+  the request's reason; the action's function closes the request in the
+  same transaction and its log row carries `request_id`, so a booking's
+  history reads "asked by …, approved by …" (`admin_member_names()` gives
+  any admin the team's emails by id). A refund is approved only for the
+  amount the owner was shown; if it changed, the page says so and the
+  approval asks again.
+- Money first, record second: a refund's Stripe metadata carries the
+  request, so a lost reply finished from Stripe closes it; and once
+  Stripe has acted (a new refund, a transfer reversal, or finishing), a
+  request withdrawn or expired at that moment never blocks the record
+  (one conditional update, no check-then-close; tested with two real
+  sessions in `admin-request-race.test.mts`).
 
 **Changing a role:** owner only, never for themselves while they're the
 last owner. Logged with the old and new role; takes effect on the next

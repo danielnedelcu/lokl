@@ -593,7 +593,7 @@ export function renderSupportEmail(
 // Never the reason: what happened, and where to look.
 // ---------------------------------------------------------------------------
 
-export type AdminEmailKind = "admin_invite" | "admin_team_change";
+export type AdminEmailKind = "admin_invite" | "admin_team_change" | "admin_request_new";
 
 export function renderAdminInviteEmail(c: { adminUrl: string; invitedBy: string; role: string }): RenderedEmail {
   return render({
@@ -614,5 +614,15 @@ export function renderAdminTeamChangeEmail(c: { adminUrl: string; text: string }
     subject: "A change to the lokl admin team",
     intro: [c.text, "Every change to the team is emailed to every owner. If you didn't expect this one, open the Team page now and check the record."],
     button: { label: "Open the Team page", url: `${c.adminUrl}/team` },
+  });
+}
+
+/** A support member's request, for each owner (admin roles, step 5b). Never the reason: it's on the Requests page. */
+export function renderAdminRequestEmail(c: { adminUrl: string; text: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "A request is waiting for you on lokl",
+    intro: [c.text, "Approve or decline it on the Requests page, where you'll see their reason. It expires in 7 days."],
+    button: { label: "Open Requests", url: `${c.adminUrl}/requests` },
   });
 }

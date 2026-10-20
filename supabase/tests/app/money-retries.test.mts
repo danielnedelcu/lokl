@@ -295,8 +295,11 @@ try {
 
   // 10. The real actions, with the database write lost after Stripe acted:
   // what they write to Stripe is enough to finish them.
-  // A stand-in database that "crashes" on the status change (or lokl's cancel function).
-  const crashing = (writes: string) => new Proxy(db, {
+  // A stand-in database that "crashes" on the status change (or lokl's cancel
+  // function). An admin's action goes through their own session's server
+  // client (`base`), as the route's does: the refund limit is checked
+  // before Stripe, for that session (admin roles, step 5b).
+  const crashing = (writes: string, base: typeof db = db) => new Proxy(base, {
     get(target, prop, receiver) {
       if (prop === "rpc") return (fn: string, args: unknown) => {
         if (fn === writes) throw new Error("the server stopped before the database write");
@@ -343,7 +346,7 @@ try {
     await handlePaymentsEvent(db, stripe, event("charge.refunded", { id: cr.charge as string }));
     check((await row(c.id)).cancelled_by === "customer", "10c. the customer's refund says enough for the webhook");
     const a = await paid(await session(144));
-    await lost(adminCancelBooking(crashing("admin_cancel_booking"), stripe, a.id, admin.id, "The venue closed for the day."));
+    await lost(adminCancelBooking(crashing("admin_cancel_booking", admin.server as typeof db), stripe, a.id, admin.id, "The venue closed for the day."));
     const ar = (await refunds(a.pi))[0]!;
     await handlePaymentsEvent(db, stripe, event("charge.refunded", { id: ar.charge as string }));
     const aa = await row(a.id);

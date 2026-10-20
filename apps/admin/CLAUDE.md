@@ -61,6 +61,13 @@ The team's admin app: owner and support (docs/design/admin-roles.md). Port 3101 
   them (`owner: true` in `app/layouts/default.vue`, from `useAdminRole()`).
   Server routes use `requireAdmin(event, { owner: true })`. Usability
   only: the database refuses support's writes either way.
+- **Requests** (`/requests`, admin roles step 5b): where the owner is
+  needed, support's buttons ask instead ("Request a refund", "Request a
+  release", "Request suspension"), through `admin_request_create` with
+  their own session; the owner approves on `/requests` through the
+  website (`requests/:id/approve`, with the refund amount shown) or
+  declines with a note. Read the refund limit from `admin_settings`, never
+  a constant. The database refuses support either way.
 - **Page structure:** `PageHeader` and `EmptyState` from `app/components/`;
   everything else from the shared layer (`Ui…` components, `StatusBadge`).
   Colours come from the layer's tokens (`background`, `card`, `muted`,

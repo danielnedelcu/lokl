@@ -40,6 +40,16 @@ export async function logAdminAction(
   if (error) throw new Error(`couldn't log the admin action: ${error.message}`);
 }
 
+/**
+ * A refusal from an action's database function, as a plain answer: support
+ * asking for what needs the owner (403), or a request no longer waiting (409).
+ */
+function actionError(error: { code?: string; message: string }) {
+  if (error.code === "42501") return new BookingError(error.message, 403);
+  if (error.code === "23514") return new BookingError(error.message, 409);
+  return new Error(error.message);
+}
+
 async function read(db: SupabaseClient, id: string) {
   const { data, error } = await bookingRecords(db).select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
@@ -60,33 +70,45 @@ async function read(db: SupabaseClient, id: string) {
  */
 export async function adminCancelBooking(
   db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string,
-  opts: { resolveProblem?: boolean } = {},
+  opts: { resolveProblem?: boolean; requestId?: string | null } = {},
 ) {
   const reason = requireReason(reasonIn);
   const b = await read(db, bookingId);
   const resolveProblem = !!opts.resolveProblem;
+  const requestId = opts.requestId ?? null;
   const outcome = (done: Awaited<ReturnType<typeof recordAdminCancel>>, owed = false) =>
     done === "changed" ? "already changed"
     : done !== "cancelled" ? "already cancelled"
     : owed ? "cancelled and refunded; the provider's share is owed (the reversal failed)" : "cancelled and refunded";
   if (b.status === "cancelled" && b.cancelled_by === "admin") {
-    return outcome(await recordAdminCancel(db, { bookingId: b.id, adminId, reason, from: "cancelled", resolveProblem, refundedCents: null }));
+    return outcome(await recordAdminCancel(db, { bookingId: b.id, adminId, reason, from: "cancelled", resolveProblem, refundedCents: null, requestId }));
   }
   if (resolveProblem && (!b.problem_reported_at || b.problem_resolution)) {
     throw new BookingError("There's no open report on this booking.", 409);
   }
-  const meaning: CancelMeaning = { lokl_action: "cancel", cancelled_by: "admin", admin_id: adminId, ...(resolveProblem ? { resolve_problem: "true" as const } : {}) };
+  const meaning: CancelMeaning = {
+    lokl_action: "cancel", cancelled_by: "admin", admin_id: adminId,
+    ...(resolveProblem ? { resolve_problem: "true" as const } : {}),
+    ...(requestId ? { admin_request_id: requestId } : {}),
+  };
 
   if (b.status === "requested") {
     await saveCancelReason(db, b.id, "requested", reason);
     await releaseHold(stripe, b as any, { lokl_release: "cancel", cancelled_by: "admin", admin_id: adminId });
-    return outcome(await recordAdminCancel(db, { bookingId: b.id, adminId, reason, from: "requested", resolveProblem, refundedCents: null }));
+    return outcome(await recordAdminCancel(db, { bookingId: b.id, adminId, reason, from: "requested", resolveProblem, refundedCents: null, requestId }));
   }
   if (!["confirmed", "completed", "paid_out"].includes(b.status)) {
     throw new BookingError(
       b.status === "pending_payment" ? "This booking is still in checkout; it will lapse on its own." : `A ${b.status} booking can't be cancelled.`,
       409,
     );
+  }
+  // The refund limit for support, on what's left of the charge, before
+  // Stripe (admin_check_refund; the record checks again).
+  const { error: limitError } = await db.rpc("admin_check_refund", { p_admin_id: adminId, p_booking_id: b.id });
+  if (limitError) {
+    if (limitError.code === "42501") throw new BookingError(limitError.message, 403);
+    throw new Error(limitError.message);
   }
   await saveCancelReason(db, b.id, b.status, reason);
   const refunded = await refundInFull(stripe, b as any, meaning);
@@ -95,6 +117,7 @@ export async function adminCancelBooking(
     bookingId: b.id, adminId, reason, from: b.status, resolveProblem, refundedCents: refunded,
     reversalId: reversal && "id" in reversal ? reversal.id : null,
     reversalFailure: reversal && "failure" in reversal ? reversal.failure : null,
+    requestId,
   });
   return outcome(done, !!reversal && "failure" in reversal);
 }
@@ -107,14 +130,19 @@ export async function adminCancelBooking(
  * for the same judgement (a lost dispute, a refund, a suspension). The
  * release and its admin log are written together (admin_release_payout).
  */
-export async function releasePayout(db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string) {
+export async function releasePayout(
+  db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string, opts: { requestId?: string | null } = {},
+) {
   const reason = requireReason(reasonIn);
   const b = await read(db, bookingId);
-  if (!b.payout_hold) return "nothing held";
+  if (!b.payout_hold && !opts.requestId) return "nothing held";
   if (b.payout_hold === "problem_reported") throw new BookingError("A customer reported a problem: resolve the report instead.", 409);
   if (b.disputed_at && !b.dispute_closed_at) throw new BookingError("The dispute is still open, so the payout stays held.", 409);
-  const { error } = await db.rpc("admin_release_payout", { p_booking_id: b.id, p_admin_id: adminId, p_reason: reason, p_hold: b.payout_hold });
-  if (error) throw new Error(error.message);
+  const { data: released, error } = await db.rpc("admin_release_payout", {
+    p_booking_id: b.id, p_admin_id: adminId, p_reason: reason, p_hold: b.payout_hold ?? "", p_request_id: opts.requestId ?? null,
+  });
+  if (error) throw actionError(error);
+  if (!released) return "nothing held";
   const run = await payOut(db, stripe, { bookingId: b.id });
   return run.done.at(-1)?.split(": ").slice(1).join(": ") || "released; it's paid out when due";
 }
@@ -124,16 +152,19 @@ export async function releasePayout(db: SupabaseClient, stripe: Stripe, bookingI
  * (now, if it's due). The resolution and its admin log are written together
  * (admin_resolve_problem_paid).
  */
-export async function resolveProblemPaid(db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string) {
+export async function resolveProblemPaid(
+  db: SupabaseClient, stripe: Stripe, bookingId: string, adminId: string, reasonIn: string, opts: { requestId?: string | null } = {},
+) {
   const reason = requireReason(reasonIn);
   const b = await read(db, bookingId);
-  if (b.problem_resolution === "paid_provider") return "already resolved";
-  if (!b.problem_reported_at || b.problem_resolution) throw new BookingError("There's no open report on this booking.", 409);
-  const { data, error } = await db.rpc("admin_resolve_problem_paid", { p_booking_id: b.id, p_admin_id: adminId, p_reason: reason });
-  if (error) {
-    if (error.code === "23514") throw new BookingError(error.message, 409);
-    throw new Error(error.message);
+  if (!opts.requestId) {
+    if (b.problem_resolution === "paid_provider") return "already resolved";
+    if (!b.problem_reported_at || b.problem_resolution) throw new BookingError("There's no open report on this booking.", 409);
   }
+  const { data, error } = await db.rpc("admin_resolve_problem_paid", {
+    p_booking_id: b.id, p_admin_id: adminId, p_reason: reason, p_request_id: opts.requestId ?? null,
+  });
+  if (error) throw actionError(error);
   if (!data) return "already resolved";
   await payOut(db, stripe, { bookingId: b.id });
   return "resolved: the provider will be paid";
@@ -161,7 +192,7 @@ export async function retryEmail(db: SupabaseClient, emailId: string, adminId: s
  */
 export async function setProviderStatus(
   db: SupabaseClient, stripe: Stripe, providerId: string, status: "active" | "suspended", adminId: string, reasonIn: string,
-  messageIn?: string | null,
+  messageIn?: string | null, opts: { requestId?: string | null } = {},
 ) {
   const reason = requireReason(reasonIn);
   const message = (messageIn ?? "").trim().slice(0, 1000) || null;
@@ -170,11 +201,12 @@ export async function setProviderStatus(
   // optional message. The reason never goes in the email.
   const { data: changed, error } = await db.rpc("admin_set_provider_status", {
     p_provider_id: providerId, p_status: status, p_admin_id: adminId, p_reason: reason, p_message: message,
+    p_request_id: opts.requestId ?? null,
   });
   if (error) {
     if (error.code === "P0002") throw new BookingError("We couldn't find that provider.", 404);
     if (error.code === "23514") throw new BookingError(error.message, 400);
-    throw new Error(error.message);
+    throw actionError(error);
   }
   if (!changed) return status === "suspended" ? "already suspended" : "already active";
   if (status === "suspended") {
