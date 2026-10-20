@@ -443,6 +443,20 @@ three are done: explicit API grants, the build secrets check, and
   network throttling instead, so nothing intercepts the page's last
   request. Checked with a deliberate break (no keepalive: the test fails).
 
+- [ ] **A dropdown pick dropped on CI, not yet explained** (2026-10-20;
+  run 39355226668, journey 27): the "From" hour menu closed with 9 still
+  chosen after the test clicked "10"; the trace's snapshot before the
+  click shows the list without its options yet. Not reproduced locally
+  (20 runs at 20x CPU throttling). The Select opens below its trigger
+  (popper), nothing scrolls, and only the 150 ms opening animation moves
+  an option (~9 px); Reka cancels a release within 10 px of the trigger's
+  press, which leaves the menu open, never a different value. The browser
+  tests now pick like a person (`choose()` in `e2e/support/forms.ts`: wait
+  until the option is shown and the menu has finished opening, click once,
+  fail at once by name). **If a pick fails again with that helper,
+  investigate the Select (Reka's release guard and when the list mounts)
+  rather than adding a retry.**
+
 ## Staging site
 
 A real address before the live one: `staging.hilokl.com` (website) and
