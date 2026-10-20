@@ -1,9 +1,10 @@
 // The bell's sentences (notificationText in @repo/types): every kind reads
 // as a sentence, and a reply to a problem report (which has no listing)
 // names the report's category, never a listing. The owners' team changes
-// (adminTeamChangeText) read as sentences too, from the log's own message.
+// (adminTeamChangeText) and support's requests (adminRequestNewText,
+// adminRequestDecidedText) read as sentences too.
 // Run: npx tsx packages/ui/tests/notification-text.test.mts
-import { SUPPORT_CATEGORIES, SUPPORT_CATEGORY_ABOUT, adminTeamChangeText, notificationText, type AdminTeamAction, type NotificationKind } from "@repo/types";
+import { SUPPORT_CATEGORIES, SUPPORT_CATEGORY_ABOUT, adminRequestDecidedText, adminRequestNewText, adminTeamChangeText, notificationText, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type NotificationKind } from "@repo/types";
 
 let failures = 0;
 const check = (ok: boolean, name: string) => { console.log(`${ok ? "ok  " : "FAIL"} ${name}`); if (!ok) failures++; };
@@ -24,6 +25,19 @@ check(adminTeamChangeText("invite_admin", "You", "sam@example.com", "as support"
 check(adminTeamChangeText("change_admin_role", "alex@example.com", "sam@example.com", "support to owner") === "alex@example.com changed sam@example.com's role from support to owner.",
   "t3. a role change says from what to what");
 check(adminTeamChangeText("join_admin", "sam@example.com", "sam@example.com", null) === "sam@example.com joined the team.", "t4. joining names the person once");
+
+// Support's requests.
+const booking = { listingTitle: "Taco crawl", providerName: "Tours and Cuts" };
+const REQ: AdminRequestKind[] = ["refund", "release_payout", "resolve_problem_paid", "suspend_provider", "reinstate_provider"];
+const STATUSES: AdminRequestStatus[] = ["pending", "approved", "declined", "withdrawn", "expired", "done_by_owner"];
+check(REQ.every((k) => /\.$/.test(adminRequestNewText("sam@example.com", { kind: k, amountCents: 19500, ...booking })))
+  && STATUSES.every((st) => REQ.every((k) => /^[A-Z].*\.$/.test(adminRequestDecidedText(st, { kind: k, amountCents: 19500, ...booking })))),
+  "r1. every request, new or decided, is a sentence");
+check(adminRequestNewText("sam@example.com", { kind: "refund", amountCents: 19500, ...booking }) === "sam@example.com asks you to refund $195.00 for “Taco crawl” (Tours and Cuts).",
+  "r2. a refund request says the amount and the booking");
+check(adminRequestDecidedText("approved", { kind: "suspend_provider", ...booking }) === "The owner approved your request to suspend Tours and Cuts.", "r3. a decision says what was asked");
+check(adminRequestNewText("sam@example.com", { kind: "resolve_problem_paid", ...booking }) === "sam@example.com asks you to pay Tours and Cuts for “Taco crawl”, resolving a no-show report.",
+  "r4. paying the provider names them once");
 
 console.log(failures ? `${failures} failed` : "All notification text checks passed.");
 process.exit(failures ? 1 : 0);

@@ -163,6 +163,7 @@ export type Database = {
           id: string;
           message: string | null;
           reason: string | null;
+          request_id: string | null;
           rule: string | null;
           target: string;
           target_id: string;
@@ -175,6 +176,7 @@ export type Database = {
           id?: string;
           message?: string | null;
           reason?: string | null;
+          request_id?: string | null;
           rule?: string | null;
           target: string;
           target_id: string;
@@ -186,11 +188,20 @@ export type Database = {
           id?: string;
           message?: string | null;
           reason?: string | null;
+          request_id?: string | null;
           rule?: string | null;
           target?: string;
           target_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_request_id_fkey";
+            columns: ["request_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_requests";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       admin_emails: {
         Row: {
@@ -292,6 +303,7 @@ export type Database = {
       admin_notifications: {
         Row: {
           admin_action_id: string | null;
+          admin_request_id: string | null;
           created_at: string;
           id: string;
           kind: string;
@@ -302,6 +314,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           admin_action_id?: string | null;
+          admin_request_id?: string | null;
           created_at?: string;
           id?: string;
           kind: string;
@@ -311,6 +324,7 @@ export type Database = {
         };
         Update: {
           admin_action_id?: string | null;
+          admin_request_id?: string | null;
           created_at?: string;
           id?: string;
           kind?: string;
@@ -327,6 +341,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "admin_notifications_admin_request_id_fkey";
+            columns: ["admin_request_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_requests";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "admin_notifications_report_id_fkey";
             columns: ["report_id"];
             isOneToOne: false;
@@ -334,6 +355,98 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      admin_requests: {
+        Row: {
+          amount_cents: number | null;
+          booking_id: string | null;
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_note: string | null;
+          hold: string | null;
+          id: string;
+          kind: string;
+          message: string | null;
+          provider_id: string | null;
+          reason: string;
+          requested_by: string;
+          resolve_problem: boolean;
+          result: string | null;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount_cents?: number | null;
+          booking_id?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          hold?: string | null;
+          id?: string;
+          kind: string;
+          message?: string | null;
+          provider_id?: string | null;
+          reason: string;
+          requested_by: string;
+          resolve_problem?: boolean;
+          result?: string | null;
+          status?: string;
+        };
+        Update: {
+          amount_cents?: number | null;
+          booking_id?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          hold?: string | null;
+          id?: string;
+          kind?: string;
+          message?: string | null;
+          provider_id?: string | null;
+          reason?: string;
+          requested_by?: string;
+          resolve_problem?: boolean;
+          result?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_requests_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "bookings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_requests_provider_id_fkey";
+            columns: ["provider_id"];
+            isOneToOne: false;
+            referencedRelation: "providers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      admin_settings: {
+        Row: {
+          id: boolean;
+          refund_limit_cents: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          id?: boolean;
+          refund_limit_cents?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          refund_limit_cents?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       booking_addresses: {
         Row: {
@@ -2760,15 +2873,32 @@ export type Database = {
           p_from: string;
           p_reason: string;
           p_refunded_cents: number;
+          p_request_id?: string;
           p_resolve_problem: boolean;
           p_reversal_failure: string;
           p_reversal_id: string;
         };
         Returns: string;
       };
+      admin_cancel_settle: {
+        Args: {
+          p_admin_id: string;
+          p_booking_id: string;
+          p_moved: boolean;
+          p_owner: boolean;
+          p_request_id: string;
+          p_resolve_problem: boolean;
+          p_result: string;
+        };
+        Returns: string;
+      };
       admin_change_role: {
         Args: { p_reason: string; p_role: string; p_user_id: string };
         Returns: string;
+      };
+      admin_check_refund: {
+        Args: { p_admin_id: string; p_booking_id: string };
+        Returns: number;
       };
       admin_dashboard: { Args: Record<PropertyKey, never>; Returns: Json };
       admin_finishing_stripe: {
@@ -2799,6 +2929,13 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_member_names: {
+        Args: { p_ids: string[] };
+        Returns: {
+          email: string;
+          user_id: string;
+        }[];
+      };
       admin_moderate_review: {
         Args: {
           p_action: string;
@@ -2810,6 +2947,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      admin_money: { Args: { p_cents: number }; Returns: string };
       admin_providers_page: {
         Args: {
           p_city_id?: string;
@@ -2824,12 +2962,21 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_refund_limit_cents: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
+      admin_refundable_cents: {
+        Args: { p_booking_id: string };
+        Returns: number;
+      };
       admin_release_payout: {
         Args: {
           p_admin_id: string;
           p_booking_id: string;
           p_hold: string;
           p_reason: string;
+          p_request_id?: string;
         };
         Returns: boolean;
       };
@@ -2848,12 +2995,64 @@ export type Database = {
         };
         Returns: string[];
       };
+      admin_request_create: {
+        Args: {
+          p_booking_id: string;
+          p_kind: string;
+          p_message?: string;
+          p_provider_id: string;
+          p_reason: string;
+          p_resolve_problem?: boolean;
+        };
+        Returns: string;
+      };
+      admin_request_decline: {
+        Args: { p_note: string; p_request_id: string };
+        Returns: string;
+      };
+      admin_request_for_approval: {
+        Args: { p_admin_id: string; p_request_id: string };
+        Returns: Json;
+      };
+      admin_request_settle: {
+        Args: {
+          p_admin_id: string;
+          p_booking_id: string;
+          p_kind: string;
+          p_provider_id: string;
+          p_request_id: string;
+          p_resolve_problem: boolean;
+          p_result: string;
+        };
+        Returns: string;
+      };
+      admin_request_tell_asker: {
+        Args: { p_request_id: string };
+        Returns: undefined;
+      };
+      admin_request_withdraw: {
+        Args: { p_request_id: string };
+        Returns: string;
+      };
+      admin_requests_expire: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
+      admin_requests_page: {
+        Args: { p_page?: number; p_page_size?: number; p_scope?: string };
+        Returns: Json;
+      };
       admin_reset_second_factor: {
         Args: { p_reason: string; p_user_id: string };
         Returns: string;
       };
       admin_resolve_problem_paid: {
-        Args: { p_admin_id: string; p_booking_id: string; p_reason: string };
+        Args: {
+          p_admin_id: string;
+          p_booking_id: string;
+          p_reason: string;
+          p_request_id?: string;
+        };
         Returns: boolean;
       };
       admin_reviews_page: {
@@ -2881,6 +3080,7 @@ export type Database = {
           p_message: string;
           p_provider_id: string;
           p_reason: string;
+          p_request_id?: string;
           p_status: string;
         };
         Returns: boolean;

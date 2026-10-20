@@ -182,8 +182,8 @@ select is(pg_temp.logs(:'b_short'), 1, '3s. ...and logged once');
 
 select is((select bool_or(has_function_privilege(r, f, 'EXECUTE'))
    from unnest(array['anon', 'authenticated']) r,
-        unnest(array['public.admin_cancel_booking(uuid, uuid, text, text, boolean, integer, timestamptz, text, text)',
-                     'public.admin_release_payout(uuid, uuid, text, text)', 'public.admin_resolve_problem_paid(uuid, uuid, text)']) f),
+        unnest(array['public.admin_cancel_booking(uuid, uuid, text, text, boolean, integer, timestamptz, text, text, uuid)',
+                     'public.admin_release_payout(uuid, uuid, text, text, uuid)', 'public.admin_resolve_problem_paid(uuid, uuid, text, uuid)']) f),
   false, '4. visitors and signed-in users can''t call the admin money actions');
 
 select * from finish();

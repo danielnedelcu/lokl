@@ -19,5 +19,6 @@ export * from "./availability";
 export * from "./rpcShapes";
 export * from "./rpcJson";
 export * from "./support";
+export * from "./requests";
 export * from "./analytics";
 export * from "./help";

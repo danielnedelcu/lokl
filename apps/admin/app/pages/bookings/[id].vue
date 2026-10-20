@@ -1,34 +1,59 @@
 <script setup lang="ts">
-import { marketZone } from "@repo/types";
+import { adminRequestWhat, DEFAULT_REFUND_LIMIT_CENTS, marketZone, type AdminRequestKind } from "@repo/types";
 import { HOLD_LABELS, payoutState, whenOf, withFinances } from "~/utils/bookingAdmin";
 
 // One booking, everything about it: the customer's details and no-show note
 // (admins only), its history, its emails, and lokl's actions, each with a
 // reason. Actions go through the website (useWebsiteAdmin), which has the
-// Stripe key and logs them in admin_actions.
+// Stripe key and logs them in admin_actions. Support asks the owner where
+// the owner is needed (admin roles, step 5b): a refund over the limit (on
+// what's left of the charge), a payout release, paying the provider on a
+// report. The database decides; the buttons say so first.
 const route = useRoute();
 const id = String(route.params.id);
 const supabase = useSupabaseClient();
 const call = useWebsiteAdmin();
 
 const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async () => {
-  const [b, events, emails, actions] = await Promise.all([
+  const [b, events, emails, actions, requests, settings] = await Promise.all([
     supabase.from("bookings").select("*, listing:listings(id, title, kind, status, city:cities(name, timezone)), provider:providers(id, display_name, status), contact:booking_contacts(email, phone), address:booking_addresses(line1, line2, city, state, postal_code, instructions), finances:booking_finances(*), report:booking_reports(note), hold:provider_holds(during)").eq("id", id).maybeSingle(),
     // bounded: one booking's history
     supabase.from("booking_events").select("from_status, to_status, actor, created_at").eq("booking_id", id).order("created_at"),
     // bounded: one booking's history
     supabase.from("booking_emails").select("id, kind, status, attempts, sent_at, created_at, skip_reason, last_error").eq("booking_id", id).order("created_at"),
     // bounded: one booking's history
-    supabase.from("admin_actions").select("action, reason, created_at").eq("target", "booking").eq("target_id", id).order("created_at"),
+    supabase.from("admin_actions").select("action, reason, created_at, admin_id, request:admin_requests(requested_by)").eq("target", "booking").eq("target_id", id).order("created_at"),
+    // bounded: one booking's waiting requests (one per kind)
+    supabase.from("admin_requests").select("id, kind, resolve_problem, amount_cents, requested_by, created_at").eq("booking_id", id).eq("status", "pending"),
+    supabase.from("admin_settings").select("refund_limit_cents").maybeSingle(),
   ]);
-  for (const r of [b, events, emails, actions]) if (r.error) throw r.error;
-  return { b: b.data ? withFinances<Record<string, any>>(b.data) : null, events: events.data ?? [], emails: emails.data ?? [], actions: actions.data ?? [] };
+  for (const r of [b, events, emails, actions, requests, settings]) if (r.error) throw r.error;
+  const acts = (actions.data ?? []) as unknown as { action: string; reason: string | null; created_at: string; admin_id: string | null; request: { requested_by: string } | null }[];
+  const waiting = (requests.data ?? []) as { id: string; kind: AdminRequestKind; resolve_problem: boolean; amount_cents: number | null; requested_by: string; created_at: string }[];
+  // Who did what, by email (team members only).
+  const ids = [...new Set([...acts.flatMap((a) => [a.admin_id, a.request?.requested_by]), ...waiting.map((r) => r.requested_by)].filter((x): x is string => !!x))];
+  const names = new Map<string, string>();
+  if (ids.length) {
+    const { data: n, error: nameError } = await supabase.rpc("admin_member_names", { p_ids: ids });
+    if (nameError) throw nameError;
+    for (const m of n ?? []) names.set(m.user_id, m.email);
+  }
+  return {
+    b: b.data ? withFinances<Record<string, any>>(b.data) : null, events: events.data ?? [], emails: emails.data ?? [], actions: acts,
+    waiting, names, refundLimit: settings.data?.refund_limit_cents ?? DEFAULT_REFUND_LIMIT_CENTS,
+  };
 });
 watch(error, (e) => e && reportProblem("Couldn't load the booking", e), { immediate: true });
 const b = computed(() => data.value?.b ?? null);
 useHead({ title: () => `${b.value?.listing?.title ?? "Booking"} · Admin` });
 
 const money = (cents: number) => formatMoney(cents ?? 0, "usd");
+const me = useSupabaseUser();
+const role = useAdminRole();
+const nameOf = (userId: string | null | undefined) => (userId ? data.value?.names.get(userId) ?? "someone no longer on the team" : "lokl");
+// What a refund would refund now: what's left of the charge.
+const refundable = computed(() => ["confirmed", "completed", "paid_out"].includes(b.value?.status)
+  ? Math.max((b.value?.total_cents ?? 0) - (b.value?.refunded_cents ?? 0), 0) : 0);
 // A Service's mode, and the time its hold keeps for it (docs/design/service-availability.md):
 // [start, end + the time between bookings). No hold once it's declined,
 // expired or cancelled: the time is free again.
@@ -52,6 +77,16 @@ const canRelease = computed(() => !!b.value?.payout_hold && b.value.payout_hold 
   && !(b.value.disputed_at && !b.value.dispute_closed_at));
 
 type Dialog = "cancel" | "release" | "pay" | "refund" | null;
+/** Support asks the owner for this, rather than doing it (the database refuses it otherwise). */
+function needsRequest(action: Exclude<Dialog, null>) {
+  if (role.value !== "support") return false;
+  if (action === "release" || action === "pay") return true;
+  return b.value?.status !== "requested" && refundable.value > (data.value?.refundLimit ?? DEFAULT_REFUND_LIMIT_CENTS);
+}
+const requestKind = (action: Exclude<Dialog, null>): AdminRequestKind =>
+  action === "release" ? "release_payout" : action === "pay" ? "resolve_problem_paid" : "refund";
+const waitingFor = (kind: AdminRequestKind) => data.value?.waiting.find((r) => r.kind === kind);
+const label = (action: Exclude<Dialog, null>, plain: string, asking: string) => (needsRequest(action) ? asking : plain);
 // The chosen action, kept apart from whether the dialog is open
 // (docs/frontend.md, confirmation dialogs): closing it mustn't clear the
 // action a request is still running for.
@@ -65,6 +100,20 @@ const busy = ref(false);
 const problem = ref("");
 const done = ref("");
 const copy = computed(() => {
+  const plain = plainCopy.value;
+  const action = dialog.value;
+  if (!action || !needsRequest(action) || !b.value) return plain;
+  const what = adminRequestWhat({
+    kind: requestKind(action), resolveProblem: action === "refund", amountCents: refundable.value,
+    listingTitle: b.value.listing?.title, providerName: b.value.provider?.display_name,
+  });
+  return {
+    title: `Ask the owner to ${what}?`,
+    description: `This needs the owner. They get your request with your reason, and decide within 7 days. Nothing changes until they approve. If they do: ${plain.description}`,
+    confirm: "Send the request", destructive: false,
+  };
+});
+const plainCopy = computed(() => {
   const x = b.value;
   if (!x) return { title: "", description: "", confirm: "", destructive: false };
   switch (dialog.value) {
@@ -73,8 +122,8 @@ const copy = computed(() => {
       description: x.status === "requested"
         ? "The hold on the customer's card is released. Both are emailed that lokl cancelled it."
         : x.status === "paid_out"
-          ? `The customer is refunded ${money(x.total_cents)} in full, and the provider's ${money(x.provider_amount_cents)} transfer is reversed. If their Stripe balance is empty, it's recorded as owed. Both are emailed.`
-          : `The customer is refunded ${money(x.total_cents)} in full, and the provider isn't paid. Both are emailed that lokl cancelled it.`,
+          ? `The customer is refunded ${money(refundable.value)}, what's left of the charge, and the provider's ${money(x.provider_amount_cents)} transfer is reversed. If their Stripe balance is empty, it's recorded as owed. Both are emailed.`
+          : `The customer is refunded ${money(refundable.value)}, what's left of the charge, and the provider isn't paid. Both are emailed that lokl cancelled it.`,
       confirm: x.status === "requested" ? "Cancel the request" : "Refund and cancel", destructive: true,
     };
     case "release": return {
@@ -89,7 +138,7 @@ const copy = computed(() => {
     };
     case "refund": return {
       title: "Resolve the report: refund the customer?",
-      description: `The booking is cancelled and the customer refunded ${money(x.total_cents)} in full. The provider isn't paid. Both are emailed the outcome.`,
+      description: `The booking is cancelled and the customer refunded ${money(refundable.value)}, what's left of the charge. The provider isn't paid. Both are emailed the outcome.`,
       confirm: "Refund the customer", destructive: true,
     };
     default: return { title: "", description: "", confirm: "", destructive: false };
@@ -103,6 +152,21 @@ async function act(reason: string) {
   if (!action) return;
   busy.value = true;
   problem.value = "";
+  if (needsRequest(action)) {
+    // Support asks the owner instead (their own session; the database checks it).
+    const { error: e } = await supabase.rpc("admin_request_create", {
+      p_kind: requestKind(action), p_booking_id: id, p_provider_id: null as unknown as string, p_reason: reason, p_resolve_problem: action === "refund",
+    });
+    busy.value = false;
+    if (e) {
+      problem.value = e.message;
+      return;
+    }
+    done.value = "Request sent to the owner. You'll see their decision in your notifications and on Requests.";
+    open.value = false;
+    await refresh();
+    return;
+  }
   try {
     const path = action === "cancel" ? `bookings/${id}/cancel`
       : action === "release" ? `bookings/${id}/release-payout`
@@ -135,6 +199,15 @@ async function act(reason: string) {
     busy.value = false;
     await refresh();
   }
+}
+async function withdraw(requestId: string) {
+  busy.value = true;
+  problem.value = "";
+  const { error: e } = await supabase.rpc("admin_request_withdraw", { p_request_id: requestId });
+  busy.value = false;
+  if (e) problem.value = e.message;
+  else done.value = "Request withdrawn.";
+  await refresh();
 }
 async function retry(emailId: string) {
   busy.value = true;
@@ -185,8 +258,10 @@ const actionLabels: Record<string, string> = {
           <p class="whitespace-pre-line">“{{ b.problem_note }}”</p>
           <p class="mt-1 text-xs">Reported {{ at(b.problem_reported_at) }}. Only lokl sees this note. The payout is held until you decide.</p>
           <div class="mt-3 flex flex-wrap gap-2">
-            <UiButton size="sm" :disabled="busy" @click="ask('pay')">Pay the provider</UiButton>
-            <UiButton size="sm" variant="destructive" :disabled="busy" @click="ask('refund')">Refund the customer</UiButton>
+            <UiButton size="sm" :disabled="busy || !!waitingFor('resolve_problem_paid')" @click="ask('pay')">{{ label("pay", "Pay the provider", "Request to pay the provider") }}</UiButton>
+            <UiButton size="sm" :variant="needsRequest('refund') ? 'outline' : 'destructive'" :disabled="busy || !!waitingFor('refund')" @click="ask('refund')">
+              {{ label("refund", "Refund the customer", "Request a refund") }}
+            </UiButton>
           </div>
         </UiAlertDescription>
       </UiAlert>
@@ -195,10 +270,26 @@ const actionLabels: Record<string, string> = {
         <UiAlertDescription>The reversal of their transfer failed: {{ b.reversal_failure }}. Recover it in Stripe for now.</UiAlertDescription>
       </UiAlert>
 
+      <!-- Requests waiting for the owner (admin roles, step 5b). -->
+      <UiAlert v-for="r in data!.waiting" :key="r.id" class="mt-4" icon="lucide:hourglass">
+        <UiAlertTitle>Waiting for the owner</UiAlertTitle>
+        <UiAlertDescription>
+          <p>
+            {{ r.requested_by === me?.sub ? "You" : nameOf(r.requested_by) }} asked to
+            {{ adminRequestWhat({ kind: r.kind, resolveProblem: r.resolve_problem, amountCents: r.amount_cents, listingTitle: b.listing?.title, providerName: b.provider?.display_name }) }},
+            {{ formatHomeDateTime(r.created_at) }} (Atlanta time).
+          </p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <UiButton v-if="r.requested_by === me?.sub" size="sm" variant="outline" :disabled="busy" @click="withdraw(r.id)">Withdraw the request</UiButton>
+            <UiButton v-if="role === 'owner'" size="sm" variant="outline" to="/requests">Decide on Requests</UiButton>
+          </div>
+        </UiAlertDescription>
+      </UiAlert>
+
       <div v-if="canCancel || canRelease" class="mt-6 flex flex-wrap gap-2">
-        <UiButton v-if="canRelease" :disabled="busy" @click="ask('release')">Release payout</UiButton>
-        <UiButton v-if="canCancel && !openReport" variant="outline" :disabled="busy" @click="ask('cancel')">
-          {{ b.status === "requested" ? "Cancel request" : "Refund and cancel" }}
+        <UiButton v-if="canRelease" :disabled="busy || !!waitingFor('release_payout')" @click="ask('release')">{{ label("release", "Release payout", "Request a release") }}</UiButton>
+        <UiButton v-if="canCancel && !openReport" variant="outline" :disabled="busy || (needsRequest('cancel') && !!waitingFor('refund'))" @click="ask('cancel')">
+          {{ b.status === "requested" ? "Cancel request" : label("cancel", "Refund and cancel", "Request a refund") }}
         </UiButton>
       </div>
 
@@ -241,7 +332,13 @@ const actionLabels: Record<string, string> = {
         <h2 id="history-heading" class="font-medium">History</h2>
         <ol class="mt-2 space-y-1 text-sm">
           <li v-for="e in data!.events" :key="e.created_at + e.to_status">{{ at(e.created_at) }} · {{ e.from_status ?? "new" }} → {{ e.to_status }} by {{ e.actor }}</li>
-          <li v-for="a in data!.actions" :key="a.created_at" class="font-medium">{{ at(a.created_at) }} · {{ actionLabels[a.action] ?? a.action }}: “{{ a.reason }}”</li>
+          <li v-for="a in data!.actions" :key="a.created_at" class="font-medium">
+            {{ at(a.created_at) }} · {{ actionLabels[a.action] ?? a.action }}: “{{ a.reason }}”
+            <span class="font-normal text-muted-foreground">
+              <template v-if="a.request">— asked by {{ nameOf(a.request.requested_by) }}, approved by {{ nameOf(a.admin_id) }}</template>
+              <template v-else>— by {{ nameOf(a.admin_id) }}</template>
+            </span>
+          </li>
         </ol>
       </section>
 

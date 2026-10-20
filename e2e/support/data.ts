@@ -170,14 +170,15 @@ export class TestData {
   }
 
   /** A paid, confirmed Experience booking, as Checkout leaves it (charged with funds available for a payout). */
-  async paidBooking(customer: TestUser, sessionId: string) {
+  /** A paid Experience booking: `people` at the listing's $50 each (a real sandbox payment). */
+  async paidBooking(customer: TestUser, sessionId: string, people = 1) {
     const b = await must(this.env.db.rpc("reserve_experience_booking", {
-      p_session_id: sessionId, p_customer_id: customer.id, p_party_size: 1, p_customer_name: "Sam Customer",
+      p_session_id: sessionId, p_customer_id: customer.id, p_party_size: people, p_customer_name: "Sam Customer",
       p_customer_email: customer.email, p_customer_phone: null, p_customer_notes: null,
       p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
     })) as { id: string };
     const pi = await this.env.stripe.paymentIntents.create({
-      amount: 5000, currency: "usd", payment_method: "pm_card_bypassPending", confirm: true, payment_method_types: ["card"],
+      amount: 5000 * people, currency: "usd", payment_method: "pm_card_bypassPending", confirm: true, payment_method_types: ["card"],
       metadata: { booking_id: b.id, test: "e2e" },
     });
     await must(this.env.db.schema("private").from("booking_records").update({
@@ -386,6 +387,10 @@ export class TestData {
       const ids = this.listings.map((i) => `'${i}'`).join(",");
       execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
         set session_replication_role = replica;
+        delete from admin_notifications where admin_request_id in (select id from admin_requests where booking_id in (select id from bookings where listing_id in (${ids})));
+        delete from admin_emails where admin_action_id in (select id from admin_actions where request_id in (select id from admin_requests where booking_id in (select id from bookings where listing_id in (${ids}))));
+        delete from admin_actions where request_id in (select id from admin_requests where booking_id in (select id from bookings where listing_id in (${ids})));
+        delete from admin_requests where booking_id in (select id from bookings where listing_id in (${ids}));
         delete from admin_actions where target = 'review' and target_id in (select id from reviews where listing_id in (${ids}));
         delete from review_reports where review_id in (select id from reviews where listing_id in (${ids}));
         delete from review_replies where review_id in (select id from reviews where listing_id in (${ids}));
@@ -412,6 +417,10 @@ export class TestData {
       const ids = this.providers.map((i) => `'${i}'`).join(",");
       execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
         set session_replication_role = replica;
+        delete from admin_notifications where admin_request_id in (select id from admin_requests where provider_id in (${ids}));
+        delete from admin_emails where admin_action_id in (select id from admin_actions where request_id in (select id from admin_requests where provider_id in (${ids})));
+        delete from admin_actions where request_id in (select id from admin_requests where provider_id in (${ids}));
+        delete from admin_requests where provider_id in (${ids});
         delete from provider_emails where provider_id in (${ids});
         delete from saved_providers where provider_id in (${ids});
         delete from provider_ratings where provider_id in (${ids});

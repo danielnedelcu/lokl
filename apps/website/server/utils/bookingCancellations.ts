@@ -42,6 +42,8 @@ export interface CancelMeaning {
   cancelled_by: "customer" | "provider" | "admin" | "system";
   /** For lokl's cancellations: the admin, for the admin log. */
   admin_id?: string;
+  /** The support request the owner approved with this refund, so finishing it closes the request too. */
+  admin_request_id?: string;
   /** "true" when lokl refunds to resolve a no-show report. */
   resolve_problem?: "true";
 }
@@ -155,6 +157,8 @@ export async function recordAdminCancel(
   a: {
     bookingId: string; adminId: string; reason: string; from: string; resolveProblem: boolean;
     refundedCents: number | null; cancelledAt?: string | null; reversalId?: string | null; reversalFailure?: string | null;
+    /** The support request this approves (admin roles, step 5b). */
+    requestId?: string | null;
   },
   /**
    * Recording what Stripe already did for an admin's cancellation whose
@@ -169,10 +173,12 @@ export async function recordAdminCancel(
     p_booking_id: a.bookingId, p_admin_id: a.adminId, p_reason: a.reason, p_from: a.from, p_resolve_problem: a.resolveProblem,
     p_refunded_cents: a.refundedCents, p_cancelled_at: a.cancelledAt ?? null,
     p_reversal_id: a.reversalId ?? null, p_reversal_failure: a.reversalFailure ?? null,
+    p_request_id: a.requestId ?? null,
   });
   const { data, error } = await (finishing ? call.setHeader("x-lokl-finishing", "stripe") : call);
   if (error) {
     if (error.code === "23514") throw new BookingError(error.message, 409);
+    if (error.code === "42501") throw new BookingError(error.message, 403);
     if (error.code === "P0002") throw new BookingError("We couldn't find that booking.", 404);
     throw new Error(error.message);
   }
@@ -210,6 +216,8 @@ export async function finishLostCancel(db: SupabaseClient, stripe: Stripe, b: Ca
       bookingId: b.id, adminId: meaning.admin_id, reason: (b.cancel_reason as string | null) ?? "Cancelled by lokl (the reason wasn't saved).",
       from: b.status, resolveProblem: meaning.resolve_problem === "true", refundedCents: owed, cancelledAt: at,
       reversalId: reversal && "id" in reversal ? reversal.id : null, reversalFailure: reversal && "failure" in reversal ? reversal.failure : null,
+      // An approved request's refund closes its request too.
+      requestId: meaning.admin_request_id ?? null,
     }, { finishing: true });
     return done === "changed" ? null : "cancelled and refunded";
   }

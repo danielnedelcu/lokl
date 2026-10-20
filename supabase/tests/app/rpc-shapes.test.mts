@@ -56,7 +56,7 @@ try {
     if (admin) {
       const a = await makeAdmin(local, `shapes-${label}-${run}@test.local`);
       created.users.push(a.id);
-      return { id: a.id, email: a.email, client: a.client };
+      return { id: a.id, email: a.email, client: a.client, server: a.server };
     }
     const { user } = await must(db.auth.admin.createUser({
       email: `shapes-${label}-${run}@test.local`, password, email_confirm: true,
@@ -154,6 +154,21 @@ try {
   check(one.columns.waiting?.rows.length === 0 && one.columns.waiting.total === 1 && one.columns.todo === undefined,
     "3g. ...and one column's later page (\"Show more\")");
   await read(admin.client, "admin_ai_draft_cost", { p_since: new Date(Date.now() - 864e5).toISOString() });
+  // Support's requests (admin roles, step 5b): the paid Experience's payout
+  // held, support asks to release it; the owner's Requests page and approval read it.
+  const support = await makeAdmin(local, `shapes-support-${run}@test.local`, { role: "support" });
+  created.users.push(support.id);
+  await must(db.schema("private").from("booking_records").update({ payout_hold: "refunded", payout_held_at: new Date().toISOString() }).eq("id", paid));
+  const requestId = await must(support.client.rpc("admin_request_create", {
+    p_kind: "release_payout", p_booking_id: paid, p_provider_id: null as unknown as string, p_reason: "The shapes test asks to release it.",
+  })) as string;
+  const requests = await read(admin.client, "admin_requests_page", { p_scope: "open", p_page_size: 100 });
+  const mine = requests.rows.find((r) => r.id === requestId);
+  check(!!mine && mine.booking?.id === paid && !!mine.booking.market_name && mine.requested_by_email === support.email,
+    "3h. admin_requests_page: the booking's request, with its market and who asked");
+  const forApproval = await read(admin.server, "admin_request_for_approval", { p_admin_id: admin.id, p_request_id: requestId });
+  check(forApproval.kind === "release_payout" && forApproval.status === "pending" && forApproval.hold === "refunded",
+    "3i. admin_request_for_approval: what approving it would run");
   check(true, "3d. the admin functions match their schemas");
 
   // 4. The daily job, through its own code (the server key): this provider's
@@ -175,6 +190,10 @@ try {
   if (created.listings.length) {
     const ids = created.listings.map((i) => `'${i}'`).join(",");
     psql(`set local session_replication_role = replica;
+      delete from public.admin_notifications where admin_request_id in (select id from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids})));
+      delete from public.admin_emails where admin_action_id in (select id from public.admin_actions where request_id in (select id from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids}))));
+      delete from public.admin_actions where request_id in (select id from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids})));
+      delete from public.admin_requests where booking_id in (select id from public.bookings where listing_id in (${ids}));
       delete from public.support_emails where report_id in (select id from public.support_reports where listing_id in (${ids}));
       delete from public.admin_notifications where report_id in (select id from public.support_reports where listing_id in (${ids}));
       delete from public.support_report_events where report_id in (select id from public.support_reports where listing_id in (${ids}));

@@ -7,6 +7,7 @@ const allSections = [
     items: [
       { to: "/", label: "Dashboard", icon: "lucide:layout-dashboard" },
       { to: "/reports", label: "Problem reports", icon: "lucide:life-buoy" },
+      { to: "/requests", label: "Requests", icon: "lucide:inbox" },
     ],
   },
   {

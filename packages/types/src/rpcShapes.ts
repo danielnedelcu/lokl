@@ -303,6 +303,56 @@ export const adminSupportBoardShape = z.object({
 /** AI guide drafts since a time: how many, and their cost (numeric, so a number or a string). */
 export const adminAiDraftCostShape = z.object({ count, cost_usd: z.union([z.number(), z.string()]) });
 
+// Support's requests to the owner (admin roles, step 5b).
+const adminRequestKind = z.enum(["refund", "release_payout", "resolve_problem_paid", "suspend_provider", "reinstate_provider"]);
+const adminRequestStatus = z.enum(["pending", "approved", "declined", "withdrawn", "expired", "done_by_owner"]);
+
+/** One request on the Requests page: what, about what, who asked, how it stands; a refund's amount when asked and now. */
+export const adminRequestRowShape = z.object({
+  id,
+  kind: adminRequestKind,
+  resolve_problem: z.boolean(),
+  status: adminRequestStatus,
+  created_at: time,
+  expires_at: time,
+  reason: z.string(),
+  message: z.string().nullable(),
+  hold: z.string().nullable(),
+  amount_cents: count.nullable(),
+  current_amount_cents: count.nullable(),
+  requested_by: id,
+  requested_by_email: z.string().nullable(),
+  decided_by_email: z.string().nullable(),
+  decided_at: time.nullable(),
+  decision_note: z.string().nullable(),
+  result: z.string().nullable(),
+  booking: z.object({
+    // starts_at may be missing on an odd booking: one row mustn't break the page.
+    id, starts_at: time.nullable(), status: z.string(), payout_hold: z.string().nullable(),
+    listing_title: z.string(), provider_name: z.string(), market_name: z.string(), timezone: z.string(),
+  }).nullable(),
+  provider: z.object({ id, name: z.string(), status: z.string() }).nullable(),
+});
+export const adminRequestsPageShape = z.object({
+  total: count, open_total: count, page: count, page_size: count, rows: z.array(adminRequestRowShape),
+});
+
+/** What approving a request runs (the website's approve route). */
+export const adminRequestForApprovalShape = z.object({
+  id,
+  kind: adminRequestKind,
+  status: adminRequestStatus,
+  booking_id: id.nullable(),
+  provider_id: id.nullable(),
+  resolve_problem: z.boolean(),
+  reason: z.string(),
+  message: z.string().nullable(),
+  hold: z.string().nullable(),
+  amount_cents: count.nullable(),
+  current_amount_cents: count.nullable(),
+  result: z.string().nullable(),
+});
+
 /** Every JSON function the apps read, by name: rpcJson and the check use this list. */
 export const RPC_SHAPES = {
   admin_ai_draft_cost: adminAiDraftCostShape,
@@ -310,6 +360,8 @@ export const RPC_SHAPES = {
   admin_dashboard: adminDashboardShape,
   admin_listings_page: adminListingsPageShape,
   admin_providers_page: adminProvidersPageShape,
+  admin_request_for_approval: adminRequestForApprovalShape,
+  admin_requests_page: adminRequestsPageShape,
   admin_reviews_page: adminReviewsPageShape,
   admin_support_board: adminSupportBoardShape,
   listing_sessions_page: listingSessionsPageShape,
@@ -327,6 +379,7 @@ export type RpcJsonName = keyof typeof RPC_SHAPES;
 export type RpcJson<N extends RpcJsonName> = z.infer<(typeof RPC_SHAPES)[N]>;
 
 export type AdminBookingRow = z.infer<typeof adminBookingRowShape>;
+export type AdminRequestRow = z.infer<typeof adminRequestRowShape>;
 export type AdminListingRow = z.infer<typeof adminListingRowShape>;
 export type AdminProviderRow = z.infer<typeof adminProviderRowShape>;
 export type AdminReviewRow = z.infer<typeof adminReviewRowShape>;
