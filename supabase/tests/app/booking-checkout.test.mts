@@ -138,7 +138,7 @@ try {
   } catch (e) {
     lastSpot = (e as Error).message;
   }
-  check(lastSpot === "There aren't enough spots left for 1 people.", `2b. the last spot can't go to a second customer ("${lastSpot}")`);
+  check(lastSpot === "There aren't enough spots left for 1 person.", `2b. the last spot can't go to a second customer ("${lastSpot}")`);
 
   // --- 3. Pay both with the test card, in a browser.
   fs.writeFileSync(URLS_FILE, JSON.stringify({ service: svc.url, experience: exp.url }, null, 2));
