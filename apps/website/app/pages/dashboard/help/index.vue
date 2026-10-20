@@ -10,7 +10,7 @@ useSeoMeta({ title: "Help" });
 const PAGE_SIZE = 20;
 const supabase = useSupabaseClient();
 async function load(page: number) {
-  const { data, error } = await supabase.rpc("my_support_reports", { p_page: page, p_page_size: PAGE_SIZE });
+  const { data, error } = await supabase.rpc("my_support_reports", { p_page: page, p_page_size: PAGE_SIZE }, { get: true });
   if (error) throw new Error(error.message);
   return rpcJson("my_support_reports", data);
 }

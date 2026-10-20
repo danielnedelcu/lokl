@@ -95,7 +95,7 @@ async function load() {
   }
   const ids = [...new Set(items.value.flatMap((n) => [n.action?.admin_id, n.kind === "team_change" ? n.action?.target_id : undefined, n.request?.requested_by]).filter((x): x is string => !!x))];
   if (ids.length) {
-    const { data: names, error } = await supabase.rpc("admin_member_names", { p_ids: ids });
+    const { data: names, error } = await supabase.rpc("admin_member_names", { p_ids: ids }, { get: true });
     if (error) console.error("[admin notifications] couldn't load the team's emails", error);
     else emails.value = new Map((names ?? []).map((m) => [m.user_id, m.email]));
   }

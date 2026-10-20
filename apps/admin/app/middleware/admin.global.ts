@@ -34,7 +34,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (!session) return;
 
   const couldNotCheck = () => navigateTo({ path: "/access-check", query: { to: to.fullPath } });
-  const { data: role, error: roleError } = await supabase.rpc("admin_role");
+  const { data: role, error: roleError } = await supabase.rpc("admin_role", {}, { get: true });
   if (roleError) return couldNotCheck();
   useAdminRole().value = (role as AdminRole | null) ?? null;
   if (role) {

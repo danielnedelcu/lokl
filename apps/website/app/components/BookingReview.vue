@@ -16,7 +16,7 @@ type State = ReviewState;
 
 const supabase = useSupabaseClient();
 const { data: state, refresh } = await useAsyncData(`review-state-${props.bookingId}`, async () => {
-  const { data, error } = await supabase.rpc("review_state", { p_booking_id: props.bookingId });
+  const { data, error } = await supabase.rpc("review_state", { p_booking_id: props.bookingId }, { get: true });
   if (error) throw error;
   return rpcJson("review_state", data);
 }, { server: false });

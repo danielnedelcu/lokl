@@ -7,7 +7,7 @@ import { rpcJson, type Database } from "@repo/types";
 // Plain TypeScript, so supabase/tests/app/admin-ai-cost.test.mts runs this
 // same code.
 export async function aiDraftCostSince(supabase: SupabaseClient<Database>, since: string) {
-  const { data, error } = await supabase.rpc("admin_ai_draft_cost", { p_since: since });
+  const { data, error } = await supabase.rpc("admin_ai_draft_cost", { p_since: since }, { get: true });
   if (error) throw error;
   const r = rpcJson("admin_ai_draft_cost", data);
   return { count: r.count, cents: Math.round(Number(r.cost_usd) * 100) };

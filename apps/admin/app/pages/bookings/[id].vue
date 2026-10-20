@@ -26,7 +26,7 @@ const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async
     // bounded: one booking's waiting requests (one per kind)
     supabase.from("admin_requests").select("id, kind, resolve_problem, amount_cents, requested_by, created_at").eq("booking_id", id).eq("status", "pending"),
     // Today's limits, live (admin roles, step 5c): the refund limit and support's daily use.
-    supabase.rpc("admin_my_limits"),
+    supabase.rpc("admin_my_limits", {}, { get: true }),
   ]);
   for (const r of [b, events, emails, actions, requests, settings]) if (r.error) throw r.error;
   const limits = rpcJson("admin_my_limits", settings.data);
@@ -36,7 +36,7 @@ const { data, error, refresh } = await useAsyncData(`admin-booking-${id}`, async
   const ids = [...new Set([...acts.flatMap((a) => [a.admin_id, a.request?.requested_by]), ...waiting.map((r) => r.requested_by)].filter((x): x is string => !!x))];
   const names = new Map<string, string>();
   if (ids.length) {
-    const { data: n, error: nameError } = await supabase.rpc("admin_member_names", { p_ids: ids });
+    const { data: n, error: nameError } = await supabase.rpc("admin_member_names", { p_ids: ids }, { get: true });
     if (nameError) throw nameError;
     for (const m of n ?? []) names.set(m.user_id, m.email);
   }

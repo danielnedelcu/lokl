@@ -47,7 +47,7 @@ async function load() {
   status.value = "pending";
   const { data, error } = await supabase.rpc("service_slots", {
     p_listing_id: props.listing.id, p_from: days.value[0]!, p_to: days.value[6]!,
-  });
+  }, { get: true });
   if (mine !== loads) return; // a later week was asked for meanwhile
   if (error) {
     status.value = "error";
@@ -104,7 +104,7 @@ watch([status, weekTotal], async () => {
   next.value = { status: "idle", at: null };
   if (status.value !== "success" || weekTotal.value) return;
   next.value.status = "pending";
-  const { data } = await supabase.rpc("service_next_slot", { p_listing_id: props.listing.id, p_from: addDays(weekStart.value, 7) });
+  const { data } = await supabase.rpc("service_next_slot", { p_listing_id: props.listing.id, p_from: addDays(weekStart.value, 7) }, { get: true });
   next.value = { status: "done", at: (data as string | null) ?? null };
 });
 const goToNext = () => {

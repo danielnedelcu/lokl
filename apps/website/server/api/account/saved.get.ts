@@ -10,7 +10,7 @@ import { rpcJson, type MySaved } from "@repo/types";
 
 export default defineEventHandler(async (event): Promise<MySaved> => {
   await requireUser(event);
-  const { data, error } = await (await serverSupabaseClient(event)).rpc("my_saved");
+  const { data, error } = await (await serverSupabaseClient(event)).rpc("my_saved", {}, { get: true });
   if (error || !data) throw createError({ statusCode: 500, statusMessage: "Your saved items didn't load. Please try again." });
   const rows = rpcJson("my_saved", data);
   let cards, providers;

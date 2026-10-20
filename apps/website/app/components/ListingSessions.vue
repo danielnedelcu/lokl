@@ -28,7 +28,7 @@ const PAGE_SIZE = 50;
 async function loadPage(past: boolean, page: number) {
   const { data, error } = await supabase.rpc("listing_sessions_page", {
     p_listing_id: props.listingId, p_past: past, p_page: page, p_page_size: PAGE_SIZE,
-  });
+  }, { get: true });
   if (error) throw error;
   return rpcJson("listing_sessions_page", data);
 }

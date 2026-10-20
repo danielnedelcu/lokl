@@ -19,7 +19,7 @@ const me = useSupabaseUser();
 const scope = ref<"open" | "closed">("open");
 const page = ref(1);
 const { data, error, refresh, status } = await useAsyncData("admin-requests", async () => {
-  const { data: d, error: e } = await supabase.rpc("admin_requests_page", { p_scope: scope.value, p_page: page.value, p_page_size: 25 });
+  const { data: d, error: e } = await supabase.rpc("admin_requests_page", { p_scope: scope.value, p_page: page.value, p_page_size: 25 }, { get: true });
   if (e) throw e;
   return rpcJson("admin_requests_page", d);
 }, { watch: [scope, page] });

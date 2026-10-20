@@ -30,7 +30,7 @@ const { data: slots, status, refresh } = await useAsyncData(
   () => `slot-preview-${chosen.value}-${weekStart.value}`,
   async () => {
     if (!chosen.value || !service.value?.booking_mode) return [];
-    const { data, error } = await supabase.rpc("my_service_slots_preview", { p_listing_id: chosen.value, p_from: days.value[0]!, p_to: days.value[6]! });
+    const { data, error } = await supabase.rpc("my_service_slots_preview", { p_listing_id: chosen.value, p_from: days.value[0]!, p_to: days.value[6]! }, { get: true });
     if (error) throw error;
     return (data ?? []) as { starts_at: string; ends_at: string }[];
   },

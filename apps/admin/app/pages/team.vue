@@ -39,7 +39,7 @@ const loadError = ref("");
 const announcement = ref("");
 
 async function load() {
-  const { data, error } = await supabase.rpc("admin_team");
+  const { data, error } = await supabase.rpc("admin_team", {}, { get: true });
   loaded.value = true;
   if (error) {
     loadError.value = "The team didn't load. Reload the page to try again.";
@@ -138,7 +138,7 @@ const WHAT: Record<AdminContactViewRow["what"], string> = {
   booking_contact: "the customer's email and phone", booking_address: "the Service address", owner_email: "the owner's email",
 };
 async function loadViews() {
-  const { data, error } = await supabase.rpc("admin_contact_views_page", { p_admin_id: viewsFor.value || undefined, p_page: viewsPage.value, p_page_size: 25 });
+  const { data, error } = await supabase.rpc("admin_contact_views_page", { p_admin_id: viewsFor.value || undefined, p_page: viewsPage.value, p_page_size: 25 }, { get: true });
   if (error) {
     viewsError.value = "The record didn't load. Reload the page to try again.";
     console.error("[team] couldn't load contact views", error);

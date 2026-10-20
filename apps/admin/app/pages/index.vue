@@ -13,14 +13,14 @@ const supabase = useSupabaseClient();
 
 
 const { data, error, pending, refresh } = await useAsyncData("admin-dashboard", async () => {
-  const { data: d, error: e } = await supabase.rpc("admin_dashboard");
+  const { data: d, error: e } = await supabase.rpc("admin_dashboard", {}, { get: true });
   if (e) throw e;
   return rpcJson("admin_dashboard", d);
 });
 watch(error, (e) => e && reportProblem("Couldn't load the dashboard", e), { immediate: true });
 // Reviews with open reports (docs/design/reviews.md), from the Reviews page's own function.
 const { data: reviewReports, refresh: refreshReviews } = await useAsyncData("admin-dashboard-review-reports", async () => {
-  const { data: d, error: e } = await supabase.rpc("admin_reviews_page", { p_reported: true, p_page_size: 1 });
+  const { data: d, error: e } = await supabase.rpc("admin_reviews_page", { p_reported: true, p_page_size: 1 }, { get: true });
   if (e) {
     reportProblem("Couldn't count the review reports", e);
     return null;
