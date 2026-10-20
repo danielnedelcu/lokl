@@ -345,6 +345,10 @@
           "def": "CREATE TRIGGER providers_city_active BEFORE INSERT OR UPDATE OF city_id ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_check_city_active()"
         },
         {
+          "name": "providers_no_held_paths",
+          "def": "CREATE TRIGGER providers_no_held_paths BEFORE UPDATE OF avatar_path, avatar_small_path, cover_path, cover_card_path ON public.providers FOR EACH ROW EXECUTE FUNCTION providers_no_held_paths()"
+        },
+        {
           "name": "providers_open_days_update",
           "def": "CREATE TRIGGER providers_open_days_update AFTER UPDATE ON public.providers REFERENCING NEW TABLE AS changed FOR EACH STATEMENT EXECUTE FUNCTION service_open_days_changed('id')"
         },
@@ -3649,7 +3653,7 @@
         {
           "name": "admin_actions_action_check",
           "type": "CHECK",
-          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text, 'request_action'::text, 'decline_request'::text, 'withdraw_request'::text, 'limit_reached'::text, 'approve_listing'::text, 'reject_listing'::text, 'unpublish_listing'::text, 'restore_listing'::text, 'publish_guide'::text, 'unpublish_guide'::text, 'set_homepage_features'::text, 'change_admin_settings'::text, 'add_category'::text, 'change_category'::text, 'add_market'::text, 'change_market'::text, 'add_area'::text, 'change_area'::text])))",
+          "def": "CHECK ((action = ANY (ARRAY['cancel_booking'::text, 'release_payout'::text, 'resolve_problem_paid'::text, 'resolve_problem_refunded'::text, 'retry_email'::text, 'suspend_provider'::text, 'reinstate_provider'::text, 'remove_profile_content'::text, 'remove_review'::text, 'restore_review'::text, 'remove_review_reply'::text, 'restore_review_reply'::text, 'dismiss_review_reports'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'invite_admin'::text, 'change_admin_role'::text, 'remove_admin'::text, 'reset_admin_mfa'::text, 'join_admin'::text, 'break_glass_owner'::text, 'request_action'::text, 'decline_request'::text, 'withdraw_request'::text, 'limit_reached'::text, 'approve_listing'::text, 'reject_listing'::text, 'unpublish_listing'::text, 'restore_listing'::text, 'publish_guide'::text, 'unpublish_guide'::text, 'set_homepage_features'::text, 'change_admin_settings'::text, 'add_category'::text, 'change_category'::text, 'add_market'::text, 'change_market'::text, 'add_area'::text, 'change_area'::text, 'hide_profile_content'::text, 'confirm_profile_removal'::text, 'restore_profile_content'::text, 'dismiss_profile_hold'::text])))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -3679,7 +3683,7 @@
         {
           "name": "admin_actions_reason",
           "type": "CHECK",
-          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text, 'withdraw_request'::text, 'limit_reached'::text, 'approve_listing'::text, 'restore_listing'::text, 'publish_guide'::text, 'unpublish_guide'::text, 'set_homepage_features'::text, 'add_category'::text, 'change_category'::text, 'add_market'::text, 'change_market'::text, 'add_area'::text, 'change_area'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
+          "def": "CHECK (((action = ANY (ARRAY['retry_email'::text, 'support_reply'::text, 'support_reply_wait'::text, 'support_move'::text, 'support_note'::text, 'join_admin'::text, 'withdraw_request'::text, 'limit_reached'::text, 'approve_listing'::text, 'restore_listing'::text, 'publish_guide'::text, 'unpublish_guide'::text, 'set_homepage_features'::text, 'add_category'::text, 'change_category'::text, 'add_market'::text, 'change_market'::text, 'add_area'::text, 'change_area'::text, 'confirm_profile_removal'::text, 'restore_profile_content'::text, 'dismiss_profile_hold'::text])) OR (char_length(TRIM(BOTH FROM reason)) \u003e= 5)))",
           "table": "public.admin_actions",
           "referenced_table": "",
           "columns": [
@@ -4085,13 +4089,13 @@
           "name": "removed",
           "type": "text[]",
           "nullable": true,
-          "comment": "For provider_profile_edited: which parts of the profile lokl removed."
+          "comment": "For the profile emails: which parts of the profile lokl hid, removed, restored or reviewed."
         },
         {
           "name": "rule",
           "type": "text",
           "nullable": true,
-          "comment": "For provider_profile_edited: the profile rule they broke (PROFILE_RULES in packages/types)."
+          "comment": "For the profile emails: the profile rule concerned (PROFILE_RULES in packages/types)."
         }
       ],
       "indexes": [
@@ -4134,7 +4138,7 @@
         {
           "name": "provider_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['provider_account_paused'::text, 'provider_account_active'::text, 'provider_profile_edited'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['provider_account_paused'::text, 'provider_account_active'::text, 'provider_profile_edited'::text, 'provider_profile_hidden'::text, 'provider_profile_restored'::text, 'provider_profile_reviewed'::text])))",
           "table": "public.provider_emails",
           "referenced_table": "",
           "columns": [
@@ -4164,7 +4168,7 @@
         {
           "name": "provider_emails_profile_edit_named",
           "type": "CHECK",
-          "def": "CHECK (((kind \u003c\u003e 'provider_profile_edited'::text) OR ((rule IS NOT NULL) AND (COALESCE(array_length(removed, 1), 0) \u003e 0))))",
+          "def": "CHECK (((kind \u003c\u003e ALL (ARRAY['provider_profile_edited'::text, 'provider_profile_hidden'::text, 'provider_profile_restored'::text, 'provider_profile_reviewed'::text])) OR ((rule IS NOT NULL) AND (COALESCE(array_length(removed, 1), 0) \u003e 0))))",
           "table": "public.provider_emails",
           "referenced_table": "",
           "columns": [
@@ -9370,7 +9374,7 @@
         {
           "name": "admin_notifications_about_check",
           "type": "CHECK",
-          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL))))",
+          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL))))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -9383,7 +9387,7 @@
         {
           "name": "admin_notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text])))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -10046,7 +10050,7 @@
         {
           "name": "admin_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text, 'admin_listing_taken_down'::text, 'admin_settings_change'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text, 'admin_listing_taken_down'::text, 'admin_settings_change'::text, 'admin_profile_hidden'::text])))",
           "table": "public.admin_emails",
           "referenced_table": "",
           "columns": [
@@ -10934,6 +10938,357 @@
             "admin_id",
             "booking_id"
           ]
+        }
+      ]
+    },
+    {
+      "name": "public.provider_profile_holds",
+      "type": "BASE TABLE",
+      "comment": "Profile content lokl's team has hidden (admin roles step 5e): one row per part, with the rule it breaks, why, and the hidden version, until the owner confirms the removal, restores it, or dismisses it. Never deleted; once decided, only its files' state changes.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "provider_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "part",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "rule",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": false,
+          "comment": "Why it was hidden, for lokl only (never shown to the provider)."
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": true,
+          "comment": "lokl's optional message to the provider, included in their email."
+        },
+        {
+          "name": "hidden_by",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "hidden_action_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "hidden_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "held_text",
+          "type": "text",
+          "nullable": true,
+          "comment": "A hidden headline or bio. Cleared when the removal is confirmed or the hold dismissed (the content is deleted)."
+        },
+        {
+          "name": "public_paths",
+          "type": "text[]",
+          "nullable": true,
+          "comment": "A hidden photo's two files (main and small or card copy) where they were, in provider-photos."
+        },
+        {
+          "name": "held_paths",
+          "type": "text[]",
+          "nullable": true,
+          "comment": "Where a hidden photo's files are kept, in the private provider-photos-held bucket: \u003cprovider id\u003e/\u003chold id\u003e/\u003cfile name\u003e."
+        },
+        {
+          "name": "files",
+          "type": "text",
+          "nullable": false,
+          "comment": "A photo's files: moving (still public, to be moved), private (kept in provider-photos-held), missing (gone before they could be moved), restoring (to be moved back), public (back on the profile), deleting (to be deleted), deleted. none for text."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "default": "'hidden'::text"
+        },
+        {
+          "name": "decided_by",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "decided_action_id",
+          "type": "uuid",
+          "nullable": true
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "provider_profile_holds_pkey",
+          "def": "CREATE UNIQUE INDEX provider_profile_holds_pkey ON public.provider_profile_holds USING btree (id)",
+          "table": "public.provider_profile_holds",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_open",
+          "def": "CREATE INDEX provider_profile_holds_open ON public.provider_profile_holds USING btree (hidden_at) WHERE (status = 'hidden'::text)",
+          "table": "public.provider_profile_holds",
+          "columns": [
+            "hidden_at"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_provider",
+          "def": "CREATE INDEX provider_profile_holds_provider ON public.provider_profile_holds USING btree (provider_id, hidden_at)",
+          "table": "public.provider_profile_holds",
+          "columns": [
+            "provider_id",
+            "hidden_at"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_files",
+          "def": "CREATE INDEX provider_profile_holds_files ON public.provider_profile_holds USING btree (files) WHERE (files = ANY (ARRAY['moving'::text, 'restoring'::text, 'deleting'::text]))",
+          "table": "public.provider_profile_holds",
+          "columns": [
+            "files"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "provider_profile_holds_decided",
+          "type": "CHECK",
+          "def": "CHECK ((((status = 'hidden'::text) = (decided_at IS NULL)) AND ((status = 'hidden'::text) = (decided_action_id IS NULL))))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "status",
+            "decided_at",
+            "decided_action_id"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_files_check",
+          "type": "CHECK",
+          "def": "CHECK ((files = ANY (ARRAY['none'::text, 'moving'::text, 'private'::text, 'missing'::text, 'restoring'::text, 'public'::text, 'deleting'::text, 'deleted'::text])))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "files"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_held_paths_check",
+          "type": "CHECK",
+          "def": "CHECK ((cardinality(held_paths) = 2))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "held_paths"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_held_text_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(held_text) \u003c= 1000))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "held_text"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_message_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(message) \u003c= 1000))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "message"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_part_check",
+          "type": "CHECK",
+          "def": "CHECK ((part = ANY (ARRAY['avatar'::text, 'cover'::text, 'headline'::text, 'bio'::text])))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "part"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_public_paths_check",
+          "type": "CHECK",
+          "def": "CHECK ((cardinality(public_paths) = 2))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "public_paths"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_reason_check",
+          "type": "CHECK",
+          "def": "CHECK (((char_length(TRIM(BOTH FROM reason)) \u003e= 5) AND (char_length(TRIM(BOTH FROM reason)) \u003c= 1000)))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "reason"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_rule_check",
+          "type": "CHECK",
+          "def": "CHECK ((rule = ANY (ARRAY['contact_details'::text, 'private_information'::text, 'abuse'::text, 'impersonation'::text, 'unsuitable_photo'::text, 'not_yours'::text])))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "rule"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_status_check",
+          "type": "CHECK",
+          "def": "CHECK ((status = ANY (ARRAY['hidden'::text, 'removed'::text, 'restored'::text, 'dismissed'::text])))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_text_kept",
+          "type": "CHECK",
+          "def": "CHECK (((part \u003c\u003e ALL (ARRAY['headline'::text, 'bio'::text])) OR (status = ANY (ARRAY['removed'::text, 'dismissed'::text])) OR (held_text IS NOT NULL)))",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "part",
+            "status",
+            "held_text"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_text_or_photo",
+          "type": "CHECK",
+          "def": "CHECK (\nCASE\n    WHEN (part = ANY (ARRAY['headline'::text, 'bio'::text])) THEN ((files = 'none'::text) AND (public_paths IS NULL) AND (held_paths IS NULL))\n    ELSE ((files \u003c\u003e 'none'::text) AND (public_paths IS NOT NULL) AND (held_paths IS NOT NULL) AND (held_text IS NULL))\nEND)",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "part",
+            "files",
+            "public_paths",
+            "held_paths",
+            "held_text"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_decided_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (decided_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "auth.users",
+          "columns": [
+            "decided_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_hidden_by_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (hidden_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "auth.users",
+          "columns": [
+            "hidden_by"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_provider_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "public.providers",
+          "columns": [
+            "provider_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_decided_action_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (decided_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "public.admin_actions",
+          "columns": [
+            "decided_action_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_hidden_action_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (hidden_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "public.admin_actions",
+          "columns": [
+            "hidden_action_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "provider_profile_holds_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.provider_profile_holds",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "provider_profile_holds_guard",
+          "def": "CREATE TRIGGER provider_profile_holds_guard BEFORE DELETE OR UPDATE ON public.provider_profile_holds FOR EACH ROW EXECUTE FUNCTION provider_profile_holds_guard()"
+        },
+        {
+          "name": "provider_profile_holds_guard_truncate",
+          "def": "CREATE TRIGGER provider_profile_holds_guard_truncate BEFORE TRUNCATE ON public.provider_profile_holds FOR EACH STATEMENT EXECUTE FUNCTION provider_profile_holds_guard()"
         }
       ]
     }
@@ -11993,6 +12348,45 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.provider_profile_holds",
+      "columns": [
+        "provider_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.providers",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.provider_profile_holds",
+      "columns": [
+        "decided_action_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.admin_actions",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (decided_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.provider_profile_holds",
+      "columns": [
+        "hidden_action_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.admin_actions",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (hidden_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -14184,6 +14578,48 @@
       "name": "public.admin_activity_page",
       "return_type": "jsonb",
       "arguments": "p_admin_id uuid DEFAULT NULL::uuid, p_page integer DEFAULT 1, p_page_size integer DEFAULT 50",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.provider_profile_holds_guard",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.providers_no_held_paths",
+      "return_type": "trigger",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_hide_profile_content",
+      "return_type": "jsonb",
+      "arguments": "p_admin_id uuid, p_provider_id uuid, p_parts text[], p_rule text, p_reason text, p_message text DEFAULT NULL::text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_profile_hold_files",
+      "return_type": "void",
+      "arguments": "p_hold_id uuid, p_files text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_decide_profile_hold",
+      "return_type": "jsonb",
+      "arguments": "p_admin_id uuid, p_hold_id uuid, p_decision text, p_note text DEFAULT NULL::text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_profile_holds_page",
+      "return_type": "jsonb",
+      "arguments": "p_scope text DEFAULT 'open'::text, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25, p_provider_id uuid DEFAULT NULL::uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.my_profile_holds",
+      "return_type": "jsonb",
+      "arguments": "",
       "type": "FUNCTION"
     }
   ],
