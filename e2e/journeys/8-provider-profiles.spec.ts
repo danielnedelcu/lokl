@@ -92,7 +92,7 @@ test("a provider fills in their profile; visitors see it on the listing and the 
     { message: "a suspended provider's profile page is not found", timeout: 5_000, intervals: [250, 500] }).toBe(404);
 });
 
-test("the admin removes profile content that breaks a rule, and the provider is emailed", async ({ page, context, data }) => {
+test("the owner removes profile content outright that breaks a rule, and the provider is emailed", async ({ page, context, data }) => {
   const admin = await data.user("admin", { admin: true });
   const owner = await data.user("owner");
   const providerId = await data.provider(owner, `E2E Rules ${data.run}`);
@@ -103,6 +103,8 @@ test("the admin removes profile content that breaks a rule, and the provider is 
   await page.getByRole("button", { name: `Profile of E2E Rules ${data.run}` }).click();
   const sheet = page.getByRole("dialog");
   await expect(sheet).toContainText("Ask for Sam at the gate.");
+  // Hiding for review is the default (journey 44); the owner may remove outright.
+  await sheet.getByLabel("Remove it now (the files and text are deleted)").check();
   await sheet.getByRole("checkbox").nth(1).check(); // the about text (headline is first)
   await choose(page, sheet.getByLabel("The rule it breaks"), /Anyone's private information/);
   await sheet.getByLabel("Reason (lokl only)").fill("A staff member's name in the bio.");

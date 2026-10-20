@@ -962,6 +962,12 @@ taking a live listing down (`admin_listing_taken_down`, with the
 listing's title and a link) and an owner changing support's limits
 (`admin_settings_change`, what changed in words). Nothing about bookings
 changed.
+Step 5e ([provider_profile_holds](../../supabase/migrations/20261020214218_provider_profile_holds.sql))
+adds `admin_profile_hidden` for each active owner (support hid part of a
+provider's profile: who, which parts, which provider), and three provider
+emails beside `provider_profile_edited`: `provider_profile_hidden`
+(skipped once every part it named has been decided), `provider_profile_restored`
+and `provider_profile_reviewed`. Nothing about bookings changed.
 
 ### Notifications (the provider's bell)
 

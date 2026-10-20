@@ -68,7 +68,8 @@ async function save() {
   const bucket = supabase.storage.from(PROVIDER_PHOTO_BUCKET);
   try {
     for (const [path, blob] of [[paths[0], p.prepared.blob], [paths[1], p.prepared.small]] as const) {
-      const { error } = await bucket.upload(path, blob, { contentType: blob.type, upsert: false });
+      // A 5-minute cache: a photo lokl hides leaves caches soon after (step 5e).
+      const { error } = await bucket.upload(path, blob, { contentType: blob.type, upsert: false, cacheControl: "300" });
       if (error) throw error;
     }
     const old = currentFiles.value;

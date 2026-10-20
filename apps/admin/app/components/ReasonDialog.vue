@@ -16,13 +16,17 @@ const props = defineProps<{
   messageLabel?: string;
   messageHint?: string;
   reasonLabel?: string;
+  /** The note may be left empty (the owner's decision on hidden profile content). */
+  reasonOptional?: boolean;
 }>();
 const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{ confirm: [reason: string, message: string] }>();
 
 const { handleSubmit, resetForm } = useForm<{ reason: string; message: string }>({
   validationSchema: zodSchema(z.object({
-    reason: z.string().trim().min(5, "Say why, in a few words.").max(1000, "Keep it under 1,000 characters."),
+    reason: props.reasonOptional
+      ? z.string().trim().max(1000, "Keep it under 1,000 characters.")
+      : z.string().trim().min(5, "Say why, in a few words.").max(1000, "Keep it under 1,000 characters."),
     message: z.string().trim().max(1000, "Keep it under 1,000 characters.").optional(),
   })),
   initialValues: { reason: "", message: "" },
@@ -39,7 +43,7 @@ const submit = handleSubmit((v) => emit("confirm", v.reason.trim(), (v.message ?
         <UiDialogDescription>{{ description }}</UiDialogDescription>
       </UiDialogHeader>
       <form class="space-y-3" novalidate @submit="submit">
-        <UiVeeTextarea name="reason" :label="props.reasonLabel ?? 'Reason'" required :rows="3" maxlength="1000" :hint="props.hint ?? 'Kept with the booking\'s history.'" />
+        <UiVeeTextarea name="reason" :label="props.reasonLabel ?? 'Reason'" :required="!props.reasonOptional" :rows="3" maxlength="1000" :hint="props.hint ?? 'Kept with the booking\'s history.'" />
         <UiVeeTextarea v-if="props.messageLabel" name="message" :label="props.messageLabel" :rows="3" maxlength="1000" :hint="props.messageHint" />
         <p v-if="error" class="text-sm text-destructive" role="alert">{{ error }}</p>
         <UiDialogFooter>

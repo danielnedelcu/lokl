@@ -44,7 +44,7 @@ const GROWS = new Set([
   // Support's requests to the owner (admin roles, step 5b).
   "admin_requests",
   // Contact views and refunds in flight (admin roles, step 5c).
-  "admin_contact_views", "admin_refund_holds", "support_messages", "support_notes", "support_report_events", "support_reports",
+  "admin_contact_views", "admin_refund_holds", "provider_profile_holds", "support_messages", "support_notes", "support_report_events", "support_reports",
   // private.booking_records (bookingRecords(db)) is checked as bookings.
 ]);
 

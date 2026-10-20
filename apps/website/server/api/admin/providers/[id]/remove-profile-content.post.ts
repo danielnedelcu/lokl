@@ -2,7 +2,8 @@ import { z } from "zod";
 
 // POST /api/admin/providers/:id/remove-profile-content { parts, rule, reason, message? }:
 // removes parts of a provider's public profile that break a profile rule
-// (docs/design/provider-profiles.md). Admin app only. The reason is
+// (docs/design/provider-profiles.md). The owner only (the database refuses
+// support, who hide instead: hide-profile-content). Admin app only. The reason is
 // internal; the provider's email names what was removed and the rule, with
 // lokl's optional message.
 const body = z.object({

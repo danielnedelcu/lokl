@@ -40,6 +40,8 @@ select set_eq(
        ('admin_activity_page|authenticated'), ('admin_update_settings|authenticated'), ('admin_set_homepage_features|authenticated'),
        -- The provider's readiness checklist (its provider, the team; anyone else is told it doesn't exist).
        ('listing_readiness|authenticated'),
+       -- Step 5e: the hidden profile content queue (the team) and a provider's own holds (never the reason).
+       ('admin_profile_holds_page|authenticated'), ('my_profile_holds|authenticated'),
        -- Public pages.
        ('public_guide|anon,authenticated'), ('public_guides|anon,authenticated'), ('public_homepage_guides|anon,authenticated'),
        ('session_spots_left|anon,authenticated'), ('service_slots|anon,authenticated'), ('service_next_slot|anon,authenticated'), ('service_open_matches|anon,authenticated'), ('my_service_slots_preview|authenticated'),

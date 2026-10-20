@@ -464,6 +464,42 @@ block in `CLAUDE.md`.
   their own, whatever they ask for. The booking page's History reads in
   plain words.
 
+**As built, step 5e (2026-10-20;** migration `provider_profile_holds`**):**
+- **Hiding:** `admin_hide_profile_content()` (support or the owner, on their
+  own session) moves each chosen part (headline, bio, profile photo, cover)
+  out of the profile into a row of `provider_profile_holds`, with the rule,
+  a reason (lokl only) and an optional message to the provider. The profile
+  column is cleared, so the public pages, the sitemap and the provider's
+  card stop showing it at once (the `listings` cache version rises).
+  Logged (`hide_profile_content`); support hiding alerts every owner
+  (`profile_hidden`, bell and email); the provider is emailed and sees a
+  notice on Business profile (`my_profile_holds()`, never the reason).
+- **Photos leave the public bucket:** the website's server moves a hidden
+  photo's two files into the private `provider-photos-held` bucket (the
+  team sees them by a five-minute signed link) and records each step
+  (`admin_profile_hold_files`). A move that fails shows on the queue as
+  still public, with "Try again", and is finished on the next profile
+  action; a file already gone is recorded as missing. New profile photos
+  are uploaded with a 5-minute cache time, so a hidden one leaves caches
+  soon after; copies already fetched by other sites can't be recalled.
+- **The owner decides** (`admin_decide_profile_hold`, on Requests and the
+  provider's admin page): confirm the removal (the hidden text and files
+  are deleted; the removal email), restore (only while the slot is still
+  empty; files moved back; "it's back" email), or, once the provider has
+  replaced it, dismiss (only if the hidden version truly didn't break the
+  rule; it's deleted; "reviewed, it was fine" email). Each logged with an
+  optional note. A hold waiting over 7 days is first on the queue and
+  stays hidden; nothing is deleted without the owner (a reminder email
+  waits for the scheduler: TODO).
+- **Fixes:** support can't remove outright any more
+  (`admin_remove_provider_profile_content` and the photo files' delete
+  rule are the owner's); a provider can't write a hidden photo's path back
+  (only paths being changed, and only holds still undecided, are checked);
+  the provider's "hidden" email is skipped once every part it named has
+  been decided.
+- **The provider's admin page** (`/providers/[id]`): their hidden content
+  with the decisions, and their history from `admin_actions`.
+
 **Changing a role:** owner only, never for themselves while they're the
 last owner. Logged with the old and new role; takes effect on the next
 request.

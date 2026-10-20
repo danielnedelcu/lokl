@@ -413,7 +413,45 @@ export const adminActivityRowShape = z.object({
 });
 export const adminActivityPageShape = z.object({ total: count, rows: z.array(adminActivityRowShape) });
 
+export const adminProfileHoldRowShape = z.object({
+  id,
+  part: z.enum(["avatar", "cover", "headline", "bio"]),
+  rule: z.string(),
+  reason: z.string(),
+  message: z.string().nullable(),
+  hidden_at: time,
+  overdue: z.boolean(),
+  status: z.enum(["hidden", "removed", "restored", "dismissed"]),
+  files: z.enum(["none", "moving", "private", "missing", "restoring", "public", "deleting", "deleted"]),
+  held_text: z.string().nullable(),
+  held_paths: z.array(z.string()).nullable(),
+  public_paths: z.array(z.string()).nullable(),
+  decided_at: time.nullable(),
+  hidden_by_email: z.string().nullable(),
+  decided_by_email: z.string().nullable(),
+  slot_filled: z.boolean(),
+  provider: z.object({ id, name: z.string(), slug: z.string() }),
+});
+export const adminProfileHoldsPageShape = z.object({ total: count, rows: z.array(adminProfileHoldRowShape) });
+/** admin_hide_profile_content: each hidden photo's files, to move into the private bucket. */
+export const adminHideProfileContentShape = z.array(z.object({ hold_id: id, from: z.array(z.string()), to: z.array(z.string()) }));
+/** admin_decide_profile_hold: the files to move back or delete, or null when there are none. */
+export const adminDecideProfileHoldShape = z.object({
+  hold_id: id,
+  move_back: z.boolean().optional(),
+  delete: z.boolean().optional(),
+  bucket: z.string().optional(),
+  from: z.array(z.string()).optional(),
+  to: z.array(z.string()).optional(),
+  paths: z.array(z.string()).optional(),
+}).nullable();
+export const myProfileHoldsShape = z.array(z.object({ part: z.enum(["avatar", "cover", "headline", "bio"]), rule: z.string(), hidden_at: time }));
+
 export const RPC_SHAPES = {
+  admin_profile_holds_page: adminProfileHoldsPageShape,
+  admin_hide_profile_content: adminHideProfileContentShape,
+  admin_decide_profile_hold: adminDecideProfileHoldShape,
+  my_profile_holds: myProfileHoldsShape,
   admin_activity_page: adminActivityPageShape,
   listing_readiness: listingReadinessShape,
   admin_ai_draft_cost: adminAiDraftCostShape,
@@ -445,6 +483,7 @@ export type RpcJson<N extends RpcJsonName> = z.infer<(typeof RPC_SHAPES)[N]>;
 
 export type AdminBookingRow = z.infer<typeof adminBookingRowShape>;
 export type AdminActivityRow = z.infer<typeof adminActivityRowShape>;
+export type AdminProfileHoldRow = z.infer<typeof adminProfileHoldRowShape>;
 export type AdminRequestRow = z.infer<typeof adminRequestRowShape>;
 export type AdminMyLimits = z.infer<typeof adminMyLimitsShape>;
 export type AdminContactViewRow = z.infer<typeof adminContactViewRowShape>;

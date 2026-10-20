@@ -2037,6 +2037,89 @@ export type Database = {
           },
         ];
       };
+      provider_profile_holds: {
+        Row: {
+          decided_action_id: string | null;
+          decided_at: string | null;
+          decided_by: string | null;
+          files: string;
+          held_paths: string[] | null;
+          held_text: string | null;
+          hidden_action_id: string;
+          hidden_at: string;
+          hidden_by: string | null;
+          id: string;
+          message: string | null;
+          part: string;
+          provider_id: string;
+          public_paths: string[] | null;
+          reason: string;
+          rule: string;
+          status: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          decided_action_id?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          files: string;
+          held_paths?: string[] | null;
+          held_text?: string | null;
+          hidden_action_id: string;
+          hidden_at?: string;
+          hidden_by?: string | null;
+          id?: string;
+          message?: string | null;
+          part: string;
+          provider_id: string;
+          public_paths?: string[] | null;
+          reason: string;
+          rule: string;
+          status?: string;
+        };
+        Update: {
+          decided_action_id?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          files?: string;
+          held_paths?: string[] | null;
+          held_text?: string | null;
+          hidden_action_id?: string;
+          hidden_at?: string;
+          hidden_by?: string | null;
+          id?: string;
+          message?: string | null;
+          part?: string;
+          provider_id?: string;
+          public_paths?: string[] | null;
+          reason?: string;
+          rule?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "provider_profile_holds_decided_action_id_fkey";
+            columns: ["decided_action_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_actions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "provider_profile_holds_hidden_action_id_fkey";
+            columns: ["hidden_action_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_actions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "provider_profile_holds_provider_id_fkey";
+            columns: ["provider_id"];
+            isOneToOne: false;
+            referencedRelation: "providers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       provider_ratings: {
         Row: {
           provider_id: string;
@@ -3011,9 +3094,29 @@ export type Database = {
       };
       admin_dashboard: { Args: Record<PropertyKey, never>; Returns: Json };
       admin_day_start: { Args: Record<PropertyKey, never>; Returns: string };
+      admin_decide_profile_hold: {
+        Args: {
+          p_admin_id: string;
+          p_decision: string;
+          p_hold_id: string;
+          p_note?: string;
+        };
+        Returns: Json;
+      };
       admin_finishing_stripe: {
         Args: { p_admin_id: string };
         Returns: boolean;
+      };
+      admin_hide_profile_content: {
+        Args: {
+          p_admin_id: string;
+          p_message?: string;
+          p_parts: string[];
+          p_provider_id: string;
+          p_reason: string;
+          p_rule: string;
+        };
+        Returns: Json;
       };
       admin_invite: {
         Args: {
@@ -3063,6 +3166,19 @@ export type Database = {
       };
       admin_money: { Args: { p_cents: number }; Returns: string };
       admin_my_limits: { Args: Record<PropertyKey, never>; Returns: Json };
+      admin_profile_hold_files: {
+        Args: { p_files: string; p_hold_id: string };
+        Returns: undefined;
+      };
+      admin_profile_holds_page: {
+        Args: {
+          p_page?: number;
+          p_page_size?: number;
+          p_provider_id?: string;
+          p_scope?: string;
+        };
+        Returns: Json;
+      };
       admin_provider_contact: {
         Args: { p_provider_id: string };
         Returns: Json;
@@ -3419,6 +3535,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      my_profile_holds: { Args: Record<PropertyKey, never>; Returns: Json };
       my_saved: { Args: Record<PropertyKey, never>; Returns: Json };
       my_service_slots_preview: {
         Args: { p_from: string; p_listing_id: string; p_to: string };
