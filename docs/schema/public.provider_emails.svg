@@ -67,11 +67,11 @@
 <polygon fill="none" stroke="black" points="688.87,-799.8 688.87,-830.6 2152.59,-830.6 2152.59,-799.8 688.87,-799.8"/>
 <text text-anchor="start" x="695.87" y="-812" font-family="Arial" font-size="14.00">removed </text>
 <text text-anchor="start" x="754.22" y="-812" font-family="Arial" font-size="14.00" fill="#666666">[text[]]</text>
-<text text-anchor="start" x="792.35" y="-812" font-family="Arial" font-size="14.00"> For provider_profile_edited: which parts of the profile lokl removed.</text>
+<text text-anchor="start" x="792.35" y="-812" font-family="Arial" font-size="14.00"> For the profile emails: which parts of the profile lokl hid, removed, restored or reviewed.</text>
 <polygon fill="none" stroke="black" points="688.87,-769 688.87,-799.8 2152.59,-799.8 2152.59,-769 688.87,-769"/>
 <text text-anchor="start" x="695.87" y="-781.2" font-family="Arial" font-size="14.00">rule </text>
 <text text-anchor="start" x="723.1" y="-781.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<text text-anchor="start" x="753.44" y="-781.2" font-family="Arial" font-size="14.00"> For provider_profile_edited: the profile rule they broke (PROFILE_RULES in packages/types).</text>
+<text text-anchor="start" x="753.44" y="-781.2" font-family="Arial" font-size="14.00"> For the profile emails: the profile rule concerned (PROFILE_RULES in packages/types).</text>
 <polygon fill="none" stroke="black" stroke-width="3" points="687.37,-767.5 687.37,-1340.1 2154.09,-1340.1 2154.09,-767.5 687.37,-767.5"/>
 </g>
 <!-- public.providers -->
