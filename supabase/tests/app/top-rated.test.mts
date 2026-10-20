@@ -64,11 +64,14 @@ try {
       p_session_id: sessionId, p_customer_id: customer.id, p_party_size: 1, p_customer_name: "Sam", p_customer_email: customer.email,
       p_customer_phone: null, p_customer_notes: null, p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
     }))) as { id: string };
-    psql(`alter table public.bookings disable trigger bookings_guard;
-      update public.bookings set status = 'confirmed', status_changed_by = 'stripe', confirmed_at = now() - interval '4 days',
+    // The status changes run with every trigger; only moving the times into
+    // the past skips them (never `alter table … disable trigger`: check:test-ddl).
+    psql(`update public.bookings set status = 'confirmed', status_changed_by = 'stripe' where id = '${b.id}';
+      set local session_replication_role = replica;
+      update public.bookings set confirmed_at = now() - interval '4 days',
         starts_at = now() - interval '1 day 1 hour', ends_at = now() - interval '1 day', payout_due_at = now() where id = '${b.id}';
-      update public.bookings set status = 'completed', status_changed_by = 'system' where id = '${b.id}';
-      alter table public.bookings enable trigger bookings_guard;`);
+      set local session_replication_role = origin;
+      update public.bookings set status = 'completed', status_changed_by = 'system' where id = '${b.id}';`);
     return (await must(db.from("reviews").insert({ booking_id: b.id, rating, body: "A review written by the top rated test, long enough." } as never).select("id").single())).id as string;
   };
   const card = async (slug: string) => {

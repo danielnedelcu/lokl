@@ -164,7 +164,7 @@ if (selectedJourneys.size >= allJourneys.length * 0.7) everyJourney("most journe
 const plan = [];
 const add = (name, cmd, cmdArgs, reason, env = {}) => plan.push({ name, cmd, cmdArgs, reason, env });
 add("typecheck", "npm", ["run", "typecheck"], "always");
-for (const c of ["check:reads", "check:dates", "check:rpc-json", "check:logs", "check:booking-doc", "check:clock", "check:e2e-serial", "check:journey-pages"]) add(c, "npm", ["run", c], "always");
+for (const c of ["check:reads", "check:dates", "check:rpc-json", "check:logs", "check:booking-doc", "check:clock", "check:e2e-serial", "check:test-ddl", "check:journey-pages"]) add(c, "npm", ["run", c], "always");
 add("test:ui", "npm", ["run", "test:ui"], "always");
 add("test:emails", "npm", ["run", "test:emails"], "always");
 add("test:clock", "npm", ["run", "test:clock"], "always");

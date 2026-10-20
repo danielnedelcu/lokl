@@ -75,6 +75,7 @@ const [, , database, build] = await Promise.all([
     () => npm("check:booking-doc", "check:booking-doc"),
     () => npm("check:clock", "check:clock"),
     () => npm("check:e2e-serial", "check:e2e-serial"),
+    () => npm("check:test-ddl", "check:test-ddl"),
     () => npm("check:journey-pages", "check:journey-pages"),
     () => step("tsc-e2e", "npx", ["tsc", "-p", "e2e"]),
   ]),

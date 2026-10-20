@@ -34,6 +34,27 @@ async function must(p: PromiseLike<{ data: unknown; error: { message: string } |
   return data;
 }
 
+/**
+ * SQL that removes published guides (`ids`: a parenthesised list or
+ * subquery) with their homepage places, versions and photos. Published
+ * guides can't be deleted and versions are append-only, so it runs with
+ * triggers off for this session (replica), which also skips the foreign
+ * keys' cascades and the content-version bump: it removes the children
+ * itself and raises the guides version afterwards, so cached pages drop
+ * the guides at once. Never `alter table … disable trigger` (check:test-ddl).
+ */
+function removeGuidesSql(ids: string) {
+  return `
+    set session_replication_role = replica;
+    delete from public.homepage_features where guide_id in ${ids};
+    delete from public.guide_versions where guide_id in ${ids};
+    update public.guide_ai_drafts set guide_id = null where guide_id in ${ids};
+    delete from public.guide_photos where guide_id in ${ids};
+    delete from public.guides where id in ${ids};
+    set session_replication_role = origin;
+    update public.public_content_versions set version = version + 1, changed_at = now() where scope = 'guides';`;
+}
+
 /** A start time `days` from now, on the hour at 14:00 UTC (10 AM in Atlanta in summer, 9 AM in winter). */
 export function daysFromNow(days: number) {
   const d = new Date(Date.now() + days * DAY);
@@ -229,13 +250,17 @@ export class TestData {
     return (await must(this.env.db.schema("private").from("booking_records").select("*").eq("id", id).single())) as Record<string, any>;
   }
 
-  /** Test-only: a booking that ended yesterday and is due its payout (the guard trigger off, local database). */
+  /**
+   * Test-only: a booking that ended yesterday and is due its payout (triggers
+   * off for this session only, local database). Never `alter table … disable
+   * trigger`: that's a schema change, and PostgREST reloads and resets its
+   * connections mid-run, failing other tests' requests (check:test-ddl).
+   */
   endedAndDue(bookingId: string) {
     execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
-      alter table public.bookings disable trigger bookings_guard;
+      set session_replication_role = replica;
       update public.bookings set starts_at = now() - interval '30 hours', ends_at = now() - interval '29 hours',
-        payout_due_at = now() - interval '5 hours' where id = '${bookingId}';
-      alter table public.bookings enable trigger bookings_guard;`]);
+        payout_due_at = now() - interval '5 hours' where id = '${bookingId}';`]);
   }
 
   /**
@@ -271,12 +296,15 @@ export class TestData {
       p_reserved_until: new Date(Date.now() + 31 * 60_000).toISOString(),
     })) as { id: string };
     const ended = `now() - interval '${endedDaysAgo} days'`;
-    execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
-      alter table public.bookings disable trigger bookings_guard;
-      update public.bookings set status = 'confirmed', status_changed_by = 'stripe', confirmed_at = ${ended} - interval '3 days',
+    // The status changes run with every trigger (events, emails, the review
+    // request); only moving the times into the past skips them.
+    execFileSync("psql", [this.env.dbUrl, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-c", `
+      update public.bookings set status = 'confirmed', status_changed_by = 'stripe' where id = '${b.id}';
+      set local session_replication_role = replica;
+      update public.bookings set confirmed_at = ${ended} - interval '3 days',
         starts_at = ${ended} - interval '1 hour', ends_at = ${ended}, payout_due_at = ${ended} + interval '1 day' where id = '${b.id}';
-      update public.bookings set status = 'completed', status_changed_by = 'system' where id = '${b.id}';
-      alter table public.bookings enable trigger bookings_guard;`]);
+      set local session_replication_role = origin;
+      update public.bookings set status = 'completed', status_changed_by = 'system' where id = '${b.id}';`]);
     return b.id;
   }
 
@@ -299,9 +327,8 @@ export class TestData {
     this.guides.push(id);
     if (fields.updatedHoursAgo) {
       execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
-        alter table public.guides disable trigger guides_set_updated_at;
-        update public.guides set updated_at = now() - interval '${fields.updatedHoursAgo} hours' where id = '${id}';
-        alter table public.guides enable trigger guides_set_updated_at;`]);
+        set session_replication_role = replica;
+        update public.guides set updated_at = now() - interval '${fields.updatedHoursAgo} hours' where id = '${id}';`]);
     }
     return { id, slug };
   }
@@ -373,14 +400,7 @@ export class TestData {
     if (this.publishedGuides.length) {
       const ids = this.publishedGuides.map((i) => `'${i}'`).join(",");
       execFileSync("psql", [this.env.dbUrl, "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-c", `
-        alter table public.guides disable trigger guides_guard;
-        alter table public.guide_versions disable trigger guide_versions_append_only;
-        delete from public.homepage_features where guide_id in (${ids});
-        delete from public.guide_versions where guide_id in (${ids});
-        update public.guides set cover_photo_id = null, status = 'draft' where id in (${ids});
-        delete from public.guides where id in (${ids});
-        alter table public.guide_versions enable trigger guide_versions_append_only;
-        alter table public.guides enable trigger guides_guard;`]);
+        ${removeGuidesSql(`(${ids})`)}`]);
     }
     // Bookings are never deleted in real use; the tests remove their own rows directly.
     if (this.listings.length) {

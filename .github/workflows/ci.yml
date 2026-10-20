@@ -78,6 +78,8 @@ jobs:
         run: npm run check:clock
       - name: Browser tests that change what the whole site shares run alone (@serial)
         run: npm run check:e2e-serial
+      - name: Tests change no schema while they run (PostgREST would reload)
+        run: npm run check:test-ddl
       - name: Every page is named by a browser journey, or listed with why not
         run: npm run check:journey-pages
       - name: UI tests

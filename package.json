@@ -26,6 +26,7 @@
     "check:public-cache": "node scripts/check-public-cache.mjs",
     "check:null-guards": "node scripts/check-null-guards.mjs",
     "check:e2e-serial": "node scripts/check-e2e-serial.mjs",
+    "check:test-ddl": "node scripts/check-test-ddl.mjs",
     "check:journey-pages": "node scripts/check-journey-pages.mjs",
     "build:secrets-check": "node scripts/build-secrets-check.mjs",
     "db:types": "node scripts/db-types.mjs",

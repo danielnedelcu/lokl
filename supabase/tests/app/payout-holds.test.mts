@@ -47,12 +47,11 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
 }
 const row = async (id: string) => must(db.schema("private").from("booking_records").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-// Test-only: the booking ended yesterday and its payout is due (guard off, local database).
+// Test-only: the booking ended yesterday and its payout is due (triggers off for this session, local database).
 const endedAndDue = (id: string) => execFileSync("psql", [local.DB_URL!, "-q", "-c", `
-  alter table public.bookings disable trigger bookings_guard;
+  set session_replication_role = replica;
   update public.bookings set starts_at = now() - interval '30 hours', ends_at = now() - interval '29 hours',
-    payout_due_at = now() - interval '5 hours' where id = '${id}';
-  alter table public.bookings enable trigger bookings_guard;`]);
+    payout_due_at = now() - interval '5 hours' where id = '${id}';`]);
 const event = (type: string, id: string) => ({ type, data: { object: { id } } }) as unknown as Stripe.Event;
 const created = { users: [] as string[], providers: [] as string[], listings: [] as string[], category: "", area: "" };
 const day = 864e5;
