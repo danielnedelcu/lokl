@@ -1,7 +1,7 @@
 ---
 title: Privacy Policy
 summary: What lokl collects, why, who it's shared with, how long it's kept, and the choices you have.
-updated: 2026-10-18
+updated: 2026-10-20
 ---
 > **Draft: to be reviewed by a lawyer before launch** (LAUNCH-PLACEHOLDER). This policy describes how lokl works today. It isn't final until a lawyer has reviewed it.
 
@@ -58,9 +58,9 @@ Please only put in your notes what the host needs for the booking. If you choose
 
 We share only what each one needs to do its job:
 
-- **Supabase** stores lokl's data, signs you in and sends sign-in emails.
+- **Supabase** stores lokl's data and signs you in.
 - **Stripe** handles payments, refunds and hosts' payouts. It receives your email address and what you're paying for. Hosts give Stripe their identity and bank details directly.
-- **Resend** sends lokl's emails about bookings.
+- **Resend** sends lokl's emails: sign-in codes and links, and emails about bookings.
 - **Google** provides **Continue with Google** (if you use it) and Google Analytics (see below).
 - **Our email provider** holds the messages you send to {{SUPPORT_EMAIL}}.
 - **Our hosting provider**, [hosting provider] (LAUNCH-PLACEHOLDER), runs the website.
