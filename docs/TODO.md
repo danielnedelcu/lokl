@@ -803,13 +803,20 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     refunds or gifts for reviews, no asking only happy customers), privacy policy and cancellation policy page, drafted then
     reviewed by a marketplace lawyer.
 - **Personal data**
-  - [ ] Design for data deletion requests: what happens to a customer's
-    bookings, contact details, addresses and login when they ask lokl to
-    delete their data. (Today a login with bookings can't be deleted, and
-    the logs can only be changed by a migration; see `append_only_logs`.)
-    The Privacy Policy's "How long we keep it" and "Your choices and
-    rights" sections depend on this design: they only propose periods and
-    promise to act on requests, and stay marked `LAUNCH-PLACEHOLDER` until
+  - [x] Design for account deletion (2026-10-21,
+    `docs/design/account-deletion.md`): customers, providers, and
+    providers lokl removes; what's deleted, de-identified and kept; the
+    emailed code and 7-day grace period; one narrow exception to the
+    append-only guards.
+  - [ ] Take `docs/legal/questions-for-review.md` to the lawyer and the
+    accountant: retention periods, deletion, reviews, the removed
+    provider's keyed email hash, processors' copies, backups, and the
+    notes about health or access needs. Write their answers into the
+    Privacy Policy's "How long we keep it", "Your choices and rights",
+    "Who sees what" and companies sections.
+  - [ ] Build account deletion once the policy is settled, in three PRs
+    (database; server and pages; retention purge jobs). The policy's
+    retention and rights sections stay marked `LAUNCH-PLACEHOLDER` until
     it's built.
 - **Staff access**
   - [ ] Admin roles before hiring anyone (owner and support), enforced in
