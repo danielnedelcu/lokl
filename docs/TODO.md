@@ -275,6 +275,14 @@ three are done: explicit API grants, the build secrets check, and
   - **Next, if it matters in production:** measure on staging once it
     exists; consider an idempotency key for the few writes a person can't
     simply try again.
+  - **A long-running local stack drops more** (noted 2026-10-21): after
+    two and a half days up (since 2026-10-18), one full run had two 502s
+    (an insert in journey 20's setup failed it; an update by id was
+    retried), against three in the whole day before. If 502s increase,
+    restart it first (`npx supabase stop`, then `npm run db:start`). If
+    they keep appearing after a restart, the next step is the browser
+    tests' setup helpers choosing their own ids, so an insert can be
+    checked and safely retried.
 
 - [x] **Who can call each function** (`function_execute_grants`,
   2026-10-10): no function has `PUBLIC` `EXECUTE`; the helpers reach
