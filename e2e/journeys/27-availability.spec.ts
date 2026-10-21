@@ -26,6 +26,17 @@ async function provider(data: TestData, page: Page, context: Parameters<typeof s
   await signIn(context, owner.email, owner.password);
   return id;
 }
+/**
+ * Saves the weekly hours and returns the save's own answer. The "saved"
+ * message alone can't show it: the previous save's message may still be on
+ * screen (a check once passed on it while this save was refused by the
+ * gateway).
+ */
+async function saveWeeklyHours(page: Page) {
+  const answer = page.waitForResponse((r) => r.url().includes("/rest/v1/rpc/replace_weekly_hours") && r.request().method() === "POST");
+  await page.getByRole("button", { name: "Save weekly hours" }).click();
+  return answer;
+}
 const rows = async (data: TestData, table: string, providerId: string) =>
   (await data.env.db.from(table).select("*").eq("provider_id", providerId)).data ?? [];
 /** The next Monday at least two days ahead, in Atlanta, as YYYY-MM-DD. */
@@ -121,8 +132,8 @@ test("unticking a day with hours: saved as closed; ticking it again brings its h
   // Unticked and saved: closed, nothing marked, no summary.
   await page.getByRole("checkbox", { name: "Open on Monday" }).click();
   await expect(page.getByRole("group", { name: "From (Monday)" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Save weekly hours" }).click();
-  await expect(page.getByText("Weekly hours saved.").last()).toBeVisible();
+  expect((await saveWeeklyHours(page)).status(), "the unticked day's save was answered").toBe(200);
+  await expect(page.getByText(/^Your hours didn't save/)).toHaveCount(0);
   await expect.poll(async () => (await rows(data, "provider_weekly_hours", p)).length, { message: "Monday's hours removed" }).toBe(0);
   await expect(form.getByText("Check the hours marked above.")).toHaveCount(0);
   await expect(form.locator("[aria-invalid=true]")).toHaveCount(0);
