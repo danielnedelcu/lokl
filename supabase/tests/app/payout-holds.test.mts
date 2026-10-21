@@ -48,6 +48,22 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
 }
 const row = async (id: string) => must(db.schema("private").from("booking_records").select("*").eq("id", id).single()) as Promise<Record<string, any>>;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/**
+ * Asks Stripe until `ok`, with growing gaps (2 s, then up to 10 s) and a
+ * limit, as its sandbox can take minutes to move a dispute on. Returns the
+ * last answer, whether it was reached, and how long it waited.
+ */
+async function waitFor<T>(ask: () => Promise<T>, ok: (v: T) => boolean, limitMs: number) {
+  const started = Date.now();
+  let gap = 2000;
+  let value = await ask();
+  while (!ok(value) && Date.now() - started + gap <= limitMs) {
+    await sleep(gap);
+    gap = Math.min(gap * 1.5, 10_000);
+    value = await ask();
+  }
+  return { value, done: ok(value), seconds: Math.round((Date.now() - started) / 1000) };
+}
 // Test-only: the booking ended yesterday and its payout is due (triggers off for this session, local database).
 const endedAndDue = (id: string) => execFileSync("psql", [local.DB_URL!, "-q", "-c", `
   set session_replication_role = replica;
@@ -120,12 +136,10 @@ try {
   // ---------------------------------------------------------------- 1. a won dispute
   // Stripe's test card that's disputed as soon as it's charged.
   const disputed = await paidBooking(exp, "pm_card_createDispute");
-  let dispute: Stripe.Dispute | undefined;
-  for (let i = 0; i < 30 && !dispute; i++) {
-    dispute = (await stripe.disputes.list({ payment_intent: disputed.pi, limit: 1 })).data[0];
-    if (!dispute) await sleep(2000);
-  }
-  if (!dispute) throw new Error("Stripe didn't open the test dispute.");
+  const opened = await waitFor(async () => (await stripe.disputes.list({ payment_intent: disputed.pi, limit: 1 })).data[0],
+    (d) => !!d, 60_000);
+  if (!opened.done) throw new Error(`Stripe didn't open the test dispute within ${opened.seconds}s.`);
+  const dispute = opened.value!;
   endedAndDue(disputed.id);
   // The dispute's webhook was missed: the job finds it on the charge and holds.
   await payOut(db, stripe, { bookingId: disputed.id });
@@ -133,12 +147,9 @@ try {
 
   // lokl wins it (Stripe's test evidence), and the closing webhook arrives.
   await stripe.disputes.update(dispute.id, { evidence: { uncategorized_text: "winning_evidence" }, submit: true });
-  let status = dispute.status;
-  for (let i = 0; i < 60 && status !== "won"; i++) {
-    await sleep(3000);
-    status = (await stripe.disputes.retrieve(dispute.id)).status;
-  }
-  if (status !== "won") throw new Error(`The test dispute didn't close as won (it's ${status}).`);
+  // The sandbox closes it in seconds, but at times takes minutes.
+  const closed = await waitFor(async () => (await stripe.disputes.retrieve(dispute.id)).status, (s) => s === "won", 180_000);
+  if (!closed.done) throw new Error(`The test dispute didn't close as won within ${closed.seconds}s (last status: ${closed.value}).`);
   check((await stripe.charges.retrieve(disputed.charge)).disputed === true, "1b. (Stripe keeps charge.disputed true after a dispute is won)");
   await handlePaymentsEvent(db, stripe, event("charge.dispute.closed", dispute.id));
   const won = await row(disputed.id);
