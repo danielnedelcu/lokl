@@ -18,26 +18,32 @@ const { handleSubmit, isSubmitting, resetForm } = useForm<TimeOffInput>({
 });
 const { value: range, errorMessage: rangeError } = useField<{ start: string; end: string }>("range");
 
-const save = handleSubmit(async (v) => {
+const messages = useSaveMessages();
+const submit = handleSubmit(async (v) => {
   try {
     const problem = changedRows(await supabase.from("provider_time_off")
       .insert({ provider_id: props.providerId, starts_on: v.range.start, ends_on: v.range.end, note: v.note || null }).select("id"));
     if (problem) throw problem;
-    useSonner.success(`Time off added: ${label({ starts_on: v.range.start, ends_on: v.range.end })}.`);
+    messages.success(`Time off added: ${label({ starts_on: v.range.start, ends_on: v.range.end })}.`);
     resetForm();
     emit("saved");
   } catch (e) {
-    useSonner.error(problemText(e, `That didn't save: ${(e as Error).message}`));
+    messages.error(problemText(e, `That didn't save: ${(e as Error).message}`));
   }
 });
+const save = () => {
+  messages.start();
+  return submit();
+};
 async function remove(r: { id: string; starts_on: string; ends_on: string }) {
+  messages.start();
   try {
     const problem = changedRows(await supabase.from("provider_time_off").delete().eq("id", r.id).select("id"), "deleted");
     if (problem) throw problem;
-    useSonner.success(`Time off removed: ${label(r)}.`);
+    messages.success(`Time off removed: ${label(r)}.`);
     emit("saved");
   } catch (e) {
-    useSonner.error(problemText(e, "That didn't change. Try again."));
+    messages.error(problemText(e, "That didn't change. Try again."));
   }
 }
 </script>

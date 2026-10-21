@@ -916,6 +916,7 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
 
 - The machine runs Node 22.12; the repo's `engines` asks for 24 or later. `.nvmrc` now says 24, so `nvm use` picks the right version.
 - `packages/types/src/providers.ts` is hand-written; replace it with the generated types (`database.ts`) when it's next touched.
+- Save messages on the other forms that can be saved again in place (2026-10-21): take each form's messages through `useSaveMessages()`, as the Availability page does, so a "saved" from an earlier save never shows during a later one. Website: the listing editor ("Changes saved."), listing photos' descriptions, the profile photo fields, Business profile, sessions, and editing a review or reply. Admin: support's limits, commission rates, markets and areas, categories, guide photo details, the homepage, a guide's editor, and a problem report's replies. One-off actions (accepting, cancelling, signing in, deleting) change the page and don't need it.
 
 ## Done
 

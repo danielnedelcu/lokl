@@ -36,7 +36,8 @@ const options = {
   default_buffer_minutes: SCHEDULE_CHOICES.default_buffer_minutes.map((n) => ({ value: String(n), label: n === 0 ? "None" : durationWords(n) })),
 };
 
-const save = handleSubmit(async (v) => {
+const messages = useSaveMessages();
+const submit = handleSubmit(async (v) => {
   try {
     // Insert the first time, update after: an upsert would also write
     // provider_id, which providers may not change.
@@ -48,12 +49,16 @@ const save = handleSubmit(async (v) => {
       booking_window_days: String(v.booking_window_days), min_notice_minutes: String(v.min_notice_minutes),
       slot_interval_minutes: String(v.slot_interval_minutes), default_buffer_minutes: String(v.default_buffer_minutes),
     } });
-    useSonner.success("Booking settings saved.");
+    messages.success("Booking settings saved.");
     emit("saved");
   } catch (e) {
-    useSonner.error(problemText(e, `Your settings didn't save: ${(e as Error).message}`));
+    messages.error(problemText(e, `Your settings didn't save: ${(e as Error).message}`));
   }
 });
+const save = () => {
+  messages.start();
+  return submit();
+};
 </script>
 
 <template>

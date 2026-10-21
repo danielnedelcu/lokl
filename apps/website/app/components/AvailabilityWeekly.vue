@@ -67,17 +67,23 @@ function copyToEveryDay(d: number) {
 const intervalLabel = (iv: HoursInterval) =>
   /^\d{2}:\d{2}$/.test(iv.starts) && /^\d{2}:\d{2}$/.test(iv.ends) ? `${formatClock(iv.starts)} – ${formatClock(iv.ends, { end: true })}` : "these hours";
 
-const save = handleSubmit(async (v) => {
+const messages = useSaveMessages();
+const submit = handleSubmit(async (v) => {
   try {
     const { error } = await supabase.rpc("replace_weekly_hours", { p_hours: weeklyHoursRows(v) });
     if (error) throw error;
     resetForm({ values: v });
-    useSonner.success("Weekly hours saved.");
+    messages.success("Weekly hours saved.");
     emit("saved");
   } catch (e) {
-    useSonner.error(problemText(e, `Your hours didn't save: ${(e as Error).message}`));
+    messages.error(problemText(e, `Your hours didn't save: ${(e as Error).message}`));
   }
 });
+// Every press of Save takes down the last message first, even one refused by the form's own checks.
+const save = () => {
+  messages.start();
+  return submit();
+};
 </script>
 
 <template>
