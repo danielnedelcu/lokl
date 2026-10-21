@@ -99,6 +99,10 @@ jobs:
     name: database
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # The test website's job secret, shared with the job route's test (a test
+    # value for this run, not a secret).
+    env:
+      NUXT_JOB_SECRET: lokl-ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

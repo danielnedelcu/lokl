@@ -17,9 +17,16 @@ import { abandonCheckout, BookingError, recordDispute } from "./bookings";
 import { finishAccept } from "./bookingAnswers";
 import { refundInFull } from "./bookingCancellations";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
+import { moneyKey, stripeAttempt, stripeRefused } from "./stripeAttempts";
+import { settleHeldFilesDetail } from "./adminProviders";
 
-export const JOB_NAMES = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "review-reminders", "refresh-open-days"] as const;
+export const JOB_NAMES = [
+  "expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "review-reminders", "refresh-open-days",
+  "admin-requests", "held-photos", "hidden-content-reminder",
+] as const;
 export type JobName = (typeof JOB_NAMES)[number];
+/** The jobs that call Stripe; the others never ask for its key. */
+export const STRIPE_JOBS: readonly JobName[] = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out"];
 
 export interface JobResult {
   job: JobName;
@@ -47,6 +54,12 @@ export interface JobOptions {
   now?: Date;
   /** Only this booking (the walkthrough option). */
   bookingId?: string;
+  /**
+   * When to stop taking new rows (milliseconds since the epoch): the route
+   * gives each scheduled run a budget, as a host may stop a request after a
+   * minute. Rows not reached wait for the next run (moreWaiting).
+   */
+  deadline?: number;
 }
 
 // Idempotency keys: the booking, the action and a 10-minute window
@@ -64,9 +77,14 @@ function result(job: JobName): JobResult {
   return { job, checked: 0, done: [], failed: [], moreWaiting: false };
 }
 
-async function each<T extends { id: string }>(r: JobResult, rows: T[], work: (row: T) => Promise<string | null>) {
+async function each<T extends { id: string }>(r: JobResult, rows: T[], work: (row: T) => Promise<string | null>, deadline?: number) {
   r.checked = rows.length;
   for (const row of rows) {
+    // real time: the run's budget, against the host's own clock.
+    if (deadline && Date.now() > deadline) {
+      r.moreWaiting = true;
+      break;
+    }
     try {
       const what = await work(row);
       if (what) r.done.push(`${row.id}: ${what}`);
@@ -130,7 +148,7 @@ export async function expireRequests(db: SupabaseClient, stripe: Stripe, opts: J
       return finishCaptured(db, stripe, b.id, b.stripe_payment_intent_id);
     }
     return (await move(db, b.id, "requested", { status: "expired", status_changed_by: "system" })) ? "expired, hold released" : null;
-  });
+  }, opts.deadline);
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +173,7 @@ export async function releaseReservations(db: SupabaseClient, stripe: Stripe, op
     // checkout paid at the last moment becomes a booking, not an expiry.
     const what = await abandonCheckout(db, stripe, b.stripe_checkout_session_id);
     return what.startsWith("ignored") ? null : what;
-  });
+  }, opts.deadline);
 }
 
 // ---------------------------------------------------------------------------
@@ -210,7 +228,7 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
     return (await move(db, b.id, "requested", { status: "declined", status_changed_by: "system" }))
       ? `declined, hold released: ${why}`
       : null;
-  });
+  }, opts.deadline);
 
   // Confirmed bookings left on a cancelled session (the session's
   // cancellation stopped partway): refund and cancel them now.
@@ -226,13 +244,13 @@ export async function withdrawUnavailable(db: SupabaseClient, stripe: Stripe, op
   r.moreWaiting = full(leftRows);
   const extra = result("withdraw-unavailable");
   await each(extra, ((leftRows ?? []) as any[]).map(withFinances), async (b) => {
-    const refunded = await refundInFull(stripe, b);
+    const refunded = await refundInFull(db, stripe, b);
     return (await move(db, b.id, "confirmed", {
       status: "cancelled", cancelled_by: "system", cancel_reason: "The session was cancelled.", status_changed_by: "system",
       // real time: when it happened (a record).
       refunded_cents: refunded, refunded_at: new Date().toISOString(),
     })) ? "cancelled with its session, refunded in full" : null;
-  });
+  }, opts.deadline);
   r.checked += extra.checked;
   r.done.push(...extra.done);
   r.failed.push(...extra.failed);
@@ -304,6 +322,11 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
   if (endedError) throw new Error(endedError.message);
   r.moreWaiting = full(endedRows, 500);
   for (const b of endedRows ?? []) {
+    // real time: the run's budget, against the host's own clock.
+    if (opts.deadline && Date.now() > opts.deadline) {
+      r.moreWaiting = true;
+      break;
+    }
     if (await move(db, b.id, "confirmed", { status: "completed", status_changed_by: "system" })) r.done.push(`${b.id}: completed`);
   }
 
@@ -330,7 +353,7 @@ export async function payOut(db: SupabaseClient, stripe: Stripe, opts: JobOption
   );
 
   // each() adds to r.done, after the "completed" lines above.
-  await each(r, rows, async (b) => payOne(db, stripe, b));
+  await each(r, rows, async (b) => payOne(db, stripe, b), opts.deadline);
   r.checked = (endedRows?.length ?? 0) + rows.length;
   return r;
 }
@@ -400,6 +423,9 @@ async function payOne(db: SupabaseClient, stripe: Stripe, b: PayoutBooking): Pro
   const group = `booking_${b.id}`;
   let transfer = (await stripe.transfers.list({ transfer_group: group, limit: 1 })).data[0];
   if (!transfer) {
+    // One key per booking and attempt (stripeAttempts.ts): two runs at once
+    // send the same key, so Stripe makes one transfer.
+    const attempt = await stripeAttempt(db, b.id, "transfer");
     try {
       transfer = await stripe.transfers.create(
         {
@@ -411,13 +437,15 @@ async function payOne(db: SupabaseClient, stripe: Stripe, b: PayoutBooking): Pro
           description: "lokl booking payout",
           metadata: { booking_id: b.id, provider_id: b.provider_id },
         },
-        { idempotencyKey: jobKey(b.id, "transfer") },
+        { idempotencyKey: moneyKey(b.id, "transfer", attempt) },
       );
     } catch (e) {
       const err = e as Stripe.errors.StripeError;
-      // Stripe answered and said no: hold it for the admin. Anything else
-      // (a timeout, Stripe down) is tried again next run.
+      // Stripe answered and said no: hold it for the admin, and give the
+      // next try (after the admin releases it) a new key. Anything else (a
+      // timeout, Stripe down) is tried again next run with the same key.
       if (err.type === "StripeInvalidRequestError" || err.type === "StripePermissionError") {
+        await stripeRefused(db, b.id, "transfer", attempt);
         return hold(db, b, "transfer_failed", err.message);
       }
       throw e;
@@ -434,15 +462,52 @@ async function payOne(db: SupabaseClient, stripe: Stripe, b: PayoutBooking): Pro
   return (data ?? []).length ? `paid out ${b.provider_amount_cents} cents (${transfer.id})` : "already paid out";
 }
 
-export async function runJob(name: JobName, db: SupabaseClient, stripe: Stripe, opts: JobOptions = {}) {
+/** Runs one job. `stripe` is needed only by STRIPE_JOBS (pass null for the others). */
+export async function runJob(name: JobName, db: SupabaseClient, stripe: Stripe | null, opts: JobOptions = {}) {
+  const needStripe = () => {
+    if (!stripe) throw new Error(`${name} needs Stripe`);
+    return stripe;
+  };
   switch (name) {
-    case "expire-requests": return expireRequests(db, stripe, opts);
-    case "release-reservations": return releaseReservations(db, stripe, opts);
-    case "withdraw-unavailable": return withdrawUnavailable(db, stripe, opts);
-    case "pay-out": return payOut(db, stripe, opts);
+    case "expire-requests": return expireRequests(db, needStripe(), opts);
+    case "release-reservations": return releaseReservations(db, needStripe(), opts);
+    case "withdraw-unavailable": return withdrawUnavailable(db, needStripe(), opts);
+    case "pay-out": return payOut(db, needStripe(), opts);
     case "review-reminders": return reviewReminders(db, opts);
     case "refresh-open-days": return refreshOpenDays(db, opts);
+    case "admin-requests": return adminRequests(db, opts);
+    case "held-photos": return heldPhotos(db, opts);
+    case "hidden-content-reminder": return hiddenContentReminder(db, opts);
   }
+}
+
+// Hourly (admin roles): support's requests the owner hasn't decided within
+// 7 days expire, and each asker is told. Before the scheduler, a request
+// only expired when someone next opened one. No Stripe.
+async function adminRequests(db: SupabaseClient, opts: JobOptions): Promise<JobResult> {
+  if (opts.bookingId || opts.now) throw new BookingError("admin-requests runs on the database's clock, for every request.", 400);
+  const { data, error } = await db.rpc("admin_requests_sweep");
+  if (error) throw new Error(error.message);
+  const { expired } = rpcJson("admin_requests_sweep", data);
+  return { ...result("admin-requests"), checked: expired.length, done: expired.map((id) => `${id}: expired, the asker told`) };
+}
+
+// Every 15 minutes (step 5e): finishes moving or deleting hidden profile
+// photos' files whose last try failed. No Stripe.
+async function heldPhotos(db: SupabaseClient, opts: JobOptions): Promise<JobResult> {
+  if (opts.bookingId || opts.now) throw new BookingError("held-photos works on every hold whose files are mid-move.", 400);
+  const out = await settleHeldFilesDetail(db, opts.deadline);
+  return { ...result("held-photos"), checked: out.checked, done: out.settled, failed: out.failed, moreWaiting: out.checked >= 50 };
+}
+
+// Daily (step 5e): reminds every owner, once per hide, of hidden profile
+// content waiting 7 days. It stays hidden; nothing is deleted. No Stripe.
+async function hiddenContentReminder(db: SupabaseClient, opts: JobOptions): Promise<JobResult> {
+  if (opts.bookingId || opts.now) throw new BookingError("hidden-content-reminder runs on the database's clock.", 400);
+  const { data, error } = await db.rpc("profile_holds_remind");
+  if (error) throw new Error(error.message);
+  const { reminded } = rpcJson("profile_holds_remind", data);
+  return { ...result("hidden-content-reminder"), checked: reminded.length, done: reminded.map((id) => `${id}: the owners reminded`) };
 }
 
 /**

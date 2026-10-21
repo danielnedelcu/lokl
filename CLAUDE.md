@@ -62,7 +62,7 @@ npm run check:full            # every check, before pushing a branch for a PR, t
 npm run check:quick           # while working: only the checks the changes since origin/main need (-- --dry-run to see the plan); never instead of check:full
 npm run build:check           # check both apps build (own folders; safe beside npm run dev)
 npm run typecheck             # vue-tsc on both apps; must pass before committing
-npm run job -- <name>         # run one timed booking job against localhost:3100
+npm run job -- <name>         # run one timed job against localhost:3100 (the scheduler runs them once hosting exists)
 npm run db:start              # start the local stack on hosted's service versions (supabase/service-versions.json)
 npm run db:test               # rebuild the local DB from migrations, run pgTAP tests (refuses a stack on other versions)
 npm run db:push               # db:test, then apply to hosted Supabase, then db:types + db:docs
@@ -188,7 +188,12 @@ the list in `supabase/tests/function_privileges.test.sql`, or that test fails.
 an extension creates when a migration creates or updates it (`create
 extension`, `alter extension … update`) get no `PUBLIC` `EXECUTE` either.
 That migration must grant the roles that use them, explicitly, and its
-pgTAP test must check each allowed and refused call.
+pgTAP test must check each allowed and refused call. One exception
+(2026-10-21): `pg_cron` and `pg_net` are installed by Supabase's own admin
+role, which grants `pg_net`'s functions to the API roles; a migration can't
+revoke them. They stay unreachable because the API serves only `public`,
+`graphql_public` and `private` (`job-route.test.mts` checks the API refuses
+`net` and `cron`), and no API role may use the `cron` schema.
 
 Never edit a migration once it has been pushed to the hosted database; fix it
 with a new one. A migration that has only run locally can still be edited.
@@ -332,8 +337,14 @@ user id is `user.sub`, not `user.id`.
   signature-verified webhook. Never from request input.
 - Stripe account creation passes an idempotency key, so a retry or double
   click can't create a second account.
-- Idempotency keys must not be fixed per record. Include a time window or
-  attempt ID, because Stripe replays a stored error for 24 hours.
+- **Money-moving calls** (a transfer, refund, reversal or capture; decided
+  2026-10-21) use one idempotency key per booking, action and attempt
+  (`moneyKey` and `private.stripe_attempts`, `server/utils/stripeAttempts.ts`):
+  two calls at once send the same key, so Stripe acts once. The attempt goes
+  up only after Stripe definitely refuses it, because Stripe replays a stored
+  answer for 24 hours: a later try after the cause is fixed gets a new key.
+  Never a key fixed per record alone, and never a time window. Other keys
+  (releasing a card hold, creating an account) keep a window or attempt id.
 - **No key fragments in logs or stored text.** Stripe's errors quote a key
   masked to its prefix and last four, which GitHub doesn't mask. Make Stripe
   clients with `safeStripe(new Stripe(key, STRIPE_CLIENT_OPTIONS))`

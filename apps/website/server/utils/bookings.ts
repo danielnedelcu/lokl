@@ -14,6 +14,7 @@ import { ANSWER_WITHIN_HOURS, CHECKOUT_HOLD_MINUTES, errorText, stripeErrorSumma
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ExperienceBookingRequest, ServiceBookingRequest } from "@repo/types";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
+import { definiteRefusal, moneyKey, stripeAttempt, stripeRefused } from "./stripeAttempts";
 // Finishing money actions whose reply was lost (used by the webhook only, at
 // call time, so the circular import is safe).
 import { finishAccept } from "./bookingAnswers";
@@ -299,7 +300,14 @@ export async function syncCheckoutSession(db: SupabaseClient, stripe: Stripe, se
     // Paid after we'd already let the booking go (shouldn't happen: Checkout
     // expires with the reservation). Give the money back.
     if (["expired", "cancelled"].includes(booking.status) && pi.status === "succeeded" && !booking["refunded_at"]) {
-      await stripe.refunds.create({ payment_intent: pi.id }, { idempotencyKey: idempotencyKey(booking.id, "late-refund") });
+      // One key per booking, amount and attempt (stripeAttempts.ts).
+      const attempt = await stripeAttempt(db, booking.id, "refund");
+      try {
+        await stripe.refunds.create({ payment_intent: pi.id }, { idempotencyKey: moneyKey(booking.id, "refund", attempt, pi.amount_received) });
+      } catch (e) {
+        if (definiteRefusal(e)) await stripeRefused(db, booking.id, "refund", attempt);
+        throw e;
+      }
       // real time: when it happened (a record).
       await bookingRecords(db).update({ stripe_payment_intent_id: pi.id, refunded_cents: booking.total_cents, refunded_at: new Date().toISOString() }).eq("id", booking.id);
       return "refunded: paid after the booking had lapsed";

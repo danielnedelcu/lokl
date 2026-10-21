@@ -14,7 +14,8 @@
 // at a later time, for walkthroughs; --as-of needs --booking.
 import fs from "node:fs";
 
-const JOBS = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "review-reminders", "refresh-open-days", "send-emails"];
+const JOBS = ["expire-requests", "release-reservations", "withdraw-unavailable", "pay-out", "review-reminders", "refresh-open-days",
+  "admin-requests", "held-photos", "hidden-content-reminder", "send-emails"];
 const [name, ...rest] = process.argv.slice(2);
 if (!JOBS.includes(name)) {
   console.error(`Usage: npm run job -- <${JOBS.join(" | ")}> [--booking <id>] [--as-of <time>]`);
@@ -56,6 +57,10 @@ const body = await res.json().catch(() => ({}));
 if (!res.ok) {
   console.error(`${res.status}: ${body.statusMessage ?? body.message ?? "the job failed"}`);
   process.exit(1);
+}
+if (body.skipped) {
+  console.log(`${name}: skipped, ${body.skipped} (another run of it holds the job).`);
+  process.exit(0);
 }
 console.log(`${body.job}: checked ${body.checked}, changed ${body.done.length}, failed ${body.failed.length}`);
 for (const l of body.done) console.log(`  ${l}`);

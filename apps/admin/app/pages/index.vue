@@ -116,6 +116,7 @@ const queues = computed(() => {
           <span class="text-sm font-medium tabular-nums">{{ count(q.value) }}</span>
         </NuxtLink>
       </section>
+      <JobsCard />
     </template>
   </div>
 </template>

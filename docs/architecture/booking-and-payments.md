@@ -112,7 +112,7 @@ flowchart LR
   (`admin_notifications`) read live over Realtime, which carries ids
   only, never text.
 - **Timed jobs** run through `/api/jobs/:name` with a shared secret. No
-  scheduler calls them yet ([§11](#idempotency-webhooks-and-jobs)).
+  scheduler calls them until it's switched on ([§11](#idempotency-webhooks-and-jobs)).
 
 ## 2. Booking states
 
@@ -1008,17 +1008,24 @@ backstop. Tested in
 | Key | For | Where |
 | --- | --- | --- |
 | `booking:<id>:checkout:1` | creating the Checkout Session (a retried checkout attempt sends the identical request, `expires_at` from `reserved_until`) | `createCheckout`, `bookings.ts` |
-| `booking:<id>:late-refund:1` | refunding a payment that arrived after the booking ended | `syncCheckoutSession` |
-| `booking:<id>:capture:<w>` | accepting a request | `acceptRequest` |
-| `booking:<id>:release:<w>` | releasing a card hold | `declineRequest`, cancellations (lokl's too), jobs |
-| `booking:<id>:refund-<cents left>:<w>` | a full refund, including a capture that can't be confirmed | `refundInFull` |
-| `booking:<id>:reverse:<w>` | reversing the provider's transfer when lokl cancels after a payout | `reverseTransfer` |
-| `booking:<id>:transfer:<w>` | the payout | `payOne` |
+| `booking:<id>:refund:<cents>:<n>` | refunding a payment that arrived after the booking ended | `syncCheckoutSession` |
+| `booking:<id>:capture:<n>` | accepting a request | `acceptRequest` |
+| `booking:<id>:release:<w>` | releasing a card hold (moves no money) | `declineRequest`, cancellations (lokl's too), jobs |
+| `booking:<id>:refund:<cents left>:<n>` | a full refund, including a capture that can't be confirmed | `refundInFull` |
+| `booking:<id>:reversal:<cents left>:<n>` | reversing the provider's transfer when lokl cancels after a payout | `reverseTransfer` |
+| `booking:<id>:transfer:<n>` | the payout | `payOne` |
 
-`<w>` is a 10-minute window (`floor(now / 10 min)`): a retry within it is the
-same request, and a later retry is a new one, because Stripe replays a stored
-error for 24 hours. The checkout and late-refund keys are fixed per booking:
-each happens at most once per booking.
+**Money-moving keys (2026-10-21):** `<n>` is the booking's attempt for that
+action (`private.stripe_attempts`, [stripeAttempts.ts](../../apps/website/server/utils/stripeAttempts.ts)),
+raised only after Stripe definitely refuses it. Two calls at once (two job
+runs, a double click) read the same `<n>` and send the same key, so Stripe
+makes one transfer or refund; a timeout keeps the key, so a call that went
+through but whose answer was lost comes back as itself; and after a refusal
+(an account that couldn't receive, then fixed; a dispute that closed) the
+next try gets a new key instead of the stored refusal. Tested two at once in
+[payout-holds.test.mts](../../supabase/tests/app/payout-holds.test.mts),
+section 6. `<w>` is a 10-minute window, kept only for releasing a hold,
+which can be repeated harmlessly. The checkout key stays fixed per booking.
 
 ### Webhooks
 
@@ -1072,10 +1079,19 @@ and e2e journey 16. Every read in the booking code is bounded (a batch, a
 page, `allRows`, or a `// bounded:` reason such as "one session's
 bookings"), which `npm run check:reads` checks in CI.
 
-**No scheduler runs these yet.** Until hosting is chosen they're run by hand
-or by tests. Setting one up is the first item of the staging checklist
-([docs/TODO.md](../TODO.md)): request expiry, finishing a lost accept, and
-payouts all depend on it.
+**The scheduler** (built 2026-10-21, [job_scheduler](../../supabase/migrations/20261021012038_job_scheduler.sql);
+switched off until hosting exists, docs/deployment.md): `pg_cron` calls
+each job's route on a timetable (`send-emails` every minute,
+`release-reservations` and `expire-requests` every 5 minutes,
+`withdraw-unavailable` and `pay-out` every 15). Each run takes the job's
+lease (`job_start`: one run at a time, a second call skipped), stops taking
+new rows after 40 seconds (the rest wait; `more_waiting`), and records
+itself in `job_status`; `job_runs` keeps the runs that did something,
+failed, left rows waiting, or were killed (a lease that outlived its run).
+Only the four booking jobs ask for the Stripe key. A watchdog in the
+database alerts the owners when a job is late, failing or stuck. Until the
+scheduler is switched on, request expiry, finishing a lost accept,
+completing bookings (and so reviews) and payouts run only by hand.
 
 ### A lost reply
 
@@ -1107,9 +1123,9 @@ Where the code differs from [docs/design/booking-and-checkout.md](../design/book
 1. **Checkout window:** 31 minutes, not 30, for both Stripe's `expires_at`
    and `reserved_until`; `reserved_until` is set for Services too, not only
    Experiences.
-2. **Idempotency keys:** not "action + attempt number". Checkout and the late
-   refund use fixed keys (`:1`); the rest use a 10-minute window; admin keys
-   start with `admin:`.
+2. **Idempotency keys:** money-moving calls now use "action + attempt
+   number", as the design said, per booking (2026-10-21); releasing a hold
+   keeps a 10-minute window; the checkout key is fixed (`:1`).
 3. **Where the money lives:** commission, provider share, Stripe ids, holds
    and disputes are in `booking_finances`, and the no-show note in
    `booking_reports`, not on `bookings` (the design's table section predates
@@ -1132,7 +1148,9 @@ Where the code differs from [docs/design/booking-and-checkout.md](../design/book
    not when the payout is due. A refused transfer also sets a hold, and
    refunds, suspensions and disputes found on Stripe's charge hold too.
    `expire-requests` also emails the provider. `withdraw-unavailable` also
-   refunds bookings on cancelled sessions. No scheduler exists.
+   refunds bookings on cancelled sessions. The scheduler (2026-10-21) adds
+   `admin-requests`, `held-photos` and `hidden-content-reminder`, and runs
+   every job on a timetable once switched on.
 9. **Webhooks:** also `charge.dispute.updated` and the two
    `async_payment` Checkout events. Emails and notifications come from
    database triggers, not from the webhook handler.

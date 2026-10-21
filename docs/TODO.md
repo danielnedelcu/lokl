@@ -505,9 +505,15 @@ A real address before the live one: `staging.hilokl.com` (website) and
 `admin-staging.hilokl.com` (admin), on the testing Supabase project and the
 Lokl Stripe sandbox. Test there first what needs a real address:
 
-- [ ] **First: the job scheduler** (`pg_cron` + `pg_net` calling
+- [ ] **First: switch on the job scheduler** (built 2026-10-21, off): the
+  four Vault entries in the staging project (docs/deployment.md), then
+  watch the dashboard's Jobs card for a day.
+- [ ] **An outside uptime monitor** for the website, the admin app and the
+  database (it alerts the owners when the database itself is down, which
+  the watchdog inside it can't). Before launch too.
+- [ ] (Was: the job scheduler, `pg_cron` + `pg_net` calling
   `/api/jobs/*`, including `send-emails` and, daily, `review-reminders`
-  and `refresh-open-days`). Until `refresh-open-days` runs, a Service's
+  and `refresh-open-days`; now built.) Until `refresh-open-days` runs, a Service's
   open days move on only when its provider changes something (hours, a
   booking, settings): dated searches work out live, more slowly, every day
   past each Service's last refresh, and the further a search reaches, the
@@ -774,7 +780,9 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
 - **Database and jobs**
   - [ ] Expose the `private` schema in the production project's API settings
     (service role only: the migration revokes it from everyone else).
-  - [ ] Turn on the job scheduler, including `send-emails`.
+  - [ ] Switch on the job scheduler in the production project (the four
+    Vault entries, docs/deployment.md), with production's own job secret.
+  - [ ] The outside uptime monitor, pointed at production.
 - **Site**
   - [ ] On `hilokl.com`, check `robots.txt` allows crawling and points to
     `/sitemap.xml`, and that the sitemap lists only public pages. (In
@@ -835,10 +843,9 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     of the public bucket (built 2026-10-20, pull request open, `db:push`
     after the merge). After one release, remove `app_metadata.role` from
     the owner's login (unused since step 4).
-  - [ ] **Remind the owner of hidden profile content waiting 7 days**
-    (noted 2026-10-20): the queue already puts it first and it never
-    becomes a deletion; an email to every owner needs the scheduler (off
-    until hosting), as a timed job like the booking ones.
+  - [x] **Remind the owner of hidden profile content waiting 7 days**
+    (noted 2026-10-20; built 2026-10-21 as the `hidden-content-reminder`
+    job, daily, once per hide, running once the scheduler is switched on).
   - [ ] **Tell an admin about a sign-in from a new device** (noted
     2026-10-20): email the admin (and the owners, for support) when their
     login starts a session from a browser or network not seen before.

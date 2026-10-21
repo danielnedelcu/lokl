@@ -1,20 +1,36 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { serverSupabaseServiceRole } from "#supabase/server";
 import { errorText, logText } from "@repo/types";
 
-// POST /api/jobs/:name: one timed booking job (server/utils/bookingJobs.ts).
-// Called by `npm run job -- <name>` in development and, after launch, by the
-// scheduler (docs/design/booking-and-checkout.md, Jobs). Only with the shared
-// secret in the x-job-secret header; no secret configured means no jobs.
+// POST /api/jobs/:name: one timed job (server/utils/bookingJobs.ts, and
+// send-emails). Called by the scheduler: pg_cron in this environment's
+// Supabase project, through public.run_scheduled_job() (decided 2026-10-21;
+// switched off until hosting exists), and by `npm run job -- <name>` in
+// development. Only with the shared secret in the x-job-secret header; no
+// secret configured means no jobs.
+//
+// Each run:
+// - takes the job's lease (job_start): one run of a job at a time; a call
+//   while another runs answers "already running" and is counted as skipped;
+// - has a budget (BUDGET_MS): it starts no new rows after it, as a host may
+//   stop a request after a minute, and says the rest are waiting;
+// - records how it went in job_status (every run), and in job_runs only when
+//   it did something, failed, or left rows waiting (the history worth reading).
 //
 // Development only: ?bookingId=<id>&asOf=<time> runs the job for one booking
 // as if at a later time, so a payout can be walked through without waiting.
 // asOf=due means a minute after that booking's payout time. Production
 // builds ignore both.
+
+/** How long a scheduled run takes new rows for. */
+const BUDGET_MS = 40_000;
+/** How long a run holds its job before another may take over (a run the host stopped). */
+const LEASE_SECONDS = 300;
+
+// Compared as hashes, so neither the secret nor its length can be learned from timing.
+const digest = (s: string) => createHash("sha256").update(s).digest();
 function sameSecret(given: string, expected: string) {
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  return timingSafeEqual(digest(given), digest(expected));
 }
 
 export default defineEventHandler(async (event) => {
@@ -44,21 +60,37 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = serverSupabaseServiceRole(event);
+  // real time: when the run started (a record), and its budget.
   const started = new Date();
-  // Every run is logged in job_runs, for the admin's "needs attention" list,
-  // including one that crashes. The log is append-only, so its lines name
-  // rows by id, and any address or phone number in an error is replaced.
+  opts.deadline = started.getTime() + BUDGET_MS;
+
+  // One run of a job at a time.
+  const { data: run, error: startError } = await db.rpc("job_start", { p_job: name, p_lease_seconds: LEASE_SECONDS });
+  if (startError) {
+    console.error("[jobs] couldn't start", name, errorText(startError));
+    throw createError({ statusCode: 500, statusMessage: "The job couldn't start. Check the server logs." });
+  }
+  if (!run) return { job: name, skipped: "already running" };
+
+  // job_runs keeps the runs worth reading: something done or failed, rows
+  // left waiting, an error, or a walkthrough ("as of") run. It's
+  // append-only, so its lines name rows by id, and any address or phone
+  // number in an error is replaced.
   const log = async (r: { checked: number; done: string[]; failed: string[]; moreWaiting?: boolean } | null, error?: string) => {
+    if (r && !error && !opts.now && !r.done.length && !r.failed.length && !r.moreWaiting) return;
     const { error: logError } = await db.from("job_runs").insert({
       job: opts.now ? `${name} (as of ${opts.now.toISOString()})` : name,
       started_at: started.toISOString(),
       checked: r?.checked ?? 0, changed: r?.done.length ?? 0, failed: r?.failed.length ?? 0,
       failures: (r?.failed ?? []).slice(0, 50).map((l) => logText(l, 300)),
       error: error ? logText(error, 1000) : null,
-      // A batch was full: more waits for the next run (the admin sees it).
       more_waiting: r?.moreWaiting ?? false,
     });
     if (logError) console.error("[jobs] couldn't log the run", errorText(logError));
+  };
+  const finish = async (ok: boolean, error?: string) => {
+    const { error: finishError } = await db.rpc("job_finish", { p_job: name, p_run: run, p_ok: ok, p_error: error ? logText(error, 500) : undefined });
+    if (finishError) console.error("[jobs] couldn't record the run's end", errorText(finishError));
   };
 
   try {
@@ -67,11 +99,11 @@ export default defineEventHandler(async (event) => {
     // its changes queued, so they don't wait for the next send-emails run.
     if (name === "send-emails") {
       const { settings, mailer, adminUrl } = bookingEmailDeps();
-      const r = await sendBookingEmails(db, mailer, settings, { bookingId: opts.bookingId, limit: 200 });
+      const r = await sendBookingEmails(db, mailer, settings, { bookingId: opts.bookingId, limit: 200, deadline: opts.deadline });
       if (!opts.bookingId) {
-        const p = await sendProviderEmails(db, mailer, settings, { limit: 50 });
-        const s = await sendSupportEmails(db, mailer, settings, { adminUrl, limit: 50 });
-        const a = await sendAdminEmails(db, mailer, settings, { adminUrl, limit: 50 });
+        const p = await sendProviderEmails(db, mailer, settings, { limit: 50, deadline: opts.deadline });
+        const s = await sendSupportEmails(db, mailer, settings, { adminUrl, limit: 50, deadline: opts.deadline });
+        const a = await sendAdminEmails(db, mailer, settings, { adminUrl, limit: 50, deadline: opts.deadline });
         for (const k of ["sent", "skipped", "retrying", "failed"] as const) r[k].push(...p[k], ...s[k], ...a[k]);
         r.more ||= p.more || s.more || a.more;
       }
@@ -81,14 +113,19 @@ export default defineEventHandler(async (event) => {
       };
       if (r.retrying.length) result.done.push(...r.retrying.map((l) => `retrying ${l}`));
     } else {
-      result = await runJob(name, db, useStripe(), opts);
+      // Only the jobs that move money need Stripe (and its key).
+      result = await runJob(name, db, STRIPE_JOBS.includes(name) ? useStripe() : null, opts);
       kickBookingEmails(event);
     }
     await log(result);
+    await finish(true);
     console.info(`[jobs] ${name}: checked ${result.checked}, done ${result.done.length}, failed ${result.failed.length} (${Date.now() - started.getTime()} ms)`);
-    return result;
+    // The answer carries the same cleaned lines as the record.
+    return { ...result, failed: result.failed.map((l) => logText(l, 300)) };
   } catch (e) {
-    await log(null, (e as Error).message);
-    throw e;
+    const message = (e as Error).message;
+    await log(null, message);
+    await finish(false, message);
+    throw createError({ statusCode: 500, statusMessage: logText(message, 300) });
   }
 });

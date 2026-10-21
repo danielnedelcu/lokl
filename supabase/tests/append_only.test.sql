@@ -63,6 +63,8 @@ select set_eq(
        ('commission_rate_changes.commission_rate_changes_append_only|O'), ('commission_rate_changes.commission_rate_changes_append_only_truncate|O'),
        ('guide_versions.guide_versions_append_only|O'), ('guide_versions.guide_versions_append_only_truncate|O'),
        ('job_runs.job_runs_append_only|O'), ('job_runs.job_runs_append_only_truncate|O'),
+       ('job_alerts.job_alerts_append_only|O'), ('job_alerts.job_alerts_append_only_truncate|O'),
+       ('job_status.job_status_refuse_delete|O'), ('stripe_attempts.stripe_attempts_refuse_delete|O'),
        ('booking_reports.booking_reports_append_only|O'), ('booking_reports.booking_reports_append_only_truncate|O'),
        ('booking_emails.booking_emails_outbox_guard|O'), ('booking_emails.booking_emails_outbox_guard_truncate|O'),
        ('support_messages.support_messages_append_only|O'), ('support_messages.support_messages_append_only_truncate|O'),

@@ -15,7 +15,36 @@ export type Database = {
 
   private: {
     Tables: {
-      [_ in never]: never;
+      stripe_attempts: {
+        Row: {
+          action: string;
+          attempt: number;
+          booking_id: string;
+          raised_at: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          action: string;
+          attempt?: number;
+          booking_id: string;
+          raised_at?: string | null;
+        };
+        Update: {
+          action?: string;
+          attempt?: number;
+          booking_id?: string;
+          raised_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stripe_attempts_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "booking_records";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       booking_records: {
@@ -144,7 +173,14 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      stripe_attempt: {
+        Args: { p_action: string; p_booking_id: string };
+        Returns: number;
+      };
+      stripe_refused: {
+        Args: { p_action: string; p_attempt: number; p_booking_id: string };
+        Returns: number;
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -251,10 +287,11 @@ export type Database = {
       };
       admin_emails: {
         Row: {
-          admin_action_id: string;
+          admin_action_id: string | null;
           attempts: number;
           created_at: string;
           id: string;
+          job_alert_id: string | null;
           kind: string;
           last_error: string | null;
           locked_at: string | null;
@@ -268,10 +305,11 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
-          admin_action_id: string;
+          admin_action_id?: string | null;
           attempts?: number;
           created_at?: string;
           id?: string;
+          job_alert_id?: string | null;
           kind: string;
           last_error?: string | null;
           locked_at?: string | null;
@@ -284,10 +322,11 @@ export type Database = {
           to_address?: string | null;
         };
         Update: {
-          admin_action_id?: string;
+          admin_action_id?: string | null;
           attempts?: number;
           created_at?: string;
           id?: string;
+          job_alert_id?: string | null;
           kind?: string;
           last_error?: string | null;
           locked_at?: string | null;
@@ -305,6 +344,13 @@ export type Database = {
             columns: ["admin_action_id"];
             isOneToOne: false;
             referencedRelation: "admin_actions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_emails_job_alert_id_fkey";
+            columns: ["job_alert_id"];
+            isOneToOne: false;
+            referencedRelation: "job_alerts";
             referencedColumns: ["id"];
           },
         ];
@@ -352,6 +398,7 @@ export type Database = {
           admin_request_id: string | null;
           created_at: string;
           id: string;
+          job_alert_id: string | null;
           kind: string;
           read_at: string | null;
           recipient_id: string;
@@ -363,6 +410,7 @@ export type Database = {
           admin_request_id?: string | null;
           created_at?: string;
           id?: string;
+          job_alert_id?: string | null;
           kind: string;
           read_at?: string | null;
           recipient_id: string;
@@ -373,6 +421,7 @@ export type Database = {
           admin_request_id?: string | null;
           created_at?: string;
           id?: string;
+          job_alert_id?: string | null;
           kind?: string;
           read_at?: string | null;
           recipient_id?: string;
@@ -391,6 +440,13 @@ export type Database = {
             columns: ["admin_request_id"];
             isOneToOne: false;
             referencedRelation: "admin_requests";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_notifications_job_alert_id_fkey";
+            columns: ["job_alert_id"];
+            isOneToOne: false;
+            referencedRelation: "job_alerts";
             referencedColumns: ["id"];
           },
           {
@@ -1493,6 +1549,72 @@ export type Database = {
           },
         ];
       };
+      job_alerts: {
+        Row: {
+          created_at: string;
+          direct_request_id: number | null;
+          id: string;
+          job: string;
+          kind: string;
+          message: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          direct_request_id?: number | null;
+          id?: string;
+          job: string;
+          kind: string;
+          message: string;
+        };
+        Update: {
+          created_at?: string;
+          direct_request_id?: number | null;
+          id?: string;
+          job?: string;
+          kind?: string;
+          message?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_alerts_job_fkey";
+            columns: ["job"];
+            isOneToOne: false;
+            referencedRelation: "job_status";
+            referencedColumns: ["job"];
+          },
+        ];
+      };
+      job_leases: {
+        Row: {
+          expires_at: string;
+          job: string;
+          run_id: string;
+          started_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          expires_at: string;
+          job: string;
+          run_id: string;
+          started_at: string;
+        };
+        Update: {
+          expires_at?: string;
+          job?: string;
+          run_id?: string;
+          started_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_leases_job_fkey";
+            columns: ["job"];
+            isOneToOne: true;
+            referencedRelation: "job_status";
+            referencedColumns: ["job"];
+          },
+        ];
+      };
       job_runs: {
         Row: {
           changed: number;
@@ -1530,6 +1652,55 @@ export type Database = {
           job?: string;
           more_waiting?: boolean;
           started_at?: string;
+        };
+        Relationships: [];
+      };
+      job_status: {
+        Row: {
+          alert_kind: string | null;
+          alerted_at: string | null;
+          consecutive_failures: number;
+          interval_seconds: number;
+          job: string;
+          killed_runs: number;
+          last_error: string | null;
+          last_finished_at: string | null;
+          last_outcome: string | null;
+          last_skipped_at: string | null;
+          last_started_at: string | null;
+          last_success_at: string | null;
+          skipped_overlaps: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          alert_kind?: string | null;
+          alerted_at?: string | null;
+          consecutive_failures?: number;
+          interval_seconds: number;
+          job: string;
+          killed_runs?: number;
+          last_error?: string | null;
+          last_finished_at?: string | null;
+          last_outcome?: string | null;
+          last_skipped_at?: string | null;
+          last_started_at?: string | null;
+          last_success_at?: string | null;
+          skipped_overlaps?: number;
+        };
+        Update: {
+          alert_kind?: string | null;
+          alerted_at?: string | null;
+          consecutive_failures?: number;
+          interval_seconds?: number;
+          job?: string;
+          killed_runs?: number;
+          last_error?: string | null;
+          last_finished_at?: string | null;
+          last_outcome?: string | null;
+          last_skipped_at?: string | null;
+          last_started_at?: string | null;
+          last_success_at?: string | null;
+          skipped_overlaps?: number;
         };
         Relationships: [];
       };
@@ -2054,6 +2225,7 @@ export type Database = {
           provider_id: string;
           public_paths: string[] | null;
           reason: string;
+          reminded_at: string | null;
           rule: string;
           status: string;
         };
@@ -2074,6 +2246,7 @@ export type Database = {
           provider_id: string;
           public_paths?: string[] | null;
           reason: string;
+          reminded_at?: string | null;
           rule: string;
           status?: string;
         };
@@ -2093,6 +2266,7 @@ export type Database = {
           provider_id?: string;
           public_paths?: string[] | null;
           reason?: string;
+          reminded_at?: string | null;
           rule?: string;
           status?: string;
         };
@@ -3289,6 +3463,7 @@ export type Database = {
         Args: { p_page?: number; p_page_size?: number; p_scope?: string };
         Returns: Json;
       };
+      admin_requests_sweep: { Args: Record<PropertyKey, never>; Returns: Json };
       admin_reset_second_factor: {
         Args: { p_reason: string; p_user_id: string };
         Returns: string;
@@ -3508,6 +3683,29 @@ export type Database = {
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_owner: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_time_zone: { Args: { p_name: string }; Returns: boolean };
+      job_alert_delivery: { Args: { p_alert: string }; Returns: string };
+      job_alert_send_direct: {
+        Args: {
+          p_alert: string;
+          p_job: string;
+          p_kind: string;
+          p_message: string;
+        };
+        Returns: number;
+      };
+      job_finish: {
+        Args: { p_error?: string; p_job: string; p_ok: boolean; p_run: string };
+        Returns: undefined;
+      };
+      job_scheduler_configured_at: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      job_start: {
+        Args: { p_job: string; p_lease_seconds?: number };
+        Returns: string;
+      };
+      job_watchdog: { Args: { p_now?: string }; Returns: number };
       listing_parents_active: {
         Args: {
           p_category_id: string;
@@ -3548,6 +3746,7 @@ export type Database = {
         Args: { p_page?: number; p_page_size?: number };
         Returns: Json;
       };
+      profile_holds_remind: { Args: Record<PropertyKey, never>; Returns: Json };
       provider_is_public: { Args: { p_provider_id: string }; Returns: boolean };
       provider_payout_setup: {
         Args: { p_account_id: string; p_charges: boolean; p_payouts: boolean };
@@ -3680,6 +3879,7 @@ export type Database = {
       };
       review_state: { Args: { p_booking_id: string }; Returns: Json };
       review_window_open: { Args: { p_booking_id: string }; Returns: boolean };
+      run_scheduled_job: { Args: { p_job: string }; Returns: number };
       service_next_slot: {
         Args: { p_from?: string; p_listing_id: string };
         Returns: string;

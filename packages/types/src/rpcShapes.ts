@@ -445,10 +445,16 @@ export const adminDecideProfileHoldShape = z.object({
   to: z.array(z.string()).optional(),
   paths: z.array(z.string()).optional(),
 }).nullable();
+/** admin_requests_sweep (the admin-requests job): the requests it expired. */
+export const adminRequestsSweepShape = z.object({ expired: z.array(id) });
+/** profile_holds_remind (the hidden-content-reminder job): the hides the owners were reminded of. */
+export const profileHoldsRemindShape = z.object({ reminded: z.array(id) });
 export const myProfileHoldsShape = z.array(z.object({ part: z.enum(["avatar", "cover", "headline", "bio"]), rule: z.string(), hidden_at: time }));
 
 export const RPC_SHAPES = {
   admin_profile_holds_page: adminProfileHoldsPageShape,
+  admin_requests_sweep: adminRequestsSweepShape,
+  profile_holds_remind: profileHoldsRemindShape,
   admin_hide_profile_content: adminHideProfileContentShape,
   admin_decide_profile_hold: adminDecideProfileHoldShape,
   my_profile_holds: myProfileHoldsShape,

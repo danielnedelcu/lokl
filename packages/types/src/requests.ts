@@ -132,3 +132,14 @@ export function adminProfileHiddenText(who: string, providerName: string | null 
   const what = list.length > 1 ? `${list.slice(0, -1).join(", ")} and ${list.at(-1)}` : (list[0] ?? "part of the profile");
   return `${who} hid the ${what} of ${providerName || "a provider"}. It's waiting for you on Requests.`;
 }
+
+// The job scheduler (2026-10-21): hidden content waiting 7 days, for the owners.
+
+/** "Hidden profile content from Tours and Cuts (its headline) has waited 7 days for you." */
+export function adminProfileHiddenOverdueText(providerName: string | null | undefined, parts: string[]): string {
+  const words: Record<string, string> = { avatar: "profile photo", cover: "cover photo", headline: "headline", bio: "about text" };
+  const order = Object.keys(words);
+  const list = [...parts].sort((a, b) => order.indexOf(a) - order.indexOf(b)).map((p) => words[p] ?? p);
+  const what = list.length > 1 ? `${list.slice(0, -1).join(", ")} and ${list.at(-1)}` : (list[0] ?? "part of their profile");
+  return `Hidden profile content from ${providerName || "a provider"} (its ${what}) has waited 7 days for you. It stays hidden until you decide.`;
+}

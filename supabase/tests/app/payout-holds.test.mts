@@ -20,6 +20,7 @@ import { safeStripe, STRIPE_CLIENT_OPTIONS } from "@repo/types";
 import { stripeTestKey } from "./_stripeKey";
 import { handlePaymentsEvent } from "../../../apps/website/server/utils/bookings";
 import { payOut } from "../../../apps/website/server/utils/bookingJobs";
+import { refundInFull } from "../../../apps/website/server/utils/bookingCancellations";
 import { releasePayout } from "../../../apps/website/server/utils/adminBookings";
 import { forgetTestAdmins, makeAdmin } from "./_admin.mts";
 
@@ -211,6 +212,53 @@ try {
   const afterOther = await row(other.id);
   check(afterOther.payout_hold === "refunded" && afterOther.status === "completed",
     `5b. a release for the suspension doesn't cover a refund: it's held again, for the refund (hold ${afterOther.payout_hold})`);
+
+  // ---------------------------------------------------------------- 6. two at once: one transfer, one refund
+  // The job lease keeps two runs of a job apart; this goes past it on purpose
+  // (two pay-out runs called directly, at the same moment), so only the
+  // idempotency key (one per booking, action and attempt) stands between the
+  // booking and a second payment.
+  // Section 4 suspended the provider (the only one holding the sandbox's
+  // connected account): active again, so its listing takes bookings.
+  await must(db.from("providers").update({ status: "active" }).eq("id", goodProvider));
+  const twinListing = exp;
+  const twin = await paidBooking(twinListing, "pm_card_bypassPending");
+  endedAndDue(twin.id);
+  // Stripe, recording the key every transfer and refund is sent with.
+  const keys = { transfer: [] as string[], refund: [] as string[] };
+  const spy = <R extends object>(resource: R, into: string[]) => new Proxy(resource, {
+    get(t, p) {
+      const v = Reflect.get(t, p) as unknown;
+      if (p === "create") return (...a: any[]) => { into.push(a[1]?.idempotencyKey); return (v as (...x: any[]) => unknown).apply(t, a); };
+      return typeof v === "function" ? (v as (...x: any[]) => unknown).bind(t) : v;
+    },
+  });
+  const recording = new Proxy(stripe, {
+    get(t, p) {
+      if (p === "transfers") return spy(t.transfers, keys.transfer);
+      if (p === "refunds") return spy(t.refunds, keys.refund);
+      return Reflect.get(t, p);
+    },
+  });
+  const [p1, p2] = await Promise.all([payOut(db, recording, { bookingId: twin.id }), payOut(db, recording, { bookingId: twin.id })]);
+  const transfers = (await stripe.transfers.list({ transfer_group: `booking_${twin.id}`, limit: 10 })).data;
+  check(transfers.length === 1, `6a. two pay-out runs at once: Stripe makes one transfer (${transfers.length}; runs said ${[...p1.done, ...p2.done, ...p1.failed, ...p2.failed].join(" / ")})`);
+  check((await row(twin.id)).status === "paid_out" && (await row(twin.id)).stripe_transfer_id === transfers[0]?.id, "6b. ...recorded once");
+  const both = await paidBooking(twinListing, "pm_card_bypassPending");
+  const r = await row(both.id);
+  await Promise.all([refundInFull(db, recording, r as never), refundInFull(db, recording, r as never)]);
+  const refunds = (await stripe.refunds.list({ payment_intent: both.pi, limit: 10 })).data;
+  check(refunds.length === 1 && refunds[0]!.amount === 5000, `6c. two refunds at once: Stripe makes one, for the full amount (${refunds.length})`);
+  const attempt = await db.schema("private").from("stripe_attempts").select("action, attempt").in("booking_id", [twin.id, both.id]).order("action");
+  check(JSON.stringify(attempt.data) === JSON.stringify([{ action: "refund", attempt: 1 }, { action: "transfer", attempt: 1 }]),
+    "6d. ...each on its first attempt: nothing was refused");
+  // What guarantees it in general (Stripe's own limits stop these two
+  // particular doubles anyway): every call sent the one key for its
+  // booking, action and attempt, never one per time window.
+  check(keys.transfer.length >= 1 && keys.transfer.every((k) => k === `booking:${twin.id}:transfer:1`),
+    `6e. every transfer was sent with the booking's one key (${[...new Set(keys.transfer)].join(", ")})`);
+  check(keys.refund.length >= 1 && keys.refund.every((k) => k === `booking:${both.id}:refund:5000:1`),
+    `6f. every refund was sent with the booking's one key, its amount and attempt (${[...new Set(keys.refund)].join(", ")})`);
 } catch (e) {
   failures++;
   console.error(`FAIL setup or run: ${(e as Error).message}`);
@@ -221,6 +269,7 @@ try {
     const ids = created.listings.map((i) => `'${i}'`).join(",");
     execFileSync("psql", [local.DB_URL!, "-q", "-c", `
       set session_replication_role = replica;
+      delete from private.stripe_attempts where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_emails where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_finances where booking_id in (select id from bookings where listing_id in (${ids}));
       delete from booking_reports where booking_id in (select id from bookings where listing_id in (${ids}));

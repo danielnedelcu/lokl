@@ -19,6 +19,7 @@
 //
 //   npm run check:full
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -97,7 +98,11 @@ const [, , database, build] = await Promise.all([
 
 // The app and browser tests need the database and the check build.
 if (database && build) {
-  const ports = { WEBSITE_PORT: "3300", ADMIN_PORT: "3301", WEBSITE_URL: "http://localhost:3300", ADMIN_URL: "http://localhost:3301" };
+  // One job secret per run, shared by the test website and the job route's test.
+  const ports = {
+    WEBSITE_PORT: "3300", ADMIN_PORT: "3301", WEBSITE_URL: "http://localhost:3300", ADMIN_URL: "http://localhost:3301",
+    NUXT_JOB_SECRET: randomBytes(32).toString("hex"),
+  };
   const appsUp = await step("app tests: start apps", process.execPath, ["scripts/ci-start-apps.mjs"], ports);
   if (appsUp) await step("db:test:app", "npm", ["run", "db:test:app"], ports);
   else skipped("db:test:app");

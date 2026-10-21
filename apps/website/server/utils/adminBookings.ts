@@ -22,9 +22,6 @@ export type AdminAction =
   | "cancel_booking" | "release_payout" | "resolve_problem_paid" | "resolve_problem_refunded"
   | "retry_email" | "suspend_provider" | "reinstate_provider";
 
-// real time: Stripe's idempotency-key window, on Stripe's clock.
-const key = (id: string, action: string) => `admin:${id}:${action}:${Math.floor(Date.now() / 600_000)}`;
-
 export function requireReason(reason: string | undefined): string {
   const r = (reason ?? "").trim();
   if (r.length < 5) throw new BookingError("Say why, in a few words. It's kept with the booking's history.", 400);
@@ -124,7 +121,7 @@ export async function adminCancelBooking(
   await saveCancelReason(db, b.id, b.status, reason);
   let refunded: number;
   try {
-    refunded = await refundInFull(stripe, b as any, meaning);
+    refunded = await refundInFull(db, stripe, b as any, meaning);
   } catch (e) {
     // The refund didn't happen: its reservation goes, so it doesn't count
     // toward support's limits for 15 minutes. Not when the outcome is
@@ -135,7 +132,7 @@ export async function adminCancelBooking(
     }
     throw e;
   }
-  const reversal = b.status === "paid_out" ? await reverseTransfer(stripe, b) : null;
+  const reversal = b.status === "paid_out" ? await reverseTransfer(db, stripe, b) : null;
   const done = await recordAdminCancel(db, {
     bookingId: b.id, adminId, reason, from: b.status, resolveProblem, refundedCents: refunded,
     reversalId: reversal && "id" in reversal ? reversal.id : null,

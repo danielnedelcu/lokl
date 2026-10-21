@@ -266,8 +266,21 @@ try {
       refunds: { create: async () => { throw refused("charge_already_refunded"); } },
       charges: { retrieve: async () => ({ amount: 5000, amount_refunded: 5000 }) },
     } as unknown as Stripe;
-    const refundedNow = await refundInFull(fullyRefunded, { id: "b", stripe_payment_intent_id: "pi_x", total_cents: 5000 } as never).catch((e) => (e as Error).message);
+    // A real booking of this test's (each money-moving call reads its attempt number).
+    const some = (await must(db.from("bookings").select("id").in("listing_id", created.listings).limit(1).single())) as { id: string };
+    const refundedNow = await refundInFull(db, fullyRefunded, { id: some.id, stripe_payment_intent_id: "pi_x", total_cents: 5000 } as never).catch((e) => (e as Error).message);
     check(refundedNow === 5000, `8a. a refund Stripe refuses as already done counts as done (${refundedNow})`);
+    const attempt = await db.schema("private").from("stripe_attempts").select("attempt").eq("booking_id", some.id).eq("action", "refund").maybeSingle();
+    check(attempt.data?.attempt === 1, `8a2. ...and isn't counted as a refusal: the next refund keeps its key (attempt ${attempt.data?.attempt})`);
+    // A real refusal (the charge isn't refunded): the next try gets a new key.
+    const refusing = {
+      paymentIntents: { retrieve: async () => ({ id: "pi_x", status: "succeeded", latest_charge: { id: "ch_x", amount: 5000, amount_refunded: 0 } }) },
+      refunds: { create: async () => { throw refused("charge_disputed"); } },
+      charges: { retrieve: async () => ({ amount: 5000, amount_refunded: 0 }) },
+    } as unknown as Stripe;
+    await refundInFull(db, refusing, { id: some.id, stripe_payment_intent_id: "pi_x", total_cents: 5000 } as never).catch(() => null);
+    const raised = await db.schema("private").from("stripe_attempts").select("attempt").eq("booking_id", some.id).eq("action", "refund").maybeSingle();
+    check(raised.data?.attempt === 2, `8a3. a refund Stripe definitely refuses moves the next try to a new key (attempt ${raised.data?.attempt})`);
     const fullyReversed = {
       transfers: {
         retrieve: (() => { let n = 0; return async () => (n++ === 0 ? { id: "tr_x", amount: 4000, amount_reversed: 0 } : { id: "tr_x", amount: 4000, amount_reversed: 4000 }); })(),
@@ -275,7 +288,7 @@ try {
         listReversals: async () => ({ data: [{ id: "trr_x" }] }),
       },
     } as unknown as Stripe;
-    const reversed = await reverseTransfer(fullyReversed, { id: "b", stripe_transfer_id: "tr_x" });
+    const reversed = await reverseTransfer(db, fullyReversed, { id: some.id, stripe_transfer_id: "tr_x" });
     check("id" in reversed && reversed.id === "trr_x", `8b. a reversal Stripe refuses as already done counts as done (${JSON.stringify(reversed)})`);
   });
 
@@ -376,6 +389,7 @@ try {
       delete from public.notifications where booking_id in (select id from public.bookings where listing_id in (${ids}));
       delete from public.booking_contacts where booking_id in (select id from public.bookings where listing_id in (${ids}));
       delete from public.booking_finances where booking_id in (select id from public.bookings where listing_id in (${ids}));
+      delete from private.stripe_attempts where booking_id in (select id from public.bookings where listing_id in (${ids}));
       delete from public.bookings where listing_id in (${ids});`);
   }
   for (const id of created.listings) await db.from("listings").delete().eq("id", id);
