@@ -88,6 +88,11 @@ const notFound = (e: { message?: string; statusCode?: string | number } | null) 
  * still unsettled (a storage error), for the caller to say so.
  */
 export async function settleHeldFiles(db: SupabaseClient): Promise<number> {
+  return (await settleHeldFilesDetail(db)).failed.length;
+}
+
+/** settleHeldFiles, naming each hold settled or not (the held-photos job's lines). */
+export async function settleHeldFilesDetail(db: SupabaseClient, deadline?: number): Promise<{ checked: number; settled: string[]; failed: string[] }> {
   const { data: holds, error } = await db.from("provider_profile_holds")
     .select("id, files, public_paths, held_paths")
     .in("files", ["moving", "restoring", "deleting"])
@@ -95,10 +100,12 @@ export async function settleHeldFiles(db: SupabaseClient): Promise<number> {
     .limit(50);
   if (error) {
     console.error("[admin api] couldn't read the holds' files", errorText(error));
-    return 1;
+    return { checked: 0, settled: [], failed: ["(the holds couldn't be read)"] };
   }
-  let unsettled = 0;
+  const out = { checked: holds?.length ?? 0, settled: [] as string[], failed: [] as string[] };
   for (const h of (holds ?? []) as { id: string; files: string; public_paths: string[]; held_paths: string[] }[]) {
+    // real time: the run's budget, against the host's own clock.
+    if (deadline && Date.now() > deadline) break;
     try {
       const outcome = h.files === "moving" ? await moveAll(db, PUBLIC_BUCKET, h.public_paths, HELD_BUCKET, h.held_paths)
         : h.files === "restoring" ? await moveAll(db, HELD_BUCKET, h.held_paths, PUBLIC_BUCKET, h.public_paths)
@@ -107,12 +114,13 @@ export async function settleHeldFiles(db: SupabaseClient): Promise<number> {
       if (outcome === "missing" && h.files === "restoring") throw new Error("the held files are gone");
       const { error: e } = await db.rpc("admin_profile_hold_files", { p_hold_id: h.id, p_files: next });
       if (e) throw e;
+      out.settled.push(`${h.id}: files ${next}`);
     } catch (e) {
-      unsettled++;
+      out.failed.push(`${h.id}: ${errorText(e)}`);
       console.error(`[admin api] hold ${h.id}: its files didn't settle`, errorText(e));
     }
   }
-  return unsettled;
+  return out;
 }
 
 async function moveAll(db: SupabaseClient, fromBucket: string, from: string[], toBucket: string, to: string[]): Promise<"moved" | "missing"> {

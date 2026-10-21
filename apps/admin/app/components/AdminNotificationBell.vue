@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  adminLimitReachedText, adminListingTakenDownText, adminNotificationText, adminProfileHiddenText, adminSettingsChangeText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
+  adminLimitReachedText, adminListingTakenDownText, adminNotificationText, adminProfileHiddenOverdueText, adminProfileHiddenText, adminSettingsChangeText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
   type AdminLimitName, type AdminNotificationKind, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type SupportCategory,
 } from "@repo/types";
 import type { AdminNotificationRow } from "@repo/ui/app/utils/notificationFeed";
@@ -19,6 +19,7 @@ interface Item {
   kind: AdminNotificationKind;
   report_id: string | null;
   admin_action_id: string | null;
+  job_alert: { message: string } | null;
   created_at: string;
   read_at: string | null;
   report: { category: SupportCategory; provider: { display_name: string } | null } | null;
@@ -65,6 +66,11 @@ const textOf = (n: Item) => {
   if (n.kind === "profile_hidden") {
     return n.action ? adminProfileHiddenText(emailOf(n.action.admin_id), hiddenFrom.value.get(n.action.target_id ?? "")?.name, hiddenFrom.value.get(n.action.target_id ?? "")?.parts.get(n.id) ?? []) : "Support hid part of a provider's profile.";
   }
+  if (n.kind === "job_alert") return n.job_alert?.message ?? "A job needs a look.";
+  if (n.kind === "profile_hidden_overdue") {
+    const h = hiddenFrom.value.get(n.action?.target_id ?? "");
+    return adminProfileHiddenOverdueText(h?.name, h?.parts.get(n.id) ?? []);
+  }
   if (n.kind === "settings_change") {
     return n.action ? adminSettingsChangeText(emailOf(n.action.admin_id), n.action.message) : "Support's limits changed.";
   }
@@ -86,6 +92,7 @@ async function load() {
   const [recent, count] = await Promise.all([
     supabase.from("admin_notifications")
       .select("id, kind, report_id, admin_action_id, created_at, read_at, report:support_reports(category, provider:providers(display_name)), " +
+        "job_alert:job_alerts(message), " +
         "action:admin_actions(admin_id, target_id, action, message, amount_cents), " +
         "request:admin_requests(kind, status, resolve_problem, amount_cents, requested_by, booking:bookings(listing:listings(title), provider:providers(display_name)), provider:providers!admin_requests_provider_id_fkey(display_name))")
       .eq("recipient_id", me).order("created_at", { ascending: false }).limit(20),
@@ -108,7 +115,7 @@ async function load() {
       .map((b) => [b.id, { title: b.listing?.title ?? null, provider: b.provider?.display_name ?? null }]));
   }
   // Profile content support hid: the provider's name and the parts.
-  const hidden = items.value.filter((n) => n.kind === "profile_hidden" && n.action?.target_id);
+  const hidden = items.value.filter((n) => (n.kind === "profile_hidden" || n.kind === "profile_hidden_overdue") && n.action?.target_id);
   if (hidden.length) {
     const providerIds = [...new Set(hidden.map((n) => n.action!.target_id!))];
     // bounded: at most the 20 notifications shown
@@ -161,7 +168,8 @@ async function openItem(n: Item) {
     : n.kind === "support_refund" ? `/bookings/${n.action?.target_id}`
     : n.kind === "listing_taken_down" ? `/listings/${n.action?.target_id}`
     : n.kind === "settings_change" ? "/activity"
-    : n.kind === "profile_hidden" ? "/requests"
+    : n.kind === "profile_hidden" || n.kind === "profile_hidden_overdue" ? "/requests"
+    : n.kind === "job_alert" ? "/"
     : n.kind.startsWith("request_") ? "/requests" : `/reports/${n.report_id}`);
 }
 

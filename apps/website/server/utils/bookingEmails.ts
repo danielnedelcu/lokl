@@ -15,9 +15,9 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { adminLimitReachedText, adminListingTakenDownText, adminProfileHiddenText, adminRequestNewText, adminSettingsChangeText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
+import { adminLimitReachedText, adminListingTakenDownText, adminProfileHiddenOverdueText, adminProfileHiddenText, adminRequestNewText, adminSettingsChangeText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderAdminInviteEmail, renderAdminLimitEmail, renderAdminListingTakenDownEmail, renderAdminProfileHiddenEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
+import { renderAdminInviteEmail, renderAdminJobAlertEmail, renderAdminLimitEmail, renderAdminListingTakenDownEmail, renderAdminProfileHiddenEmail, renderAdminProfileHiddenOverdueEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -209,6 +209,8 @@ async function runOutbox<R extends OutboxRow>(
     narrow?: (q: any) => any;
     now?: Date;
     limit?: number;
+    /** Stop claiming rows after this time (ms since the epoch): a scheduled run's budget. */
+    deadline?: number;
     prepare: (row: R) => Promise<{ skip: string; to?: string | null } | { to: string | null; email: RenderedEmail }>;
   },
 ): Promise<SendResult> {
@@ -237,6 +239,11 @@ async function runOutbox<R extends OutboxRow>(
     for (const row of (data ?? []) as unknown as R[]) {
       // Over the quota: the rest would be refused too, so leave them for later.
       if (out.limited) break;
+      // real time: the run's budget, against the host's own clock.
+      if (o.deadline && Date.now() > o.deadline) {
+        out.more = true;
+        break;
+      }
       const label = `${row.id} ${row.kind}`;
       try {
         // A send that keeps crashing mid-way doesn't get retried forever.
@@ -327,7 +334,7 @@ export async function sendBookingEmails(
   db: SupabaseClient,
   mailer: Mailer | null,
   settings: EmailSettings,
-  opts: { bookingId?: string; now?: Date; limit?: number } = {},
+  opts: { bookingId?: string; now?: Date; limit?: number; deadline?: number } = {},
 ): Promise<SendResult> {
   return runOutbox<Row>(db, mailer, settings, {
     table: "booking_emails",
@@ -335,6 +342,7 @@ export async function sendBookingEmails(
     keyPrefix: "booking-email",
     narrow: opts.bookingId ? (q) => q.eq("booking_id", opts.bookingId) : undefined,
     now: opts.now,
+    deadline: opts.deadline,
     limit: opts.limit,
     prepare: async (row) => {
       const { ctx, customerEmail, providerOwnerId, status } = await loadEmailContext(db, row.booking_id, settings.siteUrl);
@@ -355,7 +363,7 @@ export async function sendProviderEmails(
   db: SupabaseClient,
   mailer: Mailer | null,
   settings: EmailSettings,
-  opts: { providerId?: string; now?: Date; limit?: number } = {},
+  opts: { providerId?: string; now?: Date; limit?: number; deadline?: number } = {},
 ): Promise<SendResult> {
   type ProviderRow = OutboxRow & { provider_id: string; admin_action_id: string; kind: ProviderAccountEmailKind; message: string | null; removed: string[] | null; rule: string | null };
   return runOutbox<ProviderRow>(db, mailer, settings, {
@@ -364,6 +372,7 @@ export async function sendProviderEmails(
     keyPrefix: "provider-email",
     narrow: opts.providerId ? (q) => q.eq("provider_id", opts.providerId) : undefined,
     now: opts.now,
+    deadline: opts.deadline,
     limit: opts.limit,
     prepare: async (row) => {
       const { data: p, error } = await db.from("providers").select("display_name, owner_id").eq("id", row.provider_id).single();
@@ -394,7 +403,7 @@ export async function sendSupportEmails(
   db: SupabaseClient,
   mailer: Mailer | null,
   settings: EmailSettings,
-  opts: { adminUrl: string; reportId?: string; now?: Date; limit?: number },
+  opts: { adminUrl: string; reportId?: string; now?: Date; limit?: number; deadline?: number },
 ): Promise<SendResult> {
   type SupportRow = OutboxRow & { report_id: string; kind: SupportEmailKind; provider_id: string | null; admin_id: string | null };
   return runOutbox<SupportRow>(db, mailer, settings, {
@@ -403,6 +412,7 @@ export async function sendSupportEmails(
     keyPrefix: "support-email",
     narrow: opts.reportId ? (q) => q.eq("report_id", opts.reportId) : undefined,
     now: opts.now,
+    deadline: opts.deadline,
     limit: opts.limit,
     prepare: async (row) => {
       const { data: r, error } = await db.from("support_reports")
@@ -445,25 +455,57 @@ export async function sendAdminEmails(
   db: SupabaseClient,
   mailer: Mailer | null,
   settings: EmailSettings,
-  opts: { adminUrl: string; now?: Date; limit?: number },
+  opts: { adminUrl: string; now?: Date; limit?: number; deadline?: number },
 ): Promise<SendResult> {
-  type AdminRow = OutboxRow & { kind: AdminEmailKind; admin_action_id: string; recipient_id: string };
+  type AdminRow = OutboxRow & { kind: AdminEmailKind; admin_action_id: string | null; job_alert_id: string | null; recipient_id: string };
   const emailOf = async (id: string) => {
     const { data, error } = await db.auth.admin.getUserById(id);
     return error ? null : (data.user?.email ?? null);
   };
   return runOutbox<AdminRow>(db, mailer, settings, {
     table: "admin_emails",
-    columns: "id, kind, admin_action_id, recipient_id, status, attempts, locked_at, created_at",
+    columns: "id, kind, admin_action_id, job_alert_id, recipient_id, status, attempts, locked_at, created_at",
     keyPrefix: "admin-email",
     now: opts.now,
+    deadline: opts.deadline,
     limit: opts.limit,
     prepare: async (row) => {
       if (!opts.adminUrl) return { skip: "NUXT_ADMIN_ORIGIN isn't set, so there's no link to the admin app." };
       const adminUrl = opts.adminUrl.replace(/\/$/, "");
+      // A job alert (the watchdog, which also emails the owners itself,
+      // straight through Resend): this copy goes unless that one was delivered.
+      if (row.kind === "admin_job_alert") {
+        // bounded: one row by its primary key
+        const { data: member } = await db.from("admin_members").select("role, status").eq("user_id", row.recipient_id).maybeSingle();
+        const to = await emailOf(row.recipient_id);
+        if (member?.status !== "active" || member.role !== "owner") return { skip: "No longer an owner.", to };
+        const { data: delivery, error: dError } = await db.rpc("job_alert_delivery", { p_alert: row.job_alert_id! });
+        if (dError) throw new Error(dError.message);
+        if (delivery === "sent") return { skip: "Already emailed by the watchdog itself.", to };
+        // No answer from Resend yet: try this copy again in a minute.
+        if (delivery === "pending") throw new Error("waiting for the watchdog's own email to be answered");
+        const { data: alert, error: aError } = await db.from("job_alerts").select("kind, message").eq("id", row.job_alert_id!).single();
+        if (aError) throw new Error(aError.message);
+        return { to, email: renderAdminJobAlertEmail({ adminUrl, text: alert.message, recovered: alert.kind === "recovered" }) };
+      }
       const { data: action, error } = await db.from("admin_actions")
-        .select("admin_id, target_id, action, message, amount_cents").eq("id", row.admin_action_id).single();
+        .select("admin_id, target_id, action, message, amount_cents").eq("id", row.admin_action_id!).single();
       if (error) throw new Error(error.message);
+      if (row.kind === "admin_profile_hidden_overdue") {
+        // For each owner, once per hide (the hidden-content-reminder job); skipped once it's decided.
+        // bounded: one row by its primary key
+        const { data: member } = await db.from("admin_members").select("role, status").eq("user_id", row.recipient_id).maybeSingle();
+        const to = await emailOf(row.recipient_id);
+        if (member?.status !== "active" || member.role !== "owner") return { skip: "No longer an owner.", to };
+        const [{ data: p }, { data: holds }] = await Promise.all([
+          db.from("providers").select("display_name").eq("id", action.target_id!).maybeSingle(),
+          // bounded: one hide's holds, at most four parts
+          db.from("provider_profile_holds").select("part").eq("hidden_action_id", row.admin_action_id!).eq("status", "hidden"),
+        ]);
+        const parts = ((holds ?? []) as { part: string }[]).map((h) => h.part);
+        if (!parts.length) return { skip: "Already decided.", to };
+        return { to, email: renderAdminProfileHiddenOverdueEmail({ adminUrl, text: adminProfileHiddenOverdueText(p?.display_name, parts) }) };
+      }
       if (row.kind === "admin_profile_hidden") {
         // For each owner (step 5e); skipped once they're no longer one.
         // bounded: one row by its primary key

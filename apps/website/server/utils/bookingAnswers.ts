@@ -17,6 +17,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { BookingError } from "./bookings";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 import { refundInFull } from "./bookingCancellations";
+import { definiteRefusal, moneyKey, stripeAttempt, stripeRefused } from "./stripeAttempts";
 
 export interface RequestRow {
   id: string;
@@ -112,7 +113,7 @@ export async function finishAccept(
   const now = await read(db, b.id);
   if (now.status === "confirmed") return "already accepted";
   // Charged, but the booking can't be confirmed: give the money back.
-  const refunded = await refundInFull(stripe, now as never);
+  const refunded = await refundInFull(db, stripe, now as never);
   if (now.status === "requested") {
     await move(db, b.id, "requested", {
       // real time: when it happened (a record).
@@ -151,14 +152,17 @@ export async function acceptRequest(db: SupabaseClient, stripe: Stripe, bookingI
   if (!b.stripe_payment_intent_id) throw new Error(`booking ${b.id} is requested with no PaymentIntent`);
 
   let intent: Stripe.PaymentIntent;
+  // One key per booking and attempt (stripeAttempts.ts): two accepts at once capture once.
+  const attempt = await stripeAttempt(db, b.id, "capture");
   try {
     intent = await stripe.paymentIntents.capture(
       b.stripe_payment_intent_id,
       // real time: when it happened (a record).
       { metadata: { booking_id: b.id, lokl_action: "accept", accepted_at: new Date().toISOString() } },
-      { idempotencyKey: answerKey(b.id, "capture") },
+      { idempotencyKey: moneyKey(b.id, "capture", attempt) },
     );
   } catch (error) {
+    if (definiteRefusal(error)) await stripeRefused(db, b.id, "capture", attempt);
     // Go by what Stripe has now: captured already (a retry), the hold gone,
     // or Stripe not answering (nothing changes, try again).
     intent = await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id).catch(() => {

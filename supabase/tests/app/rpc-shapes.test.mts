@@ -202,6 +202,11 @@ try {
   check(mineHeld.length === 1 && mineHeld[0]!.part === "headline" && !("reason" in mineHeld[0]!), "3r. my_profile_holds: the provider sees the part, not why");
   const work = await read(admin.server, "admin_decide_profile_hold", { p_admin_id: admin.id, p_hold_id: hold!.id, p_decision: "restore" });
   check(work === null, "3s. admin_decide_profile_hold: restoring a headline leaves no files to move");
+  // The scheduler's database work (2026-10-21), as the job route reads it (server key).
+  const sweep = await read(db, "admin_requests_sweep");
+  check(Array.isArray(sweep.expired), "3t. admin_requests_sweep: the requests it expired");
+  const remind = await read(db, "profile_holds_remind");
+  check(Array.isArray(remind.reminded), "3u. profile_holds_remind: the hides the owners were reminded of");
   check(true, "3d. the admin functions match their schemas");
 
   // 4. The daily job, through its own code (the server key): this provider's

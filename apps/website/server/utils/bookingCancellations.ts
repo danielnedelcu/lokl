@@ -17,6 +17,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { customerCancelOutcome, logText } from "@repo/types";
 import { abandonCheckout, BookingError } from "./bookings";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
+import { moneyKey, stripeAttempt, stripeRefused } from "./stripeAttempts";
 
 interface CancelRow {
   id: string;
@@ -79,7 +80,7 @@ export async function saveCancelReason(db: SupabaseClient, id: string, from: str
  * done once the charge, read again, is refunded. Returns the total now
  * refunded, in cents.
  */
-export async function refundInFull(stripe: Stripe, b: CancelRow, meaning?: CancelMeaning): Promise<number> {
+export async function refundInFull(db: SupabaseClient, stripe: Stripe, b: CancelRow, meaning?: CancelMeaning): Promise<number> {
   if (!b.stripe_payment_intent_id) throw new Error(`booking ${b.id} has no payment`);
   const pi = await stripe.paymentIntents.retrieve(b.stripe_payment_intent_id, { expand: ["latest_charge"] });
   const charge = pi.latest_charge as Stripe.Charge | null;
@@ -87,16 +88,23 @@ export async function refundInFull(stripe: Stripe, b: CancelRow, meaning?: Cance
   const owed = Math.min(b.total_cents, charge.amount);
   const left = owed - charge.amount_refunded;
   if (left > 0) {
+    // One key per booking, amount and attempt (stripeAttempts.ts): two calls
+    // at once make one refund.
+    const attempt = await stripeAttempt(db, b.id, "refund");
     try {
       await stripe.refunds.create(
         { payment_intent: pi.id, amount: left, reason: "requested_by_customer", metadata: { booking_id: b.id, ...meaning } },
-        { idempotencyKey: key(b.id, `refund-${left}`) },
+        { idempotencyKey: moneyKey(b.id, "refund", attempt, left) },
       );
     } catch (e) {
       const err = e as Stripe.errors.StripeError;
       if (err.type !== "StripeInvalidRequestError") throw e;
       const now = await stripe.charges.retrieve(charge.id);
-      if (now.amount_refunded < owed) throw e;
+      if (now.amount_refunded < owed) {
+        // Refused: the next try (its cause may change, a dispute closing) gets a new key.
+        await stripeRefused(db, b.id, "refund", attempt);
+        throw e;
+      }
     }
   }
   return owed;
@@ -125,7 +133,7 @@ export async function releaseHold(stripe: Stripe, b: { id: string; stripe_paymen
  * refusal as done. A failure (usually an empty balance) is returned, to be
  * recorded as money owed, not thrown.
  */
-export async function reverseTransfer(stripe: Stripe, b: Record<string, any>): Promise<{ id: string } | { failure: string }> {
+export async function reverseTransfer(db: SupabaseClient, stripe: Stripe, b: Record<string, any>): Promise<{ id: string } | { failure: string }> {
   const reversed = async (transferId: string) => {
     const existing = (await stripe.transfers.listReversals(transferId, { limit: 1 })).data[0];
     return { id: existing?.id ?? `${transferId}:reversed` };
@@ -133,11 +141,12 @@ export async function reverseTransfer(stripe: Stripe, b: Record<string, any>): P
   const transfer = await stripe.transfers.retrieve(b.stripe_transfer_id);
   const left = transfer.amount - transfer.amount_reversed;
   if (left <= 0) return reversed(transfer.id);
+  const attempt = await stripeAttempt(db, b.id, "reversal");
   try {
     const reversal = await stripe.transfers.createReversal(
       transfer.id,
       { amount: left, metadata: { booking_id: b.id } },
-      { idempotencyKey: key(b.id, "reverse") },
+      { idempotencyKey: moneyKey(b.id, "reversal", attempt, left) },
     );
     return { id: reversal.id };
   } catch (e) {
@@ -146,7 +155,11 @@ export async function reverseTransfer(stripe: Stripe, b: Record<string, any>): P
       const now = await stripe.transfers.retrieve(transfer.id);
       if (now.amount_reversed >= now.amount) return reversed(transfer.id);
     }
-    if (err.type === "StripeInvalidRequestError" || err.type === "StripePermissionError") return { failure: logText(err.message, 500) };
+    if (err.type === "StripeInvalidRequestError" || err.type === "StripePermissionError") {
+      // Refused (usually an empty balance): the next try gets a new key.
+      await stripeRefused(db, b.id, "reversal", attempt);
+      return { failure: logText(err.message, 500) };
+    }
     throw e;
   }
 }
@@ -211,7 +224,7 @@ export async function finishLostCancel(db: SupabaseClient, stripe: Stripe, b: Ca
   if (meaning.cancelled_by === "admin") {
     if (!meaning.admin_id) return null;
     let reversal: { id: string } | { failure: string } | null = null;
-    if (b.status === "paid_out") reversal = await reverseTransfer(stripe, b);
+    if (b.status === "paid_out") reversal = await reverseTransfer(db, stripe, b);
     const done = await recordAdminCancel(db, {
       bookingId: b.id, adminId: meaning.admin_id, reason: (b.cancel_reason as string | null) ?? "Cancelled by lokl (the reason wasn't saved).",
       from: b.status, resolveProblem: meaning.resolve_problem === "true", refundedCents: owed, cancelledAt: at,
@@ -245,7 +258,7 @@ export async function customerCancel(db: SupabaseClient, stripe: Stripe, booking
       return (await move(db, b.id, "requested", { status: "cancelled", cancelled_by: "customer", status_changed_by: "customer" }))
         ? "cancelled, hold released" : "already cancelled";
     case "full_refund": {
-      const refunded = await refundInFull(stripe, b, meaning);
+      const refunded = await refundInFull(db, stripe, b, meaning);
       return (await move(db, b.id, "confirmed", {
         status: "cancelled", cancelled_by: "customer", status_changed_by: "customer",
         // real time: when it happened (a record).
@@ -269,7 +282,7 @@ export async function providerCancel(db: SupabaseClient, stripe: Stripe, booking
   // real time: a rule the database checks too (a started booking can't be cancelled).
   if (b.starts_at && Date.now() >= Date.parse(b.starts_at)) throw new BookingError("This booking has started, so it can't be cancelled.", 409);
   await saveCancelReason(db, b.id, "confirmed", reason);
-  const refunded = await refundInFull(stripe, b, { lokl_action: "cancel", cancelled_by: "provider" });
+  const refunded = await refundInFull(db, stripe, b, { lokl_action: "cancel", cancelled_by: "provider" });
   return (await move(db, b.id, "confirmed", {
     status: "cancelled", cancelled_by: "provider", cancel_reason: reason, status_changed_by: "provider",
     // real time: when it happened (a record).
@@ -304,7 +317,7 @@ export async function cancelSession(db: SupabaseClient, stripe: Stripe, sessionI
     }
     const b = await read(db, row.id);
     await saveCancelReason(db, b.id, "confirmed", reason);
-    const refunded = await refundInFull(stripe, b, { lokl_action: "cancel_session", cancelled_by: by });
+    const refunded = await refundInFull(db, stripe, b, { lokl_action: "cancel_session", cancelled_by: by });
     const moved = await move(db, b.id, "confirmed", {
       status: "cancelled", cancelled_by: by, cancel_reason: reason, status_changed_by: by,
       // real time: when it happened (a record).

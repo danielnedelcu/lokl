@@ -37,11 +37,14 @@ export interface NotificationRow {
 export interface AdminNotificationRow {
   id: string;
   recipient_id: string;
-  kind: "support_new" | "support_safety" | "support_reply" | "team_change" | "request_new" | "request_decided" | "limit_reached" | "support_refund" | "listing_taken_down" | "settings_change" | "profile_hidden";
+  kind: "support_new" | "support_safety" | "support_reply" | "team_change" | "request_new" | "request_decided" | "limit_reached" | "support_refund" | "listing_taken_down" | "settings_change" | "profile_hidden"
+  | "profile_hidden_overdue" | "job_alert";
   /** A problem report's (null for a team change). */
   report_id: string | null;
   /** A team change's admin_actions row (null otherwise). */
   admin_action_id: string | null;
+  /** A job alert's job_alerts row (null otherwise). */
+  job_alert_id?: string | null;
   /** A support request's row: new (owners) or decided (the asker); null otherwise. */
   admin_request_id: string | null;
   created_at: string;

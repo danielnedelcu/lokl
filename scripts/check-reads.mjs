@@ -28,11 +28,13 @@ const API_MAX_ROWS = 1000;
 // Tables an admin keeps short by hand. Every other table grows.
 // admin_members: one row per team member (docs/design/admin-roles.md), a handful.
 // admin_settings: one row (admin roles, step 5b).
-const REFERENCE = new Set(["cities", "categories", "service_areas", "commission_rates", "homepage_features", "admin_members", "public_content_versions", "admin_settings"]);
+const REFERENCE = new Set(["cities", "categories", "service_areas", "commission_rates", "homepage_features", "admin_members", "public_content_versions", "admin_settings",
+  // The job scheduler (2026-10-21): one row per scheduled job, and at most one lease each.
+  "job_status", "job_leases"]);
 const GROWS = new Set([
   "admin_actions", "booking_addresses", "booking_contacts", "booking_emails", "booking_events", "booking_finances",
   "booking_reports", "bookings", "commission_rate_changes", "experience_sessions", "guide_ai_drafts", "guide_photos",
-  "guide_versions", "guides", "job_runs", "listing_addresses", "listing_photos", "listing_ratings",
+  "guide_versions", "guides", "job_runs", "job_alerts", "stripe_attempts", "listing_addresses", "listing_photos", "listing_ratings",
   "listing_service_areas", "listings", "notifications", "provider_emails", "provider_ratings", "providers",
   "review_replies", "review_reports", "reviews", "saved_listings", "saved_providers",
   // Service availability (2026-10-14): per provider, and holds per booking or session.

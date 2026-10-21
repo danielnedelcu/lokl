@@ -15,6 +15,41 @@ How a change reaches production, and the rules around it. Adopted
   `acct_1UKIdIEfG7OyQ6pv`), through the `stripe-sandbox` environment in
   GitHub.
 
+## The job scheduler (built 2026-10-21, switched off)
+
+`pg_cron` in each Supabase project calls that environment's website
+(`/api/jobs/<name>`) on the timetable in the `job_scheduler` migration, and
+the watchdog checks the jobs every 10 minutes. It does nothing until Vault
+has this environment's settings, so the local stack and CI never call
+anything. To switch it on for an environment (staging first, then
+production), in that project's SQL Editor, with values never written
+anywhere else:
+
+```sql
+select vault.create_secret('<https://site address>', 'lokl_site_url');
+select vault.create_secret('<the website's NUXT_JOB_SECRET>', 'lokl_job_secret');
+-- The watchdog's own alert emails (straight to Resend, so they arrive if the website is down):
+select vault.create_secret('<a Resend API key>', 'lokl_resend_key');
+select vault.create_secret('lokl <alerts@hilokl.com>', 'lokl_alert_from');
+```
+
+- **Each environment has its own job secret**, set on the host as
+  `NUXT_JOB_SECRET` and in that project's Vault as `lokl_job_secret`.
+  Rotating it: set the new value on the host and redeploy, then
+  `select vault.update_secret((select id from vault.secrets where name = 'lokl_job_secret'), '<new>');`.
+  Calls in between are refused (401) and show on the dashboard's Jobs card;
+  the next run after both match succeeds.
+- **Switching it off:** delete the `lokl_site_url` entry; every scheduled
+  call then does nothing, and the watchdog stops too.
+- **Alerts:** the watchdog emails every owner directly through Resend and
+  also queues the same alert in the owners' outbox, which skips it once
+  Resend has confirmed the direct one. pg_net keeps Resend's answers about 6
+  hours, so after a longer website outage the outbox may send one duplicate
+  alert (accepted, 2026-10-21).
+- **What it can't see:** if the database itself is down, nothing inside it
+  can warn anyone. An outside uptime monitor is on the staging and launch
+  checklists.
+
 ## Branching and releases
 
 - **`main` is production.** It is protected on GitHub: a pull request is

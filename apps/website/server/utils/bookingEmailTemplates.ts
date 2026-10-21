@@ -635,7 +635,7 @@ export function renderSupportEmail(
 // ---------------------------------------------------------------------------
 
 export type AdminEmailKind = "admin_invite" | "admin_team_change" | "admin_request_new" | "admin_limit_reached" | "admin_support_refund"
-  | "admin_listing_taken_down" | "admin_settings_change" | "admin_profile_hidden";
+  | "admin_listing_taken_down" | "admin_settings_change" | "admin_profile_hidden" | "admin_profile_hidden_overdue" | "admin_job_alert";
 
 export function renderAdminInviteEmail(c: { adminUrl: string; invitedBy: string; role: string }): RenderedEmail {
   return render({
@@ -686,6 +686,26 @@ export function renderAdminListingTakenDownEmail(c: { adminUrl: string; text: st
     subject: "Support took a listing down",
     intro: [c.text, "Their reason is on the listing. Anyone on the team can put it back."],
     button: { label: "Open the listing", url: `${c.adminUrl}/listings/${c.listingId}` },
+  });
+}
+
+/** Hidden profile content waiting 7 days (the hidden-content-reminder job), for each owner. */
+export function renderAdminProfileHiddenOverdueEmail(c: { adminUrl: string; text: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "Hidden profile content is waiting for you",
+    intro: [c.text],
+    button: { label: "Open Requests", url: `${c.adminUrl}/requests` },
+  });
+}
+
+/** A job the watchdog found late, failing or stuck, or recovered (the job scheduler), for each owner. */
+export function renderAdminJobAlertEmail(c: { adminUrl: string; text: string; recovered: boolean }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: c.recovered ? "A lokl job is running again" : "A lokl job needs a look",
+    intro: [c.text, c.recovered ? "Nothing more to do." : "The dashboard's Jobs card shows each job's last success. Bookings has the runs that need a look."],
+    button: { label: "Open the dashboard", url: c.adminUrl },
   });
 }
 
