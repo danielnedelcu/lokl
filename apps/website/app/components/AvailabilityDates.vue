@@ -24,23 +24,29 @@ const { handleSubmit, isSubmitting, resetForm } = useForm<DateHoursInput>({
 });
 const { fields, push, remove } = useFieldArray<HoursInterval>("intervals");
 
-const save = handleSubmit(async (v) => {
+const messages = useSaveMessages();
+const submit = handleSubmit(async (v) => {
   try {
     const { error } = await supabase.rpc("replace_date_hours", {
       p_date: v.date, p_hours: v.intervals.map((iv) => ({ starts: iv.starts, ends: endOfInterval(iv.ends) })),
     });
     if (error) throw error;
-    useSonner.success(`Hours for ${formatCalendarDay(v.date)} saved.`);
+    messages.success(`Hours for ${formatCalendarDay(v.date)} saved.`);
     resetForm();
     emit("saved");
   } catch (e) {
-    useSonner.error(problemText(e, `Those hours didn't save: ${(e as Error).message}`));
+    messages.error(problemText(e, `Those hours didn't save: ${(e as Error).message}`));
   }
 });
+const save = () => {
+  messages.start();
+  return submit();
+};
 async function clear(date: string) {
+  messages.start();
   const { error } = await supabase.rpc("replace_date_hours", { p_date: date, p_hours: [] });
-  if (error) return useSonner.error(problemText(error, "That didn't change. Try again."));
-  useSonner.success(`${formatCalendarDay(date)} is back to your weekly hours.`);
+  if (error) return messages.error(problemText(error, "That didn't change. Try again."));
+  messages.success(`${formatCalendarDay(date)} is back to your weekly hours.`);
   emit("saved");
 }
 </script>
