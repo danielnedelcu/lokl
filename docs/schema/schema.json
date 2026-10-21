@@ -9317,6 +9317,12 @@
           "type": "uuid",
           "nullable": true,
           "comment": "For a request: the request (request_new to each owner; request_decided to the person who asked)."
+        },
+        {
+          "name": "job_alert_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "For a job alert: what the watchdog found."
         }
       ],
       "indexes": [
@@ -9374,20 +9380,21 @@
         {
           "name": "admin_notifications_about_check",
           "type": "CHECK",
-          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL))))",
+          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id, job_alert_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text, 'profile_hidden_overdue'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL)) AND ((kind = 'job_alert'::text) = (job_alert_id IS NOT NULL))))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
             "report_id",
             "admin_action_id",
             "admin_request_id",
+            "job_alert_id",
             "kind"
           ]
         },
         {
           "name": "admin_notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text, 'profile_hidden_overdue'::text, 'job_alert'::text])))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -9451,6 +9458,19 @@
           "referenced_table": "public.admin_requests",
           "columns": [
             "admin_request_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_notifications_job_alert_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (job_alert_id) REFERENCES job_alerts(id) ON DELETE RESTRICT",
+          "table": "public.admin_notifications",
+          "referenced_table": "public.job_alerts",
+          "columns": [
+            "job_alert_id"
           ],
           "referenced_columns": [
             "id"
@@ -9956,7 +9976,7 @@
         {
           "name": "admin_action_id",
           "type": "uuid",
-          "nullable": false
+          "nullable": true
         },
         {
           "name": "recipient_id",
@@ -10016,6 +10036,12 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "default": "clock_timestamp()"
+        },
+        {
+          "name": "job_alert_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "For a job alert email: what the watchdog found (admin_action_id is empty then)."
         }
       ],
       "indexes": [
@@ -10038,6 +10064,17 @@
       ],
       "constraints": [
         {
+          "name": "admin_emails_about_check",
+          "type": "CHECK",
+          "def": "CHECK ((num_nonnulls(admin_action_id, job_alert_id) = 1))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "admin_action_id",
+            "job_alert_id"
+          ]
+        },
+        {
           "name": "admin_emails_attempts_check",
           "type": "CHECK",
           "def": "CHECK ((attempts \u003e= 0))",
@@ -10048,9 +10085,20 @@
           ]
         },
         {
+          "name": "admin_emails_job_alert_kind",
+          "type": "CHECK",
+          "def": "CHECK (((kind = 'admin_job_alert'::text) = (job_alert_id IS NOT NULL)))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "job_alert_id"
+          ]
+        },
+        {
           "name": "admin_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text, 'admin_listing_taken_down'::text, 'admin_settings_change'::text, 'admin_profile_hidden'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text, 'admin_listing_taken_down'::text, 'admin_settings_change'::text, 'admin_profile_hidden'::text, 'admin_profile_hidden_overdue'::text, 'admin_job_alert'::text])))",
           "table": "public.admin_emails",
           "referenced_table": "",
           "columns": [
@@ -10117,6 +10165,19 @@
           "table": "public.admin_emails",
           "referenced_table": "",
           "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_emails_job_alert_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (job_alert_id) REFERENCES job_alerts(id) ON DELETE RESTRICT",
+          "table": "public.admin_emails",
+          "referenced_table": "public.job_alerts",
+          "columns": [
+            "job_alert_id"
+          ],
+          "referenced_columns": [
             "id"
           ]
         }
@@ -11039,6 +11100,12 @@
           "name": "decided_at",
           "type": "timestamp with time zone",
           "nullable": true
+        },
+        {
+          "name": "reminded_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When the owners were reminded that it has waited 7 days (once)."
         }
       ],
       "indexes": [
@@ -11289,6 +11356,457 @@
         {
           "name": "provider_profile_holds_guard_truncate",
           "def": "CREATE TRIGGER provider_profile_holds_guard_truncate BEFORE TRUNCATE ON public.provider_profile_holds FOR EACH STATEMENT EXECUTE FUNCTION provider_profile_holds_guard()"
+        }
+      ]
+    },
+    {
+      "name": "public.job_status",
+      "type": "BASE TABLE",
+      "comment": "One row per scheduled job: how often it should run, and how its latest runs went (every run, quiet ones included). The watchdog reads it. Written by job_start() and job_finish(); never deleted.",
+      "columns": [
+        {
+          "name": "job",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "interval_seconds",
+          "type": "integer",
+          "nullable": false,
+          "comment": "How often the timetable runs it. The watchdog calls it late after three intervals with no success."
+        },
+        {
+          "name": "last_started_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "last_finished_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "last_success_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "last_outcome",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "nullable": true
+        },
+        {
+          "name": "consecutive_failures",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "skipped_overlaps",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "last_skipped_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        },
+        {
+          "name": "killed_runs",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        },
+        {
+          "name": "alerted_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "comment": "When the owners were alerted about the current incident (null: none open). Cleared, with a \"recovered\" alert, when it's fixed."
+        },
+        {
+          "name": "alert_kind",
+          "type": "text",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "job_status_pkey",
+          "def": "CREATE UNIQUE INDEX job_status_pkey ON public.job_status USING btree (job)",
+          "table": "public.job_status",
+          "columns": [
+            "job"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "job_status_alert_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((alert_kind = ANY (ARRAY['late'::text, 'failing'::text, 'stuck'::text])))",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "alert_kind"
+          ]
+        },
+        {
+          "name": "job_status_consecutive_failures_check",
+          "type": "CHECK",
+          "def": "CHECK ((consecutive_failures \u003e= 0))",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "consecutive_failures"
+          ]
+        },
+        {
+          "name": "job_status_interval_seconds_check",
+          "type": "CHECK",
+          "def": "CHECK ((interval_seconds \u003e= 60))",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "interval_seconds"
+          ]
+        },
+        {
+          "name": "job_status_job_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(job) \u003c= 60))",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "job"
+          ]
+        },
+        {
+          "name": "job_status_killed_runs_check",
+          "type": "CHECK",
+          "def": "CHECK ((killed_runs \u003e= 0))",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "killed_runs"
+          ]
+        },
+        {
+          "name": "job_status_last_error_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(last_error) \u003c= 500))",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "last_error"
+          ]
+        },
+        {
+          "name": "job_status_last_outcome_check",
+          "type": "CHECK",
+          "def": "CHECK ((last_outcome = ANY (ARRAY['ok'::text, 'failed'::text, 'skipped'::text])))",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "last_outcome"
+          ]
+        },
+        {
+          "name": "job_status_skipped_overlaps_check",
+          "type": "CHECK",
+          "def": "CHECK ((skipped_overlaps \u003e= 0))",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "skipped_overlaps"
+          ]
+        },
+        {
+          "name": "job_status_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (job)",
+          "table": "public.job_status",
+          "referenced_table": "",
+          "columns": [
+            "job"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "job_status_refuse_delete",
+          "def": "CREATE TRIGGER job_status_refuse_delete BEFORE DELETE ON public.job_status FOR EACH ROW EXECUTE FUNCTION refuse_delete()"
+        }
+      ]
+    },
+    {
+      "name": "public.job_leases",
+      "type": "BASE TABLE",
+      "comment": "The run of each job going on now, if any: one at a time. Taken by job_start(), given back by job_finish(); a lease past expires_at belongs to a run that died. Server only.",
+      "columns": [
+        {
+          "name": "job",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "run_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "job_leases_pkey",
+          "def": "CREATE UNIQUE INDEX job_leases_pkey ON public.job_leases USING btree (job)",
+          "table": "public.job_leases",
+          "columns": [
+            "job"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "job_leases_job_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (job) REFERENCES job_status(job) ON DELETE RESTRICT",
+          "table": "public.job_leases",
+          "referenced_table": "public.job_status",
+          "columns": [
+            "job"
+          ],
+          "referenced_columns": [
+            "job"
+          ]
+        },
+        {
+          "name": "job_leases_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (job)",
+          "table": "public.job_leases",
+          "referenced_table": "",
+          "columns": [
+            "job"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.job_alerts",
+      "type": "BASE TABLE",
+      "comment": "What the watchdog told the owners about a job: late, failing, stuck (started and never finished), or recovered. Append-only.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "job",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "clock_timestamp()"
+        },
+        {
+          "name": "direct_request_id",
+          "type": "bigint",
+          "nullable": true,
+          "comment": "The pg_net request that emailed the owners directly through Resend (null: not set up, or no owners)."
+        }
+      ],
+      "indexes": [
+        {
+          "name": "job_alerts_pkey",
+          "def": "CREATE UNIQUE INDEX job_alerts_pkey ON public.job_alerts USING btree (id)",
+          "table": "public.job_alerts",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "job_alerts_recent",
+          "def": "CREATE INDEX job_alerts_recent ON public.job_alerts USING btree (created_at DESC)",
+          "table": "public.job_alerts",
+          "columns": [
+            "created_at"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "job_alerts_kind_check",
+          "type": "CHECK",
+          "def": "CHECK ((kind = ANY (ARRAY['late'::text, 'failing'::text, 'stuck'::text, 'recovered'::text])))",
+          "table": "public.job_alerts",
+          "referenced_table": "",
+          "columns": [
+            "kind"
+          ]
+        },
+        {
+          "name": "job_alerts_message_check",
+          "type": "CHECK",
+          "def": "CHECK ((char_length(message) \u003c= 500))",
+          "table": "public.job_alerts",
+          "referenced_table": "",
+          "columns": [
+            "message"
+          ]
+        },
+        {
+          "name": "job_alerts_job_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (job) REFERENCES job_status(job) ON DELETE RESTRICT",
+          "table": "public.job_alerts",
+          "referenced_table": "public.job_status",
+          "columns": [
+            "job"
+          ],
+          "referenced_columns": [
+            "job"
+          ]
+        },
+        {
+          "name": "job_alerts_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.job_alerts",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "job_alerts_append_only",
+          "def": "CREATE TRIGGER job_alerts_append_only BEFORE DELETE OR UPDATE ON public.job_alerts FOR EACH ROW EXECUTE FUNCTION append_only_guard()"
+        },
+        {
+          "name": "job_alerts_append_only_truncate",
+          "def": "CREATE TRIGGER job_alerts_append_only_truncate BEFORE TRUNCATE ON public.job_alerts FOR EACH STATEMENT EXECUTE FUNCTION append_only_guard()"
+        }
+      ]
+    },
+    {
+      "name": "private.stripe_attempts",
+      "type": "BASE TABLE",
+      "comment": "The attempt number in each money-moving Stripe call's idempotency key (booking:\u003cid\u003e:\u003caction\u003e:...:\u003cattempt\u003e). Raised only after Stripe definitely refused that attempt, so two calls at once share a key (Stripe acts once) and a later try isn't answered with the stored refusal. Server only; never deleted.",
+      "columns": [
+        {
+          "name": "booking_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "attempt",
+          "type": "integer",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "name": "raised_at",
+          "type": "timestamp with time zone",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "stripe_attempts_pkey",
+          "def": "CREATE UNIQUE INDEX stripe_attempts_pkey ON private.stripe_attempts USING btree (booking_id, action)",
+          "table": "private.stripe_attempts",
+          "columns": [
+            "booking_id",
+            "action"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "stripe_attempts_action_check",
+          "type": "CHECK",
+          "def": "CHECK ((action = ANY (ARRAY['transfer'::text, 'refund'::text, 'reversal'::text, 'capture'::text])))",
+          "table": "private.stripe_attempts",
+          "referenced_table": "",
+          "columns": [
+            "action"
+          ]
+        },
+        {
+          "name": "stripe_attempts_attempt_check",
+          "type": "CHECK",
+          "def": "CHECK ((attempt \u003e= 1))",
+          "table": "private.stripe_attempts",
+          "referenced_table": "",
+          "columns": [
+            "attempt"
+          ]
+        },
+        {
+          "name": "stripe_attempts_booking_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT",
+          "table": "private.stripe_attempts",
+          "referenced_table": "public.bookings",
+          "columns": [
+            "booking_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "stripe_attempts_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (booking_id, action)",
+          "table": "private.stripe_attempts",
+          "referenced_table": "",
+          "columns": [
+            "booking_id",
+            "action"
+          ]
+        }
+      ],
+      "triggers": [
+        {
+          "name": "stripe_attempts_refuse_delete",
+          "def": "CREATE TRIGGER stripe_attempts_refuse_delete BEFORE DELETE ON private.stripe_attempts FOR EACH ROW EXECUTE FUNCTION refuse_delete()"
         }
       ]
     }
@@ -12246,6 +12764,19 @@
       "def": "FOREIGN KEY (admin_request_id) REFERENCES admin_requests(id) ON DELETE RESTRICT"
     },
     {
+      "table": "public.admin_notifications",
+      "columns": [
+        "job_alert_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.job_alerts",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (job_alert_id) REFERENCES job_alerts(id) ON DELETE RESTRICT"
+    },
+    {
       "table": "public.support_emails",
       "columns": [
         "provider_id"
@@ -12281,8 +12812,21 @@
       "parent_columns": [
         "id"
       ],
-      "parent_cardinality": "exactly_one",
+      "parent_cardinality": "zero_or_one",
       "def": "FOREIGN KEY (admin_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.admin_emails",
+      "columns": [
+        "job_alert_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.job_alerts",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (job_alert_id) REFERENCES job_alerts(id) ON DELETE RESTRICT"
     },
     {
       "table": "public.admin_requests",
@@ -12387,6 +12931,45 @@
       ],
       "parent_cardinality": "exactly_one",
       "def": "FOREIGN KEY (hidden_action_id) REFERENCES admin_actions(id) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.job_leases",
+      "columns": [
+        "job"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "public.job_status",
+      "parent_columns": [
+        "job"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (job) REFERENCES job_status(job) ON DELETE RESTRICT"
+    },
+    {
+      "table": "public.job_alerts",
+      "columns": [
+        "job"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.job_status",
+      "parent_columns": [
+        "job"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (job) REFERENCES job_status(job) ON DELETE RESTRICT"
+    },
+    {
+      "table": "private.stripe_attempts",
+      "columns": [
+        "booking_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.bookings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE RESTRICT"
     }
   ],
   "functions": [
@@ -14621,6 +15204,72 @@
       "return_type": "jsonb",
       "arguments": "",
       "type": "FUNCTION"
+    },
+    {
+      "name": "public.job_start",
+      "return_type": "uuid",
+      "arguments": "p_job text, p_lease_seconds integer DEFAULT 300",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.job_finish",
+      "return_type": "void",
+      "arguments": "p_job text, p_run uuid, p_ok boolean, p_error text DEFAULT NULL::text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.job_alert_send_direct",
+      "return_type": "int8",
+      "arguments": "p_alert uuid, p_job text, p_kind text, p_message text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.job_alert_delivery",
+      "return_type": "text",
+      "arguments": "p_alert uuid",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.job_scheduler_configured_at",
+      "return_type": "timestamptz",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.job_watchdog",
+      "return_type": "int4",
+      "arguments": "p_now timestamp with time zone DEFAULT now()",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.admin_requests_sweep",
+      "return_type": "jsonb",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.profile_holds_remind",
+      "return_type": "jsonb",
+      "arguments": "",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "private.stripe_attempt",
+      "return_type": "int4",
+      "arguments": "p_booking_id uuid, p_action text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "private.stripe_refused",
+      "return_type": "int4",
+      "arguments": "p_booking_id uuid, p_action text, p_attempt integer",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.run_scheduled_job",
+      "return_type": "int8",
+      "arguments": "p_job text",
+      "type": "FUNCTION"
     }
   ],
   "enums": [
@@ -14693,6 +15342,14 @@
         "phone_change_token",
         "reauthentication_token",
         "recovery_token"
+      ]
+    },
+    {
+      "name": "net.request_status",
+      "values": [
+        "ERROR",
+        "PENDING",
+        "SUCCESS"
       ]
     },
     {

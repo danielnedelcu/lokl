@@ -351,45 +351,49 @@
 <!-- public.admin_notifications -->
 <g id="node3" class="node">
 <title>public.admin_notifications</title>
-<polygon fill="#efefef" stroke="none" points="2242.08,-2249.4 2242.08,-2295.4 4370.32,-2295.4 4370.32,-2249.4 2242.08,-2249.4"/>
-<polygon fill="none" stroke="black" points="2242.08,-2249.4 2242.08,-2295.4 4370.32,-2295.4 4370.32,-2249.4 2242.08,-2249.4"/>
-<text text-anchor="start" x="3147.23" y="-2273.2" font-family="Arial Bold" font-size="18.00">public.admin_notifications</text>
-<text text-anchor="start" x="3340.69" y="-2273.2" font-family="Arial" font-size="14.00">    </text>
-<text text-anchor="start" x="3371.81" y="-2273.2" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
-<text text-anchor="start" x="2249.08" y="-2258.8" font-family="Arial" font-size="14.00" fill="#333333">The admin bell: a new report (support_safety for a Safety one) or a provider&#39;s reply, one row per admin login; and a team change (team_change, its admin_actions row) for every active owner. Each admin reads and marks read only their own. Ids only: published to Realtime, so an open report reloads its thread. Deleted with the admin&#39;s login.</text>
-<polygon fill="none" stroke="black" points="2242.08,-2218.6 2242.08,-2249.4 4370.32,-2249.4 4370.32,-2218.6 2242.08,-2218.6"/>
-<text text-anchor="start" x="2249.08" y="-2230.8" font-family="Arial" font-size="14.00">id </text>
-<text text-anchor="start" x="2263.87" y="-2230.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="2242.08,-2187.8 2242.08,-2218.6 4370.32,-2218.6 4370.32,-2187.8 2242.08,-2187.8"/>
-<text text-anchor="start" x="2249.08" y="-2200" font-family="Arial" font-size="14.00">recipient_id </text>
-<text text-anchor="start" x="2324.57" y="-2200" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="2242.08,-2157 2242.08,-2187.8 4370.32,-2187.8 4370.32,-2157 2242.08,-2157"/>
-<text text-anchor="start" x="2249.08" y="-2169.2" font-family="Arial" font-size="14.00">kind </text>
-<text text-anchor="start" x="2278.66" y="-2169.2" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
-<polygon fill="none" stroke="black" points="2242.08,-2126.2 2242.08,-2157 4370.32,-2157 4370.32,-2126.2 2242.08,-2126.2"/>
-<text text-anchor="start" x="2249.08" y="-2138.4" font-family="Arial" font-size="14.00">report_id </text>
-<text text-anchor="start" x="2308.23" y="-2138.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<polygon fill="none" stroke="black" points="2242.08,-2095.4 2242.08,-2126.2 4370.32,-2126.2 4370.32,-2095.4 2242.08,-2095.4"/>
-<text text-anchor="start" x="2249.08" y="-2107.6" font-family="Arial" font-size="14.00">created_at </text>
-<text text-anchor="start" x="2319.13" y="-2107.6" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="2242.08,-2064.6 2242.08,-2095.4 4370.32,-2095.4 4370.32,-2064.6 2242.08,-2064.6"/>
-<text text-anchor="start" x="2249.08" y="-2076.8" font-family="Arial" font-size="14.00">read_at </text>
-<text text-anchor="start" x="2300.46" y="-2076.8" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
-<polygon fill="none" stroke="black" points="2242.08,-2033.8 2242.08,-2064.6 4370.32,-2064.6 4370.32,-2033.8 2242.08,-2033.8"/>
-<text text-anchor="start" x="2249.08" y="-2046" font-family="Arial" font-size="14.00">admin_action_id </text>
-<text text-anchor="start" x="2354.93" y="-2046" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="2389.18" y="-2046" font-family="Arial" font-size="14.00"> For a team change: the admin_actions row saying who did what (invite, role change, removal, second factor reset, join).</text>
-<polygon fill="none" stroke="black" points="2242.08,-2003 2242.08,-2033.8 4370.32,-2033.8 4370.32,-2003 2242.08,-2003"/>
-<text text-anchor="start" x="2249.08" y="-2015.2" font-family="Arial" font-size="14.00">admin_request_id </text>
-<text text-anchor="start" x="2364.27" y="-2015.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
-<text text-anchor="start" x="2398.52" y="-2015.2" font-family="Arial" font-size="14.00"> For a request: the request (request_new to each owner; request_decided to the person who asked).</text>
+<polygon fill="#efefef" stroke="none" points="2242.08,-2264.8 2242.08,-2310.8 4370.32,-2310.8 4370.32,-2264.8 2242.08,-2264.8"/>
+<polygon fill="none" stroke="black" points="2242.08,-2264.8 2242.08,-2310.8 4370.32,-2310.8 4370.32,-2264.8 2242.08,-2264.8"/>
+<text text-anchor="start" x="3147.23" y="-2288.6" font-family="Arial Bold" font-size="18.00">public.admin_notifications</text>
+<text text-anchor="start" x="3340.69" y="-2288.6" font-family="Arial" font-size="14.00">    </text>
+<text text-anchor="start" x="3371.81" y="-2288.6" font-family="Arial" font-size="14.00" fill="#666666">[BASE TABLE]</text>
+<text text-anchor="start" x="2249.08" y="-2274.2" font-family="Arial" font-size="14.00" fill="#333333">The admin bell: a new report (support_safety for a Safety one) or a provider&#39;s reply, one row per admin login; and a team change (team_change, its admin_actions row) for every active owner. Each admin reads and marks read only their own. Ids only: published to Realtime, so an open report reloads its thread. Deleted with the admin&#39;s login.</text>
+<polygon fill="none" stroke="black" points="2242.08,-2234 2242.08,-2264.8 4370.32,-2264.8 4370.32,-2234 2242.08,-2234"/>
+<text text-anchor="start" x="2249.08" y="-2246.2" font-family="Arial" font-size="14.00">id </text>
+<text text-anchor="start" x="2263.87" y="-2246.2" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="2242.08,-2203.2 2242.08,-2234 4370.32,-2234 4370.32,-2203.2 2242.08,-2203.2"/>
+<text text-anchor="start" x="2249.08" y="-2215.4" font-family="Arial" font-size="14.00">recipient_id </text>
+<text text-anchor="start" x="2324.57" y="-2215.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="2242.08,-2172.4 2242.08,-2203.2 4370.32,-2203.2 4370.32,-2172.4 2242.08,-2172.4"/>
+<text text-anchor="start" x="2249.08" y="-2184.6" font-family="Arial" font-size="14.00">kind </text>
+<text text-anchor="start" x="2278.66" y="-2184.6" font-family="Arial" font-size="14.00" fill="#666666">[text]</text>
+<polygon fill="none" stroke="black" points="2242.08,-2141.6 2242.08,-2172.4 4370.32,-2172.4 4370.32,-2141.6 2242.08,-2141.6"/>
+<text text-anchor="start" x="2249.08" y="-2153.8" font-family="Arial" font-size="14.00">report_id </text>
+<text text-anchor="start" x="2308.23" y="-2153.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<polygon fill="none" stroke="black" points="2242.08,-2110.8 2242.08,-2141.6 4370.32,-2141.6 4370.32,-2110.8 2242.08,-2110.8"/>
+<text text-anchor="start" x="2249.08" y="-2123" font-family="Arial" font-size="14.00">created_at </text>
+<text text-anchor="start" x="2319.13" y="-2123" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="2242.08,-2080 2242.08,-2110.8 4370.32,-2110.8 4370.32,-2080 2242.08,-2080"/>
+<text text-anchor="start" x="2249.08" y="-2092.2" font-family="Arial" font-size="14.00">read_at </text>
+<text text-anchor="start" x="2300.46" y="-2092.2" font-family="Arial" font-size="14.00" fill="#666666">[timestamp with time zone]</text>
+<polygon fill="none" stroke="black" points="2242.08,-2049.2 2242.08,-2080 4370.32,-2080 4370.32,-2049.2 2242.08,-2049.2"/>
+<text text-anchor="start" x="2249.08" y="-2061.4" font-family="Arial" font-size="14.00">admin_action_id </text>
+<text text-anchor="start" x="2354.93" y="-2061.4" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="2389.18" y="-2061.4" font-family="Arial" font-size="14.00"> For a team change: the admin_actions row saying who did what (invite, role change, removal, second factor reset, join).</text>
+<polygon fill="none" stroke="black" points="2242.08,-2018.4 2242.08,-2049.2 4370.32,-2049.2 4370.32,-2018.4 2242.08,-2018.4"/>
+<text text-anchor="start" x="2249.08" y="-2030.6" font-family="Arial" font-size="14.00">admin_request_id </text>
+<text text-anchor="start" x="2364.27" y="-2030.6" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="2398.52" y="-2030.6" font-family="Arial" font-size="14.00"> For a request: the request (request_new to each owner; request_decided to the person who asked).</text>
+<polygon fill="none" stroke="black" points="2242.08,-1987.6 2242.08,-2018.4 4370.32,-2018.4 4370.32,-1987.6 2242.08,-1987.6"/>
+<text text-anchor="start" x="2249.08" y="-1999.8" font-family="Arial" font-size="14.00">job_alert_id </text>
+<text text-anchor="start" x="2325.36" y="-1999.8" font-family="Arial" font-size="14.00" fill="#666666">[uuid]</text>
+<text text-anchor="start" x="2359.61" y="-1999.8" font-family="Arial" font-size="14.00"> For a job alert: what the watchdog found.</text>
 </g>
 <!-- public.admin_notifications&#45;&gt;public.admin_requests -->
 <g id="edge2" class="edge">
 <title>public.admin_notifications:admin_request_id&#45;&gt;public.admin_requests:id</title>
-<path fill="none" stroke="black" d="M2231.34,-2015.71C2218.05,-2006.46 2226.81,-1975.6 2242.08,-1959.8 2368.04,-1829.57 3745.11,-2008.32 3870.56,-1877.6 3903.67,-1843.09 3919.38,-1770 3871.56,-1770"/>
-<polygon fill="black" stroke="black" points="2231.12,-2015.65 2239.57,-2022.65 2236.26,-2017.07 2240.44,-2018.22 2240.44,-2018.22 2240.44,-2018.22 2236.26,-2017.07 2241.96,-2013.97 2231.12,-2015.65"/>
-<text text-anchor="start" x="2248.08" y="-2028.4" font-family="Arial" font-size="10.00">FOREIGN KEY (admin_request_id) REFERENCES admin_requests(id) ON DELETE RESTRICT</text>
+<path fill="none" stroke="black" d="M2230.92,-2032.14C2204.04,-2022.22 2217.11,-1970.13 2242.08,-1944.4 2368.21,-1814.45 3744.55,-2007.67 3870.56,-1877.6 3903.84,-1843.25 3919.38,-1770 3871.56,-1770"/>
+<polygon fill="black" stroke="black" points="2230.88,-2032.14 2240.03,-2038.19 2236.15,-2033 2240.42,-2033.69 2240.42,-2033.69 2240.42,-2033.69 2236.15,-2033 2241.48,-2029.3 2230.88,-2032.14"/>
+<text text-anchor="start" x="2248.08" y="-2043.8" font-family="Arial" font-size="10.00">FOREIGN KEY (admin_request_id) REFERENCES admin_requests(id) ON DELETE RESTRICT</text>
 </g>
 </g>
 </svg>
