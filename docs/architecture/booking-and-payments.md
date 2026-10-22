@@ -942,6 +942,12 @@ for those two and refuses any text on the others); `sendProviderEmails`
 names the listing through the review action's target, and skips the
 email if the provider has since deleted that draft.
 
+The team's outbox, `admin_emails`, also carries `admin_listing_submitted`
+(2026-10-21, [listing_submitted_alerts](../../supabase/migrations/20261022021901_listing_submitted_alerts.sql)):
+an Experience sent for review, to every active team member, at most once
+an hour per listing. `sendAdminEmails` skips it for someone who has left
+the team, or once the listing has been reviewed, taken back or deleted.
+
 Problem reports' emails are a third outbox, `support_emails`
 ([support_reports](../../supabase/migrations/20261017053502_support_reports.sql);
 docs/design/problem-reports.md), written by the reports' triggers and

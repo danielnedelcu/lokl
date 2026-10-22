@@ -695,7 +695,8 @@ export function renderSupportEmail(
 // ---------------------------------------------------------------------------
 
 export type AdminEmailKind = "admin_invite" | "admin_team_change" | "admin_request_new" | "admin_limit_reached" | "admin_support_refund"
-  | "admin_listing_taken_down" | "admin_settings_change" | "admin_profile_hidden" | "admin_profile_hidden_overdue" | "admin_job_alert";
+  | "admin_listing_taken_down" | "admin_settings_change" | "admin_profile_hidden" | "admin_profile_hidden_overdue" | "admin_job_alert"
+  | "admin_listing_submitted";
 
 export function renderAdminInviteEmail(c: { adminUrl: string; invitedBy: string; role: string }): RenderedEmail {
   return render({
@@ -746,6 +747,16 @@ export function renderAdminListingTakenDownEmail(c: { adminUrl: string; text: st
     subject: "Support took a listing down",
     intro: [c.text, "Their reason is on the listing. Anyone on the team can put it back."],
     button: { label: "Open the listing", url: `${c.adminUrl}/listings/${c.listingId}` },
+  });
+}
+
+/** An Experience sent for review (2026-10-21), for everyone on the team; at most once an hour per listing. */
+export function renderAdminListingSubmittedEmail(c: { adminUrl: string; text: string; listingId: string }): RenderedEmail {
+  return render({
+    recipient: "admin",
+    subject: "An Experience is waiting for review",
+    intro: [c.text, "Anyone on the team can review it. If someone already has, the listing says so."],
+    button: { label: "Review the listing", url: `${c.adminUrl}/listings/${c.listingId}` },
   });
 }
 

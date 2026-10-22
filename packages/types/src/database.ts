@@ -294,6 +294,7 @@ export type Database = {
           job_alert_id: string | null;
           kind: string;
           last_error: string | null;
+          listing_id: string | null;
           locked_at: string | null;
           next_attempt_at: string;
           recipient_id: string;
@@ -312,6 +313,7 @@ export type Database = {
           job_alert_id?: string | null;
           kind: string;
           last_error?: string | null;
+          listing_id?: string | null;
           locked_at?: string | null;
           next_attempt_at?: string;
           recipient_id: string;
@@ -329,6 +331,7 @@ export type Database = {
           job_alert_id?: string | null;
           kind?: string;
           last_error?: string | null;
+          listing_id?: string | null;
           locked_at?: string | null;
           next_attempt_at?: string;
           recipient_id?: string;
@@ -400,6 +403,7 @@ export type Database = {
           id: string;
           job_alert_id: string | null;
           kind: string;
+          listing_id: string | null;
           read_at: string | null;
           recipient_id: string;
           report_id: string | null;
@@ -412,6 +416,7 @@ export type Database = {
           id?: string;
           job_alert_id?: string | null;
           kind: string;
+          listing_id?: string | null;
           read_at?: string | null;
           recipient_id: string;
           report_id?: string | null;
@@ -423,6 +428,7 @@ export type Database = {
           id?: string;
           job_alert_id?: string | null;
           kind?: string;
+          listing_id?: string | null;
           read_at?: string | null;
           recipient_id?: string;
           report_id?: string | null;
@@ -447,6 +453,13 @@ export type Database = {
             columns: ["job_alert_id"];
             isOneToOne: false;
             referencedRelation: "job_alerts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "admin_notifications_listing_id_fkey";
+            columns: ["listing_id"];
+            isOneToOne: false;
+            referencedRelation: "listings";
             referencedColumns: ["id"];
           },
           {

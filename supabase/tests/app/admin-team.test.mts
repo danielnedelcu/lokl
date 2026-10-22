@@ -75,7 +75,9 @@ try {
 
   // ---- 2. The emails ----------------------------------------------------------
   const mailer = fakeMailer();
-  await sendAdminEmails(db, mailer, settings, { adminUrl: ADMIN_URL });
+  // Only this test's people: other tests leave team emails waiting in the shared outbox.
+  const ours = [owner.id, support.id, newId, sameId];
+  await sendAdminEmails(db, mailer, settings, { adminUrl: ADMIN_URL, recipients: ours });
   const to = (address: string) => mailer.sent.filter((e) => e.to === address);
   const inviteMail = to(email("new"));
   check(inviteMail.length === 1 && inviteMail[0]!.subject === "You're invited to the lokl admin team", "2a. the person invited gets one invitation");
@@ -88,7 +90,7 @@ try {
   check(to(email("support")).length === 0, "2e. support isn't emailed team changes");
   check(mailer.sent.every((e) => !e.text.includes(SECRET) && !e.html.includes(SECRET)), "2f. no email carries the reason");
   const second = fakeMailer();
-  await sendAdminEmails(db, second, settings, { adminUrl: ADMIN_URL });
+  await sendAdminEmails(db, second, settings, { adminUrl: ADMIN_URL, recipients: ours });
   check(second.sent.every((e) => !e.to.endsWith(`-${run}@test.local`)), "2g. a second run sends none of them again");
 
   // ---- 3. An invitation withdrawn before it went out ---------------------------
@@ -96,7 +98,7 @@ try {
   const removed = await owner.client.rpc("admin_remove", { p_user_id: lateId, p_reason: `${SECRET} withdrawn` });
   check(!removed.error, "3a. the owner cancels an invitation");
   const late = fakeMailer();
-  await sendAdminEmails(db, late, settings, { adminUrl: ADMIN_URL });
+  await sendAdminEmails(db, late, settings, { adminUrl: ADMIN_URL, recipients: [...ours, lateId] });
   check(late.sent.every((e) => e.to !== email("late")), "3b. the invitation isn't sent once it's withdrawn");
   const { data: skipped } = await db.from("admin_emails").select("status, skip_reason").eq("recipient_id", lateId).eq("kind", "admin_invite").single();
   check(skipped?.status === "skipped" && skipped.skip_reason === "No longer invited.", "3c. ...it's marked skipped, saying why");

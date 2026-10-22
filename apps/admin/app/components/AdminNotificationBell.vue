@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import {
-  adminLimitReachedText, adminListingTakenDownText, adminNotificationText, adminProfileHiddenOverdueText, adminProfileHiddenText, adminSettingsChangeText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
+  adminLimitReachedText, adminListingSubmittedText, adminListingTakenDownText, adminNotificationText, adminProfileHiddenOverdueText, adminProfileHiddenText, adminSettingsChangeText, adminRequestDecidedText, adminRequestNewText, adminSupportRefundText, adminTeamChangeText, bellLabel,
   type AdminLimitName, type AdminNotificationKind, type AdminRequestKind, type AdminRequestStatus, type AdminTeamAction, type SupportCategory,
 } from "@repo/types";
 import type { AdminNotificationRow } from "@repo/ui/app/utils/notificationFeed";
 
 // The admin's bell (docs/design/problem-reports.md, Notifications): a new
 // report (urgent for Safety) or a provider's reply, and for owners a team
-// change (docs/design/admin-roles.md), the 20 most recent and
+// change (docs/design/admin-roles.md), an Experience waiting for review
+// (everyone on the team, 2026-10-21), the 20 most recent and
 // every unread counted, for this admin's own login. Live through the same
 // feed as the provider's bell (ids only, never text); each new one tells an
 // open report page and the board to reload (announceSupportReportChanged).
@@ -20,6 +21,8 @@ interface Item {
   report_id: string | null;
   admin_action_id: string | null;
   job_alert: { message: string } | null;
+  listing_id: string | null;
+  listing: { title: string; provider: { display_name: string } | null } | null;
   created_at: string;
   read_at: string | null;
   report: { category: SupportCategory; provider: { display_name: string } | null } | null;
@@ -67,6 +70,7 @@ const textOf = (n: Item) => {
     return n.action ? adminProfileHiddenText(emailOf(n.action.admin_id), hiddenFrom.value.get(n.action.target_id ?? "")?.name, hiddenFrom.value.get(n.action.target_id ?? "")?.parts.get(n.id) ?? []) : "Support hid part of a provider's profile.";
   }
   if (n.kind === "job_alert") return n.job_alert?.message ?? "A job needs a look.";
+  if (n.kind === "listing_submitted") return adminListingSubmittedText(n.listing?.provider?.display_name, n.listing?.title);
   if (n.kind === "profile_hidden_overdue") {
     const h = hiddenFrom.value.get(n.action?.target_id ?? "");
     return adminProfileHiddenOverdueText(h?.name, h?.parts.get(n.id) ?? []);
@@ -92,7 +96,7 @@ async function load() {
   const [recent, count] = await Promise.all([
     supabase.from("admin_notifications")
       .select("id, kind, report_id, admin_action_id, created_at, read_at, report:support_reports(category, provider:providers(display_name)), " +
-        "job_alert:job_alerts(message), " +
+        "job_alert:job_alerts(message), listing_id, listing:listings(title, provider:providers(display_name)), " +
         "action:admin_actions(admin_id, target_id, action, message, amount_cents), " +
         "request:admin_requests(kind, status, resolve_problem, amount_cents, requested_by, booking:bookings(listing:listings(title), provider:providers(display_name)), provider:providers!admin_requests_provider_id_fkey(display_name))")
       .eq("recipient_id", me).order("created_at", { ascending: false }).limit(20),
@@ -167,6 +171,7 @@ async function openItem(n: Item) {
   await navigateTo(n.kind === "team_change" || n.kind === "limit_reached" ? "/team"
     : n.kind === "support_refund" ? `/bookings/${n.action?.target_id}`
     : n.kind === "listing_taken_down" ? `/listings/${n.action?.target_id}`
+    : n.kind === "listing_submitted" ? `/listings/${n.listing_id}`
     : n.kind === "settings_change" ? "/activity"
     : n.kind === "profile_hidden" || n.kind === "profile_hidden_overdue" ? "/requests"
     : n.kind === "job_alert" ? "/"

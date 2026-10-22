@@ -114,7 +114,8 @@ try {
   const sent: OutgoingEmail[] = [];
   const mailer: Mailer = { async send(e) { sent.push(e); return { id: `re_test_${sent.length}` }; } };
   const settings: EmailSettings = { mode: "send", allowlist: [], from: "lokl <test@test.local>", replyTo: "help@test.local", siteUrl: "http://localhost:3100" };
-  await sendAdminEmails(db, mailer, settings, { adminUrl: "http://localhost:3101" });
+  // Only this test's team: other tests leave team emails waiting in the shared outbox.
+  await sendAdminEmails(db, mailer, settings, { adminUrl: "http://localhost:3101", recipients: [owner.id, support.id] });
   const told = sent.find((e) => e.to === owner.email && e.subject === "Support refunded or cancelled a booking");
   check(!!told && told.text.includes(`${support.email} refunded $130.00 and cancelled “Requests crawl ${run}” (Requests ${run}).`) && told.text.includes(`/bookings/${small.id}`)
     && !told.text.includes("The customer was ill."), "1f. the owner is emailed the refund, with the booking, never the reason");
