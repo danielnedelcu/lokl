@@ -117,6 +117,11 @@ export function adminListingTakenDownText(who: string, listingTitle: string | nu
   return `${who} took down ${listingTitle ? `“${listingTitle}”` : "a listing"}.`;
 }
 
+/** "Fresh Cuts Studio sent “Sweet Auburn food walk” for review." (an Experience waiting for the team, 2026-10-21) */
+export function adminListingSubmittedText(providerName: string | null | undefined, listingTitle: string | null | undefined): string {
+  return `${providerName ?? "A provider"} sent ${listingTitle ? `“${listingTitle}”` : "a listing"} for review.`;
+}
+
 /** "sam@example.com changed the settings: Refund limit $150.00 to $200.00." */
 export function adminSettingsChangeText(who: string, what: string | null | undefined): string {
   return what ? `${who} changed the settings: ${what}` : `${who} changed the settings.`;

@@ -54,6 +54,8 @@ Delete: not from the app. When a listing is deleted, its notifications are delet
 
 Those four transitions are admin-only (the provider routes can't make them), so the trigger doesn't need to know who acted. Provider transitions (publish, submit, unlist) create nothing. A status "change" to the same value creates nothing.
 
+**The team's side** (2026-10-21, migration `listing_submitted_alerts`): when a listing goes into `submitted` (sent for review, first time or again), `listings_alert_team_submitted` tells every active team member: a `listing_submitted` row in the admin bell each time, and an `admin_listing_submitted` email at most once an hour per listing.
+
 **Email too** (2026-10-21, migration `listing_review_emails`): the same four review decisions also email the provider (`provider_emails`, queued by `admin_set_listing_status`, not by this trigger, so only lokl's decisions email). A rejection or takedown includes the reason the provider sees in their editor, labelled "lokl's reason"; an approval or restore carries no text. Listing reviews have no internal notes: the one reason is provider-facing.
 
 ### Access rules

@@ -16,8 +16,9 @@ lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
      insert can be checked and retried after a gateway 502 (moved up
      2026-10-21, after one hit CI with only lokl's stack running; built
      2026-10-21).
-  3. Tell the team when an Experience is waiting for review: every active
-     team member who can review listings, support included.
+  3. [x] Tell the team when an Experience is waiting for review: every
+     active team member who can review listings, support included; the
+     email at most once an hour per listing (built 2026-10-21).
   4. A reload after a lost reply can hide a date (Hardening).
   5. Look into the gateway drops themselves (Hardening).
   6. Money writes in one transaction, safe to retry: checkout, payouts and
@@ -942,8 +943,11 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
 - [ ] Notification history beyond the 20 newest (See all / Show older), if
   providers or admins ask for it. Both bells load the newest 20 and count
   every unread one in the database (2026-10-17).
-- [ ] Admin notifications, such as new Experiences waiting for review (also
-  makes the review queue update live).
+- [x] The team is told when an Experience is waiting for review
+  (2026-10-21, migration `listing_submitted_alerts`): every active team
+  member, owners and support, in the bell each time and by email at most
+  once an hour per listing. (The review queue itself still updates on
+  reload.)
 - [x] Email providers when a listing is approved, rejected, unpublished or
   restored (2026-10-21, migration `listing_review_emails`), with the
   provider-facing reason for a rejection or takedown.

@@ -15,9 +15,9 @@
 // runs it with a fake mailer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { adminLimitReachedText, adminListingTakenDownText, adminProfileHiddenOverdueText, adminProfileHiddenText, adminRequestNewText, adminSettingsChangeText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
+import { adminLimitReachedText, adminListingSubmittedText, adminListingTakenDownText, adminProfileHiddenOverdueText, adminProfileHiddenText, adminRequestNewText, adminSettingsChangeText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderAdminInviteEmail, renderAdminJobAlertEmail, renderAdminLimitEmail, renderAdminListingTakenDownEmail, renderAdminProfileHiddenEmail, renderAdminProfileHiddenOverdueEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, PROVIDER_LISTING_EMAIL_KINDS, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
+import { renderAdminInviteEmail, renderAdminJobAlertEmail, renderAdminLimitEmail, renderAdminListingSubmittedEmail, renderAdminListingTakenDownEmail, renderAdminProfileHiddenEmail, renderAdminProfileHiddenOverdueEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, PROVIDER_LISTING_EMAIL_KINDS, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -467,23 +467,43 @@ export async function sendAdminEmails(
   db: SupabaseClient,
   mailer: Mailer | null,
   settings: EmailSettings,
-  opts: { adminUrl: string; now?: Date; limit?: number; deadline?: number },
+  opts: {
+    adminUrl: string;
+    /** Only these team members' emails (tests: the outbox is shared, and other tests leave emails waiting in it). */
+    recipients?: string[];
+    now?: Date; limit?: number; deadline?: number;
+  },
 ): Promise<SendResult> {
-  type AdminRow = OutboxRow & { kind: AdminEmailKind; admin_action_id: string | null; job_alert_id: string | null; recipient_id: string };
+  type AdminRow = OutboxRow & { kind: AdminEmailKind; admin_action_id: string | null; job_alert_id: string | null; listing_id: string | null; recipient_id: string };
   const emailOf = async (id: string) => {
     const { data, error } = await db.auth.admin.getUserById(id);
     return error ? null : (data.user?.email ?? null);
   };
   return runOutbox<AdminRow>(db, mailer, settings, {
     table: "admin_emails",
-    columns: "id, kind, admin_action_id, job_alert_id, recipient_id, status, attempts, locked_at, created_at",
+    columns: "id, kind, admin_action_id, job_alert_id, listing_id, recipient_id, status, attempts, locked_at, created_at",
     keyPrefix: "admin-email",
+    narrow: opts.recipients ? (q) => q.in("recipient_id", opts.recipients) : undefined,
     now: opts.now,
     deadline: opts.deadline,
     limit: opts.limit,
     prepare: async (row) => {
       if (!opts.adminUrl) return { skip: "NUXT_ADMIN_ORIGIN isn't set, so there's no link to the admin app." };
       const adminUrl = opts.adminUrl.replace(/\/$/, "");
+      // An Experience sent for review, to everyone on the team; skipped once
+      // they've left it, or once the listing's been reviewed or deleted.
+      if (row.kind === "admin_listing_submitted") {
+        // bounded: one row by its primary key
+        const { data: member } = await db.from("admin_members").select("status").eq("user_id", row.recipient_id).maybeSingle();
+        const to = await emailOf(row.recipient_id);
+        if (member?.status !== "active") return { skip: "No longer on the team.", to };
+        const { data: l, error: lError } = await db.from("listings").select("title, status, provider:providers(display_name)").eq("id", row.listing_id!).maybeSingle();
+        if (lError) throw new Error(lError.message);
+        if (!l) return { skip: "The listing was deleted.", to };
+        if (l.status !== "submitted") return { skip: "Already reviewed, or taken back by its provider.", to };
+        const provider = (l as unknown as { provider: { display_name: string } | null }).provider;
+        return { to, email: renderAdminListingSubmittedEmail({ adminUrl, text: adminListingSubmittedText(provider?.display_name, l.title), listingId: row.listing_id! }) };
+      }
       // A job alert (the watchdog, which also emails the owners itself,
       // straight through Resend): this copy goes unless that one was delivered.
       if (row.kind === "admin_job_alert") {
