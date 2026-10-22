@@ -5,8 +5,9 @@
 // reads itself, but never writes, so a setup write fails the test before it
 // starts (journey 27, 2026-10-20). An update or delete by id with set values
 // can be repeated safely; inserts, upserts and function calls never are
-// (each could do its work twice). The apps never use this: their writes
-// report a failure to the person (docs/TODO.md).
+// (each could do its work twice). Setup inserts are handled by
+// insertChecked instead, which reads their keys back first. The apps never
+// use either: their writes report a failure to the person (docs/TODO.md).
 
 const BY_ID = /[?&]id=eq\.[0-9a-f-]{36}(&|$)/i;
 

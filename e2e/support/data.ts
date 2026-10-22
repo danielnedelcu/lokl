@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { ADMIN_SESSION_HEADER } from "@repo/types";
 import { testEnv, type TestEnv } from "./env";
+import { insertChecked } from "./insertChecked";
 import { authenticatorKeys, freshTotp } from "./totp";
 
 // Test data for one journey, on the LOCAL stack, tagged with a run id and
@@ -100,15 +101,13 @@ export class TestData {
   async user(label: string, { admin = false as boolean | "owner" | "support", authenticator = true, invited = false } = {}): Promise<TestUser> {
     const email = `e2e-${label}-${this.run}@test.local`;
     const password = `e2e-${randomBytes(12).toString("hex")}`;
-    const { data: made, error } = await this.env.db.auth.admin.createUser({ email, password, email_confirm: true });
-    const user = made.user;
-    if (error || !user) throw new Error(`The test user wasn't created: ${error?.message ?? "no user"}`);
+    const user = await this.createLogin(email, password);
     this.users.push(user.id);
     if (!admin) return { id: user.id, email, password };
-    await must(this.env.db.from("admin_members").insert({
+    await this.insert("admin_members", [{
       user_id: user.id, role: admin === "support" ? "support" : "owner",
       ...(invited ? { status: "invited" } : { status: "active", joined_at: new Date().toISOString() }),
-    }));
+    }], "user_id");
     if (!authenticator) return { id: user.id, email, password };
     const client = createClient(this.env.apiUrl, this.env.publishableKey, { auth: { persistSession: false } });
     const signedIn = await client.auth.signInWithPassword({ email, password });
@@ -125,6 +124,37 @@ export class TestData {
     return { id: user.id, email, password, adminSession };
   }
 
+  /**
+   * Makes a login. After a gateway 502 (it may or may not have been made),
+   * looks for it by its email, unique to this run: found, it's used (with
+   * the password it was made with); not found, it's made once more.
+   */
+  private async createLogin(email: string, password: string): Promise<{ id: string }> {
+    const make = () => this.env.db.auth.admin.createUser({ email, password, email_confirm: true });
+    let { data, error } = await make();
+    if (error && error.status === 502) {
+      const found = execFileSync("psql", [this.env.dbUrl, "-qAt", "-v", "ON_ERROR_STOP=1", "-c",
+        `select id from auth.users where email = '${email.replace(/'/g, "''")}'`], { encoding: "utf8" }).trim();
+      if (found) {
+        console.warn("[setup] a login: a gateway 502, but it was made; not made again.");
+        return { id: found };
+      }
+      console.warn("[setup] a login: a gateway 502, and it wasn't made; made once more.");
+      ({ data, error } = await make());
+    }
+    if (error || !data.user) throw new Error(`The test user wasn't created: ${error?.message ?? "no user"}`);
+    return { id: data.user.id };
+  }
+
+  /**
+   * A setup insert with keys the test chose, checked and sent once more
+   * after a gateway 502 only if it didn't go in (insertChecked).
+   */
+  private async insert(table: string, rows: Record<string, unknown>[], key = "id") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await insertChecked(this.env.db as any, table, rows, key);
+  }
+
   /** A login the app made itself (the Team page's invitation), removed with the rest. */
   trackUser(id: string) {
     this.users.push(id);
@@ -139,8 +169,9 @@ export class TestData {
    * hold it: tag that test @serial).
    */
   async provider(owner: TestUser, name = `E2E Provider ${this.run}`, { connectedAccount = false } = {}) {
-    const id = (await must(this.env.db.from("providers").insert({ owner_id: owner.id, display_name: name, city_id: this.cityId }).select("id").single())).id as string;
+    const id = randomUUID();
     this.providers.push(id);
+    await this.insert("providers", [{ id, owner_id: owner.id, display_name: name, city_id: this.cityId }]);
     await must(this.env.db.from("providers").update({
       stripe_account_id: connectedAccount ? this.env.connectedAccount : `acct_e2e_${randomBytes(6).toString("hex")}`,
       stripe_charges_enabled: true, stripe_payouts_enabled: true,
@@ -151,14 +182,16 @@ export class TestData {
   async category(kind: "service" | "experience") {
     const name = `E2E ${kind} ${this.run}`;
     const slug = `e2e-${kind}-${this.run}`;
-    const id = (await must(this.env.db.from("categories").insert({ kind, name, slug }).select("id").single())).id as string;
+    const id = randomUUID();
     this.categories.push(id);
+    await this.insert("categories", [{ id, kind, name, slug }]);
     return { id, name, slug };
   }
 
   async area() {
-    const id = (await must(this.env.db.from("service_areas").insert({ city_id: this.cityId, kind: "neighborhood", name: `E2E ${this.run}` }).select("id").single())).id as string;
+    const id = randomUUID();
     this.areas.push(id);
+    await this.insert("service_areas", [{ id, city_id: this.cityId, kind: "neighborhood", name: `E2E ${this.run}` }]);
     return id;
   }
 
@@ -172,21 +205,23 @@ export class TestData {
     const id = randomUUID();
     const title = titled ?? `E2E ${kind === "service" ? "Haircut" : "Food walk"} ${this.run}`;
     this.listings.push(id);
-    await must(this.env.db.from("listings").insert({
+    await this.insert("listings", [{
       id, provider_id: providerId, city_id: this.cityId, area_id: areaId, status: "draft", kind, category_id: categoryId, title,
       description: "A listing made by the end-to-end tests.", price_cents: 5000, duration_minutes: 60,
       location_mode: kind === "service" ? "provider_location" : null, booking_mode: kind === "service" ? mode : null,
-    }));
+    }]);
     // What going live needs (listing_readiness): a photo and the address.
-    await must(this.env.db.from("listing_photos").insert({ listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }));
-    await must(this.env.db.from("listing_addresses").insert({ listing_id: id, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }));
+    await this.insert("listing_photos", [{ id: randomUUID(), listing_id: id, storage_path: `${providerId}/${id}/${randomUUID()}.jpg`, position: 0, alt_text: "A test photo" }]);
+    await this.insert("listing_addresses", [{ listing_id: id, line1: "1 Test Street", city: "Atlanta", state: "GA", postal_code: "30312" }], "listing_id");
     if (kind === "experience") await must(this.env.db.from("listings").update({ status: "submitted" }).eq("id", id));
     const row = await must(this.env.db.from("listings").update({ status: "live", published_at: new Date().toISOString() }).eq("id", id).select("slug").single());
     return { id, slug: row.slug as string, title };
   }
 
   async session(listingId: string, startsAt: string, capacity = 4) {
-    return (await must(this.env.db.from("experience_sessions").insert({ listing_id: listingId, starts_at: startsAt, capacity }).select("id").single())).id as string;
+    const id = randomUUID();
+    await this.insert("experience_sessions", [{ id, listing_id: listingId, starts_at: startsAt, capacity }]);
+    return id;
   }
 
   async spotsLeft(sessionId: string) {
@@ -217,9 +252,7 @@ export class TestData {
    * said. Services are booked from these times only.
    */
   async hours(providerId: string, starts = "09:00", ends = "17:00") {
-    await must(this.env.db.from("provider_weekly_hours").insert(
-      [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ provider_id: providerId, weekday, starts, ends })),
-    ));
+    await this.insert("provider_weekly_hours", [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ id: randomUUID(), provider_id: providerId, weekday, starts, ends })));
   }
 
   /** The first free time of a Service at least `afterDays` from now (its provider must have hours). */
@@ -313,7 +346,9 @@ export class TestData {
 
   /** Test-only: a published review, written as the database would take it (the service role skips the form). */
   async review(bookingId: string, rating: number, body: string) {
-    return (await must(this.env.db.from("reviews").insert({ booking_id: bookingId, rating, body } as never).select("id").single())).id as string;
+    const id = randomUUID();
+    await this.insert("reviews", [{ id, booking_id: bookingId, rating, body }]);
+    return id;
   }
 
   /** Run a timed job through its route, as the scheduler does. */
@@ -326,8 +361,9 @@ export class TestData {
   /** A never-published guide in Atlanta (or an id made by the app, to remove afterwards). */
   async guide(fields: { title?: string; updatedHoursAgo?: number } = {}) {
     const slug = `e2e-guide-${this.run}-${randomBytes(2).toString("hex")}`;
-    const id = (await must(this.env.db.from("guides").insert({ market_id: this.cityId, slug, draft_title: fields.title ?? "" }).select("id").single())).id as string;
+    const id = randomUUID();
     this.guides.push(id);
+    await this.insert("guides", [{ id, market_id: this.cityId, slug, draft_title: fields.title ?? "" }]);
     if (fields.updatedHoursAgo) {
       execFileSync("psql", [this.env.dbUrl, "-q", "-c", `
         set session_replication_role = replica;
@@ -343,18 +379,21 @@ export class TestData {
    */
   async publishedGuide(title: string, admin: TestUser, marketId = this.cityId) {
     const slug = `e2e-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${this.run}`;
-    const area = (await must(this.env.db.from("service_areas").insert({ city_id: marketId, kind: "neighborhood", name: `E2E ${title} ${this.run}` }).select("id").single())).id as string;
+    const area = randomUUID();
     this.areas.push(area);
+    await this.insert("service_areas", [{ id: area, city_id: marketId, kind: "neighborhood", name: `E2E ${title} ${this.run}` }]);
     const teaser = `A walk around ${title}, and who to book for it.`;
-    const g = (await must(this.env.db.from("guides").insert({
-      market_id: marketId, slug, draft_title: title, draft_teaser: teaser,
+    const g = randomUUID();
+    this.publishedGuides.push(g);
+    await this.insert("guides", [{
+      id: g, market_id: marketId, slug, draft_title: title, draft_teaser: teaser,
       draft_category_id: (await (this.guideCategory ??= this.category("experience"))).id, draft_area_id: area,
       draft_body: { blocks: [{ type: "paragraph", data: { text: "The live words." } }] },
-    }).select("id").single())).id as string;
-    this.publishedGuides.push(g);
-    const photo = (await must(this.env.db.from("guide_photos").insert({
-      guide_id: g, storage_path: `${g}/${randomUUID()}.webp`, width: 2400, height: 1350, alt_text: `The cover of ${title}`, source: "own",
-    }).select("id").single())).id as string;
+    }]);
+    const photo = randomUUID();
+    await this.insert("guide_photos", [{
+      id: photo, guide_id: g, storage_path: `${g}/${randomUUID()}.webp`, width: 2400, height: 1350, alt_text: `The cover of ${title}`, source: "own",
+    }]);
     await must(this.env.db.from("guides").update({ draft_cover_photo_id: photo }).eq("id", g));
     // The server key acting for the admin's session, as the admin app's route does.
     if (!admin.adminSession) throw new Error("publishedGuide needs an admin with an authenticator.");
@@ -366,14 +405,15 @@ export class TestData {
   }
   /** A market of its own (for closing it in a test); removed afterwards. */
   async market(name: string) {
-    const id = (await must(this.env.db.from("cities").insert({ slug: `e2e-${this.run}-${randomBytes(2).toString("hex")}`, name, state: "GA", timezone: "America/New_York" }).select("id").single())).id as string;
+    const id = randomUUID();
     this.cities.push(id);
+    await this.insert("cities", [{ id, slug: `e2e-${this.run}-${randomBytes(2).toString("hex")}`, name, state: "GA", timezone: "America/New_York" }]);
     return id;
   }
   /** Sets the homepage's guides directly: the first is the main guide (position 1), or none with `{ main: false }`. */
   async setHomepage(ids: string[], { main = true } = {}) {
     await must(this.env.db.from("homepage_features").delete().gte("position", 1));
-    if (ids.length) await must(this.env.db.from("homepage_features").insert(ids.map((guide_id, i) => ({ position: i + (main ? 1 : 2), guide_id }))));
+    if (ids.length) await this.insert("homepage_features", ids.map((guide_id, i) => ({ position: i + (main ? 1 : 2), guide_id })), "position");
   }
 
   trackGuide(id: string) {
