@@ -1,12 +1,28 @@
 # TODO
 
-Last updated: 2026-10-03. Update this when the board changes.
+Last updated: 2026-10-21. Update this when the board changes.
 
 lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
 "Done" at the bottom.
 
 ## Open now
 
+- [ ] **Next, each its own pull request, in this order** (decided
+  2026-10-21):
+  1. Email providers when a listing is approved, rejected or unpublished
+     (Notifications, below), with only the reason the provider is meant
+     to see.
+  2. Tell the team when an Experience is waiting for review: every active
+     team member who can review listings, support included.
+  3. A reload after a lost reply can hide a date (Hardening).
+  4. The browser tests' setup helpers choose their own ids, so an insert
+     can be checked and retried after a gateway 502; then look into the
+     drops themselves (Hardening).
+  5. Money writes in one transaction, safe to retry: checkout, payouts and
+     the finances totals (Hardening).
+  6. Booking reminders the day before (Notifications): at 10 AM Atlanta
+     time, skipping bookings made less than a day ahead; no address,
+     phone or email in either copy, which links to the booking page.
 - [ ] **Part 7 walkthrough, steps 7 to 11** (steps 1 to 6 passed
   2026-10-02; the rest wait for Resend's daily quota to reset). First run
   `npm run job -- send-emails` once to send anything held by the quota.
@@ -43,9 +59,10 @@ lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
   verifications per IP address, not per email address. If that's ever seen,
   add a CAPTCHA on sending (Supabase supports Turnstile) or move to 8-digit
   codes (docs/design/sign-in-with-code.md, Attempt limits).
-- [ ] **Audit log for listing reviews** (who approved, rejected, unpublished or
-  restored what). Booking, email and provider actions are logged in
-  `admin_actions` since 2026-10-03; listing reviews aren't yet.
+- [x] **Audit log for listing reviews** (done 2026-10-20, admin roles step
+  5d): `admin_set_listing_status()` logs every approval, rejection,
+  unpublish and restore in `admin_actions`, with the reason shown to the
+  provider.
 
 ## Build order
 
@@ -81,8 +98,8 @@ Each step depends on the ones before it.
    - [x] A booking cancelled with a full refund keeps no payout hold
      (2026-10-03; `cancelled_bookings_hold_nothing`).
 5. [x] **Booking management.** Covered by step 4 (parts 4, 6 and 8).
-6. [x] **Admin actions.** Covered by step 4, part 8. Its leftover, the audit
-   log for listing reviews, is under "Open now".
+6. [x] **Admin actions.** Covered by step 4, part 8; the audit log for
+   listing reviews followed in admin roles step 5d (2026-10-20).
 7. [ ] **Destination guides** (`docs/design/destination-guides.md`, reviewed
    2026-10-03). In parts: database, editor, AI draft, public pages, homepage.
    - [x] Part 1: database. Guides with draft and live copies (including
@@ -541,9 +558,9 @@ Lokl Stripe sandbox. Test there first what needs a real address:
 - [ ] **An outside uptime monitor** for the website, the admin app and the
   database (it alerts the owners when the database itself is down, which
   the watchdog inside it can't). Before launch too.
-- [ ] (Was: the job scheduler, `pg_cron` + `pg_net` calling
-  `/api/jobs/*`, including `send-emails` and, daily, `review-reminders`
-  and `refresh-open-days`; now built.) Until `refresh-open-days` runs, a Service's
+- Until the scheduler is switched on (`pg_cron` + `pg_net` calling
+  `/api/jobs/*`, built 2026-10-21), jobs run only with `npm run job`.
+  Until `refresh-open-days` runs, a Service's
   open days move on only when its provider changes something (hours, a
   booking, settings): dated searches work out live, more slowly, every day
   past each Service's last refresh, and the further a search reaches, the
@@ -573,9 +590,9 @@ Lokl Stripe sandbox. Test there first what needs a real address:
 - [x] Switch to branches and pull requests (done 2026-10-19,
   `docs/deployment.md`): feature branches off `main` through pull requests,
   with `checks`, `database`, `e2e` and `stripe` required to merge.
-  - [ ] (owner) Set `main`'s branch protection in GitHub and add
-    `refs/pull/*/merge` to the `stripe-sandbox` environment's deployment
-    branches (docs/deployment.md, Owner's settings in GitHub).
+  - [x] (owner) `main`'s protection (the "Protect main" ruleset, active)
+    and `refs/pull/*/merge` in the `stripe-sandbox` environment's
+    deployment branches (checked 2026-10-21).
 - [x] **CI doesn't run hosted's service versions** (found 2026-10-16; done
   2026-10-17: `supabase/service-versions.json`, see CLAUDE.md). CI
   runs PostgREST 16.4 and Postgres 17.11.0.004, the CLI's defaults
@@ -774,9 +791,9 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     `auto_expose_new_tables` from `supabase/config.toml`; every grant is in
     the migrations since `explicit_api_grants`.
 - **Sign-in**
-  - [ ] Once the terms and privacy policy exist, show "By continuing, you
-    agree to lokl's Terms and Privacy Policy" in the sign-in dialog, with
-    links.
+  - [x] "By continuing, you confirm you're 18 or over and agree to lokl's
+    Terms and Privacy Policy", with links, on the sign-in page and dialog
+    (2026-10-18).
   - [ ] **Google sign-in in production** (built 2026-10-11, hidden until a
     client is set): needs the privacy policy (and terms) at public
     hilokl.com addresses first, which Google's branding verification asks
@@ -849,7 +866,7 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     retention and rights sections stay marked `LAUNCH-PLACEHOLDER` until
     it's built.
 - **Staff access**
-  - [ ] Admin roles before hiring anyone (owner and support), enforced in
+  - [x] Admin roles before hiring anyone (owner and support), enforced in
     the database, with owner approval for suspensions, payout releases and
     large refunds, alerts, limits, and logging access to contact details.
     Staff never get Supabase, Vercel, GitHub or full Stripe access.
@@ -861,8 +878,7 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     hosted, confirmed in the dashboard); 2. the admin app's set-up and
     second-step pages, optional (done 2026-10-18: `/security`,
     `/security/verify`); 3. the owner enrols two authenticators (done
-    2026-10-18); 4. the migration (built 2026-10-18, waiting for
-    `db:push`); 5. in four parts: 5a, the owner's areas and the team
+    2026-10-18); 4. the migration (built and pushed 2026-10-18); 5. in five parts: 5a, the owner's areas and the team
     (the Team page at `/team`: invite by email, join on `/join`, change
     a role, reset authenticators, remove; every change logged and sent
     to every owner's bell and inbox; built and pushed to hosted 2026-10-19); 5b, requests (support asks, the
@@ -877,9 +893,9 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
     the homepage and the reference lists, and the Activity page (built
     2026-10-20, pushed to hosted); 5e, support hides profile content and
     the owner confirms, restores or dismisses it, hidden photos moved out
-    of the public bucket (built 2026-10-20, pull request open, `db:push`
-    after the merge). After one release, remove `app_metadata.role` from
-    the owner's login (unused since step 4).
+    of the public bucket (built 2026-10-20, pushed to hosted 2026-10-21).
+  - [ ] After one release, remove `app_metadata.role` from the owner's
+    login (unused since admin roles step 4).
   - [x] **Remind the owner of hidden profile content waiting 7 days**
     (noted 2026-10-20; built 2026-10-21 as the `hidden-content-reminder`
     job, daily, once per hide, running once the scheduler is switched on).
