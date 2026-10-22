@@ -33,7 +33,38 @@ onMounted(async () => {
   if (name && !values.name) setFieldValue("name", name);
 });
 
-const chosen = computed(() => props.listing.sessions.find((s) => s.id === values.sessionId));
+// A signed-in customer's own unpaid attempt (a lost reply, then a reload,
+// within its 31 minutes) holds spots the page counts as taken. A new attempt
+// for that date ends it (reserve_experience_booking), so those spots are
+// theirs to book: for each such date, the spots are read fresh (the page's
+// own may be up to a minute old) and theirs added back.
+const supabase = useSupabaseClient();
+const user = useSupabaseUser();
+const ownSpots = ref(new Map<string, { spotsLeft: number; yours: number }>());
+async function loadOwnAttempts() {
+  ownSpots.value = new Map();
+  if (!user.value) return;
+  // bounded: one customer's unpaid attempts on one listing
+  const { data, error } = await supabase.from("bookings").select("session_id, party_size, reserved_until")
+    .eq("listing_id", props.listing.id).eq("status", "pending_payment").not("session_id", "is", null).limit(50);
+  if (error || !data?.length) return;
+  const yours = new Map<string, number>();
+  // real time: the reservation's end, as the spots count it
+  for (const b of data) if (b.session_id && Date.parse(b.reserved_until ?? "") > Date.now()) yours.set(b.session_id, (yours.get(b.session_id) ?? 0) + b.party_size);
+  const next = new Map<string, { spotsLeft: number; yours: number }>();
+  await Promise.all([...yours].map(async ([sessionId, n]) => {
+    const { data: left, error: leftError } = await supabase.rpc("session_spots_left", { p_session_id: sessionId }, { get: true });
+    if (!leftError && typeof left === "number") next.set(sessionId, { spotsLeft: left + n, yours: n });
+  }));
+  ownSpots.value = next;
+}
+onMounted(loadOwnAttempts);
+watch(() => user.value?.sub, loadOwnAttempts);
+const sessions = computed(() => props.listing.sessions.map((s) => {
+  const own = ownSpots.value.get(s.id);
+  return own ? { ...s, spotsLeft: own.spotsLeft, yours: own.yours } : { ...s, yours: 0 };
+}));
+const chosen = computed(() => sessions.value.find((s) => s.id === values.sessionId));
 const maxPeople = computed(() => Math.min(10, chosen.value?.spotsLeft ?? 10));
 const total = computed(() => {
   const n = Number(values.partySize) || 1;
@@ -56,7 +87,10 @@ const submit = handleSubmit(async (v) => {
   // Refused: spots may have changed while they filled the form, so show the
   // latest. Not after a lost reply: the spots shown would count the attempt
   // that may have been made, and block pressing again.
-  if (result === "refused") await refreshNuxtData();
+  if (result === "refused") {
+    await refreshNuxtData();
+    await loadOwnAttempts();
+  }
 });
 </script>
 
@@ -69,14 +103,16 @@ const submit = handleSubmit(async (v) => {
       <UiRadioGroup :model-value="values.sessionId" class="max-h-72 gap-2 overflow-y-auto p-0.5"
         :aria-describedby="sessionError ? 'session-error' : undefined" :aria-invalid="!!sessionError || undefined"
         @update:model-value="(v) => setFieldValue('sessionId', String(v))">
-        <label v-for="s in listing.sessions" :key="s.id"
+        <label v-for="s in sessions" :key="s.id"
           class="border-border has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:ring-primary/30 flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 py-2 has-[[data-state=checked]]:ring-2 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
           <UiRadioGroupItem :value="s.id" :disabled="s.spotsLeft <= 0" />
           <span class="flex-1">
             <span class="block text-sm font-medium">{{ formatSessionDate(s.startsAt, tz) }}</span>
             <span class="text-muted-foreground block text-xs">{{ timeRange(s.startsAt) }}</span>
           </span>
-          <span class="text-xs" :class="s.spotsLeft <= 0 ? 'text-muted-foreground' : ''">{{ spotsText(s.spotsLeft) }}</span>
+          <span class="text-right text-xs" :class="s.spotsLeft <= 0 ? 'text-muted-foreground' : ''">
+            {{ spotsText(s.spotsLeft) }}<span v-if="s.yours" class="text-muted-foreground block">including your unfinished checkout</span>
+          </span>
         </label>
       </UiRadioGroup>
       <p v-if="sessionError" id="session-error" class="text-destructive mt-1 text-sm">{{ sessionError }}</p>
