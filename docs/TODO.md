@@ -19,7 +19,8 @@ lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
   3. [x] Tell the team when an Experience is waiting for review: every
      active team member who can review listings, support included; the
      email at most once an hour per listing (built 2026-10-21).
-  4. A reload after a lost reply can hide a date (Hardening).
+  4. [x] A reload after a lost reply can hide a date (Hardening; built
+     2026-10-21 for Experiences; the Service side is its own item).
   5. Look into the gateway drops themselves (Hardening).
   6. Money writes in one transaction, safe to retry: checkout, payouts and
      the finances totals (Hardening).
@@ -435,11 +436,20 @@ three are done: explicit API grants, the build secrets check, and
   that starts CI during the sweep's journeys can still overlap them;
   accepted 2026-10-18: a rare overlap fails visibly and is re-run, better
   than making CI wait.)
-- [ ] **A reload after a lost reply can hide a date.** Within 31 minutes of a
-  lost reply, the booking page's spots still count the customer's own unpaid
-  attempt as taken, so a date it filled shows as full and can't be chosen,
-  although the server would accept a new attempt (it ends the earlier one).
-  The page would need to know the signed-in customer's own unpaid attempts.
+- [x] **A reload after a lost reply can hide a date** (Experiences, done
+  2026-10-21). The booking form reads the signed-in customer's own unpaid
+  attempts on the listing, asks each such date's spots fresh
+  (`session_spots_left`), and adds theirs back, marked "including your
+  unfinished checkout", since a new attempt for that date ends the earlier
+  one (`reserve_experience_booking`). Journey 18.
+- [ ] **The same for a Service, which also refuses the new attempt**
+  (found 2026-10-21). Within 31 minutes of a lost reply and a reload, a
+  Service's time held by the customer's own unpaid attempt is hidden from
+  them (slots exclude every hold), and `create_service_booking` doesn't
+  end their earlier unpaid attempt, so a new attempt for that time is
+  refused ("That time isn't available"). Needs a migration: end the
+  customer's own earlier unpaid attempt on that listing first, as
+  Experiences do, and show its time to them.
 - [x] **Business time, with a guard** (2026-10-10). Every date names its
   zone: a booking's, listing's or session's market zone (`marketZone`), or
   the home zone, labelled "Atlanta time", for the admin's record-keeping
