@@ -932,6 +932,15 @@ accepted until it starts).
 Provider account emails (paused or active again) are a separate outbox,
 `provider_emails`, written by `admin_set_provider_status`
 ([provider_account_emails](../../supabase/migrations/20261003013910_provider_account_emails.sql)).
+The same outbox carries the profile emails (admin roles step 5e) and,
+since 2026-10-21, the listing review emails, written by
+`admin_set_listing_status` in the review's own transaction
+([listing_review_emails](../../supabase/migrations/20261022011208_listing_review_emails.sql)):
+approved, rejected, taken down, restored. A rejection or takedown carries
+the reason the provider sees in their editor (a table check requires it
+for those two and refuses any text on the others); `sendProviderEmails`
+names the listing through the review action's target, and skips the
+email if the provider has since deleted that draft.
 
 Problem reports' emails are a third outbox, `support_emails`
 ([support_reports](../../supabase/migrations/20261017053502_support_reports.sql);

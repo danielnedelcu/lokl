@@ -17,7 +17,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { adminLimitReachedText, adminListingTakenDownText, adminProfileHiddenOverdueText, adminProfileHiddenText, adminRequestNewText, adminSettingsChangeText, adminSupportRefundText, adminTeamChangeText, errorText, marketZone, type AdminLimitName, type AdminRequestKind, type AdminTeamAction, type SupportCategory } from "@repo/types";
 import { logText } from "@repo/types";
-import { renderAdminInviteEmail, renderAdminJobAlertEmail, renderAdminLimitEmail, renderAdminListingTakenDownEmail, renderAdminProfileHiddenEmail, renderAdminProfileHiddenOverdueEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
+import { renderAdminInviteEmail, renderAdminJobAlertEmail, renderAdminLimitEmail, renderAdminListingTakenDownEmail, renderAdminProfileHiddenEmail, renderAdminProfileHiddenOverdueEmail, renderAdminRequestEmail, renderAdminSettingsChangeEmail, renderAdminSupportRefundEmail, renderAdminTeamChangeEmail, renderEmail, PROVIDER_LISTING_EMAIL_KINDS, renderProviderAccountEmail, renderSupportEmail, staleReviewEmail, type EmailContext, type EmailKind, type ProviderAccountEmailKind, type RenderedEmail, type SupportEmailKind, type AdminEmailKind } from "./bookingEmailTemplates";
 import { bookingRecords, FINANCES, withFinances } from "./bookingRecords";
 
 export interface OutgoingEmail extends RenderedEmail {
@@ -358,7 +358,7 @@ export async function sendBookingEmails(
   });
 }
 
-/** Sends the provider account emails that are due (paused, active again, profile content hidden, removed, restored or reviewed). Never throws. */
+/** Sends the provider account emails that are due (paused, active again, profile content hidden, removed, restored or reviewed; a listing approved, rejected, taken down or restored). Never throws. */
 export async function sendProviderEmails(
   db: SupabaseClient,
   mailer: Mailer | null,
@@ -385,9 +385,21 @@ export async function sendProviderEmails(
         const { data: open } = await db.from("provider_profile_holds").select("id").eq("hidden_action_id", row.admin_action_id).eq("status", "hidden");
         if (!open?.length) return { skip: "Already decided: the decision's email says what happened.", to };
       }
+      // A listing email names its listing through the review action. A
+      // rejected draft may since have been deleted by its provider.
+      type ReviewedListing = { id: string; title: string; kind: "experience" | "service" };
+      let listing: ReviewedListing | null = null;
+      if ((PROVIDER_LISTING_EMAIL_KINDS as readonly string[]).includes(row.kind)) {
+        const { data: action, error: actionError } = await db.from("admin_actions").select("target_id").eq("id", row.admin_action_id).single();
+        if (actionError) throw new Error(actionError.message);
+        const { data: l, error: listingError } = await db.from("listings").select("id, title, kind").eq("id", action.target_id!).maybeSingle();
+        if (listingError) throw new Error(listingError.message);
+        if (!l) return { skip: "The listing was deleted.", to };
+        listing = l as ReviewedListing;
+      }
       return {
         to,
-        email: renderProviderAccountEmail(row.kind, { siteUrl: settings.siteUrl, businessName: p.display_name, message: row.message, removed: row.removed, rule: row.rule }),
+        email: renderProviderAccountEmail(row.kind, { siteUrl: settings.siteUrl, businessName: p.display_name, message: row.message, removed: row.removed, rule: row.rule, listing }),
       };
     },
   });

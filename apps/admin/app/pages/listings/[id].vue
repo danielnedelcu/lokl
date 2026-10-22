@@ -111,25 +111,25 @@ const pendingAction = ref<Action | null>(null);
 const copy: Record<Action, { title: string; description: string; button: string; done: string }> = {
   approve: {
     title: "Approve this Experience?",
-    description: "It goes live straight away, and customers can find and book it.",
+    description: "It goes live straight away, and customers can find and book it. The provider is emailed.",
     button: "Approve",
     done: "Approved. It's live now.",
   },
   restore: {
     title: "Restore this listing?",
-    description: "It goes live again straight away, and the reason you gave is removed.",
+    description: "It goes live again straight away, and the reason you gave is removed. The provider is emailed.",
     button: "Restore",
     done: "Restored. It's live again.",
   },
   reject: {
     title: "Send this Experience back?",
-    description: "The provider sees your reason at the top of their editor. They can make changes and send it again.",
+    description: "The provider sees your reason at the top of their editor and in the email we send them. They can make changes and send it again.",
     button: "Send back",
     done: "Sent back to the provider.",
   },
   unpublish: {
     title: "Take this listing down?",
-    description: "Customers can't find or book it any more. The provider sees your reason in their editor. Anyone on the team can put it back.",
+    description: "Customers can't find or book it any more. The provider sees your reason in their editor and in the email we send them. Anyone on the team can put it back.",
     button: "Take down",
     done: "Taken down.",
   },

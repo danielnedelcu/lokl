@@ -9,9 +9,9 @@ lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
 
 - [ ] **Next, each its own pull request, in this order** (decided
   2026-10-21):
-  1. Email providers when a listing is approved, rejected or unpublished
-     (Notifications, below), with only the reason the provider is meant
-     to see.
+  1. [x] Email providers when a listing is approved, rejected or
+     unpublished (Notifications, below), with only the reason the
+     provider is meant to see (built 2026-10-21; restores email too).
   2. Tell the team when an Experience is waiting for review: every active
      team member who can review listings, support included.
   3. A reload after a lost reply can hide a date (Hardening).
@@ -937,9 +937,9 @@ On hilokl.com: the website at `https://hilokl.com`, the admin at
   every unread one in the database (2026-10-17).
 - [ ] Admin notifications, such as new Experiences waiting for review (also
   makes the review queue update live).
-- [ ] Email providers when a listing is approved, rejected or unpublished.
-  Until then, the dashboard overview shows "N listings need your attention"
-  when any listing is rejected or unpublished.
+- [x] Email providers when a listing is approved, rejected, unpublished or
+  restored (2026-10-21, migration `listing_review_emails`), with the
+  provider-facing reason for a rejection or takedown.
 
 ## Open decisions
 
