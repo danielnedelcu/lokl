@@ -121,6 +121,15 @@ tests) catches a read that asked for no limit and got exactly 1,000 rows:
 it fails in tests (`NUXT_PUBLIC_ROW_LIMIT_CHECK=throw`) and logs a warning
 otherwise.
 
+**Reads are asked again once after a gateway 502 or 503**
+(`retryReadsFetch`, `packages/types/src/retryReads.ts`; 2026-10-20 and
+2026-10-21): GET and HEAD to the REST API, so a database function that
+purely reads is called with `{ get: true }`; one that takes search text
+stays POST and goes on `SEARCH_READS` instead, which
+`search-reads.test.mts` allows only for a `stable` function taking `p_q`
+text that runs read-only. Writes, and functions that record a view, are
+never retried.
+
 **Ports are fixed** (`devServer.port` in each `nuxt.config.ts`): website 3100,
 admin 3101. The Reserve uses 3000 and falls back to 3001, so keep this project
 out of 3000–3001. Nuxt would silently fall back to another port, so each

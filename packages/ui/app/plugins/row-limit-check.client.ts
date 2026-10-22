@@ -4,7 +4,7 @@ import { retryReadsFetch, rowLimitFetch } from "@repo/types";
 // rows (rowLimitFetch in @repo/types). "pre", so it wraps fetch before the
 // Supabase client is made. The mode is runtimeConfig.public.rowLimitCheck.
 // Inside it, a read that met a gateway error (502, 503) is asked again once
-// (retryReadsFetch: GET and HEAD only, never a write).
+// (retryReadsFetch: GET and HEAD, and the listed search reads; never a write).
 export default defineNuxtPlugin({
   name: "row-limit-check",
   enforce: "pre",

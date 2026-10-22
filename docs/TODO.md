@@ -292,6 +292,11 @@ three are done: explicit API grants, the build secrets check, and
     out-of-memory kills; the only stops and restarts were `db:test`'s
     own database reset. A second Supabase stack (another project's) was
     running in Docker alongside lokl's the whole time.
+  - [x] **The admin search lists retry a 502** (2026-10-21): the four
+    POST reads that take search text are asked again once
+    (`SEARCH_READS`), so a dropped connection no longer fails the
+    Providers, Listings, Bookings or Problem reports list (journey 41's
+    failure).
   - [ ] **Look into the drops themselves** (option 3, after the POST
     retry): Docker Desktop's memory and CPU limits on this MacBook Air
     against what two Supabase stacks and the test apps use (`docker
