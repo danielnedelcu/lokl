@@ -1,4 +1,4 @@
-import { choose } from "../support/forms";
+import { choose, savedAgainTakesDownMessage } from "../support/forms";
 import type { Page } from "@playwright/test";
 import { daysFromNow } from "../support/data";
 import { signIn } from "../support/auth";
@@ -53,6 +53,9 @@ test("a provider fills in their profile; visitors see it on the listing and the 
   await page.getByLabel("About you (optional)").fill("We started our walks in 2019.\nSmall groups, good food.");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Business profile saved.")).toBeVisible();
+  // Saved again while that message is up: it's taken down at once.
+  await savedAgainTakesDownMessage(page, "Business profile saved.", "/api/provider",
+    () => page.getByRole("button", { name: "Save changes" }).click());
 
   // Photos: added, then the profile photo replaced (the old files go).
   await addPhoto(page, "Click to add a profile photo", await image(page, 700, 500));

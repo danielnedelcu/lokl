@@ -204,7 +204,7 @@ The provider's `/dashboard/availability` (docs/design/service-availability.md):
 - Errors appear next to the field, in words, and say how to fix the problem ("Enter a price above $0"), not just what's wrong.
 - Submit buttons show a loading state and are disabled while submitting, so a double click can't send twice.
 - Success and failure of an action are confirmed with a toast; errors that need the user to act stay on the page.
-- A form that can be saved again in place takes its messages through `useSaveMessages()` (`@repo/ui`): Save calls `messages.start()` first, which takes down the form's last message, so a "saved" on screen always belongs to the latest save. The Availability page's forms use it; the other forms are a TODO.
+- A form that can be saved again in place takes its messages through `useSaveMessages()` (`@repo/ui`): Save calls `messages.start()` first, which takes down the form's last message, so a "saved" on screen always belongs to the latest save. Every form that can be saved again in place does, in both apps; a page's other actions (publishing, removing, moving) call `start()` too. One-off actions that leave the page (accepting, cancelling, signing in) don't need it. Browser tests check it with `savedAgainTakesDownMessage` (`e2e/support/forms.ts`): journeys 8, 27 and 43.
 - **Checkboxes (`UiVeeCheckbox`):** a yes/no checkbox is `false` when unticked, never `undefined` (`uncheckedValue`, 2026-10-15; Reka sends true or false, and vee-validate stored undefined, which a boolean rule refused). A checkbox with a `value` belongs to a group and keeps vee-validate's group behaviour.
 
 ### Form controls (decided 2026-10-03)

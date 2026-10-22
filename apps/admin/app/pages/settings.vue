@@ -10,6 +10,8 @@ definePageMeta({ ownerOnly: true });
 // when, by a trigger (commission_rate_changes). A new rate applies to
 // bookings made after it; every booking keeps the rate it was made with.
 useHead({ title: "Settings · Admin" });
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const supabase = useSupabaseClient();
 const user = useSupabaseUser();
 
@@ -32,7 +34,7 @@ const { handleSubmit, resetForm, meta } = useForm<{ service: string | number; ex
 watch(data, () => resetForm({ values: { service: rateOf("service") / 100, experience: rateOf("experience") / 100 } }), { immediate: true });
 
 const saving = ref(false);
-const save = handleSubmit(async (v) => {
+const saveSubmit = handleSubmit(async (v) => {
   saving.value = true;
   try {
     for (const kind of ["service", "experience"] as const) {
@@ -41,14 +43,18 @@ const save = handleSubmit(async (v) => {
       const e = changedRows(await supabase.from("commission_rates").update({ rate_bps: bps }).eq("kind", kind).select("kind"));
       if (e) throw e;
     }
-    useSonner.success("Commission rates saved. They apply to new bookings.");
+    messages.success("Commission rates saved. They apply to new bookings.");
   } catch (e) {
-    useSonner.error(reportProblem(problemText(e, "The commission rates weren't saved. Try again."), e));
+    messages.error(reportProblem(problemText(e, "The commission rates weren't saved. Try again."), e));
   } finally {
     saving.value = false;
     await refresh();
   }
 });
+const save = (e?: Event) => {
+  messages.start();
+  return saveSubmit(e);
+};
 const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 2 : 0)}%`;
 </script>
 

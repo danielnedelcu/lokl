@@ -24,6 +24,8 @@ definePageMeta({ whiteBackground: true, ownerOnly: true });
 // The guide editor (docs/design/destination-guides.md, The editor). It edits
 // the draft only; "Publish" copies the draft over the live copy through the
 // admin app's server route, and the database checks it first.
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const route = useRoute();
 const id = computed(() => String(route.params.id));
 const supabase = useSupabaseClient();
@@ -209,17 +211,18 @@ const bodyEditor = ref<{
 } | null>(null);
 
 async function removePhoto(photo: GuidePhoto) {
+  messages.start();
   if (!(await autosave.flush())) {
-    return void useSonner.error("Your latest changes haven't saved yet. Try again once they have.");
+    return void messages.error("Your latest changes haven't saved yet. Try again once they have.");
   }
   const e = changedRows(await supabase.from("guide_photos").delete().eq("id", photo.id).select("id"), "deleted");
-  if (e) return void useSonner.error(reportProblem(problemText(e, "The photo wasn't deleted. Try again."), e));
+  if (e) return void messages.error(reportProblem(problemText(e, "The photo wasn't deleted. Try again."), e));
   await supabase.storage.from(GUIDE_PHOTO_BUCKET).remove([photo.storage_path, ...(photo.card_path ? [photo.card_path] : [])]);
   // Deleting the draft cover clears it in the database, which changes the row.
   await reloadGuide();
   await reloadPhotos();
   await bodyEditor.value?.removePhoto(photo.id);
-  useSonner.success("Photo deleted.");
+  messages.success("Photo deleted.");
 }
 
 // ---------------------------------------------------------------------------
@@ -315,9 +318,10 @@ function reveal(p: BodyPhrase) {
 
 const review = ref<{ close: () => void } | null>(null);
 async function markReviewed() {
+  messages.start();
   busy.value = true;
   try {
-    if (!(await autosave.flush())) return void useSonner.error("Your latest changes haven't saved yet. Wait for “Saved”, then try again.");
+    if (!(await autosave.flush())) return void messages.error("Your latest changes haven't saved yet. Wait for “Saved”, then try again.");
     // The database records who and when (guides_guard).
     const { data: rows, error: e } = await supabase
       .from("guides")
@@ -325,12 +329,12 @@ async function markReviewed() {
       .eq("id", id.value)
       .eq("updated_at", autosave.current())
       .select("*");
-    if (e) return void useSonner.error(reportProblem("It wasn't marked as reviewed. Try again.", e));
-    if (!rows.length) return void useSonner.error("This guide changed somewhere else. Reload, then try again.");
+    if (e) return void messages.error(reportProblem("It wasn't marked as reviewed. Try again.", e));
+    if (!rows.length) return void messages.error("This guide changed somewhere else. Reload, then try again.");
     guide.value = rows[0] as Guide;
     autosave.rebase(rows[0]!.updated_at);
     review.value?.close();
-    useSonner.success("Marked as reviewed. It can be published now.");
+    messages.success("Marked as reviewed. It can be published now.");
   } finally {
     busy.value = false;
   }
@@ -386,18 +390,19 @@ async function publishWithSuggested() {
 }
 
 async function act(action: "publish" | "unpublish") {
+  messages.start();
   busy.value = true;
   try {
     if (!(await autosave.flush())) {
-      return void useSonner.error("Your latest changes haven't saved yet. Wait for “Saved”, then try again.");
+      return void messages.error("Your latest changes haven't saved yet. Wait for “Saved”, then try again.");
     }
     await $fetch(`/api/guides/${id.value}/${action}`, { method: "POST" });
-    useSonner.success(action === "publish" ? "Published. It's live on the site." : "Unpublished. It's off the site and the homepage.");
+    messages.success(action === "publish" ? "Published. It's live on the site." : "Unpublished. It's off the site and the homepage.");
     unpublishOpen.value = false;
     firstPublishOpen.value = false;
   } catch (e) {
     const err = e as { data?: { statusMessage?: string }; statusMessage?: string };
-    useSonner.error(reportProblem(err.data?.statusMessage ?? "That didn't work. Try again, or check the server logs.", e));
+    messages.error(reportProblem(err.data?.statusMessage ?? "That didn't work. Try again, or check the server logs.", e));
   } finally {
     await reloadGuide();
     busy.value = false;
@@ -405,6 +410,7 @@ async function act(action: "publish" | "unpublish") {
 }
 
 async function copyVersion(v: GuideVersion) {
+  messages.start();
   const coverStillThere = !!v.cover_photo_id && photos.value.some((p) => p.id === v.cover_photo_id);
   Object.assign(draft, {
     title: v.title,
@@ -428,19 +434,20 @@ async function copyVersion(v: GuideVersion) {
     true,
   );
   await bodyEditor.value?.replace(v.body);
-  useSonner.success(coverStillThere || !v.cover_photo_id ? "Copied into the draft." : "Copied into the draft. Its cover photo was deleted, so choose a new one.");
+  messages.success(coverStillThere || !v.cover_photo_id ? "Copied into the draft." : "Copied into the draft. Its cover photo was deleted, so choose a new one.");
 }
 
 async function deleteGuide() {
+  messages.start();
   busy.value = true;
   const e = await deleteGuideWithPhotos(supabase, id.value);
   if (e) {
     busy.value = false;
-    return void useSonner.error(reportProblem(problemText(e, "The guide wasn't deleted. Try again."), e));
+    return void messages.error(reportProblem(problemText(e, "The guide wasn't deleted. Try again."), e));
   }
   discarded = true;
   autosave.stop();
-  useSonner.success("Guide deleted.");
+  messages.success("Guide deleted.");
   await navigateTo("/content");
 }
 

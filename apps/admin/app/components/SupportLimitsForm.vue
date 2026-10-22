@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { adminSettingsSchema, type AdminSettingsInput } from "@repo/types";
 
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const supabase = useSupabaseClient();
 
 // Support's limits (admin roles step 5d): the refund limit and the daily
@@ -24,7 +26,7 @@ watch(limits, (l) => l && resetForm({ values: {
   reason: "",
 } }), { immediate: true });
 const savingLimits = ref(false);
-const saveLimits = handleSubmit(async (v) => {
+const saveLimitsSubmit = handleSubmit(async (v) => {
   savingLimits.value = true;
   try {
     const parsed = adminSettingsSchema.parse(v);
@@ -37,14 +39,18 @@ const saveLimits = handleSubmit(async (v) => {
       p_reason: parsed.reason,
     });
     if (e) throw e;
-    useSonner.success("Support's limits saved. The other owners are told.");
+    messages.success("Support's limits saved. The other owners are told.");
   } catch (e) {
-    useSonner.error(reportProblem(problemText(e, "Support's limits weren't saved. Try again."), e));
+    messages.error(reportProblem(problemText(e, "Support's limits weren't saved. Try again."), e));
   } finally {
     savingLimits.value = false;
     await refreshLimits();
   }
 });
+const saveLimits = (e?: Event) => {
+  messages.start();
+  return saveLimitsSubmit(e);
+};
 </script>
 
 <template>

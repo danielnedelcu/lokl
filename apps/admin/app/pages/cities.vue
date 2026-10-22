@@ -15,6 +15,8 @@ definePageMeta({ ownerOnly: true });
 
 useHead({ title: "Markets and areas · Admin" });
 
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const supabase = useSupabaseClient();
 
 // Admin-only reference lists: read and written from here under admin-only
@@ -85,7 +87,7 @@ watch(
   },
 );
 
-const saveCity = cityForm.handleSubmit(async (input) => {
+const saveCitySubmit = cityForm.handleSubmit(async (input) => {
   const error = changedRows(editingCity.value
     ? await supabase.from("cities").update(input).eq("id", editingCity.value.id).select("id")
     : await supabase.from("cities").insert({ ...input, sort_order: cities.value.length }).select("id"));
@@ -93,18 +95,23 @@ const saveCity = cityForm.handleSubmit(async (input) => {
     cityForm.setFieldError("slug", "Another market already uses this slug. Choose a different one.");
     return;
   }
-  if (error) return useSonner.error(reportProblem(problemText(error, "The market wasn't saved. Try again."), error));
-  useSonner.success(editingCity.value ? "Market saved." : "Market added.");
+  if (error) return messages.error(reportProblem(problemText(error, "The market wasn't saved. Try again."), error));
+  messages.success(editingCity.value ? "Market saved." : "Market added.");
   cityDialogOpen.value = false;
   await refresh();
 });
+const saveCity = (e?: Event) => {
+  messages.start();
+  return saveCitySubmit(e);
+};
 
 async function toggleCity(city: City) {
+  messages.start();
   busy.value = true;
   const error = changedRows(await supabase.from("cities").update({ active: !city.active }).eq("id", city.id).select("id"), "changed");
   busy.value = false;
-  if (error) return useSonner.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
-  useSonner.success(
+  if (error) return messages.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
+  messages.success(
     city.active
       ? `${city.name} is now inactive. It's hidden from the public site, and new providers can't choose it.`
       : `${city.name} is active again.`,
@@ -132,6 +139,7 @@ async function askDeactivate(item: City) {
   liveCount.value = count ?? 0;
 }
 async function confirmDeactivate() {
+  messages.start();
   if (!deactivating.value) return;
   await toggleCity(deactivating.value);
   deactivateOpen.value = false;
@@ -156,7 +164,7 @@ function openEditArea(area: ServiceArea) {
   areaDialogOpen.value = true;
 }
 
-const saveArea = areaForm.handleSubmit(async (input) => {
+const saveAreaSubmit = areaForm.handleSubmit(async (input) => {
   const error = changedRows(editingArea.value
     ? await supabase.from("service_areas").update(input).eq("id", editingArea.value.id).select("id")
     : await supabase
@@ -167,27 +175,33 @@ const saveArea = areaForm.handleSubmit(async (input) => {
     areaForm.setFieldError("name", `${selectedCity.value?.name} already has an area with this name.`);
     return;
   }
-  if (error) return useSonner.error(reportProblem(problemText(error, "The area wasn't saved. Try again."), error));
-  useSonner.success(editingArea.value ? "Area saved." : "Area added.");
+  if (error) return messages.error(reportProblem(problemText(error, "The area wasn't saved. Try again."), error));
+  messages.success(editingArea.value ? "Area saved." : "Area added.");
   areaDialogOpen.value = false;
   await refresh();
 });
+const saveArea = (e?: Event) => {
+  messages.start();
+  return saveAreaSubmit(e);
+};
 
 async function toggleArea(area: ServiceArea) {
+  messages.start();
   busy.value = true;
   const error = changedRows(await supabase.from("service_areas").update({ active: !area.active }).eq("id", area.id).select("id"), "changed");
   busy.value = false;
-  if (error) return useSonner.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
-  useSonner.success(area.active ? `${area.name} is now inactive.` : `${area.name} is active again.`);
+  if (error) return messages.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
+  messages.success(area.active ? `${area.name} is now inactive.` : `${area.name} is active again.`);
   await refresh();
 }
 
 async function moveArea(index: number, direction: -1 | 1) {
+  messages.start();
   busy.value = true;
   try {
     await saveOrder(supabase, "service_areas", areas.value, index, direction);
   } catch (e) {
-    useSonner.error(reportProblem(problemText(e, "The new order wasn't saved. Try again."), e));
+    messages.error(reportProblem(problemText(e, "The new order wasn't saved. Try again."), e));
   }
   busy.value = false;
   await refresh();

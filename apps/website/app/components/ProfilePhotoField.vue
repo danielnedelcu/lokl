@@ -7,6 +7,8 @@ import type { Provider } from "@repo/types";
 // saving, uploaded into the provider's own folder of the provider-photos
 // bucket, then recorded on their row (the database checks the folder).
 // Replacing or removing deletes the old files.
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const props = defineProps<{ kind: "avatar" | "cover"; provider: Provider }>();
 const emit = defineEmits<{ changed: [] }>();
 
@@ -59,6 +61,7 @@ function cancel() {
 }
 
 async function save() {
+  messages.start();
   const p = pending.value;
   if (!p) return;
   busy.value = true;
@@ -81,27 +84,28 @@ async function save() {
       throw e;
     }
     if (old.length) await bucket.remove(old);
-    useSonner.success(`${label.value} saved.`);
+    messages.success(`${label.value} saved.`);
     confirmOpen.value = false;
     discardPending();
     emit("changed");
   } catch (err) {
-    useSonner.error(problemText(err, `The ${label.value.toLowerCase()} wasn't saved. Try again.`));
+    messages.error(problemText(err, `The ${label.value.toLowerCase()} wasn't saved. Try again.`));
   } finally {
     busy.value = false;
   }
 }
 
 async function remove() {
+  messages.start();
   busy.value = true;
   const old = currentFiles.value;
   const e = changedRows(
     await supabase.from("providers").update(fields(null, null)).eq("id", props.provider.id).select("id"), "changed");
   busy.value = false;
   removeOpen.value = false;
-  if (e) return useSonner.error(problemText(e, `The ${label.value.toLowerCase()} wasn't removed. Try again.`));
+  if (e) return messages.error(problemText(e, `The ${label.value.toLowerCase()} wasn't removed. Try again.`));
   await supabase.storage.from(PROVIDER_PHOTO_BUCKET).remove(old);
-  useSonner.success(`${label.value} removed.`);
+  messages.success(`${label.value} removed.`);
   emit("changed");
 }
 onBeforeUnmount(discardPending);

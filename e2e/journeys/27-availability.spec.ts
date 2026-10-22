@@ -1,4 +1,4 @@
-import { choose } from "../support/forms";
+import { choose, savedAgainTakesDownMessage } from "../support/forms";
 import type { Locator, Page } from "@playwright/test";
 import { signIn } from "../support/auth";
 import { expect, test } from "../support/fixtures";
@@ -25,17 +25,6 @@ async function provider(data: TestData, page: Page, context: Parameters<typeof s
   const id = await data.provider(owner, `E2E Hours ${data.run}`);
   await signIn(context, owner.email, owner.password);
   return id;
-}
-/**
- * Saves the weekly hours and returns the save's own answer. The "saved"
- * message alone can't show it: the previous save's message may still be on
- * screen (a check once passed on it while this save was refused by the
- * gateway).
- */
-async function saveWeeklyHours(page: Page) {
-  const answer = page.waitForResponse((r) => r.url().includes("/rest/v1/rpc/replace_weekly_hours") && r.request().method() === "POST");
-  await page.getByRole("button", { name: "Save weekly hours" }).click();
-  return answer;
 }
 const rows = async (data: TestData, table: string, providerId: string) =>
   (await data.env.db.from(table).select("*").eq("provider_id", providerId)).data ?? [];
@@ -132,21 +121,10 @@ test("unticking a day with hours: saved as closed; ticking it again brings its h
   // Unticked and saved: closed, nothing marked, no summary.
   await page.getByRole("checkbox", { name: "Open on Monday" }).click();
   await expect(page.getByRole("group", { name: "From (Monday)" })).toHaveCount(0);
-  // While this save is on its way (held here), the first save's message is
-  // already gone: a "saved" on screen always belongs to the latest save.
-  let release!: () => void;
-  const held = new Promise<void>((r) => (release = r));
-  await page.route("**/rest/v1/rpc/replace_weekly_hours", async (route) => { await held; await route.continue(); }, { times: 1 });
-  const answer = page.waitForResponse((r) => r.url().includes("/rest/v1/rpc/replace_weekly_hours") && r.request().method() === "POST");
-  // The first save's message is still up (messages last 7 seconds), so
-  // "gone" below means taken down, within a second, not timed out.
-  await expect(page.getByText("Weekly hours saved.")).toBeVisible();
-  await page.getByRole("button", { name: "Save weekly hours" }).click();
-  await expect(page.getByRole("button", { name: "Saving…" })).toBeVisible();
-  await expect(page.getByText("Weekly hours saved."), "the earlier save's message is taken down").toHaveCount(0, { timeout: 1000 });
-  release();
-  expect((await answer).status(), "the unticked day's save was answered").toBe(200);
-  await expect(page.getByText("Weekly hours saved.")).toBeVisible();
+  // Saved while the first save's message is up: it's taken down at once, so
+  // a "saved" on screen always belongs to the latest save.
+  await savedAgainTakesDownMessage(page, "Weekly hours saved.", "/rest/v1/rpc/replace_weekly_hours",
+    () => page.getByRole("button", { name: "Save weekly hours" }).click());
   await expect(page.getByText(/^Your hours didn't save/)).toHaveCount(0);
   await expect.poll(async () => (await rows(data, "provider_weekly_hours", p)).length, { message: "Monday's hours removed" }).toBe(0);
   await expect(form.getByText("Check the hours marked above.")).toHaveCount(0);

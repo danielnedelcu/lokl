@@ -26,3 +26,37 @@ export async function choose(page: Page, trigger: Locator, option: string | RegE
   const shown = typeof option === "string" ? new RegExp(`^\\s*${option.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`) : option;
   await expect(trigger, `the pick of ${String(option)} took`).toHaveText(shown);
 }
+
+/**
+ * Saves a form a second time while its first "saved" message is still up,
+ * holding the save on its way, and checks the first message is taken down
+ * within a second (useSaveMessages), before the answer comes back; then
+ * releases it and checks this save's own answer and message. `path` is the
+ * save request's path (its first non-GET request is held); `save` presses
+ * Save.
+ *
+ * Why (2026-10-21): journey 27 once read the previous save's "Weekly hours
+ * saved." as the success of a save the gateway had refused. Messages last 7
+ * seconds, so "gone within a second" means taken down, not timed out.
+ */
+export async function savedAgainTakesDownMessage(page: Page, message: string, path: string, save: () => Promise<void>) {
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
+  let holding = true;
+  await page.route(`**${path}`, async (route) => {
+    if (holding && route.request().method() !== "GET") {
+      holding = false;
+      await held;
+    }
+    await route.fallback();
+  });
+  const answer = page.waitForResponse((r) => r.url().includes(path) && r.request().method() !== "GET");
+  await expect(page.getByText(message), "the earlier save's message is still up").toBeVisible();
+  await save();
+  await expect(page.getByText(message), "the earlier save's message is taken down").toHaveCount(0, { timeout: 1000 });
+  release();
+  const res = await answer;
+  expect(res.ok(), `the second save was answered (${res.status()})`).toBe(true);
+  await expect(page.getByText(message)).toBeVisible();
+  await page.unroute(`**${path}`);
+}
