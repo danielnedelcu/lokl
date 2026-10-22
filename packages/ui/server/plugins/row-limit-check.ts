@@ -5,7 +5,7 @@ import { retryReadsFetch, rowLimitFetch, setRpcShapeCheck } from "@repo/types";
 // it checks them all for a read cut off at the API's 1,000 rows. See
 // rowLimitFetch in @repo/types; the mode is runtimeConfig.public.rowLimitCheck.
 // Inside it, a read that met a gateway error (502, 503) is asked again once
-// (retryReadsFetch: GET and HEAD only, never a write).
+// (retryReadsFetch: GET and HEAD, and the listed search reads; never a write).
 // Also the server routes' check of database functions' JSON (rpcJson), whose
 // mode is runtimeConfig.public.rpcShapeCheck.
 export default defineNitroPlugin(() => {
