@@ -4002,7 +4002,7 @@
     {
       "name": "public.provider_emails",
       "type": "BASE TABLE",
-      "comment": "Emails about a provider's account (paused, active again) to send, and what happened to each. One per admin action. Queued by admin_set_provider_status(); sent by the website's server. Server only; admins can read. Never deleted.",
+      "comment": "Emails to a provider about their account (paused, active again), their profile (content removed, hidden, restored or reviewed) and their listings' review (approved, rejected, taken down, restored), to send, and what happened to each. One per admin action. Queued by the admin functions that act; sent by the website's server. Server only; admins can read. Never deleted.",
       "columns": [
         {
           "name": "id",
@@ -4029,7 +4029,7 @@
           "name": "message",
           "type": "text",
           "nullable": true,
-          "comment": "lokl's optional message, included in the email only if written."
+          "comment": "Text from lokl included in the email. For an account or profile email: lokl's optional message (never the internal reason). For a listing rejected or taken down: the reason the provider sees in their editor (required); none for an approval or restore."
         },
         {
           "name": "status",
@@ -4138,7 +4138,7 @@
         {
           "name": "provider_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['provider_account_paused'::text, 'provider_account_active'::text, 'provider_profile_edited'::text, 'provider_profile_hidden'::text, 'provider_profile_restored'::text, 'provider_profile_reviewed'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['provider_account_paused'::text, 'provider_account_active'::text, 'provider_profile_edited'::text, 'provider_profile_hidden'::text, 'provider_profile_restored'::text, 'provider_profile_reviewed'::text, 'provider_listing_approved'::text, 'provider_listing_rejected'::text, 'provider_listing_unpublished'::text, 'provider_listing_restored'::text])))",
           "table": "public.provider_emails",
           "referenced_table": "",
           "columns": [
@@ -4153,6 +4153,17 @@
           "referenced_table": "",
           "columns": [
             "last_error"
+          ]
+        },
+        {
+          "name": "provider_emails_listing_reason",
+          "type": "CHECK",
+          "def": "CHECK (((kind \u003c\u003e ALL (ARRAY['provider_listing_rejected'::text, 'provider_listing_unpublished'::text, 'provider_listing_approved'::text, 'provider_listing_restored'::text])) OR ((kind = ANY (ARRAY['provider_listing_rejected'::text, 'provider_listing_unpublished'::text])) = (message IS NOT NULL))))",
+          "table": "public.provider_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "message"
           ]
         },
         {
