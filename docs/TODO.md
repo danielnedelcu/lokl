@@ -12,15 +12,17 @@ lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
   1. [x] Email providers when a listing is approved, rejected or
      unpublished (Notifications, below), with only the reason the
      provider is meant to see (built 2026-10-21; restores email too).
-  2. Tell the team when an Experience is waiting for review: every active
+  2. [x] The browser tests' setup helpers choose their own ids, so an
+     insert can be checked and retried after a gateway 502 (moved up
+     2026-10-21, after one hit CI with only lokl's stack running; built
+     2026-10-21).
+  3. Tell the team when an Experience is waiting for review: every active
      team member who can review listings, support included.
-  3. A reload after a lost reply can hide a date (Hardening).
-  4. The browser tests' setup helpers choose their own ids, so an insert
-     can be checked and retried after a gateway 502; then look into the
-     drops themselves (Hardening).
-  5. Money writes in one transaction, safe to retry: checkout, payouts and
+  4. A reload after a lost reply can hide a date (Hardening).
+  5. Look into the gateway drops themselves (Hardening).
+  6. Money writes in one transaction, safe to retry: checkout, payouts and
      the finances totals (Hardening).
-  6. Booking reminders the day before (Notifications): at 10 AM Atlanta
+  7. Booking reminders the day before (Notifications): at 10 AM Atlanta
      time, skipping bookings made less than a day ahead; no address,
      phone or email in either copy, which links to the booking page.
 - [ ] **Part 7 walkthrough, steps 7 to 11** (steps 1 to 6 passed
@@ -296,10 +298,15 @@ three are done: explicit API grants, the build secrets check, and
     two and a half days up (since 2026-10-18), one full run had two 502s
     (an insert in journey 20's setup failed it; an update by id was
     retried), against three in the whole day before. If 502s increase,
-    restart it first (`npx supabase stop`, then `npm run db:start`). If
-    they keep appearing after a restart, the next step is the browser
-    tests' setup helpers choosing their own ids, so an insert can be
-    checked and safely retried.
+    restart it first (`npx supabase stop`, then `npm run db:start`).
+  - [x] **Setup inserts survive a 502** (2026-10-21): the browser tests'
+    setup helpers (`e2e/support/data.ts`) choose each row's key (an id, or
+    the natural key), and after a gateway 502 read it back
+    (`insertChecked`): all in, done; none, inserted once more; some, an
+    error. A login is looked up by its email the same way. Function calls
+    in setup (bookings made by `reserve_experience_booking` or
+    `create_service_booking`, `publish_guide`) and the app tests' own
+    setups aren't covered yet.
   - **Clusters after a Docker restart** (2026-10-21): three full runs
     in a row failed on the local stack: Docker Desktop not yet up, then
     a 502 on `admin_providers_page` (journey 41; a POST, so not retried),
