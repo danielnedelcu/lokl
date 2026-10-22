@@ -292,19 +292,27 @@ three are done: explicit API grants, the build secrets check, and
     out-of-memory kills; the only stops and restarts were `db:test`'s
     own database reset. A second Supabase stack (another project's) was
     running in Docker alongside lokl's the whole time.
+  - **Two stacks at once are expected** (decided 2026-10-21): the owner
+    runs the openhouse app's Supabase stack alongside lokl's, and two
+    stacks compete for memory on this MacBook Air, so a 502 in a local
+    run while another stack is up is expected. A local full run that
+    fails only from a gateway 502 is reported, and that PR relies on CI
+    rather than local re-runs; any other failure still stops it. The
+    Reserve's stack was stopped on 2026-10-21 (its data is kept in its
+    Docker volume); the openhouse stack, `api-postgres-1` and `redis`
+    stay running.
   - [x] **The admin search lists retry a 502** (2026-10-21): the four
     POST reads that take search text are asked again once
     (`SEARCH_READS`), so a dropped connection no longer fails the
     Providers, Listings, Bookings or Problem reports list (journey 41's
     failure).
-  - [ ] **Look into the drops themselves** (option 3, after the POST
-    retry): Docker Desktop's memory and CPU limits on this MacBook Air
+  - [ ] **Look into the drops themselves** (option 3): Docker Desktop's memory and CPU limits on this MacBook Air
     against what two Supabase stacks and the test apps use (`docker
     stats` during a full run); whether any container restarted or was
     stopped for memory during a failing run (record `docker events`
     for `oom`, `die`, `kill` and `restart` alongside the run); and
-    whether stopping the other project's stack during runs, or giving
-    Docker more memory, makes the 502s stop.
+    whether giving Docker more memory makes the 502s rarer (the openhouse
+    stack stays running).
 
 - [x] **Who can call each function** (`function_execute_grants`,
   2026-10-10): no function has `PUBLIC` `EXECUTE`; the helpers reach
