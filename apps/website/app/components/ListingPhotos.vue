@@ -5,6 +5,8 @@ import type { ListingStatus } from "@repo/types";
 // The editor's photo section. Photos are resized and re-encoded in the
 // browser first (prepareListingPhoto: max 2,000px, WebP, no location data),
 // then uploaded straight to storage, then recorded in listing_photos.
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const props = defineProps<{ listingId: string; providerId: string; status: ListingStatus }>();
 const emit = defineEmits<{ changed: [count: number] }>();
 
@@ -107,7 +109,7 @@ const nextFreePosition = () => {
   return -1;
 };
 
-const uploadPending = altForm.handleSubmit(async ({ alt_text }) => {
+const uploadPendingSubmit = altForm.handleSubmit(async ({ alt_text }) => {
   // The photo this upload is for, captured first (docs/frontend.md, confirmation dialogs):
   // the dialog can be closed during the upload, and the next queued photo shown.
   const current = pending.value;
@@ -140,12 +142,12 @@ const uploadPending = altForm.handleSubmit(async ({ alt_text }) => {
     });
     if (error) throw new Error(error.message);
     uploaded.length = 0;
-    useSonner.success("Photo added.");
+    messages.success("Photo added.");
     await reload();
   } catch (e) {
     // Don't leave unused files behind.
     if (uploaded.length) await supabase.storage.from(BUCKET).remove(uploaded);
-    useSonner.error(`The photo wasn't added: ${(e as Error).message}`);
+    messages.error(`The photo wasn't added: ${(e as Error).message}`);
   } finally {
     busy.value = false;
     // Only if it's still this photo's dialog: closing it during the upload has
@@ -153,6 +155,10 @@ const uploadPending = altForm.handleSubmit(async ({ alt_text }) => {
     if (pending.value === current) closeDescribe();
   }
 });
+const uploadPending = (e?: Event) => {
+  messages.start();
+  return uploadPendingSubmit(e);
+};
 
 // ---------------------------------------------------------------------------
 // Editing, reordering, removing
@@ -165,25 +171,30 @@ function openEdit(photo: PhotoRow) {
   altForm.resetForm({ values: { alt_text: photo.alt_text } });
   editOpen.value = true;
 }
-const saveEdit = altForm.handleSubmit(async ({ alt_text }) => {
+const saveEditSubmit = altForm.handleSubmit(async ({ alt_text }) => {
   if (!editing.value) return;
   busy.value = true;
   const error = changedRows(await supabase.from("listing_photos").update({ alt_text }).eq("id", editing.value.id).select("id"));
   busy.value = false;
-  if (error) return useSonner.error(problemText(error, `The description wasn't saved: ${error.message}`));
-  useSonner.success("Description saved.");
+  if (error) return messages.error(problemText(error, `The description wasn't saved: ${error.message}`));
+  messages.success("Description saved.");
   editOpen.value = false;
   await reload();
 });
+const saveEdit = (e?: Event) => {
+  messages.start();
+  return saveEditSubmit(e);
+};
 
 async function move(index: number, direction: -1 | 1) {
+  messages.start();
   const ids = list.value.map((p) => p.id);
   const target = index + direction;
   [ids[index], ids[target]] = [ids[target]!, ids[index]!];
   busy.value = true;
   const { error } = await supabase.rpc("reorder_listing_photos", { p_listing_id: props.listingId, p_photo_ids: ids });
   busy.value = false;
-  if (error) return useSonner.error(`The new order wasn't saved: ${error.message}`);
+  if (error) return messages.error(`The new order wasn't saved: ${error.message}`);
   await reload();
 }
 
@@ -194,6 +205,7 @@ function askRemove(photo: PhotoRow) {
   removeOpen.value = true;
 }
 async function confirmRemove() {
+  messages.start();
   const photo = removing.value;
   if (!photo) return;
   busy.value = true;
@@ -204,8 +216,8 @@ async function confirmRemove() {
   }
   busy.value = false;
   removeOpen.value = false;
-  if (error) return useSonner.error(problemText(error, error.message));
-  useSonner.success("Photo removed.");
+  if (error) return messages.error(problemText(error, error.message));
+  messages.success("Photo removed.");
   await reload();
 }
 </script>

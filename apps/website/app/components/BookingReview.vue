@@ -9,6 +9,8 @@ import {
 // and their one public reply. Everything comes from review_state(), which
 // says what each may do and the name the review shows. Writes go straight
 // to the database, whose rules decide (the form checks first).
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const props = defineProps<{ bookingId: string; timezone: string; listingTitle: string; listingPath: string | null; providerName: string }>();
 
 // What review_state returns (its schema is in @repo/types).
@@ -42,6 +44,7 @@ function startEdit() {
   void nextTick(() => document.getElementById("review-rating")?.focus());
 }
 async function save() {
+  messages.start();
   error.value = "";
   const parsed = reviewSchema.safeParse({ rating: rating.value ?? 0, body: body.value });
   if (!parsed.success) {
@@ -61,7 +64,7 @@ async function save() {
     error.value = problemText(problemFound, reviewProblem(result.error, "review"));
     return;
   }
-  useSonner.success(editing.value ? "Your review is updated." : "Thanks. Your review is up.");
+  messages.success(editing.value ? "Your review is updated." : "Thanks. Your review is up.");
   editing.value = false;
   await refresh();
   void nextTick(() => document.getElementById("review-heading")?.focus());
@@ -69,6 +72,7 @@ async function save() {
 
 const deleteOpen = ref(false);
 async function deleteReview() {
+  messages.start();
   const id = state.value?.review?.id;
   if (!id) return;
   busy.value = true;
@@ -77,10 +81,10 @@ async function deleteReview() {
   deleteOpen.value = false;
   const problemFound = changedRows(result, "deleted");
   if (problemFound) {
-    useSonner.error(problemText(problemFound, "Your review wasn't deleted. Check your connection and try again."));
+    messages.error(problemText(problemFound, "Your review wasn't deleted. Check your connection and try again."));
     return;
   }
-  useSonner.success("Your review is deleted.");
+  messages.success("Your review is deleted.");
   rating.value = null;
   body.value = "";
   await refresh();
@@ -99,6 +103,7 @@ function startReply() {
   void nextTick(() => document.getElementById("reply-body")?.focus());
 }
 async function saveReply() {
+  messages.start();
   replyError.value = "";
   const parsed = replySchema.safeParse({ body: replyBody.value });
   if (!parsed.success) {
@@ -121,12 +126,13 @@ async function saveReply() {
   }
   // An edit says so, as the review does: two identical messages in a row
   // told nobody the edit had saved (and made e2e journey 11 flaky in CI).
-  useSonner.success(editingReply ? "Your reply is updated." : "Your reply is up.");
+  messages.success(editingReply ? "Your reply is updated." : "Your reply is up.");
   replying.value = false;
   await refresh();
 }
 const deleteReplyOpen = ref(false);
 async function deleteReply() {
+  messages.start();
   const reviewId = state.value?.review?.id;
   if (!reviewId) return;
   busy.value = true;
@@ -135,10 +141,10 @@ async function deleteReply() {
   deleteReplyOpen.value = false;
   const problemFound = changedRows(result, "deleted");
   if (problemFound) {
-    useSonner.error(problemText(problemFound, "Your reply wasn't deleted. Check your connection and try again."));
+    messages.error(problemText(problemFound, "Your reply wasn't deleted. Check your connection and try again."));
     return;
   }
-  useSonner.success("Your reply is deleted.");
+  messages.success("Your reply is deleted.");
   await refresh();
 }
 </script>

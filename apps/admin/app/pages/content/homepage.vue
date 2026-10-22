@@ -13,6 +13,8 @@ definePageMeta({ ownerOnly: true });
 // is never half-changed. The preview uses the website's own components, in
 // the homepage's order.
 useHead({ title: "Homepage · Admin" });
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const supabase = useSupabaseClient();
 const websiteUrl = useRuntimeConfig().public.websiteUrl.replace(/\/$/, "");
 const MAX_CARDS = 2;
@@ -133,15 +135,16 @@ function removeCard(i: number) {
 
 const saving = ref(false);
 async function save() {
+  messages.start();
   if (cannotSave.value) return;
   saving.value = true;
   const { error: e } = await supabase.rpc("admin_set_homepage_features", { p_guide_ids: toSave.value });
   saving.value = false;
   if (e) {
     const plain = e.message.startsWith("Only a published") || e.message.startsWith("The homepage shows") || e.message.startsWith("Each guide");
-    return void useSonner.error(reportProblem(plain ? e.message : "The homepage wasn't saved. Try again.", e));
+    return void messages.error(reportProblem(plain ? e.message : "The homepage wasn't saved. Try again.", e));
   }
-  useSonner.success(toSave.value.length ? "Saved. The homepage shows these now." : "Saved. The homepage shows its headline first again.");
+  messages.success(toSave.value.length ? "Saved. The homepage shows these now." : "Saved. The homepage shows its headline first again.");
   await refresh();
 }
 

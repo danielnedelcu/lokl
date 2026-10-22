@@ -6,6 +6,8 @@ import { rpcJson, SESSION_SERIES_MAX_WEEKS, type ListingSessionRow, type Listing
 // the listing city's time zone (zonedTime.ts), whatever the device's zone.
 // The database checks the rest: future only, a year ahead at most, no two
 // sessions at the same time, locked while in review or taken down.
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const props = defineProps<{
   listingId: string;
   status: ListingStatus;
@@ -156,7 +158,7 @@ const seriesSummary = computed(() => {
 
 // A series is one insert, so if any week clashes with an existing session
 // the database saves none of it and names the clashing date.
-const save = form.handleSubmit(async (v) => {
+const saveSubmit = form.handleSubmit(async (v) => {
   const capacity = Number(v.capacity);
   busy.value = true;
   const error = changedRows(editing.value
@@ -172,12 +174,16 @@ const save = form.handleSubmit(async (v) => {
   busy.value = false;
   if (error) {
     const saving = editing.value ? "The change wasn't saved" : v.repeat ? "None of these sessions were added" : "The session wasn't added";
-    return useSonner.error(problemText(error, `${saving}. ${error.message}`));
+    return messages.error(problemText(error, `${saving}. ${error.message}`));
   }
-  useSonner.success(editing.value ? "Session updated." : v.repeat ? `${v.weeks} sessions added.` : "Session added.");
+  messages.success(editing.value ? "Session updated." : v.repeat ? `${v.weeks} sessions added.` : "Session added.");
   formOpen.value = false;
   await reload();
 });
+const save = (e?: Event) => {
+  messages.start();
+  return saveSubmit(e);
+};
 
 // ---------------------------------------------------------------------------
 // Cancelling
@@ -204,6 +210,7 @@ async function sessionCancelled(sessionId: string) {
   return s?.status === "cancelled" && count === 0;
 }
 async function confirmCancelBooked(reason: string) {
+  messages.start();
   // Captured first, and used alone from here on (docs/frontend.md, confirmation dialogs).
   const target = cancelling.value;
   if (!target) return;
@@ -211,11 +218,11 @@ async function confirmCancelBooked(reason: string) {
   try {
     await $fetch(`/api/sessions/${target.id}/cancel`, { method: "POST", body: { reason } });
     cancelBookedOpen.value = false;
-    useSonner.success("Session cancelled. Everyone booked is refunded in full.");
+    messages.success("Session cancelled. Everyone booked is refunded in full.");
   } catch (e) {
     if (isLostReply(e) && (await sessionCancelled(target.id))) {
       cancelBookedOpen.value = false;
-      useSonner.success("Session cancelled. Everyone booked is refunded in full.");
+      messages.success("Session cancelled. Everyone booked is refunded in full.");
     } else if (isLostReply(e)) {
       cancelError.value = LOST_REPLY_TRY_AGAIN;
     } else {
@@ -227,14 +234,15 @@ async function confirmCancelBooked(reason: string) {
   }
 }
 async function confirmCancel() {
+  messages.start();
   const target = cancelling.value;
   if (!target) return;
   busy.value = true;
   const error = changedRows(await supabase.from("experience_sessions").delete().eq("id", target.id).select("id"), "deleted");
   busy.value = false;
   cancelOpen.value = false;
-  if (error) return useSonner.error(problemText(error, `The session wasn't cancelled. ${error.message}`));
-  useSonner.success("Session cancelled.");
+  if (error) return messages.error(problemText(error, `The session wasn't cancelled. ${error.message}`));
+  messages.success("Session cancelled.");
   await reload();
 }
 </script>

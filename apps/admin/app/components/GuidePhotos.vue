@@ -16,6 +16,8 @@ import {
 // removed), uploaded to the guide's own folder, then recorded with alt text
 // and the credit its licence asks for. Any photo can go in the body; the
 // cover has to be landscape and at least 1,600 × 900.
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const props = defineProps<{
   guideId: string;
   photos: GuidePhoto[];
@@ -86,7 +88,7 @@ function closeAdd() {
   void nextInQueue();
 }
 
-const upload = form.handleSubmit(async (values) => {
+const uploadSubmit = form.handleSubmit(async (values) => {
   // The photo this upload is for, captured first (docs/frontend.md, confirmation dialogs):
   // the dialog can be closed during the upload, and the next queued photo shown.
   const current = pending.value;
@@ -116,12 +118,12 @@ const upload = form.handleSubmit(async (values) => {
     });
     if (error) throw error;
     uploaded.length = 0;
-    useSonner.success("Photo added.");
+    messages.success("Photo added.");
     emit("changed");
   } catch (e) {
     // Don't leave unused files behind.
     if (uploaded.length) await supabase.storage.from(GUIDE_PHOTO_BUCKET).remove(uploaded);
-    useSonner.error(reportProblem("The photo wasn't added. Try again.", e));
+    messages.error(reportProblem("The photo wasn't added. Try again.", e));
   } finally {
     busy.value = false;
     // Only if it's still this photo's dialog: closing it during the upload has
@@ -129,6 +131,10 @@ const upload = form.handleSubmit(async (values) => {
     if (pending.value === current) closeAdd();
   }
 });
+const upload = (e?: Event) => {
+  messages.start();
+  return uploadSubmit(e);
+};
 
 // ---------------------------------------------------------------------------
 // Editing details, removing
@@ -151,16 +157,20 @@ function openEdit(photo: GuidePhoto) {
   });
   editOpen.value = true;
 }
-const saveEdit = form.handleSubmit(async (values) => {
+const saveEditSubmit = form.handleSubmit(async (values) => {
   if (!editing.value) return;
   busy.value = true;
   const error = changedRows(await supabase.from("guide_photos").update(guidePhotoColumns(values)).eq("id", editing.value.id).select("id"));
   busy.value = false;
-  if (error) return useSonner.error(reportProblem(problemText(error, "The details weren't saved. Try again."), error));
-  useSonner.success("Photo details saved.");
+  if (error) return messages.error(reportProblem(problemText(error, "The details weren't saved. Try again."), error));
+  messages.success("Photo details saved.");
   editOpen.value = false;
   emit("changed");
 });
+const saveEdit = (e?: Event) => {
+  messages.start();
+  return saveEditSubmit(e);
+};
 
 const removing = ref<GuidePhoto | null>(null);
 const removeOpen = ref(false);
@@ -169,6 +179,7 @@ function askRemove(photo: GuidePhoto) {
   removeOpen.value = true;
 }
 async function confirmRemove() {
+  messages.start();
   if (!removing.value) return;
   busy.value = true;
   try {

@@ -12,6 +12,8 @@ import {
 // with the admin's own login (admin read rules); every change goes through
 // the website's admin routes, logged in admin_actions. A provider's reply
 // arrives as the admin bell's notification (ids only) and reloads this.
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const route = useRoute();
 const id = String(route.params.id);
 const supabase = useSupabaseClient();
@@ -75,16 +77,17 @@ const bookingWhen = computed(() => {
 // Moving it.
 const moving = ref(false);
 async function move(to: SupportStatus) {
+  messages.start();
   if (!report.value) return;
   moving.value = true;
   try {
     await website(`support-reports/${id}/status`, { to, from: report.value.status });
     await refresh();
     announce(`Moved to ${SUPPORT_STATUS_FOR_ADMIN[to]}.`);
-    useSonner.success(`Moved to ${SUPPORT_STATUS_FOR_ADMIN[to]}.`);
+    messages.success(`Moved to ${SUPPORT_STATUS_FOR_ADMIN[to]}.`);
   } catch (e) {
     await refresh();
-    useSonner.error((e as Error).message);
+    messages.error((e as Error).message);
   } finally {
     moving.value = false;
   }
@@ -94,6 +97,7 @@ async function move(to: SupportStatus) {
 const replyForm = useForm({ validationSchema: zodSchema(supportAdminReplySchema), initialValues: { body: "", wait: false } });
 const replyError = ref("");
 function reply(wait: boolean) {
+  messages.start();
   return replyForm.handleSubmit(async (v) => {
     replyError.value = "";
     try {
@@ -101,7 +105,7 @@ function reply(wait: boolean) {
       replyForm.resetForm();
       await refresh();
       announce(wait ? "Sent. It's now waiting on the provider." : "Sent.");
-      useSonner.success(wait ? "Sent, and moved to Waiting on provider." : "Sent. The provider has been emailed.");
+      messages.success(wait ? "Sent, and moved to Waiting on provider." : "Sent. The provider has been emailed.");
     } catch (e) {
       replyError.value = (e as Error).message;
     }
@@ -113,6 +117,7 @@ const noteBody = ref("");
 const noteError = ref("");
 const savingNote = ref(false);
 async function addNote() {
+  messages.start();
   const parsed = supportNoteSchema.safeParse({ body: noteBody.value });
   if (!parsed.success) {
     noteError.value = parsed.error.issues[0]?.message ?? "Write the note.";

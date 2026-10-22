@@ -7,6 +7,8 @@ definePageMeta({ ownerOnly: true });
 useHead({ title: "Categories · Admin" });
 
 type Kind = Category["kind"];
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const kinds: { value: Kind; label: string; plural: string }[] = [
   { value: "service", label: "Service", plural: "Services" },
   { value: "experience", label: "Experience", plural: "Experiences" },
@@ -82,7 +84,7 @@ watch(
   },
 );
 
-const save = handleSubmit(async (input) => {
+const saveSubmit = handleSubmit(async (input) => {
   const { kind, ...fields } = input;
   const error = changedRows(editing.value
     ? await supabase.from("categories").update(fields).eq("id", editing.value.id).select("id")
@@ -93,13 +95,17 @@ const save = handleSubmit(async (input) => {
     return;
   }
   if (error) {
-    useSonner.error(reportProblem(problemText(error, "The category wasn't saved. Try again."), error));
+    messages.error(reportProblem(problemText(error, "The category wasn't saved. Try again."), error));
     return;
   }
-  useSonner.success(editing.value ? "Category saved." : "Category added.");
+  messages.success(editing.value ? "Category saved." : "Category added.");
   dialogOpen.value = false;
   await refresh();
 });
+const save = (e?: Event) => {
+  messages.start();
+  return saveSubmit(e);
+};
 
 // ---------------------------------------------------------------------------
 // Row actions
@@ -108,11 +114,12 @@ const save = handleSubmit(async (input) => {
 const busy = ref(false);
 
 async function toggleActive(category: Category) {
+  messages.start();
   busy.value = true;
   const error = changedRows(await supabase.from("categories").update({ active: !category.active }).eq("id", category.id).select("id"), "changed");
   busy.value = false;
-  if (error) return useSonner.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
-  useSonner.success(
+  if (error) return messages.error(reportProblem(problemText(error, "That didn't work. Try again."), error));
+  messages.success(
     category.active
       ? `“${category.name}” is now inactive and hidden from the public site.`
       : `“${category.name}” is active again.`,
@@ -141,17 +148,19 @@ async function askDeactivate(item: Category) {
   liveCount.value = count ?? 0;
 }
 async function confirmDeactivate() {
+  messages.start();
   if (!deactivating.value) return;
   await toggleActive(deactivating.value);
   deactivateOpen.value = false;
 }
 
 async function move(kind: Kind, index: number, direction: -1 | 1) {
+  messages.start();
   busy.value = true;
   try {
     await saveOrder(supabase, "categories", ofKind(kind), index, direction);
   } catch (e) {
-    useSonner.error(reportProblem(problemText(e, "The new order wasn't saved. Try again."), e));
+    messages.error(reportProblem(problemText(e, "The new order wasn't saved. Try again."), e));
   }
   busy.value = false;
   await refresh();

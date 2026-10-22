@@ -18,6 +18,8 @@ import {
 // Create (no listingId) or edit a Service or Experience. Listing fields,
 // the address and travel areas are written through the Supabase client under
 // the database's rules; publish, submit and unlist go through server routes.
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const props = defineProps<{ kind?: ListingKind; listingId?: string }>();
 
 const supabase = useSupabaseClient();
@@ -266,7 +268,7 @@ async function runChanged(query: PromiseLike<{ data: unknown[] | null; error: { 
   if (e) throw e;
 }
 
-const save = handleSubmit(async (v) => {
+const saveSubmit = handleSubmit(async (v) => {
   try {
     let id = props.listingId;
     const fields = {
@@ -324,7 +326,7 @@ const save = handleSubmit(async (v) => {
       }
     }
 
-    useSonner.success(props.listingId ? "Changes saved." : "Draft saved.");
+    messages.success(props.listingId ? "Changes saved." : "Draft saved.");
     if (!props.listingId) {
       skipLeaveGuard = true;
       await navigateTo(`/dashboard/listings/${id}`, { replace: true });
@@ -333,9 +335,13 @@ const save = handleSubmit(async (v) => {
     await refreshOwn();
     resetForm({ values: formValues() });
   } catch (e) {
-    useSonner.error(problemText(e, `That didn't save: ${(e as Error).message}`));
+    messages.error(problemText(e, `That didn't save: ${(e as Error).message}`));
   }
 });
+const save = (e?: Event) => {
+  messages.start();
+  return saveSubmit(e);
+};
 
 // Warn before leaving with unsaved changes (in-app navigation and tab close).
 onBeforeRouteLeave(() => {
@@ -363,10 +369,11 @@ const unlistOpen = ref(false);
 const deleteOpen = ref(false);
 
 async function act(action: "publish" | "submit" | "unlist") {
+  messages.start();
   acting.value = true;
   try {
     await $fetch(`/api/listings/${props.listingId}/${action}`, { method: "POST" });
-    useSonner.success(
+    messages.success(
       {
         publish: "Your Service is live. Customers can find and book it now.",
         submit: "Sent to lokl for review. We'll let you know when it's approved.",
@@ -376,7 +383,7 @@ async function act(action: "publish" | "submit" | "unlist") {
     await refreshOwn();
     resetForm({ values: formValues() });
   } catch (e) {
-    useSonner.error((e as { statusMessage?: string }).statusMessage ?? "That didn't work. Please try again.");
+    messages.error((e as { statusMessage?: string }).statusMessage ?? "That didn't work. Please try again.");
   } finally {
     acting.value = false;
     unlistOpen.value = false;
@@ -384,16 +391,17 @@ async function act(action: "publish" | "submit" | "unlist") {
 }
 
 async function deleteDraft() {
+  messages.start();
   acting.value = true;
   const error = changedRows(await supabase.from("listings").delete().eq("id", props.listingId!).select("id"), "deleted");
   acting.value = false;
   deleteOpen.value = false;
-  if (error) return useSonner.error(problemText(error, `That didn't delete: ${error.message}`));
+  if (error) return messages.error(problemText(error, `That didn't delete: ${error.message}`));
   // The photo rows went with the listing; remove their files too.
   const folder = `${listing.value!.provider_id}/${props.listingId}`;
   const { data: files } = await supabase.storage.from("listing-photos").list(folder);
   if (files?.length) await supabase.storage.from("listing-photos").remove(files.map((f) => `${folder}/${f.name}`));
-  useSonner.success("Draft deleted.");
+  messages.success("Draft deleted.");
   skipLeaveGuard = true;
   await navigateTo(kind.value === "service" ? "/dashboard/services" : "/dashboard/experiences");
 }

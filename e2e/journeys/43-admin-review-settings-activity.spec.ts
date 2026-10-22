@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { signIn } from "../support/auth";
 import { ADMIN } from "../support/env";
+import { savedAgainTakesDownMessage } from "../support/forms";
 import { expect, test } from "../support/fixtures";
 
 // Journey 43: listing review, support's limits and the Activity page (admin
@@ -89,6 +90,13 @@ test("the owner changes support's limits with a reason; the other owners are tol
     await expect(otherPage.getByRole("listitem").filter({ hasText: `${owner.email} changed support's limits` }))
       .toContainText("Reason: “Fewer lookups while we review access.”");
     await theirs.close();
+
+    // Changed again while the first message is up: it's taken down at once.
+    await views.fill(String(Number(before) - 2));
+    await views.blur();
+    await limits.getByLabel("Why you're changing them").fill("One fewer again.");
+    await savedAgainTakesDownMessage(page, "Support's limits saved. The other owners are told.", "/rest/v1/rpc/admin_update_settings",
+      () => limits.getByRole("button", { name: "Save limits" }).click());
   } finally {
     execFileSync("psql", [data.env.dbUrl, "-q", "-c", `update public.admin_settings set support_contact_views_per_day = ${Number(before)}`]);
   }

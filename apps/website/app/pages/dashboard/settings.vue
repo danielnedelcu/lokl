@@ -4,6 +4,8 @@ import { PROFILE_PART_LABELS, PROFILE_RULES, providerProfileSchema, rpcJson, typ
 definePageMeta({ layout: "dashboard" });
 useSeoMeta({ title: "Business profile" });
 
+// Each save or action here first takes down the last message it showed (useSaveMessages).
+const messages = useSaveMessages();
 const supabase = useSupabaseClient();
 const { data: provider, refresh } = await useProvider();
 
@@ -54,15 +56,19 @@ async function photosChanged() {
   await Promise.all([refresh(), refreshLive()]);
 }
 
-const save = handleSubmit(async (values) => {
+const saveSubmit = handleSubmit(async (values) => {
   try {
     await $fetch("/api/provider", { method: "POST", body: values });
     await refresh();
-    useSonner.success("Business profile saved.");
+    messages.success("Business profile saved.");
   } catch (e) {
-    useSonner.error((e as { statusMessage?: string }).statusMessage ?? "Your profile wasn't saved. Please try again.");
+    messages.error((e as { statusMessage?: string }).statusMessage ?? "Your profile wasn't saved. Please try again.");
   }
 });
+const save = (e?: Event) => {
+  messages.start();
+  return saveSubmit(e);
+};
 </script>
 
 <template>
