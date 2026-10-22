@@ -283,6 +283,23 @@ three are done: explicit API grants, the build secrets check, and
     they keep appearing after a restart, the next step is the browser
     tests' setup helpers choosing their own ids, so an insert can be
     checked and safely retried.
+  - **Clusters after a Docker restart** (2026-10-21): three full runs
+    in a row failed on the local stack: Docker Desktop not yet up, then
+    a 502 on `admin_providers_page` (journey 41; a POST, so not retried),
+    then a 502 in `rpc-shapes.test.mts`'s setup. All soon after Docker
+    restarted that morning. A fresh `supabase stop` and `db:start` then
+    gave a clean run (25 of 25), with Docker's events recorded: no
+    out-of-memory kills; the only stops and restarts were `db:test`'s
+    own database reset. A second Supabase stack (another project's) was
+    running in Docker alongside lokl's the whole time.
+  - [ ] **Look into the drops themselves** (option 3, after the POST
+    retry): Docker Desktop's memory and CPU limits on this MacBook Air
+    against what two Supabase stacks and the test apps use (`docker
+    stats` during a full run); whether any container restarted or was
+    stopped for memory during a failing run (record `docker events`
+    for `oom`, `die`, `kill` and `restart` alongside the run); and
+    whether stopping the other project's stack during runs, or giving
+    Docker more memory, makes the 502s stop.
 
 - [x] **Who can call each function** (`function_execute_grants`,
   2026-10-10): no function has `PUBLIC` `EXECUTE`; the helpers reach
