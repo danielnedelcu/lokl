@@ -132,6 +132,37 @@ check(reviewedMail.subject === "We've reviewed what we hid from your lokl profil
   "8i. reviewed: it was fine, and they'd already replaced it");
 check([hiddenMail, restoredMail, reviewedMail].every((e) => !e.text.toLowerCase().includes("reason")), "8j. none carries lokl's internal reason");
 
+// 8k. Listing review (decided 2026-10-21): the provider's copy of lokl's
+// decision, with the provider-facing reason only for a rejection or takedown.
+const listing = { id: "00000000-0000-4000-8000-0000000000aa", title: "Sweet Auburn food walk", kind: "experience" as const };
+const reviewMail = (kind: "provider_listing_approved" | "provider_listing_rejected" | "provider_listing_unpublished" | "provider_listing_restored", message: string | null) =>
+  renderProviderAccountEmail(kind, { siteUrl: site, businessName: "Fresh Cuts Studio", message, listing });
+const approvedMail = reviewMail("provider_listing_approved", null);
+const rejectedMail = reviewMail("provider_listing_rejected", "The photos are of another tour.");
+const downMail = reviewMail("provider_listing_unpublished", "Its address is a private home.");
+const backMail = reviewMail("provider_listing_restored", null);
+const editor = `${site}/dashboard/listings/${listing.id}`;
+check(approvedMail.subject === "Your Experience “Sweet Auburn food walk” is live" && approvedMail.text.includes("customers can find and book it"),
+  "8k. approved: live, and bookable");
+check(rejectedMail.subject === "Your Experience “Sweet Auburn food walk” needs changes"
+  && rejectedMail.text.includes("lokl's reason:\nThe photos are of another tour.") && rejectedMail.text.includes("send it for review again"),
+  "8l. rejected: lokl's reason as the provider sees it, and what to do next");
+check(downMail.subject === "We've taken down your Experience “Sweet Auburn food walk”" && downMail.text.includes("lokl's reason:\nIts address is a private home.")
+  && downMail.text.includes("withdrawn") && downMail.text.includes("still go ahead"),
+  "8m. taken down: the reason, and what happens to its bookings");
+check(backMail.subject === "Your Experience “Sweet Auburn food walk” is live again", "8n. restored: live again");
+check([approvedMail, rejectedMail, downMail, backMail].every((e) => e.text.includes(editor) && e.html.includes(editor)), "8o. each links to the listing in the provider's dashboard");
+check(!approvedMail.text.includes("reason") && !backMail.text.includes("reason") && !approvedMail.text.includes("A message from lokl"),
+  "8p. an approval or restore carries no text from lokl");
+check(rejectedMail.html.includes("lokl&#39;s reason") || rejectedMail.html.includes("lokl's reason"), "8q. ...and the HTML labels the reason as lokl's");
+const evilReason = reviewMail("provider_listing_rejected", "<img src=x onerror=alert(1)> please fix");
+check(!evilReason.html.includes("<img src=x") && evilReason.html.includes("&lt;img"), "8r. the reason is escaped in the HTML");
+const service = renderProviderAccountEmail("provider_listing_approved", { siteUrl: site, businessName: "Fresh Cuts Studio", message: null, listing: { ...listing, kind: "service" } });
+check(service.subject.startsWith("Your Service "), "8s. a Service is named as one");
+let threw = false;
+try { renderProviderAccountEmail("provider_listing_approved", { siteUrl: site, businessName: "Fresh Cuts Studio", message: null }); } catch { threw = true; }
+check(threw, "8t. a listing email without its listing isn't rendered");
+
 // 9. Reviews (docs/design/reviews.md).
 const req9 = find("customer_review_request");
 check(req9.subject === "How was Sweet Auburn food walk?" && req9.text.includes("/account/bookings/00000000-0000-4000-8000-000000000001#review"),
@@ -171,5 +202,5 @@ const at11 = (startsAt: string) => renderEmail("customer_booking_confirmed", { .
 check(at11("2026-11-01T05:30:00Z").includes("Sun, Nov 1, 1:30 AM EDT (Atlanta time)") && at11("2026-11-01T06:30:00Z").includes("Sun, Nov 1, 1:30 AM EST (Atlanta time)"),
   "11. a booking in November's repeated hour says 1:30 AM EDT or EST in the email");
 
-console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} booking emails, 3 account emails).`);
+console.log(failures ? `${failures} failed` : `All email template checks passed (${all.length} booking emails, and the provider account emails).`);
 process.exit(failures ? 1 : 0);

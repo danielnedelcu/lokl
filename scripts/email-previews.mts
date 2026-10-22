@@ -22,6 +22,17 @@ const account = [
 const samples = [
   ...emailSamples().map((s) => ({ kind: s.kind as string, variant: s.variant, render: () => renderEmail(s.kind, s.ctx) })),
   ...account.map((a) => ({ kind: a.kind as string, variant: a.variant, render: () => renderProviderAccountEmail(a.kind, { siteUrl: "http://localhost:3100", businessName: "Fresh Cuts Studio", message: a.message }) })),
+  // Listing review emails, about an Experience.
+  ...([
+    ["provider_listing_approved", null],
+    ["provider_listing_rejected", "The photos are of another tour."],
+    ["provider_listing_unpublished", "Its address is a private home."],
+    ["provider_listing_restored", null],
+  ] as const).map(([kind, message]) => ({
+    kind: kind as string, variant: message ? "with lokl's reason" : "no text",
+    render: () => renderProviderAccountEmail(kind, { siteUrl: "http://localhost:3100", businessName: "Fresh Cuts Studio", message,
+      listing: { id: "00000000-0000-4000-8000-0000000000aa", title: "Sweet Auburn food walk", kind: "experience" } }),
+  })),
 ];
 const items = samples.map((s, i) => {
   const e = s.render();

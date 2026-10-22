@@ -116,6 +116,8 @@ interface Parts {
   after?: string[];
   /** lokl's own words to the person (provider account emails), shown as written. */
   message?: string | null;
+  /** The heading over the message (default "A message from lokl"). */
+  messageLabel?: string;
   button: { label: string; url: string };
   link?: { label: string; url: string };
   recipient: "customer" | "provider" | "account" | "admin" | "invitee";
@@ -138,7 +140,7 @@ function render(p: Parts): RenderedEmail {
     ...(p.bullets?.length ? [p.bullets.map((b) => `- ${b}`).join("\n")] : []),
     ...(p.facts?.length ? [p.facts.map(([k, v]) => `${k}: ${v}`).join("\n")] : []),
     ...(p.after ?? []),
-    ...(p.message ? [`A message from lokl:\n${p.message}`] : []),
+    ...(p.message ? [`${p.messageLabel ?? "A message from lokl"}:\n${p.message}`] : []),
     `${p.button.label}: ${p.button.url}`,
     ...(p.link ? [`${p.link.label}: ${p.link.url}`] : []),
     "--",
@@ -155,7 +157,7 @@ ${p.intro.map(para).join("\n")}
 ${p.bullets?.length ? `<ul style="margin:0 0 16px;padding-left:20px">${p.bullets.map((b) => `<li style="margin:0 0 6px">${escape(b)}</li>`).join("")}</ul>` : ""}
 ${p.facts?.length ? `<table role="presentation" style="margin:0 0 16px;border-collapse:collapse">${p.facts.map(([k, v]) => `<tr><td style="padding:2px 16px 2px 0;color:#555555;vertical-align:top">${escape(k)}</td><td style="padding:2px 0">${escape(v)}</td></tr>`).join("")}</table>` : ""}
 ${(p.after ?? []).map(para).join("\n")}
-${p.message ? `<div style="margin:0 0 16px;padding:12px 16px;background:#f4f4f5;border-radius:6px"><p style="margin:0 0 4px;font-weight:600">A message from lokl</p><p style="margin:0;white-space:pre-line">${escape(p.message)}</p></div>` : ""}
+${p.message ? `<div style="margin:0 0 16px;padding:12px 16px;background:#f4f4f5;border-radius:6px"><p style="margin:0 0 4px;font-weight:600">${escape(p.messageLabel ?? "A message from lokl")}</p><p style="margin:0;white-space:pre-line">${escape(p.message)}</p></div>` : ""}
 <p style="margin:24px 0 8px"><a href="${escape(p.button.url)}" style="display:inline-block;min-height:44px;line-height:44px;padding:0 20px;background:#111111;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600">${escape(p.button.label)}</a></p>
 <p style="margin:0 0 16px;font-size:14px;color:#555555">Or open: <a href="${escape(p.button.url)}" style="color:#111111">${escape(p.button.url)}</a></p>
 ${p.link ? `<p style="margin:0 0 16px"><a href="${escape(p.link.url)}" style="color:#111111">${escape(p.link.label)}</a></p>` : ""}
@@ -483,7 +485,13 @@ export function renderEmail(kind: EmailKind, c: EmailContext): RenderedEmail {
 // ---------------------------------------------------------------------------
 
 export type ProviderAccountEmailKind = "provider_account_paused" | "provider_account_active" | "provider_profile_edited"
-  | "provider_profile_hidden" | "provider_profile_restored" | "provider_profile_reviewed";
+  | "provider_profile_hidden" | "provider_profile_restored" | "provider_profile_reviewed" | ProviderListingEmailKind;
+
+/** Listing review emails (decided 2026-10-21): the provider's copy of lokl's decision on a listing. */
+export type ProviderListingEmailKind = "provider_listing_approved" | "provider_listing_rejected" | "provider_listing_unpublished" | "provider_listing_restored";
+export const PROVIDER_LISTING_EMAIL_KINDS: readonly ProviderListingEmailKind[] = [
+  "provider_listing_approved", "provider_listing_rejected", "provider_listing_unpublished", "provider_listing_restored",
+];
 
 // What lokl removed from a profile, as the email lists it.
 const REMOVED_LABELS: Record<string, string> = {
@@ -495,10 +503,62 @@ const REMOVED_LABELS: Record<string, string> = {
 
 export function renderProviderAccountEmail(
   kind: ProviderAccountEmailKind,
-  c: { siteUrl: string; businessName: string; message: string | null; removed?: string[] | null; rule?: string | null },
+  c: {
+    siteUrl: string; businessName: string; message: string | null; removed?: string[] | null; rule?: string | null;
+    /** For a listing email: the listing the review was about. */
+    listing?: { id: string; title: string; kind: "experience" | "service" } | null;
+  },
 ): RenderedEmail {
   const message = c.message?.trim() || null;
   const button = { label: "Go to your dashboard", url: `${c.siteUrl}/dashboard` };
+  // Listing review (decided 2026-10-21). A rejection or takedown carries the
+  // reason the provider also sees in their editor, labelled as lokl's reason;
+  // nothing else from lokl's side goes in.
+  if ((PROVIDER_LISTING_EMAIL_KINDS as readonly string[]).includes(kind)) {
+    if (!c.listing) throw new Error("A listing email needs its listing.");
+    const what = c.listing.kind === "experience" ? "Experience" : "Service";
+    const title = `“${c.listing.title}”`;
+    const open = { label: "Open your listing", url: `${c.siteUrl}/dashboard/listings/${c.listing.id}` };
+    if (kind === "provider_listing_approved") {
+      return render({
+        recipient: "account",
+        subject: `Your ${what} ${title} is live`,
+        intro: [`lokl approved your ${what} ${title}. It's live now, so customers can find and book it.`],
+        button: open,
+      });
+    }
+    if (kind === "provider_listing_restored") {
+      return render({
+        recipient: "account",
+        subject: `Your ${what} ${title} is live again`,
+        intro: [`lokl put your ${what} ${title} back on lokl. Customers can find and book it again.`],
+        button: open,
+      });
+    }
+    if (kind === "provider_listing_rejected") {
+      return render({
+        recipient: "account",
+        subject: `Your ${what} ${title} needs changes`,
+        intro: [`lokl reviewed your ${what} ${title} and couldn't approve it yet.`],
+        message,
+        messageLabel: "lokl's reason",
+        after: ["Make the changes in your listing, then send it for review again. You'll see the same reason at the top of the editor."],
+        button: open,
+      });
+    }
+    return render({
+      recipient: "account",
+      subject: `We've taken down your ${what} ${title}`,
+      intro: [`lokl has taken your ${what} ${title} off lokl. Customers can't find or book it now.`],
+      message,
+      messageLabel: "lokl's reason",
+      after: [
+        "Requests you hadn't answered, and bookings still in checkout, have been withdrawn. Those customers weren't charged.",
+        "Bookings that were already confirmed still go ahead. If you can't do one, cancel it from your dashboard, and the customer gets a full refund.",
+      ],
+      button: open,
+    });
+  }
   // Profile content that broke a profile rule (docs/design/provider-profiles.md).
   if (kind === "provider_profile_edited") {
     const rule = c.rule && c.rule in PROFILE_RULES ? PROFILE_RULES[c.rule as ProfileRule] : null;
