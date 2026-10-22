@@ -318,6 +318,14 @@ for usability and defence in depth, never as the only protection.
   end;
   $$;
   ```
+- **Tests share one database, so they check only their own rows**
+  (2026-10-21). Every active admin gets a bell notice for every
+  Experience sent for review (`listings_alert_team_submitted`), including
+  admins made by tests running alongside. A test checks its own
+  notifications by kind and listing, never an admin's total bell count;
+  a test that sends team emails passes its own `recipients` to
+  `sendAdminEmails` (the sender takes 50 a run, oldest first, and other
+  tests leave team emails waiting).
 - **Test data never gives the admin login a provider record.** Keep roles on
   separate logins: the admin login is only an admin, and test providers use
   their own logins (plus addresses such as `+provider1`, `+provider2`). An

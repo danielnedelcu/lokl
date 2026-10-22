@@ -1388,6 +1388,10 @@
       ],
       "triggers": [
         {
+          "name": "listings_alert_team_submitted",
+          "def": "CREATE TRIGGER listings_alert_team_submitted AFTER INSERT OR UPDATE OF status ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_alert_team_submitted()"
+        },
+        {
           "name": "listings_check_references",
           "def": "CREATE TRIGGER listings_check_references BEFORE INSERT OR UPDATE OF category_id, city_id, area_id ON public.listings FOR EACH ROW EXECUTE FUNCTION listings_check_references()"
         },
@@ -9283,7 +9287,7 @@
     {
       "name": "public.admin_notifications",
       "type": "BASE TABLE",
-      "comment": "The admin bell: a new report (support_safety for a Safety one) or a provider's reply, one row per admin login; and a team change (team_change, its admin_actions row) for every active owner. Each admin reads and marks read only their own. Ids only: published to Realtime, so an open report reloads its thread. Deleted with the admin's login.",
+      "comment": "The admin bell, one row per team member's login: problem reports and replies, requests, team changes, alerts for the owners, and (listing_submitted) an Experience waiting for review, for everyone who can review it. Each admin reads and marks read only their own. Ids only: published to Realtime. Deleted with the admin's login, and a listing_submitted row with its listing.",
       "columns": [
         {
           "name": "id",
@@ -9334,6 +9338,12 @@
           "type": "uuid",
           "nullable": true,
           "comment": "For a job alert: what the watchdog found."
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "For listing_submitted: the listing sent for review. Deleted with it."
         }
       ],
       "indexes": [
@@ -9385,13 +9395,21 @@
           "columns": [
             "admin_request_id"
           ]
+        },
+        {
+          "name": "admin_notifications_listing",
+          "def": "CREATE INDEX admin_notifications_listing ON public.admin_notifications USING btree (listing_id) WHERE (listing_id IS NOT NULL)",
+          "table": "public.admin_notifications",
+          "columns": [
+            "listing_id"
+          ]
         }
       ],
       "constraints": [
         {
           "name": "admin_notifications_about_check",
           "type": "CHECK",
-          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id, job_alert_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text, 'profile_hidden_overdue'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL)) AND ((kind = 'job_alert'::text) = (job_alert_id IS NOT NULL))))",
+          "def": "CHECK (((num_nonnulls(report_id, admin_action_id, admin_request_id, job_alert_id, listing_id) = 1) AND ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text])) = (report_id IS NOT NULL)) AND ((kind = ANY (ARRAY['team_change'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text, 'profile_hidden_overdue'::text])) = (admin_action_id IS NOT NULL)) AND ((kind = ANY (ARRAY['request_new'::text, 'request_decided'::text])) = (admin_request_id IS NOT NULL)) AND ((kind = 'job_alert'::text) = (job_alert_id IS NOT NULL)) AND ((kind = 'listing_submitted'::text) = (listing_id IS NOT NULL))))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -9399,13 +9417,14 @@
             "admin_action_id",
             "admin_request_id",
             "job_alert_id",
+            "listing_id",
             "kind"
           ]
         },
         {
           "name": "admin_notifications_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text, 'profile_hidden_overdue'::text, 'job_alert'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['support_new'::text, 'support_safety'::text, 'support_reply'::text, 'team_change'::text, 'request_new'::text, 'request_decided'::text, 'limit_reached'::text, 'support_refund'::text, 'listing_taken_down'::text, 'settings_change'::text, 'profile_hidden'::text, 'profile_hidden_overdue'::text, 'job_alert'::text, 'listing_submitted'::text])))",
           "table": "public.admin_notifications",
           "referenced_table": "",
           "columns": [
@@ -9420,6 +9439,19 @@
           "referenced_table": "auth.users",
           "columns": [
             "recipient_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "admin_notifications_listing_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE",
+          "table": "public.admin_notifications",
+          "referenced_table": "public.listings",
+          "columns": [
+            "listing_id"
           ],
           "referenced_columns": [
             "id"
@@ -10053,6 +10085,12 @@
           "type": "uuid",
           "nullable": true,
           "comment": "For a job alert email: what the watchdog found (admin_action_id is empty then)."
+        },
+        {
+          "name": "listing_id",
+          "type": "uuid",
+          "nullable": true,
+          "comment": "For admin_listing_submitted: the listing sent for review. No key: the outbox row is kept if the listing is deleted (the email is then skipped)."
         }
       ],
       "indexes": [
@@ -10071,18 +10109,28 @@
           "columns": [
             "next_attempt_at"
           ]
+        },
+        {
+          "name": "admin_emails_listing",
+          "def": "CREATE INDEX admin_emails_listing ON public.admin_emails USING btree (listing_id, created_at) WHERE (listing_id IS NOT NULL)",
+          "table": "public.admin_emails",
+          "columns": [
+            "listing_id",
+            "created_at"
+          ]
         }
       ],
       "constraints": [
         {
           "name": "admin_emails_about_check",
           "type": "CHECK",
-          "def": "CHECK ((num_nonnulls(admin_action_id, job_alert_id) = 1))",
+          "def": "CHECK ((num_nonnulls(admin_action_id, job_alert_id, listing_id) = 1))",
           "table": "public.admin_emails",
           "referenced_table": "",
           "columns": [
             "admin_action_id",
-            "job_alert_id"
+            "job_alert_id",
+            "listing_id"
           ]
         },
         {
@@ -10109,7 +10157,7 @@
         {
           "name": "admin_emails_kind_check",
           "type": "CHECK",
-          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text, 'admin_listing_taken_down'::text, 'admin_settings_change'::text, 'admin_profile_hidden'::text, 'admin_profile_hidden_overdue'::text, 'admin_job_alert'::text])))",
+          "def": "CHECK ((kind = ANY (ARRAY['admin_invite'::text, 'admin_team_change'::text, 'admin_request_new'::text, 'admin_limit_reached'::text, 'admin_support_refund'::text, 'admin_listing_taken_down'::text, 'admin_settings_change'::text, 'admin_profile_hidden'::text, 'admin_profile_hidden_overdue'::text, 'admin_job_alert'::text, 'admin_listing_submitted'::text])))",
           "table": "public.admin_emails",
           "referenced_table": "",
           "columns": [
@@ -10124,6 +10172,17 @@
           "referenced_table": "",
           "columns": [
             "last_error"
+          ]
+        },
+        {
+          "name": "admin_emails_listing_kind",
+          "type": "CHECK",
+          "def": "CHECK (((kind = 'admin_listing_submitted'::text) = (listing_id IS NOT NULL)))",
+          "table": "public.admin_emails",
+          "referenced_table": "",
+          "columns": [
+            "kind",
+            "listing_id"
           ]
         },
         {
@@ -12738,6 +12797,19 @@
     {
       "table": "public.admin_notifications",
       "columns": [
+        "listing_id"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "public.listings",
+      "parent_columns": [
+        "id"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE"
+    },
+    {
+      "table": "public.admin_notifications",
+      "columns": [
         "admin_action_id"
       ],
       "cardinality": "zero_or_more",
@@ -15280,6 +15352,12 @@
       "name": "public.run_scheduled_job",
       "return_type": "int8",
       "arguments": "p_job text",
+      "type": "FUNCTION"
+    },
+    {
+      "name": "public.listings_alert_team_submitted",
+      "return_type": "trigger",
+      "arguments": "",
       "type": "FUNCTION"
     }
   ],
