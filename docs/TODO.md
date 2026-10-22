@@ -21,7 +21,8 @@ lokl's domain is **hilokl.com** (docs/decisions.md). Finished work is in
      email at most once an hour per listing (built 2026-10-21).
   4. [x] A reload after a lost reply can hide a date (Hardening; built
      2026-10-21 for Experiences; the Service side is its own item).
-  5. Look into the gateway drops themselves (Hardening).
+  5. [x] Look into the gateway drops themselves (Hardening; measured
+     2026-10-21).
   6. Money writes in one transaction, safe to retry: checkout, payouts and
      the finances totals (Hardening).
   7. Booking reminders the day before (Notifications): at 10 AM Atlanta
@@ -332,13 +333,34 @@ three are done: explicit API grants, the build secrets check, and
     (`SEARCH_READS`), so a dropped connection no longer fails the
     Providers, Listings, Bookings or Problem reports list (journey 41's
     failure).
-  - [ ] **Look into the drops themselves** (option 3): Docker Desktop's memory and CPU limits on this MacBook Air
-    against what two Supabase stacks and the test apps use (`docker
-    stats` during a full run); whether any container restarted or was
-    stopped for memory during a failing run (record `docker events`
-    for `oom`, `die`, `kill` and `restart` alongside the run); and
-    whether giving Docker more memory makes the 502s rarer (the openhouse
-    stack stays running).
+  - [x] **Looked into the drops themselves** (2026-10-21, one full run on
+    `main` measured: every container's memory every 5 seconds, Docker's
+    events, and Kong's, PostgREST's and Realtime's logs):
+    - **Not memory.** Docker Desktop has 10 CPUs and 7.65 GiB (this
+      MacBook Air has 24 GB); both Supabase stacks idle at about 5.1 GiB
+      (lokl's about 3.0), and the run peaked at 4.88 GiB, with no
+      out-of-memory kills or unexpected restarts.
+    - **Not the schema reloads, this time.** PostgREST's reloads (192
+      messages, Realtime creating its partitions) all came in the first
+      minute, during the database reset; the resets came 6 to 9 minutes
+      later.
+    - **Idle connections reused as PostgREST closes them.** 5 of about
+      15,600 requests met a reset (`recv() failed (104: Connection reset
+      by peer)` or `upstream prematurely closed`), all during the browser
+      tests' parallel load: Kong reuses an idle connection to PostgREST
+      (pool of 10) just as PostgREST closes it. Kong retries reads, so 4
+      never showed; the one POST (`admin_bookings_page`) reached the
+      browser as a 502 and the app's search-read retry (#24) asked again,
+      so nothing failed.
+    - **What's left exposed:** a POST outside `SEARCH_READS` (an app
+      write, or a setup function call such as making a booking) meeting
+      a reset. The apps report a failed write to the person; tests rely
+      on the CI re-run rule. The local stack's Kong and PostgREST
+      timeouts aren't settable through `supabase/config.toml`, so the
+      race itself isn't ours to remove locally; measure on staging,
+      whose gateway is Supabase's hosted one.
+    - **Not needed:** more memory for Docker, or stopping the openhouse
+      stack.
 
 - [x] **Who can call each function** (`function_execute_grants`,
   2026-10-10): no function has `PUBLIC` `EXECUTE`; the helpers reach
